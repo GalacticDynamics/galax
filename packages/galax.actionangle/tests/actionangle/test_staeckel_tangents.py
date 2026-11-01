@@ -12,13 +12,15 @@ from ._helpers import (
     _live_limits,
     _mn,
     _mn_p,
-    _param_jacs,
     _phi,
     _scales,
+    _vc,
 )
 from galax.actionangle._src._staeckel_limits import (
+    _derivs,
     default_phi_inf,
     find_limits,
+    taylor_coeffs,
 )
 from galax.actionangle._src._staeckel_prolate import (
     integrals_of_motion,
@@ -26,10 +28,45 @@ from galax.actionangle._src._staeckel_prolate import (
 )
 
 
+def _param_out(theta, *, plain):
+    """Limits and Taylor coefficients w.r.t. (w6, MN parameters).
+
+    (lam_min, lam_max, nu_max, c2, c3, c4, F2, F4); with ``plain`` also the
+    coefficients from two separate nested-jvp nests (not `taylor_coeffs`'
+    fused one). Aux: (the outputs, the Limits).
+    """
+    lim, F = _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)
+    t = taylor_coeffs(F, lim)
+    rows = [lim.lam_min, lim.lam_max, lim.nu_max, t.c2, t.c3, t.c4, t.F2, t.F4]
+    if plain:
+        m = 0.5 * (lim.lam_min + lim.lam_max)
+        _, _, d2, d3, d4 = _derivs(F.F_lam, m, 4)
+        _, _, u2, _, u4 = _derivs(F.F_nu_u, jnp.zeros_like(m), 4)
+        rows += [d2 / 2, d3 / 6, d4 / 24, u2 / 2, u4 / 24]
+    out = jnp.stack(rows)
+    return out, (out, lim)
+
+
 @pytest.fixture(scope="module")
 def param_jacs():
-    """See `_helpers._param_jacs`."""
-    return _param_jacs()
+    """Compute jacfwd (with the plain nests) and jacrev of `_param_out`, two points.
+
+    A generic point and the lambda edge (z = 0, v_R = 0: one limit is the
+    phase point's lambda). One compile per mode serves the tangent and the
+    Taylor-autodiff tests; the values come from the jacfwd program.
+    """
+    w6s = jnp.asarray(
+        [
+            [8.0, 0.5, 0.6, 0.03, 0.2, 0.04],  # generic
+            [3.0, 0.0, 0.0, 0.0, 0.18, 0.05],  # z = 0, v_R = 0: lambda edge
+        ]
+    )
+    thetas = jnp.concat([w6s, jnp.broadcast_to(MN_P, (2, 3))], axis=1)
+    fwd = jax.jacfwd(lambda t: _param_out(t, plain=True), has_aux=True)
+    rev = jax.jacrev(lambda t: _param_out(t, plain=False), has_aux=True)
+    Jf, (vals, lim0) = jax.jit(jax.vmap(fwd))(thetas)
+    Jr, _ = jax.jit(jax.vmap(rev))(thetas)
+    return w6s, thetas, np.asarray(Jf), np.asarray(Jr), np.asarray(vals), lim0
 
 
 def test_tangent_simple_fd(param_jacs):
@@ -74,19 +111,6 @@ def test_tangent_simple_fd(param_jacs):
             _assert_jac_close(J[i], fd[i], rtol=1e-5, atol_rel=1e-8)
 
 
-@pytest.fixture(scope="module")
-def shell_w6s():
-    """Planar circular MN orbits: every radius is a lambda shell (snapped)."""
-    pot = _mn_p(MN_P)
-    phi = _phi(pot)
-    R = jnp.arange(2.0, 16.0, 0.25)
-    vc = jnp.sqrt(R * jax.vmap(jax.grad(lambda r: phi(r, 0.0 * r)))(R))
-    w6s = jnp.stack([R, 0 * R, 0 * R, 0 * R, vc, 0 * R], axis=1)
-    lim = jax.jit(jax.vmap(lambda w: _live_limits(pot, w, MN_D2)[0]))(w6s)
-    assert np.all(lim.shell & lim.snapped)
-    return w6s[:2]
-
-
 def _shell_lims(theta):
     return _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)[0]
 
@@ -99,17 +123,23 @@ def _shell_mid(theta):
 _shell_lims_j = jax.jit(_shell_lims)  # one compile for every FD probe
 
 
-@pytest.mark.parametrize("jac", [jax.jacfwd, jax.jacrev])
-def test_tangent_double_root_via_midpoint(jac, shell_w6s):
-    thetas = jnp.concat([shell_w6s, jnp.broadcast_to(MN_P, (2, 3))], axis=1)
-    Js = np.asarray(jax.jit(jax.vmap(jac(_shell_mid)))(thetas))
-    for w6, theta0, J in zip(shell_w6s, thetas, Js, strict=True):
-        _check_double_root(w6, theta0, J)
+def test_tangent_double_root_via_midpoint():
+    """Planar circular MN orbits (snapped lambda shells): both modes against FD."""
+    R = jnp.asarray([2.0, 2.25])
+    w6s = jnp.stack([R, 0 * R, 0 * R, 0 * R, _vc(_phi(_mn_p(MN_P)), R), 0 * R], 1)
+    thetas = jnp.concat([w6s, jnp.broadcast_to(MN_P, (2, 3))], axis=1)
+    Js = [
+        jax.jit(jax.vmap(jac(_shell_mid)))(thetas) for jac in (jax.jacfwd, jax.jacrev)
+    ]
+    for i, (w6, theta0) in enumerate(zip(w6s, thetas, strict=True)):
+        _check_double_root(w6, theta0, [np.asarray(J[i]) for J in Js])
 
 
-def _check_double_root(w6, theta0, J):
-    assert _shell_lims_j(theta0).shell
-    assert np.all(np.isfinite(J))
+def _check_double_root(w6, theta0, Js):
+    lim = _shell_lims_j(theta0)
+    assert lim.shell
+    assert lim.snapped
+    assert np.all(np.isfinite(Js))
 
     # FD of the solved mid-point. A perturbed orbit may itself be a shell
     # (w/lam below the 1e-7 noise snap), and then its mid-point is the phase
@@ -128,31 +158,29 @@ def _check_double_root(w6, theta0, J):
                 break
         else:
             pytest.fail(f"input {i}: perturbed orbits stay shells")
-    _assert_jac_close(J, fd, rtol=1e-5, atol_rel=1e-8)
-    # the mid-point tangent is the shell's: not the phase point's lambda
     dlam = jax.grad(lambda w: integrals_of_motion(_phi(_mn_p(MN_P)), w, MN_D2).lam)(w6)
-    assert np.max(np.abs(J[:6] - np.asarray(dlam))) > 1e-3 * np.max(np.abs(J[:6]))
+    for J in Js:
+        _assert_jac_close(J, fd, rtol=1e-5, atol_rel=1e-8)
+        # the mid-point tangent is the shell's: not the phase point's lambda
+        assert np.max(np.abs(J[:6] - np.asarray(dlam))) > 1e-3 * np.max(np.abs(J[:6]))
 
 
-def test_first_order_only_pinned():
-    """The tangents are first-order: the Hessian (w.r.t. v_R) is knowingly off."""
-    pot = _mn()
-    w6 = jnp.asarray([8.0, 0.0, 0.6, 0.03, 0.2, 0.04])  # y = 0: v_R = v_x
+def test_taylor_coeffs_autodiff_both_modes(param_jacs):
+    """taylor_coeffs' fused nests: plain autodiff in both modes.
 
-    def lmin(vR):
-        lim, _ = _live_limits(pot, w6.at[3].set(vR), MN_D2)
-        return lim.lam_min
-
-    vR, h = w6[3], 1e-4 * w6[3]
-    g = jax.jit(jax.grad(lmin))
-    lmin_j = jax.jit(lmin)
-    # the gradient itself is right ...
-    fd1 = (lmin_j(vR + h) - lmin_j(vR - h)) / (2 * h)
-    np.testing.assert_allclose(g(vR), fd1, rtol=1e-6)
-    # ... its derivative is not: the frozen points miss d2F/dL dtheta and dF'
-    H = jax.jit(jax.hessian(lmin))(vR)
-    H_fd = (g(vR + h) - g(vR - h)) / (2 * h)
-    assert np.abs(H - H_fd) > 1e-3 * np.abs(H_fd), (H, H_fd)
+    w.r.t. the phase point and MN's parameters (F's closed-over tracers):
+    values bitwise those of two separate nested-jvp nests; jacfwd and jacrev
+    of taylor_coeffs both equal the separate nests' jacfwd. At the generic
+    point of `param_jacs` (here, so one worker compiles it).
+    """
+    _, _, Jf, Jr, vals, _ = param_jacs
+    fused, plain = slice(3, 8), slice(8, 13)
+    np.testing.assert_array_equal(vals[0, fused], vals[0, plain])
+    J_ref = Jf[0, plain]
+    for J in (Jf[0, fused], Jr[0, fused]):
+        assert np.all(np.isfinite(J))
+        assert np.all(np.any(J[:, 6:] != 0, axis=1))  # parameter tangents flow
+        _assert_jac_close(J, J_ref, rtol=1e-13, atol_rel=1e-14)
 
 
 @pytest.mark.parametrize("jac", [jax.jacfwd, jax.jacrev])

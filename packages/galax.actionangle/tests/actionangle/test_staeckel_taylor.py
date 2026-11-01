@@ -15,7 +15,6 @@ from ._helpers import (
     _GRAD_POTS,
     D2,
     MN_D2,
-    _assert_jac_close,
     _D2_pipeline,
     _kk,
     _limits_fn,
@@ -23,8 +22,8 @@ from ._helpers import (
     _mn,
     _near_circular_w6s,
     _nfw,
-    _param_jacs,
     _phi,
+    _vc,
     _w6s,
     kk_delta,
     kk_lambda_roots_decimal,
@@ -44,7 +43,6 @@ from galax.actionangle._src._staeckel_prolate import (
 def _builtin_pots():
     snlm = jnp.zeros((3, 3, 3)).at[0, 0, 0].set(1.0).at[0, 2, 0].set(0.1)
     return {
-        "mn": (_mn(), 0.2),
         "burkert": (
             gp.BurkertPotential(
                 m=u.Q(1e11, "Msun"), r_s=u.Q(5.0, "kpc"), units="galactic"
@@ -76,7 +74,8 @@ def _builtin_pots():
     }
 
 
-@pytest.mark.parametrize("name", ["mn", "burkert", "zhao", "scf", "mw2022"])
+# MN: covered by the other tests here
+@pytest.mark.parametrize("name", ["burkert", "zhao", "scf", "mw2022"])
 def test_taylor_coeffs_trace_all_builtins(name):
     pot, vc = _builtin_pots()[name]
     w6s = jnp.asarray(
@@ -156,7 +155,7 @@ def test_near_shell_switch_continuity_mw2022():
     pot = gp.MilkyWayPotential2022()
     phi = _phi(pot)
     R = 1.0
-    vc = float(jnp.sqrt(R * jax.grad(lambda r: phi(r, jnp.asarray(0.0)))(R)))
+    vc = float(_vc(phi, R))
 
     def solve(vR):
         w6 = jnp.asarray([[R, 0.0, 0.05, vR, vc, 0.01 * vc]])
@@ -252,30 +251,6 @@ def test_use_n_off_where_nu_line_crosses_cusp(name):
     np.testing.assert_array_equal(tay.use_n, [False] * 6 + [True])
 
 
-@pytest.fixture(scope="module")
-def param_jacs():
-    """See `_helpers._param_jacs`."""
-    return _param_jacs()
-
-
-def test_taylor_coeffs_autodiff_both_modes(param_jacs):
-    """taylor_coeffs' fused nests: plain autodiff in both modes.
-
-    w.r.t. the phase point and MN's parameters (F's closed-over tracers):
-    values bitwise those of two separate nested-jvp nests; jacfwd and jacrev
-    of taylor_coeffs both equal the separate nests' jacfwd. At the generic
-    point of `param_jacs`.
-    """
-    _, _, Jf, Jr, vals, _ = param_jacs
-    fused, plain = slice(3, 8), slice(8, 13)
-    np.testing.assert_array_equal(vals[0, fused], vals[0, plain])
-    J_ref = Jf[0, plain]
-    for J in (Jf[0, fused], Jr[0, fused]):
-        assert np.all(np.isfinite(J))
-        assert np.all(np.any(J[:, 6:] != 0, axis=1))  # parameter tangents flow
-        _assert_jac_close(J, J_ref, rtol=1e-13, atol_rel=1e-14)
-
-
 @pytest.mark.parametrize(("name", "d2"), [("mn", 2.25), ("kk", 8.0)])
 def test_use_n_on_smooth_near_axis(name, d2):
     """Smooth potentials keep the near-planar series near the axis.
@@ -285,16 +260,20 @@ def test_use_n_on_smooth_near_axis(name, d2):
     1e-8 |F2|), and its Q matches the 6th-order series to ~1e-16, where
     the direct quadrature loses ~3e-5 to cancellation.
     """
-    pot = {"mn": _mn, "kk": _kk}[name]()
+    pot = _GRAD_POTS[name]()
     phi = _phi(pot)
     R = 3e-3
-    vc = float(jnp.sqrt(R * jax.grad(lambda r: phi(r, jnp.asarray(0.0)))(R)))
+    vc = float(_vc(phi, R))
     w6 = jnp.asarray([R, 0.0, 3e-5 * np.sqrt(d2), 0.1 * vc, vc, 0.0])
-    lim, F = _live_limits(pot, w6, d2)
-    tay = taylor_coeffs(F, lim)
+
+    @jax.jit
+    def one(w6):
+        lim, F = _live_limits(pot, w6, d2)
+        return lim, taylor_coeffs(F, lim), limits._derivs(F.F_nu_u, 0.0 * w6[0], 6)
+
+    lim, tay, d = one(w6)
     assert tay.use_n
     hi = float(lim.nu_max)
-    d = limits._derivs(F.F_nu_u, jnp.asarray(0.0), 6)
     Fk = [float(d[2 * k]) / math.factorial(2 * k) for k in range(4)]
     tau = hi * np.sin(np.pi * np.linspace(0.05, 0.95, 10) / 2) ** 2
     q6 = -sum(
@@ -348,7 +327,7 @@ def _batch_w6s(pot, n=24):
     phi = _phi(pot)
     w6s = np.array(_w6s(n, seed=4))
     R = w6s[:8, 0]
-    vc = np.sqrt(R * np.asarray(jax.vmap(jax.grad(lambda r: phi(r, 0.0 * r)))(R)))
+    vc = np.asarray(_vc(phi, R))
     w6s[:4, 2], w6s[:4, 5] = 1e-6, 1e-7  # near-planar
     w6s[4:8, 1:4] = 0.0  # near-circular: a near shell
     w6s[4:8, 4], w6s[4:8, 3] = vc[4:], 1e-3 * vc[4:]
@@ -370,7 +349,8 @@ def test_taylor_coeffs_batch_matches_per_lane():
     non-candidate lanes are NaN. The compacted gradient's scratch memory
     stays near the per-lane program's (measured 1.1x): without the
     per-lane checkpoint the cond kept its branches' residuals (4x). On MN
-    only: KK takes the same branches, and each case is 6 compiles (memory).
+    only: KK takes the same branches. The values are the gradient
+    programs' aux: one compile per case (memory).
     """
     pot = _mn()
     phi = _phi(pot)
@@ -390,20 +370,23 @@ def test_taylor_coeffs_batch_matches_per_lane():
         cl = jnp.where(t.use_l, t.c2 + 2 * t.c3 + 3 * t.c4, 0.0)
         return jnp.sum(cl + jnp.where(t.use_n, t.F2 + 5 * t.F4, 0.0))
 
-    ref = jax.jit(per_lane)(w6s)
-    n_use = int(np.sum(ref.use_l | ref.use_n))
-    assert 0 < n_use < len(w6s)
-
     def grad_exe(f):
-        return jax.jit(jax.grad(lambda w: used(f(w)))).lower(w6s).compile()
+        def loss(w):
+            t = f(w)
+            return used(t), t
 
-    def temp(exe):
-        return exe.memory_analysis().temp_size_in_bytes
+        return jax.jit(jax.grad(loss, has_aux=True)).lower(w6s).compile()
 
     ref_exe = grad_exe(per_lane)
-    g_ref = ref_exe(w6s)
+    g_ref, ref = ref_exe(w6s)
+    n_use = int(np.sum(ref.use_l | ref.use_n))
+    assert 0 < n_use < len(w6s)
     for size in (n_use, n_use - 1):  # one chunk; two chunks
-        tb = jax.jit(lambda w, s=size: batched(w, s))(w6s)
+        exe = grad_exe(lambda w, s=size: batched(w, s))
+        if size == n_use:
+            temp = [e.memory_analysis().temp_size_in_bytes for e in (exe, ref_exe)]
+            assert temp[0] < 2 * temp[1], temp
+        g, tb = exe(w6s)
         for k in ("use_l", "use_n"):
             np.testing.assert_array_equal(getattr(tb, k), getattr(ref, k), err_msg=k)
         for k, use in (
@@ -419,10 +402,6 @@ def test_taylor_coeffs_batch_matches_per_lane():
                 rtol=1e-14,
             )
         assert np.any(np.isnan(np.asarray(tb.F2)))  # generic lanes: not computed
-        exe = grad_exe(lambda w, s=size: batched(w, s))
-        if size == n_use:
-            assert temp(exe) < 2 * temp(ref_exe), (temp(exe), temp(ref_exe))
-        g = exe(w6s)
         np.testing.assert_array_less(
             np.abs(np.asarray(g - g_ref)), 1e-14 * np.max(np.abs(np.asarray(g_ref)))
         )
@@ -464,9 +443,7 @@ def test_use_l_off_where_F_has_a_kink():
     mn = _mn()
     for pot, use in ((_mn_cut(), False), (mn, True)):
         phi = _phi(pot)
-        vc = float(
-            jnp.sqrt(8.0 * jax.grad(lambda r, f=phi: f(r, jnp.asarray(0.0)))(8.0))
-        )
+        vc = float(_vc(phi, 8.0))
         w6 = jnp.asarray([8.0, 0.0, 0.05, 0.002 * vc, vc, 0.002 * vc])
         lim, F = _live_limits(pot, w6, MN_D2)
         tay = taylor_coeffs(F, lim)
@@ -505,7 +482,7 @@ def test_shell_tangent_on_the_taylor_lanes(name):
     Circular orbits (shells), near-circular and generic lanes. Reverse mode
     on kk; a fixed-direction jvp on mn (half the compile memory for CI).
     """
-    pot = {"mn": _mn, "kk": _kk}[name]()
+    pot = _GRAD_POTS[name]()
     phi = _phi(pot)
     w6s = jnp.concat([_near_circular_w6s(pot, 0.0)[::40], _batch_w6s(pot)], axis=0)
     d2s = _D2_pipeline(pot, w6s)
@@ -546,7 +523,7 @@ def _polish_case():
     pot = _kk()
     phi = _phi(pot)
     R0 = 6.0
-    vc = float(jnp.sqrt(R0 * jax.grad(lambda r: phi(r, 0.0 * r))(R0)))
+    vc = float(_vc(phi, R0))
     es = _POLISH_ES + _POLISH_GATE_ES
     near = [[R0, 0.0, 0.0, e * vc, vc, 0.3 * e * vc] for e in es]
     w6s = jnp.concat([jnp.asarray(near), _w6s(6, seed=4)])
@@ -699,7 +676,7 @@ def test_polish_keeps_roots_of_F(case):
     else:
         pot, d2, R0s, es, f_phi = _nfw(), 4.0, (0.02, 0.05), (0.3, 0.3), 0.9
     phi = _phi(pot)
-    vc = [float(jnp.sqrt(R * jax.grad(lambda r: phi(r, 0.0 * r))(R))) for R in R0s]
+    vc = [float(_vc(phi, R)) for R in R0s]
     w6s = jnp.asarray(
         [
             [R, 0.0, 0.0, e * v, f_phi * v, 0.3 * e * v]

@@ -209,6 +209,37 @@ def test_F_semi_no_overflow():
         )
 
 
+def test_F_tolerates_nonfinite_tau():
+    """Frozen/invalid lanes may carry NaN/inf tau: no raise, no NaN gradients."""
+    w6 = _w6s(1)[0]
+    pot = _kk()
+    phi = _phi(pot)
+
+    def valid_sum(w):
+        iom = integrals_of_motion(phi, w, D2)
+        F = make_F(phi, iom)
+        tot = 0.0
+        for t in (jnp.nan, jnp.inf, -jnp.inf, -1.0):
+            R3, z3, mult3, I3c = F.lane_coords(jnp.stack([0.5 * iom.absnu, 20.0, t]))
+            tot = tot + (phi(R3, z3) * mult3 + I3c)[:2].sum()
+            t3 = jnp.asarray([t, iom.absnu * 0.5, 20.0])
+            tot = tot + F.F_lam(t3)[2] + F.F_nu(t3)[1] + F.dF_lam(t3)[2]
+            tot = tot + F.dF_nu(t3)[1] + F.d2F_lam(t3)[2]
+            tot = tot + F.F_nu_u(jnp.asarray([t, 0.3]))[1]
+            s = jnp.asarray([t, 0.5])
+            tot = tot + F.F_semi(s, iom.lam, jnp.asarray(0.0))[1]
+        return tot
+
+    for jac in (jax.jacfwd, jax.jacrev):
+        g = jac(valid_sum)(w6)
+        assert np.all(np.isfinite(g)), g
+    # and the invalid lanes themselves are flagged, not silently finite
+    _, _, F = _setup()
+    for t in (jnp.nan, jnp.inf, -1.0):
+        assert np.isnan(F.F_lam(jnp.asarray(t)))
+        assert np.isnan(F.F_nu(jnp.asarray(t)))
+
+
 def test_single_phi_call_per_lane_eval(monkeypatch):
     """One phi call per solver iteration, on all three lanes (find_limits)."""
     calls = []

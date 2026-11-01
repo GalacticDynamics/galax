@@ -9,6 +9,7 @@ import unxt as u
 
 import galax.potential as gp
 from ._helpers import (
+    _GRAD_POTS,
     AXIS_W6,
     D2,
     MN_D2,
@@ -21,8 +22,10 @@ from ._helpers import (
     _live_limits,
     _mn,
     _near_circular_w6s,
+    _nfw,
     _phi,
     _setup,
+    _vc,
     _w6s,
     bisect,
     kk_turning_points,
@@ -97,9 +100,11 @@ def test_limits_convergence_regression(name, monkeypatch):
     pot = mk()
     w6s = _mixed_w6s(200, vc, rmax, seed=3)
     D2s = _D2_pipeline(pot, w6s)
-    lim16 = _limits_fn(pot)(w6s, D2s)
+    f16 = _limits_fn(pot)
+    lim16 = f16(w6s, D2s)
     _assert_lam_between(pot, w6s, D2s, lim16)
     monkeypatch.setattr(limits, "N_ROOT_ITER", 60)
+    assert _limits_fn(pot) is not f16  # the cache keys on module constants
     lim60 = _limits_fn(pot)(w6s, D2s)
     # most points bound and solved; NaN pattern unchanged
     assert np.isfinite(lim16.lam_max).mean() > 0.9
@@ -211,36 +216,20 @@ def test_log_potential_bound_by_default():
     _assert_limits_close(lim_inf, lim.lam_min, lim.lam_max, lim.nu_max, D2s)
 
 
-@pytest.mark.parametrize("pot", [_kk(), _mn()], ids=["kk", "mn"])
-def test_edge_branch_vR0_z0(pot):
-    w6s = jnp.asarray(
-        [[3.0, 0.0, 0.0, 0.0, 0.12, 0.05], [1.0, 2.0, 0.0, -0.1, 0.05, 0.03]]
-    )  # x v_x + y v_y = 0: v_R = 0
-    phi = _phi(pot)
-    lim = _limits_fn(pot)(w6s, jnp.full(2, D2))
-    for i, w6 in enumerate(w6s):
-        iom = integrals_of_motion(phi, w6, D2)
-        lam = float(iom.lam)
-        lmin, lmax = float(lim.lam_min[i]), float(lim.lam_max[i])
-        assert np.isfinite(lmin)
-        assert np.isfinite(lmax)
-        assert (lmin == lam) != (lmax == lam), (lmin, lam, lmax)
-        assert lmin < lmax
-        assert not lim.snapped[i]
-        assert not lim.shell[i]
-
-
 def test_find_limits_flags():
-    """L_z = 0 pinning and the MINIMUM_RANGE collapse, on KK."""
+    """L_z = 0 pinning, the MINIMUM_RANGE collapse and the lambda edge, on KK."""
     pot = _kk()
     w6s = jnp.asarray(
         [
             [4.0, 0.0, 1.0, 0.05, 0.0, 0.08],  # L_z = 0 tube (lam_min pinned)
             [4.0, 0.0, 0.0, 0.03, 0.15, 0.0],  # exactly planar
             AXIS_W6.tolist(),  # on the axis inside the foci
+            # z = 0, x v_x + y v_y = 0 (v_R = 0): the lambda edge
+            [3.0, 0.0, 0.0, 0.0, 0.12, 0.05],
+            [1.0, 2.0, 0.0, -0.1, 0.05, 0.03],
         ]
     )
-    lim = _limits_fn(pot)(w6s, jnp.full(3, D2))
+    lim = _limits_fn(pot)(w6s, jnp.full(len(w6s), D2))
     assert lim.planar[1]
     assert lim.nu_max[1] == 0
     for k in ("lam_min", "lam_max", "nu_max"):
@@ -249,6 +238,12 @@ def test_find_limits_flags():
     assert np.all(lim.nu_max <= D2)
     # L_z = 0: either the lam_min lane is pinned to D2, or it solved above D2
     assert (lim.lam_min[0] == D2) == lim.lmin_pinned[0]
+    # the edge: exactly one lambda limit is the phase point's lambda
+    lam = jax.vmap(lambda w: integrals_of_motion(_phi(pot), w, D2).lam)(w6s[3:])
+    lmin, lmax = lim.lam_min[3:], lim.lam_max[3:]
+    assert np.all((lmin == lam) != (lmax == lam))
+    assert np.all(lmin < lmax)
+    assert not np.any(lim.snapped[3:] | lim.shell[3:])
 
 
 @pytest.mark.parametrize("name", ["mn", "mw2022"])
@@ -258,12 +253,12 @@ def test_nu_turning_point_falls_back_to_absnu(name):
     F(|nu|) = 0 there to roundoff, so the nu lane often has no bracket and
     nu_max takes the C++ fallback |nu| (not NaN, not the planar collapse).
     """
-    pot = {"mn": _mn, "mw2022": gp.MilkyWayPotential2022}[name]()
+    pot = _GRAD_POTS[name]()
     phi = _phi(pot)
     rng = np.random.default_rng(4)
     n = 60
     R, z = rng.uniform(1.0, 12.0, n), rng.uniform(0.05, 2.0, n)
-    vc = np.sqrt(R * np.asarray(jax.vmap(jax.grad(lambda r: phi(r, 0.0 * r)))(R)))
+    vc = np.asarray(_vc(phi, R))
     w6s = jnp.asarray(np.stack([R, 0 * R, z, 0.2 * vc, 0.9 * vc, 0 * R], 1))
     D2s = jnp.full(n, MN_D2)
     iom = jax.vmap(lambda w, d: integrals_of_motion(phi, w, d))(w6s, D2s)
@@ -283,7 +278,7 @@ def test_lam_min_not_above_lam_pos_near_circular(name):
     lam_pos; the clamp keeps lam_min in [lmin_a, lam_pos]. Every lane is
     finite (no NaN from a bracket lost in F's roundoff).
     """
-    pot = {"mn": _mn, "mw2022": gp.MilkyWayPotential2022}[name]()
+    pot = _GRAD_POTS[name]()
     w6s = _near_circular_w6s(pot, 1e-7)
     for D2s in (jnp.full(len(w6s), MN_D2), _D2_pipeline(pot, w6s)):
         lim = _limits_fn(pot)(w6s, D2s)
@@ -303,7 +298,7 @@ def test_circular_orbits_are_finite_shells(name, e):
     snap (model width and vertex offset < 1e-7 lam) takes it; gala's
     ``F(lam_pos) < 0`` clause left 3-14 of 310 lanes per set NaN.
     """
-    pot = {"mn": _mn, "mw2022": gp.MilkyWayPotential2022}[name]()
+    pot = _GRAD_POTS[name]()
     w6s = _near_circular_w6s(pot, e)
     for D2s in (jnp.full(len(w6s), MN_D2), _D2_pipeline(pot, w6s)):
         lim = _limits_fn(pot)(w6s, D2s)
@@ -313,16 +308,6 @@ def test_circular_orbits_are_finite_shells(name, e):
         ref_lo, ref_hi = _lam_roots(pot, w6s, D2s)
         np.testing.assert_allclose(lim.lam_min, ref_lo, rtol=2e-7, atol=0)
         np.testing.assert_allclose(lim.lam_max, ref_hi, rtol=2e-7, atol=0)
-
-
-def test_limits_cache_sees_monkeypatched_constant(monkeypatch):
-    """The `_limits_fn` cache keys on module constants read at trace time."""
-    pot = _mn()
-    w6s = _near_circular_w6s(pot, 0.0)
-    D2s = jnp.full(len(w6s), MN_D2)
-    assert np.mean(_limits_fn(pot)(w6s, D2s).snapped) > 0.99  # 1.0
-    monkeypatch.setattr(limits, "SNAP_NOISE", 0.0)
-    assert np.mean(_limits_fn(pot)(w6s, D2s).snapped) < 0.6
 
 
 def test_near_circular_pipeline_delta_roots():
@@ -387,13 +372,9 @@ def test_near_shell_turning_point_roots(monkeypatch):
     """
     pot = _mn()
     phi = _phi(pot)
-
-    def vc(R):
-        return jnp.sqrt(R * jax.grad(lambda r: phi(r, jnp.asarray(0.0)))(R))
-
     rows = []  # at (and 1e-3 v_R off) a turning point, from the shells
     for R in (3.0, 4.0, 7.0):
-        v = float(vc(jnp.asarray(R)))
+        v = float(_vc(phi, R))
         for rel in (1e-3, 1e-4, 3e-5, 1e-5):
             for s in (1.0, -1.0):
                 rows.append([R, 0.0, 0.0, 0.0, v * (1 + s * rel), 0.0])
@@ -405,7 +386,7 @@ def test_near_shell_turning_point_roots(monkeypatch):
             rng.uniform(-0.3, 0.3, 100),
             rng.uniform(0, 2 * np.pi, 100),
         )
-        v = np.asarray(jax.vmap(vc)(jnp.asarray(R)))
+        v = np.asarray(_vc(phi, R))
         vz = 0.05 * v * rng.normal(size=100)
         dv = amp * v
         rows += np.stack(
@@ -426,37 +407,6 @@ def test_near_shell_turning_point_roots(monkeypatch):
     lo, hi = _lam_roots(pot, w6s[:48], D2s[:48], span=0.1)
     np.testing.assert_allclose(lim60.lam_min[:48], lo, rtol=1e-9)
     np.testing.assert_allclose(lim60.lam_max[:48], hi, rtol=1e-9)
-
-
-def test_F_tolerates_nonfinite_tau():
-    """Frozen/invalid lanes may carry NaN/inf tau: no raise, no NaN gradients."""
-    w6 = _w6s(1)[0]
-    pot = _kk()
-    phi = _phi(pot)
-
-    def valid_sum(w):
-        iom = integrals_of_motion(phi, w, D2)
-        F = make_F(phi, iom)
-        tot = 0.0
-        for t in (jnp.nan, jnp.inf, -jnp.inf, -1.0):
-            R3, z3, mult3, I3c = F.lane_coords(jnp.stack([0.5 * iom.absnu, 20.0, t]))
-            tot = tot + (phi(R3, z3) * mult3 + I3c)[:2].sum()
-            t3 = jnp.asarray([t, iom.absnu * 0.5, 20.0])
-            tot = tot + F.F_lam(t3)[2] + F.F_nu(t3)[1] + F.dF_lam(t3)[2]
-            tot = tot + F.dF_nu(t3)[1] + F.d2F_lam(t3)[2]
-            tot = tot + F.F_nu_u(jnp.asarray([t, 0.3]))[1]
-            s = jnp.asarray([t, 0.5])
-            tot = tot + F.F_semi(s, iom.lam, jnp.asarray(0.0))[1]
-        return tot
-
-    for jac in (jax.jacfwd, jax.jacrev):
-        g = jac(valid_sum)(w6)
-        assert np.all(np.isfinite(g)), g
-    # and the invalid lanes themselves are flagged, not silently finite
-    _, _, F = _setup()
-    for t in (jnp.nan, jnp.inf, -1.0):
-        assert np.isnan(F.F_lam(jnp.asarray(t)))
-        assert np.isnan(F.F_nu(jnp.asarray(t)))
 
 
 def test_lam_pos_finite_where_F_flat_and_negative():
@@ -562,12 +512,7 @@ def test_slow_lanes_converge_in_budget(name, monkeypatch):
     ~1e-6 of D2, where 3e-11 relative to lambda says nothing. A 13-iteration
     budget fails it.
     """
-    pot = {"kk": _kk, "mn": _mn, "nfw": gp.NFWPotential}[name]
-    pot = (
-        pot()
-        if name != "nfw"
-        else pot(m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), units="galactic")
-    )
+    pot = _GRAD_POTS[name]()
     w6s = jnp.asarray([w for w, _ in _SLOW[name]])
     pipe = np.asarray(_D2_pipeline(pot, w6s))
     D2s = jnp.asarray(
@@ -615,12 +560,7 @@ def test_nu_max_near_a_cusp(name):
     ~5e-4; MW2022 up to 10% off). It runs in log tau.
     """
     if name == "nfw":
-        pot, d2 = (
-            gp.NFWPotential(
-                m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), units="galactic"
-            ),
-            56.25,
-        )
+        pot, d2 = _nfw(), 56.25
         w6s = [
             [
                 3.5405919774327843e-06,
@@ -706,7 +646,7 @@ def test_no_snap_deep_core_or_cusp():
     alone; a width relative to lam (1e-7 lam) snapped them (NFW: lam_max
     56.25 against 56.398).
     """
-    pot = gp.NFWPotential(m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), units="galactic")
+    pot = _nfw()
     vc = 0.24067585494452795  # at 15 kpc
     w6s = jnp.asarray(
         [
@@ -718,11 +658,7 @@ def test_no_snap_deep_core_or_cusp():
     D2s = jnp.full(len(w6s), 56.25)
     lim = _limits_fn(pot)(w6s, D2s)
     assert not np.any(lim.snapped | lim.shell)
-    _, iom, _ = (
-        None,
-        jax.vmap(lambda w, d: integrals_of_motion(_phi(pot), w, d))(w6s, D2s),
-        None,
-    )
+    iom = jax.vmap(lambda w, d: integrals_of_motion(_phi(pot), w, d))(w6s, D2s)
     assert np.all(lim.lam_max - iom.lam > 1e-3 * (iom.lam - 56.25 + 1e-12))
     np.testing.assert_allclose(lim.lam_max[0], 56.398, rtol=1e-4)
 
@@ -732,7 +668,7 @@ def test_lz_squared_underflow():
 
     F(D2) = -L_z^2 D2 / 2 is then -0, which the solver took for a converged
     root at nu_max = D2. MN, fixed Delta: nu_max matches the bisection of
-    F_nu (or is NaN), never D2.
+    F_nu, never D2.
     """
     pot = _mn()
     vc = _VC["mn"]
@@ -740,9 +676,7 @@ def test_lz_squared_underflow():
     D2s = jnp.full(1, 16.0)
     lim = _limits_fn(pot)(w6s, D2s)
     assert lim.nu_max[0] != 16.0
-    if np.isfinite(lim.nu_max[0]):
-        ref = _nu_bisect(pot, w6s, D2s)
-        np.testing.assert_allclose(lim.nu_max, ref, rtol=1e-8)
+    np.testing.assert_allclose(lim.nu_max, _nu_bisect(pot, w6s, D2s), rtol=1e-8)
 
 
 def _deep_core_w6s(name, n, r_frac, seed=0):
@@ -764,7 +698,7 @@ def test_deep_core_lam_min_finite(name):
     lam_min or below D2, and the lam_min lane lost its bracket: NaN on ~12%
     of these lanes. Like gala, the lanes then resolve or collapse to shells.
     """
-    pot = {"kk": _kk, "mn": _mn}[name]()
+    pot = _GRAD_POTS[name]()
     w6s = jnp.concat([_deep_core_w6s(name, 24, f) for f in (1e-6, 1e-5)])
     D2s = _D2_pipeline(pot, w6s)
     lim = _limits_fn(pot)(w6s, D2s)

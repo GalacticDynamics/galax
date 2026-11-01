@@ -29,7 +29,7 @@ from ._staeckel_prolate import (
     integrals_of_motion,
     make_F,
 )
-from ._utils import chandrupatla, tang
+from ._utils import chandrupatla, clamp, safe_div, tang
 
 # ---------------------------------------------------------------------------
 # Turning points. Values only, on frozen inputs; the
@@ -43,6 +43,7 @@ LADDER = 10.0  # geometric ratio of the outer-end ladders (see find_limits)
 N_LADDER_LO, N_LADDER_HI = 2, 7  # ladder points below and above the vertex
 N_LADDER_D2 = 3  # ladder points towards lam_lower (see find_limits)
 LADDER_FAR = (8.0, 24.0, 72.0)  # log(tau / v) of the far ladder points above v
+D2_SIDE = 1e-15  # L_z = 0: box vs tube is decided at D2 (1 -+ D2_SIDE)
 
 
 class Limits(NamedTuple):
@@ -139,8 +140,7 @@ def _first_step(
         x = ell / (1 + ell)
     accept = (d2f < 0) & (a < x) & (x < b)
     c_lo, c_hi = a + FIRST_STEP_EPS * (b - a), b - FIRST_STEP_EPS * (b - a)
-    x = jnp.where(x < c_lo, c_lo, jnp.where(x > c_hi, c_hi, x))
-    return jnp.where(accept, x, 0.5 * (a + b))
+    return jnp.where(accept, clamp(x, c_lo, c_hi), 0.5 * (a + b))
 
 
 def default_phi_inf(phi: Callable[[Array, Array], Array], iomz: IOM) -> Array:
@@ -227,12 +227,10 @@ def find_limits(Fz: Fset, iomz: IOM, phi_inf: Array) -> Limits:
     gala sets it to lam itself, up to lam MINIMUM_RANGE off: percents of the
     extent in a deep core, and many times lam_min - D2 near the axis.
 
-    Snapped (a double root, lam_min = lam_max = lam): at the lambda edge
-    where the quadratic model of F at lam has no real root (gala's test), or
-    on any lane where the model's root pair lies within F's own roundoff
-    (`_noise_snap`). This replaces gala's ``F(lam_pos) < 0`` clause, which
-    reads the sign of a roundoff-level F and so depends on how the batch is
-    compiled.
+    Snapped (a double root, lam_min = lam_max = lam): on any lane where the
+    model's root pair lies within F's own roundoff (`_noise_snap`). This
+    replaces gala's ``F(lam_pos) < 0`` clause, which reads the sign of a
+    roundoff-level F and so depends on how the batch is compiled.
 
     A lambda lane without a valid bracket returns NaN (the point is then
     masked); unlike the C++, the MINIMUM_RANGE collapse keeps that NaN. An
@@ -245,9 +243,9 @@ def find_limits(Fz: Fset, iomz: IOM, phi_inf: Array) -> Limits:
     # ~1e-154) is 0 in F too, and F(D2) = 0 then needs the L_z = 0 logic.
     Lz2 = io.Lz**2
     FD2 = -Lz2 * D2 / 2  # F(D2), on either branch
-    Dm, Dp = D2 * (1 - 1e-15), D2 * (1 + 1e-15)
+    Dm, Dp = D2 * (1 - D2_SIDE), D2 * (1 + D2_SIDE)
 
-    # F at 0, |nu|, D2 (1 -+ 1e-15) and lam: one phi call.
+    # F at 0, |nu|, D2 (1 -+ D2_SIDE) and lam: one phi call.
     t5 = jnp.stack([jnp.zeros_like(D2), absnu, Dm, Dp, lam])
     Phi5, mult5, I5 = _lane_terms(Fz, D2, t5)
     f0, fnu, fm, fp, fl = _F_val(io, t5, Phi5, mult5, I5)
@@ -262,9 +260,9 @@ def find_limits(Fz: Fset, iomz: IOM, phi_inf: Array) -> Limits:
     # The lambda edge: F(lam) <= 0 or a tiny Newton step. Assign the limit
     # on the side F' points away from, and nudge lam_pos into F > 0.
     # F' = 0 (a flat F, e.g. a maximum below 0 by roundoff): no Newton step,
-    # so lam_pos stays finite (it is exported). Double where: 0/0 otherwise.
+    # so lam_pos stays finite (it is exported): `safe_div`, not 0/0.
     flat = dfl == 0
-    dx = jnp.where(flat, 0.0, -fl / jnp.where(flat, 1.0, dfl))
+    dx = safe_div(-fl, dfl)
     edge = (fl <= 0) | (~flat & (jnp.abs(dx) < lam * MINIMUM_RANGE))
     lmin_edge, lmax_edge = edge & (dfl >= 0), edge & (dfl <= 0)
     # The nudge is min(half the vertex offset, lam MINIMUM_RANGE), or the
@@ -329,17 +327,14 @@ def find_limits(Fz: Fset, iomz: IOM, phi_inf: Array) -> Limits:
     n_lo = N_LADDER_LO + N_LADDER_D2
     f_lo, f_hi = fk[2 : 2 + n_lo], fk[2 + n_lo :]
 
-    # Snapped: gala's near-shell test at the edge (the model has no real
-    # root), or a root pair within F's roundoff anywhere (`_noise_snap`).
+    # Snapped: a root pair within F's roundoff (`_noise_snap`; it subsumes
+    # gala's near-shell test at the edge, where the model has no real root).
     # F(lam) for the snap from the momenta, (lam - |nu|)^2 lamdot^2 / (8 lam):
     # exact and >= 0, where the F above is a difference of O(1) terms whose
     # roundoff changes with the compiled batch shape.
     S = jnp.abs(E * lam) + jnp.abs(I5[4]) + jnp.abs(Phi5[4] * mult5[4])
     f_mom = (lam - absnu) ** 2 * io.lamdot**2 / (8 * lam)
-    disc = dfl * dfl - 2 * fl * d2f
-    snapped = (edge & (d2f < 0) & (disc < 0)) | _noise_snap(
-        f_mom, dfl, d2f, lam - D2, S, Lz2 * lam / 2
-    )
+    snapped = _noise_snap(f_mom, dfl, d2f, lam - D2, S, Lz2 * lam / 2)
     lmin_pinned = (
         (Lz0 & ~(fp < 0) & ~lmin_edge) | (lmax_edge & (lam == D2))
     ) & ~snapped
@@ -426,34 +421,25 @@ def find_limits(Fz: Fset, iomz: IOM, phi_inf: Array) -> Limits:
     fb = jnp.stack([fnu_upper, lmin_fb, lmax_fb])
 
     def lanes(x: Array) -> Array:
-        ts, beyond, ok = _semi_tau(x[2], split)
-        tau = jnp.stack([jnp.exp(x[0]), jnp.exp(x[1]), ts])
+        sem = _semi_tau(x[2], split)
+        tau = jnp.stack([jnp.exp(x[0]), jnp.exp(x[1]), sem[0]])
         Phi, mult, I = _lane_terms(Fz, D2, tau)
         F = _F_val(io, tau[:2], Phi[:2], mult[:2], I[:2])
-        Fs = _F_semi_val(io, ts, Phi[2], mult[2], I[2])
-        Fs = jnp.where(ok, jnp.where(beyond, E - phi_inf, Fs), jnp.nan)
+        Fs = _F_semi_val(io, sem, Phi[2], mult[2], I[2], phi_inf)
         return jnp.concat([F, Fs[None]])
 
     r = chandrupatla(lanes, a, b, fa, fb, x0, done0, N_ROOT_ITER)
 
-    # exp(log tau) can round an endpoint root an ulp outside the bracket:
-    # clamp back into it. NaN (no bracket): |nu| (C++ fallback).
-    nu_tau = jnp.exp(r[0])
-    nu_tau = jnp.where(
-        nu_tau < absnu, absnu, jnp.where(nu_tau > nu_upper, nu_upper, nu_tau)
-    )
+    # exp(log tau) can round an endpoint root an ulp outside the bracket
+    # (lam_min: below D2 for tiny L_z): clamp back into it. nu_max: NaN (no
+    # bracket) is |nu| (C++ fallback).
+    nu_tau = clamp(jnp.exp(r[0]), absnu, nu_upper)
     nu_max = jnp.where(
         nu_pinned,
         jnp.where(fm < 0, 0.0, D2),
         jnp.where(~nu_done & jnp.isfinite(nu_tau), nu_tau, absnu),
     )
-    # exp(log tau) can round an endpoint root to an ulp outside the bracket
-    # (below D2 for tiny L_z): clamp back into the bracket [lmin_a, lmin_b].
-    lmin_tau = jnp.exp(r[1])
-    lmin_tau = jnp.where(
-        lmin_tau < lmin_a, lmin_a, jnp.where(lmin_tau > lmin_b, lmin_b, lmin_tau)
-    )
-    lam_min = jnp.where(lmin_done, lmin_set, lmin_tau)
+    lam_min = jnp.where(lmin_done, lmin_set, clamp(jnp.exp(r[1]), lmin_a, lmin_b))
     ts, beyond, ok = _semi_tau(r[2], split)
     lam_max = jnp.where(done0[2], lam_edge, jnp.where(ok & ~beyond, ts, jnp.nan))
 

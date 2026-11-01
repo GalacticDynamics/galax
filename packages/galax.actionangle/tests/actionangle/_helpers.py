@@ -10,7 +10,6 @@ __all__ = [
     "SeparablePotential",
     "bisect",
     "check_circular_fwd_rev",
-    "check_dF_limit_sites",
     "check_grad_safety",
     "kk_delta",
     "kk_lambda_roots_decimal",
@@ -18,7 +17,6 @@ __all__ = [
 ]
 
 import decimal
-import functools as ft
 
 from collections.abc import Callable
 
@@ -299,6 +297,12 @@ def _phi(pot, counter=None):
 D2 = kk_delta(_kk()) ** 2  # 8
 
 
+def _vc(phi, R):
+    """Circular speed sqrt(R dPhi/dR) at z = 0, elementwise in ``R``."""
+    R = jnp.asarray(R, dtype=float)
+    return jnp.sqrt(R * jnp.vectorize(jax.grad(lambda r: phi(r, 0.0 * r)))(R))
+
+
 MN_P = jnp.asarray([1e11, 3.0, 0.3])
 
 
@@ -359,23 +363,6 @@ def _cached_jit(key, make):
     return _JIT_CACHE[key]
 
 
-def _assert_fwd_rev(Jf, Jr, rows=None, lanes=None):
-    """Finite, and forward == reverse on the outputs ``rows`` of ``lanes``.
-
-    The same linear map: equal to roundoff (1e-10: c4 is a 4-deep nested
-    jvp), floored at 1e-12 of each output's largest derivative over all
-    points (an entry can be ~0 at one point).
-    """
-    assert np.all(np.isfinite(Jf)), np.argwhere(~np.isfinite(Jf))
-    assert np.all(np.isfinite(Jr)), np.argwhere(~np.isfinite(Jr))
-    rows = slice(None) if rows is None else rows
-    lanes = slice(None) if lanes is None else lanes
-    Jf_, Jr_ = Jf[lanes][:, rows], Jr[lanes][:, rows]
-    scale = np.max(np.abs(Jf_), axis=(0, 2))[:, None]
-    tol = 1e-10 * np.abs(Jf_) + 1e-12 * scale + 1e-300
-    np.testing.assert_array_less(np.abs(Jf_ - Jr_), tol)
-
-
 def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     """(jacfwd, jacrev, aux) of ``f(w6, *args) -> (out, aux)``, jitted, vmapped.
 
@@ -385,7 +372,10 @@ def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     dropped once used, so only one is alive at a time (memory).
 
     Both Jacobians must be finite everywhere and agree on the outputs
-    ``rows`` of the points ``lanes``; returns them for further checks.
+    ``rows`` of the points ``lanes``; returns them for further checks. The
+    same linear map: equal to roundoff (1e-10: c4 is a 4-deep nested jvp),
+    floored at 1e-12 of each output's largest derivative over all points
+    (an entry can be ~0 at one point).
     """
     Jf, aux = jax.jit(jax.vmap(jax.jacfwd(f, has_aux=True)))(w6s, *args)
     Jf, aux = np.asarray(Jf), jax.tree.map(np.asarray, aux)
@@ -393,7 +383,14 @@ def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     Jr, aux_r = jax.jit(jax.vmap(jax.jacrev(f, has_aux=True)))(w6s, *args)
     Jr, aux_r = np.asarray(Jr), jax.tree.map(np.asarray, aux_r)
     jax.clear_caches()
-    _assert_fwd_rev(Jf, Jr, rows, lanes)
+    assert np.all(np.isfinite(Jf)), np.argwhere(~np.isfinite(Jf))
+    assert np.all(np.isfinite(Jr)), np.argwhere(~np.isfinite(Jr))
+    rows = slice(None) if rows is None else rows
+    lanes = slice(None) if lanes is None else lanes
+    Jf_, Jr_ = Jf[lanes][:, rows], Jr[lanes][:, rows]
+    scale = np.max(np.abs(Jf_), axis=(0, 2))[:, None]
+    tol = 1e-10 * np.abs(Jf_) + 1e-12 * scale + 1e-300
+    np.testing.assert_array_less(np.abs(Jf_ - Jr_), tol)
     aux = (aux, aux_r) if rev_aux else aux
     return Jf, Jr, jax.tree.map(np.asarray, aux)
 
@@ -444,13 +441,9 @@ def _D2_pipeline(pot, w6s):
     return d * d
 
 
-def _sg(tree):
-    return jax.tree.map(jax.lax.stop_gradient, tree)
-
-
 def _live_limits(pot, w6, d2, *, shell=True):
     """(limits with tangents, live Fset): frozen solve on a stop-gradient pot."""
-    phi, phiz = _phi(pot), _phi(_sg(pot))
+    phi, phiz = _phi(pot), _phi(jax.tree.map(jax.lax.stop_gradient, pot))
     iom = integrals_of_motion(phi, w6, d2)
     iomz = integrals_of_motion(phiz, jax.lax.stop_gradient(w6), d2)
     F, Fz = make_F(phi, iom), make_F(phiz, iomz)
@@ -484,12 +477,7 @@ def _near_circular_w6s(pot, e, R=CIRC_R, draw=0):
     its sign (which gala's ``F(lam_pos) < 0`` snap relied on) changes with
     the batch shape, so test both large batches and single points.
     """
-    phi = _phi(pot)
-    vc = np.asarray(
-        jax.vmap(lambda r: jnp.sqrt(r * jax.grad(lambda q: phi(q, 0.0 * q))(r)))(
-            jnp.asarray(R)
-        )
-    )
+    vc = np.asarray(_vc(_phi(pot), R))
     ang = np.random.default_rng(1).uniform(0, 2 * np.pi, (draw + 1, len(R)))[draw]
     z = 0 * R
     vR, vphi = e * vc * np.cos(ang), vc * (1 + e * np.sin(ang))
@@ -664,80 +652,3 @@ def check_circular_fwd_rev(Jf, Jr, out, lf, lr):
     # measured <= 1.1e-8 here and 2.5e-8 at e = 1e-8 (lanes near the snap
     # width); 1e-7 leaves room for platform round-off
     np.testing.assert_array_less(np.abs(Jf - Jr) / scale, 1e-7)
-
-
-def check_dF_limit_sites(name):
-    """F and F' at the tau = D2 and u = 0 limit sites and at the phase point.
-
-    At z = 0 the lambda-side F'(D2) limit term sits at Phi(0, sigma = 0), the
-    origin, unless kept off the axis: both modes finite, equal.
-    """
-    phi = _phi(_GRAD_POTS[name]())
-
-    def f(w):
-        iom = integrals_of_motion(phi, w, D2)
-        F = make_F(phi, iom)
-        d2 = jnp.asarray(D2)
-        out = jnp.stack(
-            [
-                F.dF_lam(d2),
-                F.dF_nu(d2),
-                F.dF_nu(jnp.asarray(0.0)),
-                F.F_lam(d2),
-                F.F_nu(jnp.asarray(0.0)),
-                F.F_lam(iom.lam),
-                F.F_nu(iom.absnu),
-                F.dF_lam(iom.lam),
-            ]
-        )
-        return out, out
-
-    w6s = jnp.stack([_w6s(1)[0], AXIS_W6, MID_W6])
-    _, _, vals = _jac_both(f, w6s)
-    assert np.all(np.isfinite(vals))
-
-
-# ---------------------------------------------------------------------------
-# Shared by the tangent and Taylor tests: one jacfwd and one jacrev compile.
-
-
-def _param_out(theta, *, plain):
-    """Limits and Taylor coefficients w.r.t. (w6, MN parameters).
-
-    (lam_min, lam_max, nu_max, c2, c3, c4, F2, F4); with ``plain`` also the
-    coefficients from two separate nested-jvp nests (not `taylor_coeffs`'
-    fused one). Aux: (the outputs, the Limits).
-    """
-    lim, F = _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)
-    t = taylor_coeffs(F, lim)
-    rows = [lim.lam_min, lim.lam_max, lim.nu_max, t.c2, t.c3, t.c4, t.F2, t.F4]
-    if plain:
-        m = 0.5 * (lim.lam_min + lim.lam_max)
-        _, _, d2, d3, d4 = limits_mod._derivs(F.F_lam, m, 4)
-        _, _, u2, _, u4 = limits_mod._derivs(F.F_nu_u, jnp.zeros_like(m), 4)
-        rows += [d2 / 2, d3 / 6, d4 / 24, u2 / 2, u4 / 24]
-    out = jnp.stack(rows)
-    return out, (out, lim)
-
-
-@ft.cache
-def _param_jacs():
-    """Compute jacfwd (with the plain nests) and jacrev of `_param_out`, two points.
-
-    A generic point and the lambda edge (z = 0, v_R = 0: one limit is the
-    phase point's lambda). One compile per mode serves the tangent and the
-    Taylor-autodiff tests (cached per process); the values come from the
-    jacfwd program.
-    """
-    w6s = jnp.asarray(
-        [
-            [8.0, 0.5, 0.6, 0.03, 0.2, 0.04],  # generic
-            [3.0, 0.0, 0.0, 0.0, 0.18, 0.05],  # z = 0, v_R = 0: lambda edge
-        ]
-    )
-    thetas = jnp.concat([w6s, jnp.broadcast_to(MN_P, (2, 3))], axis=1)
-    fwd = jax.jacfwd(lambda t: _param_out(t, plain=True), has_aux=True)
-    rev = jax.jacrev(lambda t: _param_out(t, plain=False), has_aux=True)
-    Jf, (vals, lim0) = jax.jit(jax.vmap(fwd))(thetas)
-    Jr, _ = jax.jit(jax.vmap(rev))(thetas)
-    return w6s, thetas, np.asarray(Jf), np.asarray(Jr), np.asarray(vals), lim0

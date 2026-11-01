@@ -663,28 +663,38 @@ _NFW_CROSSING_W6 = [
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize("case", ["kink", "kink_root", "nfw_core"])
+@pytest.mark.parametrize("case", ["kink", "weak_kink", "kink_root", "nfw_core"])
 def test_polish_keeps_roots_of_F(case):
     """A polished root is kept only where it is a root of F itself.
 
     The quartic at m cannot see a kink: on `test_use_l_off_where_F_has_a_kink`'s
     potential (r_t = 8 inside a near-circular orbit at R = 8, w/lam ~ 3e-4
-    and 3e-6) its root moved lam_min by 12% of the extent (|F|/noise 6e6).
-    A kink just inside a root, (kink - root) / extent = t = -1e-3 and -5e-2
-    (w/lam 2.7e-4 to 2.7e-7): F is C1 there, |F| at the quartic's root
-    stays within roundoff, but its slope is the inner piece's (off by ~2.3
-    |t|): lam_max's tangent was off by up to 0.5, its position by up to 4e-2
-    of the extent (12x the solver's). Nor does the quartic converge where w
-    ~ lam - D2, below POLISH lam: NFW's cusp with a fixed Delta^2 = 4 at R =
-    0.02, 0.05 (roots off by up to 2e-3, |F|/noise 1e9); and a Newton step
-    past lam converged to lam_min's root (clamped to lam: the extent fell to
-    0.21). At the batch's limits |F| is within SNAP_NOISE of F's roundoff,
-    and a rejected root is the solver's, bitwise.
+    and 3e-6) its root moved lam_min by 12% of the extent (|F|/noise 6e6);
+    with a cut halo of 3e6 Msun F' there is the quartic's to <1e-5, but
+    |F|/noise is 280. A kink just inside a root, (kink - root) / extent = t =
+    -3e-4 and -5e-2 (w/lam 2.7e-4 to 2.7e-7): F is C1 there, |F| at the
+    quartic's root stays within roundoff, but its slope is the inner
+    piece's (off by ~2.3 |t|): lam_max's tangent was off by up to 0.5, its
+    position by up to 4e-2 of the extent (12x the solver's). Nor does the
+    quartic converge where w ~ lam - D2, below POLISH lam: NFW's cusp with a
+    fixed Delta^2 = 4 at R = 0.02, 0.05 (roots off by up to 2e-3, |F|/noise
+    1e9); and a Newton step past lam converged to lam_min's root (clamped to
+    lam: the extent fell to 0.21). At the batch's limits |F| is within
+    SNAP_NOISE of F's roundoff, and a rejected root is the solver's, bitwise.
     """
     if case == "kink":
         pot, d2, R0s, es, f_phi = _mn_cut(), MN_D2, (8.0, 8.0), (1e-4, 1e-6), 1.0
+    elif case == "weak_kink":
+        cut = gp.HardCutoffNFWPotential(
+            m=u.Q(3e6, "Msun"),
+            r_s=u.Q(15.0, "kpc"),
+            r_t=u.Q(8.0, "kpc"),
+            units="galactic",
+        )
+        pot = gp.CompositePotential(disk=_mn(), halo=cut)
+        d2, R0s, es, f_phi = MN_D2, (8.0,), (3e-4,), 1.0
     elif case == "kink_root":  # R0 from a 60-digit root of the fudge F
-        R0s = (7.999432605653223, 7.999994872766397, 7.9999994872767015)
+        R0s = (7.999431810277854, 7.999994872766397, 7.9999994872767015)
         pot, d2, es, f_phi = _mn_cut(), MN_D2, (1e-4, 1e-6, 1e-7), 1.0
     else:
         pot, d2, R0s, es, f_phi = _nfw(), 4.0, (0.02, 0.05), (0.3, 0.3), 0.9
@@ -718,7 +728,7 @@ def test_polish_keeps_roots_of_F(case):
     L0 = np.stack([np.asarray(lim.lam_min), np.asarray(lim.lam_max)], 1)
     assert np.all((L0[:, 1] - L0[:, 0]) / lam < limits.POLISH), L0  # polish candidates
     assert np.all(r <= limits.SNAP_NOISE), r
-    if case == "kink":  # the kink is below m: lam_min is the solver's
+    if case in ("kink", "weak_kink"):  # the kink is below m: lam_min is the solver's
         np.testing.assert_array_equal(L[:, 0], L0[:, 0])
         assert np.all(L[:, 1] != L0[:, 1])  # the other side is polished
     elif case == "kink_root":  # the kink is just inside lam_max: the solver's

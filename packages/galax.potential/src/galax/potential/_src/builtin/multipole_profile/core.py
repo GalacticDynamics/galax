@@ -587,15 +587,20 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           ``exp(log(A) - g * log(x) - h * log1p(x))``, and ~1e-3 for the plain
           quotient ``A / (x**g * (1 + x)**h)``, in the monopole builds tested
           (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of 0.03 or more). The
-          third derivative in an exponent is ~5e-5 (``gamma`` 2.9, ``n_r`` 64).
-          A fourth derivative is finite but has no such bound.
-        - Differentiating moves the inner-tail anchor above the padded samples
-          whose derivative overflows (within ``log(max)**order`` of the dtype's
-          maximum), so the value inside ``value_and_grad`` differs from the plain
-          value, by ~3e-5 at most for a ``gamma`` 2.9 cusp (about the float32
-          error of the value itself). Where the pad is too short to hold that anchor
-          the plain one is kept: at ``gamma`` 2.99 the third derivative is 1e-4
-          off for ``n_r`` 16 and 0.11 off for ``n_r`` 8.
+          third derivative in an exponent of the log form is ~5e-5 (``gamma``
+          2.9, ``n_r`` 64) and under 1e-3 up to ``gamma`` 2.99 for ``n_r`` of
+          16 or more. The plain quotient's is ~1e-1, because float32 ``x**g``
+          has a wrong third derivative in ``g``, so write the density in log
+          form. A fourth derivative is finite but has no such bound.
+        - From the second derivative on, the inner tail is anchored above the
+          padded samples whose derivative overflows (within ``log(max)**order``
+          of the dtype's maximum), so those derivatives and the value inside
+          them differ from the plain build's by the tail model's error: for
+          ``gamma`` 2.99, up to 8e-4 at ``n_r`` 32. The value and the first
+          derivative keep every finite sample. Where the pad is too short to
+          hold the tail's three knots above the anchor the plain anchor is kept
+          and the third derivative can be wrong: at ``gamma`` 2.99, by 0.11 for
+          ``n_r`` 8.
         - A used sample within a factor of ``~1/A`` of the dtype's maximum
           (~3e38 in float32) has a derivative that overflows and is taken as
           zero. The result is then finite but wrong, up to a sign flip in the

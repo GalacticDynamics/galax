@@ -329,6 +329,14 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     return out
 
 
+_MIN_ORDER = 2
+"""Lowest derivative order `_first_ok` allows headroom for.
+
+A first derivative with one entry lost is missing a term nothing cancels, so it
+errs by that sample's own small share. From the second order on the orders
+cancel against one another and a lost one leaves a large error.
+"""
+
 _MAX_ORDER = 3
 """Highest derivative order `_first_ok` allows headroom for."""
 
@@ -346,12 +354,12 @@ def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
     0.5 in float32. With the sample out of the fit it is exact.
 
     A differentiated call is a different function: `jax.custom_jvp` evaluates
-    the next order in its rule, so a `jax.grad` through the build anchors for
-    the first derivative and a `jax.hessian` for the second. Plain evaluation
-    is order 0 and keeps every finite sample, as it must: moving the anchor
-    into a density that is not a power law costs accuracy that the value does
-    not owe. The anchor stays out of the caller's range: where the pad is too
-    short to hold it the order is dropped.
+    the next order in its rule, so a `jax.hessian` through the build anchors for
+    the second derivative. Plain evaluation and a first derivative keep every
+    finite sample, as they must: moving the anchor into a density that is not a
+    power law costs accuracy that the value does not owe. The tail is fitted on
+    three knots from the anchor, and they stay inside the pad: where it is too
+    short to hold them the plain anchor is kept.
     """
 
     @jax.custom_jvp
@@ -363,12 +371,12 @@ def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
             return out
 
         plain = deepest(~jnp.isfinite(rho))
-        if order == 0:
+        if order < _MIN_ORDER:
             return plain
         huge = float(jnp.finfo(rho.dtype).max)
         headroom = deepest(jnp.abs(rho) > huge / math.log(huge) ** order)
         headroom = jnp.maximum(plain, headroom)
-        out: Array = jnp.where(headroom <= lo - _ANCHOR_MARGIN, headroom, plain)
+        out: Array = jnp.where(headroom + _ANCHOR_MARGIN + 3 <= lo, headroom, plain)
         return out
 
     @first_ok.defjvp

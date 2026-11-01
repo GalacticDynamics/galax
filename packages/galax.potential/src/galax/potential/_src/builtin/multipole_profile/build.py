@@ -36,9 +36,11 @@ import quaxed.numpy as jnp
 
 import galax.potential.custom_types as gt
 from galax.potential._src.harmonic import (
+    LogDensity,
     asymptotic_coeffs,
     fit_log_spline,
     harmonic_coeffs,
+    log_harmonic_coeffs,
 )
 from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.harmonic.poisson import (
@@ -406,7 +408,7 @@ def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
 
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def build_expansion(
-    rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
+    rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]] | LogDensity,
     r_knots: Float[Array, "n_r"],
     l_max: int,
     keys: tuple[tuple[int, int], ...],
@@ -431,7 +433,13 @@ def build_expansion(
     r_solve, lo = _pad_grid(r_knots)
 
     n_r = r_knots.shape[0]
-    rho_raw = harmonic_coeffs(rho_fn, r_solve, l_max, keys, n_theta, n_phi, t)
+    # A density given as its log is projected without derivative repair.
+    project, density = (
+        (log_harmonic_coeffs, rho_fn.fn)
+        if isinstance(rho_fn, LogDensity)
+        else (harmonic_coeffs, rho_fn)
+    )
+    rho_raw = project(density, r_solve, l_max, keys, n_theta, n_phi, t)
     # Where the caller's density could not be represented, per mode. The
     # samples are zeroed below, but the solve needs to know *which* ones: its
     # inner tail is anchored at the first knot above the deepest bad sample,
@@ -470,8 +478,8 @@ def build_expansion(
     # and its docstring is where the count is justified.
     log_gl, _ = gl_log_nodes(jnp.log(r_solve), _GL_NODES)
     rho_gl = _drop_nonfinite(
-        harmonic_coeffs(
-            rho_fn, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t
+        project(
+            density, jnp.exp(log_gl).reshape(-1), l_max, keys, n_theta, n_phi, t
         ).reshape(log_gl.shape[0], _GL_NODES, -1)
     )
 

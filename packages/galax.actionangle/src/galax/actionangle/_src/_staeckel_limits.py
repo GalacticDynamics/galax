@@ -702,8 +702,9 @@ def _polish(F: Fset, iom: IOM, lim: Limits, m: Array, c: Array) -> tuple[Limits,
     quartic's to POLISH_SLOPE (`Fset.F_noise` and its jvp: ~2 F per root);
     it is otherwise the solver's. Per root: a kink on one side leaves the
     other side's quartic, and its root and slope, F's. Smooth lanes away
-    from the foci match to <~6e-9; MW2022's and NFW's inner lanes up to
-    ~7e-4, and those past POLISH_SLOPE are the solver's (at w/lam >~1e-5).
+    from the foci match to <~6e-9; near them to ~7e-4 (MW2022's inner lanes
+    with a fixed Delta: 4% of their roots are the solver's, at w/lam 1e-5
+    to 1e-3, where it is good to ~2e-6 of the extent or better).
     The simple-root tangent is reattached at the polished root with F'
     there (KK: within 5.5e-9 of the exact tangent). Returns (the limits,
     the polished-lane flag); the other lanes' limits are returned as given.

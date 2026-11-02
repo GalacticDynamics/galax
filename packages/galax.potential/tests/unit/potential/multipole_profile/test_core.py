@@ -242,7 +242,7 @@ def test_from_density_takes_a_log_density_and_agrees_with_the_linear_one() -> No
 
     def log_rho(xyz, t):
         r = safe_vector_norm(xyz)
-        return jnp.log(1e9) - jnp.log(r / 10.0) - 3.0 * jnp.log1p(r / 10.0)
+        return jnp.log(1e9) - (jnp.log(r) - jnp.log(10.0)) - 3.0 * jnp.log1p(r / 10.0)
 
     def rho(xyz, t):
         return jnp.exp(log_rho(xyz, t))

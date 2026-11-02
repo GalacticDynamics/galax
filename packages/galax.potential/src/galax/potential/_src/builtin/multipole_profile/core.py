@@ -642,8 +642,8 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           higher derivative in ``g``; write the density in log form. Measured
           for a monopole build (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of
           0.03 or more). A log-form density with ``(A, s, q)`` traced gives
-          4e-6 to 5e-6 at ``l_max`` 2 to 8, for `Symmetry` zrotation-zreflection,
-          plane-reflection and none, and ``n_r`` 16 to 128.
+          4e-6 to 1.4e-5 at ``l_max`` 2 to 8, for `Symmetry`
+          zrotation-zreflection and plane-reflection, and ``n_r`` 16 to 64.
         - Third derivative in an exponent, log form: ~5e-5 at ``gamma`` 2.9 and
           ~1e-3 up to 2.99, for ``n_r`` of 16 or more. The headroom stops at the
           third order, so a fourth reuses it: measured at ~6e-5 at 2.9 and

@@ -474,8 +474,16 @@ class LogDensity:
     """``(xyz, t) -> log(rho)``, broadcasting over the leading axes of ``xyz``."""
 
 
-_LOG_MARGIN = 4.0
-"""Natural-log head-room that keeps ``exp(m) * (quadrature sum)`` finite."""
+_LOG_MARGIN = 12.0
+"""Natural-log head-room below the dtype's range that a row must leave.
+
+It keeps ``exp(m) * (quadrature sum)`` finite, and it keeps a forward-mode
+tangent, ``rho * d log(rho)``, finite for ``|d log(rho)|`` up to ``~e**12 / 3.5``
+(``1 / A`` for ``A`` down to 1e-5, or a ``log(r / s)`` of 40 times an exponent):
+rows closer to the maximum than that are dropped like an overflow, and the
+build anchors above them. At 4 a forward-mode derivative in an amplitude of
+1e-3 was ``inf``; at 18 the value error doubled for no gain.
+"""
 
 
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
@@ -506,7 +514,10 @@ def log_harmonic_coeffs(
     to repair, at any order and in forward or reverse mode, and the cost is
     that of the plain forward pass.
 
-    The density must be non-negative; ``-inf`` is a zero. A radius where
+    The density must be non-negative; ``-inf`` is a zero, and has to come from
+    a ``where`` that selects it *around* the expression (``log(A) + 2 *
+    log(clip(1 - u, 0))`` has a ``nan`` derivative where it is partly zero).
+    A ``nan`` anywhere on a row makes the row ``nan``. A radius where
     :math:`\rho` over- or underflows has its coefficients set to ``inf`` or
     ``0`` (`build_expansion` discards the former), and gets no derivative.
     ``log_rho_fn`` is differentiated as written, where it is representable, so
@@ -530,9 +541,12 @@ def log_harmonic_coeffs(
     top = jnp.max(jax.lax.stop_gradient(on_grid(r_knots)), axis=(1, 2))
     info = jnp.finfo(top.dtype)
     over = top >= math.log(float(info.max)) - _LOG_MARGIN
-    # `not >` so a nan or -inf row, an empty one, is dead too.
+    # `not >` so a -inf row, an empty one, is dead too.
     under = ~(top > math.log(float(info.tiny)) + _LOG_MARGIN)
-    dead = over | under
+    # `max` propagates a nan, but a nan row is neither over nor under: say so.
+    isnan = jnp.isnan(top)
+    over, under = over & ~isnan, under & ~isnan
+    dead = over | under | isnan
     r_mid = jax.lax.stop_gradient(jnp.exp(jnp.mean(jnp.log(r_knots))))
     a = on_grid(jnp.where(dead, r_mid, r_knots))
     m = jnp.where(dead, 0.0, top)
@@ -540,6 +554,8 @@ def log_harmonic_coeffs(
     a_live = jnp.where(dead[:, None, None], -jnp.inf, a)
     S = jnp.einsum("kij,rij->rk", Yw, jnp.exp(a_live - m[:, None, None]))
     out: Array = jnp.where(
-        dead[:, None], jnp.where(over, jnp.inf, 0.0)[:, None], jnp.exp(m)[:, None] * S
+        dead[:, None],
+        jnp.where(isnan, jnp.nan, jnp.where(over, jnp.inf, 0.0))[:, None],
+        jnp.exp(m)[:, None] * S,
     )
     return out

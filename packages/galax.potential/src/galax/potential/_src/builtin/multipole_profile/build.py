@@ -345,8 +345,10 @@ def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
     """Return the inner-pad anchor index for a density, per mode.
 
     Everything below it is replaced by the analytic tail: the deepest sample
-    that is not finite, and for the ``order``-th derivative also the deepest
-    within ``log(max)**order`` of the dtype's maximum. Such a sample is finite
+    that is not finite, and from the second derivative on also the deepest
+    within ``log(max)**order`` of the dtype's maximum, with ``order`` capped at
+    `_MAX_ORDER`: a derivative past it reuses that order's headroom. Such a
+    sample is finite
     but its derivative of that order is not, and `harmonic_coeffs` takes that
     as zero while keeping the lower orders. The tail fit works in log space,
     where the orders cancel one another, so with one missing the cancellation

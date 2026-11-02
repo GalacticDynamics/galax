@@ -591,9 +591,10 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           for a monopole build (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of
           0.03 or more).
         - Third derivative in an exponent, log form: ~5e-5 at ``gamma`` 2.9 and
-          ~1e-3 up to 2.99, for ``n_r`` of 16 or more. A fourth is the same
-          (~6e-5 at 2.9, ~1.5e-3 at 2.99, ``n_r`` 16 to 64) but takes a minute or
-          more to compile.
+          ~1e-3 up to 2.99, for ``n_r`` of 16 or more. The headroom stops at the
+          third order, so a fourth reuses it: measured at ~6e-5 at 2.9 and
+          ~1.5e-3 at 2.99 (``n_r`` 16 to 64), but not guaranteed, and it takes a
+          minute or more to compile.
         - From the second derivative on, the inner tail is anchored above the
           padded samples whose derivative overflows (within ``log(max)**order``
           of the dtype's maximum), so those derivatives differ from the plain

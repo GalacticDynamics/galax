@@ -583,11 +583,27 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           (~1e-4 per entry), so the gradient with respect to an exponent over
           tens of decades in radius can be off by ~2%, finite and wrong.
         - Hessian (`jax.hessian`, forward-over-reverse, or reverse-over-reverse
-          as ``grad(grad(...))``): ~1e-5 normwise for a density in log form,
-          ``exp(log(A) - g * log(x) - h * log1p(x))``, and ~1e-3 for the plain
-          quotient ``A / (x**g * (1 + x)**h)``, in the monopole builds tested
-          (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of 0.03 or more). Third
-          derivatives are finite but noisier (up to ~0.5 for ``gamma`` 2.9).
+          as ``grad(grad(...))``): ~1e-4 normwise for a density in log form,
+          ``exp(log(A) - g * log(x) - h * log1p(x))``. For the plain quotient
+          ``A / (x**g * (1 + x)**h)`` it is ~1e-3 in an amplitude or scale
+          radius and ~5e-2 in an exponent, because float32 ``x**g`` has a wrong
+          higher derivative in ``g``; write the density in log form. Measured
+          for a monopole build (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of
+          0.03 or more).
+        - Third derivative in an exponent, log form: ~5e-5 at ``gamma`` 2.9 and
+          ~1e-3 up to 2.99, for ``n_r`` of 16 or more. The headroom stops at the
+          third order, so a fourth reuses it: measured at ~6e-5 at 2.9 and
+          ~1.5e-3 at 2.99 (``n_r`` 16 to 64), but not guaranteed, and it takes a
+          minute or more to compile.
+        - From the second derivative on, the inner tail is anchored above the
+          padded samples whose derivative overflows (within ``log(max)**order``
+          of the dtype's maximum), so those derivatives differ from the plain
+          build's by the tail model's error, which for ``gamma`` 2.99 reaches
+          ~1e-3. The value and the first derivative keep every finite sample.
+          Where the pad is too short to hold the tail's three knots above the
+          anchor (``n_r`` of 10 or fewer at ``[1e-4, 1e4]``) the plain anchor is
+          kept and the third derivative can be wrong: at ``gamma`` 2.99, by 0.11
+          for ``n_r`` 8.
         - A used sample within a factor of ``~1/A`` of the dtype's maximum
           (~3e38 in float32) has a derivative that overflows and is taken as
           zero. The result is then finite but wrong, up to a sign flip in the

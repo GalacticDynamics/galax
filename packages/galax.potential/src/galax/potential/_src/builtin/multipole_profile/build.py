@@ -23,11 +23,14 @@ no `ParameterField` could hold.
 __all__: tuple[str, ...] = ()
 
 import functools as ft
+import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Float
+from typing import Any
 
 import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 
@@ -326,6 +329,76 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     return out
 
 
+_MIN_ORDER = 2
+"""Lowest derivative order `_first_ok` allows headroom for.
+
+A first derivative with one entry lost is missing a term nothing cancels, so it
+errs by that sample's own small share. From the second order on the orders
+cancel against one another and a lost one leaves a large error.
+"""
+
+_MAX_ORDER = 3
+"""Highest derivative order `_first_ok` allows headroom for."""
+
+
+def _first_ok(order: int, lo: int, /) -> Callable[[Array], Array]:
+    """Return the inner-pad anchor index for a density, per mode.
+
+    Everything below it is replaced by the analytic tail: the deepest sample
+    that is not finite, and from the second derivative on also the deepest
+    within ``log(max)**order`` of the dtype's maximum, with ``order`` capped at
+    `_MAX_ORDER`: a derivative past it reuses that order's headroom. Such a
+    sample is finite
+    but its derivative of that order is not, and `harmonic_coeffs` takes that
+    as zero while keeping the lower orders. The tail fit works in log space,
+    where the orders cancel one another, so with one missing the cancellation
+    leaves ~``log(r)**order`` in place of ~0: a third derivative off by up to
+    0.5 in float32. With the sample out of the fit it is exact.
+
+    A differentiated call is a different function: `jax.custom_jvp` evaluates
+    the next order in its rule, so a `jax.hessian` through the build anchors for
+    the second derivative. Plain evaluation and a first derivative keep every
+    finite sample, as they must: moving the anchor into a density that is not a
+    power law costs accuracy that the value does not owe. The tail is fitted on
+    three knots from the anchor, and they stay inside the pad: where it is too
+    short to hold them the plain anchor is kept.
+    """
+
+    @jax.custom_jvp
+    def first_ok(rho: Array) -> Array:
+        idx = jnp.arange(rho.shape[0])[:, None]
+
+        def deepest(bad: Array) -> Array:
+            out: Array = jnp.max(jnp.where(bad & (idx < lo), idx + 1, 0), axis=0)
+            return out
+
+        plain = deepest(~jnp.isfinite(rho))
+        if order < _MIN_ORDER:
+            return plain
+        huge = float(jnp.finfo(rho.dtype).max)
+
+        def reach(k: int) -> Array:
+            out: Array = jnp.maximum(
+                plain, deepest(jnp.abs(rho) > huge / math.log(huge) ** k)
+            )
+            return out
+
+        # Whether the pad can hold the anchor is decided at the deepest order, so
+        # the orders fall back together rather than one sitting by the caller's
+        # knots while the next is plain.
+        fits = reach(_MAX_ORDER) + _ANCHOR_MARGIN + 3 <= lo
+        out: Array = jnp.where(fits, reach(order), plain)
+        return out
+
+    @first_ok.defjvp
+    def _(primals: tuple[Array], _tangents: tuple[Array]) -> tuple[Array, Any]:
+        (rho,) = primals
+        out = _first_ok(min(order + 1, _MAX_ORDER), lo)(rho)
+        return out, np.zeros(out.shape, dtype=jax.dtypes.float0)
+
+    return first_ok
+
+
 @ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
 def build_expansion(
     rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
@@ -369,9 +442,7 @@ def build_expansion(
     # argument about the band the inner tail replaces and does not reach past
     # `lo`: a bad sample in the outer pad -- routine for any `rho_fn` whose
     # intermediates overflow far out -- says nothing about the data below it.
-    idx = jnp.arange(r_solve.shape[0])[:, None]
-    bad = ~jnp.isfinite(rho_raw) & (idx < lo)
-    first_ok = jnp.max(jnp.where(bad, idx + 1, 0), axis=0)
+    first_ok = _first_ok(0, lo)(rho_raw)
     # Never discard the caller's own range: if their density is not finite
     # inside the bracket they asked for, there is nothing the pad can do and
     # anchoring there would throw away real interior data.

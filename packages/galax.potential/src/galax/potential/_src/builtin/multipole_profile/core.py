@@ -476,9 +476,10 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             rather than ``log(A / (r / s)**g)``, so that its own reverse
             pass stays in range.
 
-            It is evaluated twice per radius, once to find the radii it cannot
-            represent, so a plain build costs 1.2 to 2 times that of ``rho``
-            (milliseconds); a derivative of the build costs 2 to 28 times less.
+            Each projection evaluates it twice per radius, once to find the
+            radii it cannot represent, so a plain build costs 1.2 to 2 times
+            that of ``rho`` (milliseconds); a derivative of the build costs 2
+            to 28 times less.
         r_min, r_max : Quantity
             Inner and outer radii bracketing the region of interest. These are
             build-time grid configuration and must be concrete: like ``n_r``,

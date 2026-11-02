@@ -1026,14 +1026,19 @@ def _log_build(n_r: int = 64, l_max: int = 0, symmetry: str = "spherical"):
 
     def total(p):
         A, s, g, *rest = p
-        q = rest[0] if rest else 1.0
+        q = rest[0] if rest else jnp.ones_like(A)
 
         def log_rho(xyz, t):
-            m = safe_vector_norm(xyz * jnp.stack([1.0, 1.0, 1.0 / jnp.asarray(q)]))
+            # The flattened radius as `log r + log(sqrt(1 + (q**-2 - 1) cos**2))`:
+            # `r` does not depend on `q`, so no `q`-derivative divides by a small
+            # radius (the norm of `xyz * (1, 1, 1 / q)` has a nan third one).
+            r = safe_vector_norm(xyz)
+            flat = 0.5 * jnp.log1p((1.0 / q**2 - 1.0) * (xyz[..., 2] / r) ** 2)
+            log_m = jnp.log(r) + flat
             return (
                 jnp.log(A)
-                - g * (jnp.log(m) - jnp.log(s))
-                - (4.0 - g) * jnp.log1p(m / s)
+                - g * (log_m - jnp.log(s))
+                - (4.0 - g) * jnp.log1p(jnp.exp(log_m) / s)
             )
 
         return build_expansion(
@@ -1069,7 +1074,7 @@ def test_a_log_density_has_exact_float32_derivatives_to_third_order(amp) -> None
     at ``amp = 1e-3``, and 2e-5 or better for all of them at 1.
     """
     total = _log_build(n_r=48)
-    p = [amp, 1.0, 2.9]
+    p = [amp, 1.0, 2.9, 0.8]
 
     def rr(f):
         return jax.jacrev(jax.jacrev(f))
@@ -1095,17 +1100,21 @@ def test_a_log_density_has_exact_float32_derivatives_to_third_order(amp) -> None
         jax.clear_caches()  # the compiled higher derivatives are large
 
 
-def test_a_log_density_has_correct_float32_forward_mode_for_a_flattened_halo() -> None:
+@pytest.mark.parametrize("amp", [1.0, 1e-3])
+def test_a_log_density_has_correct_float32_forward_mode_for_a_flattened_halo(
+    amp,
+) -> None:
     """``jacfwd`` is finite and equals ``jacrev`` with the exponent traced.
 
-    A flattened cusp at ``l_max = 2`` has padded samples whose derivative in
-    the exponent (``~|log x|`` times the density) is beyond the float32 maximum
-    though they are discarded. Forward mode through a linear-space density
-    scaled that to `inf`; here it is not formed.
+    A flattened cusp at ``l_max = 2`` has padded samples whose forward tangent,
+    the density times ``d log(rho)`` (``1 / A``, or ``~30`` for the exponent),
+    would exceed the float32 maximum while the density does not. With ``amp =
+    1e-3`` and 16 knots it reached the coefficients as `inf`, and the
+    `_LOG_MARGIN` of 4 that bounded only the density was too small.
     """
     total = _log_build(n_r=16, l_max=2, symmetry="zrotation_zreflection")
     with jax.enable_x64(False):  # noqa: FBT003
-        p = jnp.asarray([1.0, 1.0, 2.9, 0.6])
+        p = jnp.asarray([amp, 1.0, 2.9, 0.6])
         fwd, rev = jax.jacfwd(total)(p), jax.jacrev(total)(p)
         assert jnp.all(jnp.isfinite(fwd)), fwd
         assert jnp.allclose(fwd, rev, rtol=1e-4), (fwd, rev)

@@ -754,3 +754,20 @@ def test_log_harmonic_coeffs_differentiates_to_any_order_without_repair() -> Non
     assert jnp.allclose(fwd, ref_g, rtol=1e-4), (fwd, ref_g)
     # Normwise: the amplitude is linear, so its own entry is ~0.
     assert jnp.max(jnp.abs(h - ref_h)) < 1e-3 * jnp.max(jnp.abs(ref_h)), (h, ref_h)
+
+
+def test_log_harmonic_coeffs_gives_a_nan_row_for_a_nan_sample() -> None:
+    """One ``nan`` on a ring makes its row ``nan``, as in the linear projection."""
+    keys = lm_keys(0, "spherical")
+    r = jnp.asarray([0.5, 1.0, 2.0])
+
+    def nan_at_one(xyz, t):
+        radius = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+        out = -(radius**2)
+        return jnp.where(
+            (jnp.abs(radius - 1.0) < 1e-6) & (xyz[..., 2] > 0), jnp.nan, out
+        )
+
+    got = log_harmonic_coeffs(nan_at_one, r, 0, keys, 2, 2, jnp.asarray(0.0))[:, 0]
+    assert jnp.isnan(got[1]), got
+    assert jnp.all(jnp.isfinite(got[jnp.asarray([0, 2])])), got

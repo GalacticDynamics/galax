@@ -594,10 +594,13 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         **Gradients.** `jax.grad` and `jax.hessian` through the build are finite
         in float32, also for a steep cusp whose padded samples overflow.
 
-        Pass ``log_rho`` for the exact kind. Its derivatives need no repair, in
-        forward or reverse mode and at any order, so they stay in range where
-        those of ``rho`` overflow. Against float64, for a Dehnen cusp of
-        ``gamma`` 2.9 over ``[1e-4, 1e4]`` at ``n_r`` 48, in float32:
+        Pass ``log_rho`` for the exact kind. Its derivatives need no repair, at
+        any order, so they stay in range where those of ``rho`` overflow:
+        reverse mode without limit, forward mode while ``|d log(rho)|`` is below
+        ~4e4 (an amplitude down to 1e-5, or an exponent over tens of decades).
+        Against float64, for a Dehnen cusp of ``gamma`` 2.9 over
+        ``[1e-4, 1e4]`` at ``n_r`` 48, in float32, normwise for
+        ``(A, s, gamma)``:
 
         ======== ======== ======== ======== ========
         amp      gradient Hessian  rev-rev  third
@@ -606,13 +609,20 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         1e-3     3e-6     1e-5     1e-5     7e-4
         ======== ======== ======== ======== ========
 
-        (normwise, for ``(A, s, gamma)``). With ``rho`` the gradient at an
-        amplitude of 1e-3 has the wrong sign and the Hessian is ``nan`` or off
-        by 1e4, as below. The function must have a finite derivative where it
-        represents the density: a norm of a vector that is traced (a
-        flattening) loses its third derivative below a radius of ~1e-8 in
-        float32, the cost of a ``log`` of a small number. The rest of this
-        note is about ``rho``.
+        With ``rho`` the gradient at an amplitude of 1e-3 has the wrong sign
+        and the Hessian is ``nan`` or off by 1e4, as below. Three things to
+        write carefully, because ``log_rho`` is differentiated as written:
+
+        - a flattening: ``log r + 0.5 * log1p((q**-2 - 1) * (z / r)**2)``, whose
+          ``q``-derivatives are all O(1). The norm of ``xyz * (1, 1, 1 / q)``
+          divides by a small radius, and its third derivative is ``nan``;
+        - zero density: select ``-inf`` around the expression with ``where``.
+          ``log(A) + 2 * log(clip(1 - u, 0))`` has a ``nan`` derivative where
+          the support ends mid-ring;
+        - ``log(x) - log(s)`` rather than ``log(x / s)``.
+
+        A ``nan`` anywhere on a ring makes the coefficients of its radius
+        ``nan``. The rest of this note is about ``rho``.
 
         - Gradient: agrees with float64 to <5e-5 for an amplitude or a scale
           radius (``gamma`` up to 2.9, brackets to ``[1e-6, 1e6]``). A density
@@ -626,7 +636,9 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           radius and ~5e-2 in an exponent, because float32 ``x**g`` has a wrong
           higher derivative in ``g``; write the density in log form. Measured
           for a monopole build (``gamma`` 2.9, bracket ``[1e-4, 1e4]``, ``A`` of
-          0.03 or more).
+          0.03 or more). A log-form density with ``(A, s, q)`` traced gives
+          4e-6 to 5e-6 at ``l_max`` 2 to 8, for `Symmetry` zrotation-zreflection,
+          plane-reflection and none, and ``n_r`` 16 to 128.
         - Third derivative in an exponent, log form: ~5e-5 at ``gamma`` 2.9 and
           ~1e-3 up to 2.99, for ``n_r`` of 16 or more. The headroom stops at the
           third order, so a fourth reuses it: measured at ~6e-5 at 2.9 and

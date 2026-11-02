@@ -320,6 +320,35 @@ def test_zero_mode_gradient_is_finite_in_float32() -> None:
     assert jnp.all(jnp.isfinite(grad)), f"{int(jnp.sum(jnp.isnan(grad)))} nan in grad"
 
 
+def test_gradient_through_an_exact_zero_sample_with_a_nonzero_tangent_is_bounded() -> (
+    None
+):
+    """A round-off mode that cancels to exactly ``0.0`` must not blow up its tangent.
+
+    REGRESSION: a mode that is numerically zero (``m != 0`` of an axisymmetric
+    density) is a sum of terms that cancel to round-off. It cancels to *exactly*
+    ``0.0`` at some radii and not others, and its tangent -- also round-off --
+    does not cancel with it. ``log(|x| + floor)`` then has the tangent
+    ``dx / floor``: ~1e-95 / 3.6e-307 = ~1e211, and through the tail's
+    ``0 * inf`` the float64 gradient of a ``Symmetry.NONE`` build at
+    ``l_max >= 4`` came back ~5e251.
+    """
+    r = jnp.geomspace(1e-2, 1e2, 32)
+    noise = 1e-20 * (1.0 / (r * (1.0 + r) ** 3))
+    rho = jnp.stack([noise, noise.at[-2].set(0.0), noise.at[1].set(0.0)], axis=-1)
+    # The tangent does not vanish where the value does.
+    drho = jnp.stack([noise, noise, noise], axis=-1)
+    l_per_mode = jnp.asarray([2.0, 2.0, 2.0])
+
+    _, dphi = jax.jvp(
+        lambda x: solve_poisson_lm(r, x, l_per_mode, jnp.asarray(1.0)), (rho,), (drho,)
+    )
+
+    assert jnp.all(jnp.isfinite(dphi))
+    # The tangent of a 1e-20 density is a 1e-20 potential, not 1e200.
+    assert float(jnp.max(jnp.abs(dphi))) < 1e-10
+
+
 def test_thresholds_follow_the_working_dtype() -> None:
     """Both float64 constants underflow or vanish at float32 precision."""
     f64 = jnp.zeros((), dtype=jnp.float64)

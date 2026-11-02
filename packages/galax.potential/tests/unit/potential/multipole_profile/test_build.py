@@ -857,7 +857,7 @@ def test_float32_gradient_at_a_zero_amplitude_closed_over_in_an_array() -> None:
 
     REGRESSION: with ``(A, s)`` closed over as one array, the tangent of ``s``
     is a materialised zero, and ``0 * inf`` turned the shape's derivative into
-    `nan` wherever it overflows. At ``A = 0`` every coefficient is zero, which
+    ``nan`` wherever it overflows. At ``A = 0`` every coefficient is zero, which
     the repair left alone, so those entries were zeroed and the gradient came
     back 2% short (``gamma = 2.6``). A zero parameter is now repaired like any other.
     """

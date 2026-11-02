@@ -340,9 +340,14 @@ class _DerivativeChain:
         D = self.raw(k, Z, aux)
         v = self.value(Z, aux)[(...,) + (None,) * k]
         bad = ~jnp.isfinite(D)
-        # A zero coefficient has nothing to repair from unless the parameter
-        # itself is zero: the derivative at A = 0 is not in the value.
-        at_zero = (Z == 0).reshape(Z.shape[0], *(1,) * (D.ndim - 2), Z.shape[1])
+        # A zero coefficient has nothing to repair from unless a parameter it is
+        # differentiated in is itself zero: the derivative at A = 0 is not in the
+        # value. Any of the k derivative axes can be that parameter.
+        at_zero = jnp.zeros((), dtype=bool)
+        for a in range(k):
+            shape = [1] * D.ndim
+            shape[0], shape[D.ndim - k + a] = Z.shape
+            at_zero = at_zero | (Z == 0).reshape(shape)
         need = bad & jnp.isfinite(v) & ((v != 0) | at_zero)
         fd = self.repair(k, Z, aux, need, D.dtype)
         D = jnp.where(bad, jnp.where(need & jnp.isfinite(fd), fd, 0.0), D)

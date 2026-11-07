@@ -1013,3 +1013,61 @@ def test_float64_gradient_of_a_symmetry_none_build_matches_the_reduced_build() -
     assert jnp.isfinite(got), got
     assert jnp.isclose(got, ref, rtol=1e-6), (got, ref)
     jax.clear_caches()  # two builds' gradients are large; free them for the worker
+
+
+def test_float32_second_derivative_of_a_build_is_finite() -> None:
+    """The monopole keeps its second derivative at ``n_r = 12`` in float32.
+
+    REGRESSION: the monopole's outer window sat far below 1 in float32, and
+    the log-slope's tangent underflowed to ``0 / 0`` under ``jit``; the second
+    derivative of ``phi_lm`` had 12 ``nan`` -- the whole monopole column.
+    """
+    l_max = 2
+    n_theta, n_phi = default_angular_resolution(l_max)
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        r_knots = jnp.geomspace(1e-4, 1e4, 12)
+        keys = lm_keys(l_max, "none")
+
+        def phi(amplitude):
+            def rho(xyz, t):
+                x = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+                return amplitude * jnp.exp(-2.9 * jnp.log(x) - 1.1 * jnp.log1p(x))
+
+            return build_expansion(
+                rho, r_knots, l_max, keys, n_theta, n_phi, jnp.asarray(0.0), 1.0
+            )["phi_lm"]
+
+        a = jnp.asarray(1.0)
+        first = jax.jvp(phi, (a,), (a,))[1]
+        second = jax.jvp(lambda x: jax.jvp(phi, (x,), (a,))[1], (a,), (a,))[1]
+
+        assert second.dtype == jnp.float32
+        assert jnp.all(jnp.isfinite(first))
+        assert jnp.all(jnp.isfinite(second))
+    jax.clear_caches()
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_hessian_vector_product_through_the_cusp_split_is_finite(dtype: str) -> None:
+    """A mode that is exactly zero near the centre keeps a finite curvature.
+
+    REGRESSION: the inner slope took ``log(|rho| + floor)`` directly. At an
+    exact zero its curvature ``-1 / floor^2`` overflows, and the ``where``
+    that discards every non-monopole slope multiplied that ``inf`` by a zero
+    cotangent: first derivatives were finite, second ones ``nan``.
+    """
+    r = jnp.geomspace(1e-4, 1e4, 12).astype(dtype)
+    mono = r**-2.9
+    noise = 1e-17 * mono
+    rho = jnp.stack([mono, noise.at[:3].set(0.0), noise], axis=-1).astype(dtype)
+
+    def total(x):
+        residual, alpha, amplitude = subtract_inner_cusp(r, x)
+        return residual.sum() + alpha.sum() + amplitude.sum()
+
+    hvp = jax.jvp(jax.grad(total), (rho,), (rho,))[1]
+
+    assert hvp.dtype == jnp.dtype(dtype)
+    assert jnp.all(jnp.isfinite(hvp))
+    jax.clear_caches()

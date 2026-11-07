@@ -349,6 +349,61 @@ def test_gradient_through_an_exact_zero_sample_with_a_nonzero_tangent_is_bounded
     assert float(jnp.max(jnp.abs(dphi))) < 1e-10
 
 
+@pytest.mark.parametrize(("dtype", "scale"), [("float32", 1e-20), ("float64", 1e-200)])
+def test_tangent_of_a_tiny_column_is_finite_under_jit(dtype: str, scale: float) -> None:
+    """A density column far below 1 keeps its tangent under ``jit``.
+
+    REGRESSION: XLA folded the tangent ``(da / ref) / (a / ref)`` of the
+    log-slope into ``da * ref / (a * ref)``, and ``a * ref`` underflowed to
+    ``0`` once the column was below ~1e-154 (float64) or ~1e-19 (float32), so
+    the tangent was ``0 / 0 = nan`` -- under ``jit`` only, which is how a
+    build runs.
+    """
+    r = jnp.geomspace(1e-2, 1e2, 32).astype(dtype)
+    col = (scale / (r * (1.0 + r) ** 3)).astype(dtype)
+    rho = jnp.stack([col, col, col], axis=-1)
+    l_per_mode = jnp.asarray([2.0, 2.0, 2.0], dtype=dtype)
+    one = jnp.asarray(1.0, dtype=dtype)
+
+    @jax.jit
+    def tangent(x, dx):
+        return jax.jvp(lambda y: solve_poisson_lm(r, y, l_per_mode, one), (x,), (dx,))[
+            1
+        ]
+
+    dphi = tangent(rho, rho)
+
+    assert dphi.dtype == jnp.dtype(dtype)
+    assert jnp.all(jnp.isfinite(dphi))
+    # The tangent of a ``scale`` density is a ``scale`` potential.
+    assert 0.0 < float(jnp.max(jnp.abs(dphi))) < 10.0 * scale
+    jax.clear_caches()
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_second_derivative_through_an_exact_zero_sample_is_finite(dtype: str) -> None:
+    """Curvature at a density sample of exactly ``0.0`` is not ``0 * inf``.
+
+    REGRESSION: the tangent cut on `_log_rel`'s output still evaluated
+    ``log`` at the floor there, whose curvature ``-1 / floor^2`` overflows;
+    the cut's zero cotangent times that ``inf`` made every second derivative
+    through a column with an exact zero ``nan``.
+    """
+    r = jnp.geomspace(1e-2, 1e2, 32).astype(dtype)
+    col = (1.0 / (r * (1.0 + r) ** 3)).astype(dtype)
+    rho = jnp.stack([col, col.at[-2].set(0.0), col.at[1].set(0.0)], axis=-1)
+    l_per_mode = jnp.asarray([2.0, 2.0, 2.0], dtype=dtype)
+    one = jnp.asarray(1.0, dtype=dtype)
+
+    def total(x):
+        return solve_poisson_lm(r, x, l_per_mode, one).sum()
+
+    hvp = jax.jvp(jax.grad(total), (rho,), (jnp.stack([col] * 3, axis=-1),))[1]
+
+    assert jnp.all(jnp.isfinite(hvp))
+    jax.clear_caches()
+
+
 def test_thresholds_follow_the_working_dtype() -> None:
     """Both float64 constants underflow or vanish at float32 precision."""
     f64 = jnp.zeros((), dtype=jnp.float64)
@@ -627,3 +682,26 @@ def test_log_rel_keeps_the_plain_log_when_a_window_has_a_hard_zero() -> None:
         got = _log_rel(x, floor)
         assert jnp.all(jnp.isfinite(got)), got
         assert jnp.allclose(jnp.diff(got), jnp.diff(jnp.log(jnp.abs(x) + floor)))
+
+
+@pytest.mark.parametrize(("dtype", "top"), [("float32", 1.0e38), ("float64", 1.0e308)])
+def test_log_rel_rescales_a_column_at_the_top_of_the_dtype_range(
+    dtype: str, top: float
+) -> None:
+    """A column near the dtype's maximum is rescaled and keeps its curvature.
+
+    REGRESSION: the rescale is ``a * exp2(-k)`` and XLA flushes ``exp2(-126)``
+    (float32) and ``exp2(-1023)`` (float64) to ``0``, so a column whose maximum
+    was in the top binade fell back to the plain log, with a primal of ~87
+    rather than ~0.5 and a ``nan`` second derivative.
+    """
+    x = jnp.asarray([top, top / 2.0], dtype=dtype)
+    floor = _log_floor(x)
+
+    primal = _log_rel(x, floor)
+    d2 = jax.jvp(
+        lambda y: jax.jvp(lambda z: _log_rel(z, floor), (y,), (x,))[1], (x,), (x,)
+    )[1]
+
+    assert jnp.all(jnp.abs(primal) < 5.0), primal  # rescaled, not log(1e38) ~ 87
+    assert jnp.allclose(d2, -1.0, rtol=1e-5), d2  # d2 log(a x) / da2 = -1/a^2 * x^2

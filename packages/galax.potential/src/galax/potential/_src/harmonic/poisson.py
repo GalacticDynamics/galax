@@ -127,13 +127,22 @@ def _log_rel(x: Float[Array, "..."], floor: float, /) -> Float[Array, "..."]:
     keeps the second derivative ``-(dx / x)^2`` finite in float32 for ``|x|``
     above ~1e19. A window spanning more than the dtype's range keeps the plain
     log.
+
+    An exact zero has no tangent. A mode that is numerically zero (``m != 0`` of
+    an axisymmetric density) is round-off that cancels to exactly ``0.0`` at
+    some radii and not others, and its tangent -- round-off too -- does not
+    cancel with it. ``d log(|x| + floor)`` is then ``dx / floor``, ~1e211 in
+    float64, which made the gradient of a ``Symmetry.NONE`` build ~5e251. The
+    tangent is cut on the output, not the input: zeroing ``x``'s tangent first
+    leaves ``0 / floor`` in the chain, which XLA compiled to a ``nan``.
     """
     a = jnp.abs(x) + floor
     ref = jax.lax.stop_gradient(jnp.exp2(jnp.floor(jnp.log2(jnp.max(a)))))
     fits = jax.lax.stop_gradient(jnp.min(a) / ref >= jnp.finfo(a.dtype).tiny)
     ref = jnp.where(fits, ref, 1.0)
     out: Array = jnp.log(a / ref)
-    return out
+    cut: Array = jnp.where(x == 0.0, jax.lax.stop_gradient(out), out)
+    return cut
 
 
 def _log_floor(x: Float[Array, "..."], /) -> float:

@@ -936,3 +936,44 @@ def test_float32_third_derivative_through_a_build_whose_pad_overflows() -> None:
 
     assert abs(float(got) - float(ref)) < 1e-3 * abs(float(ref)), (got, ref)
     jax.clear_caches()  # the compiled third derivative is large; free it
+
+
+def test_float64_gradient_of_a_symmetry_none_build_matches_the_reduced_build() -> None:
+    """``Symmetry.NONE`` has the gradient of the symmetry-reduced build.
+
+    REGRESSION: the ``m != 0`` modes of an axisymmetric density are round-off,
+    and a round-off mode that cancels to exactly ``0.0`` at some radius has a
+    tangent that does not. The log-slope solve divided that tangent by its
+    ~3.6e-307 floor, and the float64 gradient with respect to a traced
+    flattening came back ~5e251 for ``l_max >= 4``. The reduced build omits
+    those modes, so it is the reference.
+    """
+    r_knots = jnp.geomspace(1e-4, 1e4, 12)
+    l_max = 4
+    n_theta, n_phi = default_angular_resolution(l_max)
+
+    def total(q, symmetry):
+        def rho(xyz, t):
+            x = jnp.sqrt(xyz[..., 0] ** 2 + xyz[..., 1] ** 2 + (xyz[..., 2] / q) ** 2)
+            return jnp.exp(-2.9 * jnp.log(x) - 1.1 * jnp.log1p(x))
+
+        out = build_expansion(
+            rho,
+            r_knots,
+            l_max,
+            lm_keys(l_max, symmetry),
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )
+        return out["phi_lm"].sum()
+
+    q = jnp.asarray(0.8)
+    got = jax.grad(total)(q, "none")
+    ref = jax.grad(total)(q, "zrotation_zreflection")
+
+    assert got.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+    assert jnp.isfinite(got), got
+    assert jnp.isclose(got, ref, rtol=1e-6), (got, ref)
+    jax.clear_caches()  # two builds' gradients are large; free them for the worker

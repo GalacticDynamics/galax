@@ -29,6 +29,14 @@ if TYPE_CHECKING:
 else:
     from equinox import AbstractClassVar
 
+# Options for the Wadler-Lindig repr. ``Any`` values: wadler-lindig types
+# ``short_arrays`` as ``bool`` but also accepts ``"compact"``.
+_WL_KW: dict[str, Any] = {
+    "short_arrays": "compact",
+    "use_short_name": True,
+    "named_unit": False,
+}
+
 
 class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[misc]
     r"""ABC underlying phase-space positions and their composites."""
@@ -263,15 +271,12 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
     # Wadler-Lindig API
 
     def __pdoc__(self, **kwargs: object) -> wl.AbstractDoc:
-        kw = {
-            **kwargs,
-            "short_arrays": "compact",
-            "use_short_name": True,
-            "named_unit": False,
-        }
+        kw: dict[str, Any] = {**kwargs, **_WL_KW}
         return wl.bracketed(
             begin=wl.TextDoc(f"{self.__class__.__name__}("),
-            docs=wl.named_objs(field_items(self), **kw),
+            docs=wl.named_objs(
+                cast("Iterable[tuple[str, Any]]", field_items(self)), **kw
+            ),
             sep=wl.comma,
             end=wl.TextDoc(")"),
             indent=kw.get("indent", 4),
@@ -308,14 +313,7 @@ class AbstractPhaseSpaceObject(cx.frames.AbstractCoordinate):  # type: ignore[mi
             frame=SimulationFrame() )
 
         """
-        return wl.pformat(  # type: ignore[no-any-return]
-            self,
-            indent=4,
-            vector_form=True,
-            short_arrays="compact",
-            use_short_name=True,
-            named_unit=False,
-        )
+        return wl.pformat(self, indent=4, vector_form=True, **_WL_KW)
 
     # ==========================================================================
     # Further Array properties

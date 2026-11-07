@@ -442,6 +442,38 @@ def test_harmonic_coeffs_hessian_is_finite_where_the_density_overflows() -> None
     )
 
 
+def test_harmonic_coeffs_float32_hessian_at_a_zero_amplitude_is_symmetric() -> None:
+    """The mixed derivative at ``A = 0`` is repaired in either derivative axis.
+
+    REGRESSION: only the last axis was checked for a zero parameter, so
+    ``d2/dA ds`` (the zero one first) was zeroed where the shape's derivative
+    overflows, while ``d2/ds dA`` was right.
+    """
+    keys = lm_keys(0, Symmetry.SPHERICAL)
+    n_theta, n_phi = default_angular_resolution(0)
+
+    def total(p):
+        r = jnp.geomspace(1e-10, 1e2, 16, dtype=p.dtype)  # built under p's x64 mode
+
+        def rho(xyz, t):
+            x = jnp.sqrt(jnp.sum(xyz**2, axis=-1)) / p[1]
+            return p[0] / (x**2.6 * (1.0 + x) ** 1.4)
+
+        c = harmonic_coeffs(rho, r, 0, keys, n_theta, n_phi, jnp.asarray(0.0))
+        return jnp.sum(c)
+
+    ref = jax.hessian(total)(jnp.asarray([0.0, 1.0]))
+    assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+    with jax.enable_x64(False):  # noqa: FBT003
+        hess = jax.hessian(total)(jnp.asarray([0.0, 1.0]))
+        assert hess.dtype == jnp.float32
+        got = jnp.asarray(hess, dtype=float)
+
+    assert jnp.allclose(got[0, 1], ref[0, 1], rtol=1e-3), (got, ref)
+    assert jnp.allclose(got[1, 0], ref[1, 0], rtol=1e-3), (got, ref)
+    jax.clear_caches()
+
+
 def test_harmonic_coeffs_replaces_a_spurious_overflow_with_a_difference() -> None:
     """The scale-radius gradient of a quotient density is finite and matches float64.
 

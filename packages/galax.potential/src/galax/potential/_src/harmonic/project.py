@@ -340,7 +340,15 @@ class _DerivativeChain:
         D = self.raw(k, Z, aux)
         v = self.value(Z, aux)[(...,) + (None,) * k]
         bad = ~jnp.isfinite(D)
-        need = bad & jnp.isfinite(v) & (v != 0)
+        # A zero coefficient has nothing to repair from unless a parameter it is
+        # differentiated in is itself zero: the derivative at A = 0 is not in the
+        # value. Any of the k derivative axes can be that parameter.
+        at_zero = jnp.zeros((), dtype=bool)
+        for a in range(k):
+            shape = [1] * D.ndim
+            shape[0], shape[D.ndim - k + a] = Z.shape
+            at_zero = at_zero | (Z == 0).reshape(shape)
+        need = bad & jnp.isfinite(v) & ((v != 0) | at_zero)
         fd = self.repair(k, Z, aux, need, D.dtype)
         D = jnp.where(bad, jnp.where(need & jnp.isfinite(fd), fd, 0.0), D)
         return jnp.where(jnp.isfinite(v), D, 0.0)
@@ -393,7 +401,8 @@ def harmonic_coeffs(
     order, and a non-finite entry is repaired:
 
     * coefficient not finite: the whole row is zero;
-    * coefficient zero: non-finite entries are zero, finite ones kept;
+    * coefficient zero: non-finite entries are zero, finite ones kept, except
+      in the column of a parameter that is itself zero, which is repaired as below;
     * otherwise: a central difference of the next-lower derivative, or zero
       where that is not finite either (the radial build discards such samples).
 

@@ -609,8 +609,11 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
           zero. The result is then finite but wrong, up to a sign flip in the
           gradient and orders of magnitude in the Hessian. Reverse-mode
           gradients through a ``log`` degrade from ~3e37.
-        - A closed-over array holding an amplitude and a scale radius loses an
-          amplitude of exactly zero; separate scalars keep it.
+        - An amplitude of exactly zero gets the gradient of the shape function,
+          whether it is closed over alone or in an array with a scale radius,
+          except where the shape itself overflows (``0 * inf`` is not finite,
+          so those samples are dropped): ~15% short for a cusp of ``gamma``
+          2.9, 1e-4 for 2.6.
         - Only traced floats get derivative columns, each adding a forward pass.
           A table closed over as a concrete array has none; one passed as a
           `jax.jit` argument has one per element, at a cost quadratic in its

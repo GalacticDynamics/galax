@@ -137,12 +137,28 @@ def _log_rel(x: Float[Array, "..."], floor: float, /) -> Float[Array, "..."]:
     leaves ``0 / floor`` in the chain, which XLA compiled to a ``nan``.
     """
     a = jnp.abs(x) + floor
-    ref = jax.lax.stop_gradient(jnp.exp2(jnp.floor(jnp.log2(jnp.max(a)))))
-    fits = jax.lax.stop_gradient(jnp.min(a) / ref >= jnp.finfo(a.dtype).tiny)
-    ref = jnp.where(fits, ref, 1.0)
-    out: Array = jnp.log(a / ref)
-    cut: Array = jnp.where(x == 0.0, jax.lax.stop_gradient(out), out)
-    return cut
+    # Scale by the inverse, not divide by the constant: under `jit` XLA folds
+    # the tangent ``(da / ref) / (a / ref)`` into ``da * ref / (a * ref)``, and
+    # ``a * ref`` underflows to ``0`` once ``a`` is below ~1e-154 in float64,
+    # so a column of that size had a ``nan`` tangent. ``a * inv`` stays O(1).
+    # Capped so that ``inv`` stays a normal number: XLA flushes ``exp2(-126)``
+    # (float32) and ``exp2(-1023)`` (float64) to ``0``, which left a column
+    # near the dtype's maximum unscaled and its second derivative ``nan``.
+    top = jnp.finfo(a.dtype).maxexp - 3
+    k = jnp.minimum(jnp.floor(jnp.log2(jnp.max(a))), top)
+    inv = jax.lax.stop_gradient(jnp.exp2(-k))
+    fits = jax.lax.stop_gradient(jnp.min(a) * inv >= jnp.finfo(a.dtype).tiny)
+    inv = jnp.where(fits, inv, 1.0)
+    u = a * inv
+    # Replace the argument, not only the output, at an exact zero: the
+    # unselected ``log(u)`` there has the curvature ``-1 / u^2``, which
+    # overflows at ``u ~ floor``, and the cut's zero cotangent times that
+    # ``inf`` made every second derivative through an exact zero ``nan``.
+    zero = x == 0.0
+    out: Array = jnp.log(jnp.where(zero, 1.0, u)) + jnp.where(
+        zero, jax.lax.stop_gradient(jnp.log(u)), 0.0
+    )
+    return out
 
 
 def _log_floor(x: Float[Array, "..."], /) -> float:

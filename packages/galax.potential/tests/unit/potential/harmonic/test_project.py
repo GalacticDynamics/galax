@@ -16,6 +16,7 @@ from galax.potential._src.harmonic.project import (
     default_angular_resolution,
     harmonic_coeffs,
     lm_keys,
+    log_harmonic_coeffs,
     real_ylm,
 )
 from galax.potential._src.symmetry import Symmetry
@@ -666,3 +667,107 @@ def test_harmonic_coeffs_with_python_and_numpy_scalar_closures() -> None:
         return jnp.sum(out)
 
     assert jnp.allclose(jax.grad(total)(2.0), total(1.0), rtol=1e-6)
+
+
+def _flattened_log_density(A, s, q):
+    """``log`` of a flattened Dehnen-like cusp, as a sum of logs."""
+
+    def log_rho(xyz, t):
+        m = jnp.sqrt(xyz[..., 0] ** 2 + xyz[..., 1] ** 2 + (xyz[..., 2] / q) ** 2)
+        return jnp.log(A) - 1.5 * (jnp.log(m) - jnp.log(s)) - 2.5 * jnp.log1p(m / s)
+
+    return log_rho
+
+
+def test_log_harmonic_coeffs_matches_the_linear_projection() -> None:
+    """Projecting ``log(rho)`` gives the coefficients projecting ``rho`` does."""
+    l_max = 4
+    keys = lm_keys(l_max, "zrotation_zreflection")
+    n_theta, n_phi = default_angular_resolution(l_max)
+    r = jnp.geomspace(1e-3, 1e3, 12)
+    t = jnp.asarray(0.0)
+
+    log_rho = _flattened_log_density(2.0, 1.5, 0.7)
+    want = harmonic_coeffs(
+        lambda xyz, t: jnp.exp(log_rho(xyz, t)), r, l_max, keys, n_theta, n_phi, t
+    )
+    got = log_harmonic_coeffs(log_rho, r, l_max, keys, n_theta, n_phi, t)
+    assert jnp.allclose(got, want, rtol=1e-10, atol=0.0 * want.max())
+
+
+def test_log_harmonic_coeffs_marks_unrepresentable_rows_without_a_gradient() -> None:
+    """Over- and underflow give ``inf`` and ``0``, and a finite gradient.
+
+    The cotangent of a dropped row is typically ``nan`` or ``inf`` (the build
+    discards the row), which must not reach the density's own derivative.
+    """
+    keys = lm_keys(0, "spherical")
+
+    def coeffs(A):
+        r = jnp.asarray([1e-30, 1e-2, 1.0, 1e30], dtype=A.dtype)
+        t = jnp.asarray(0.0, dtype=A.dtype)
+
+        def log_rho(xyz, t):
+            return jnp.log(A) - 3.0 * jnp.log(jnp.sqrt(jnp.sum(xyz**2, axis=-1)))
+
+        return log_harmonic_coeffs(log_rho, r, 0, keys, 2, 1, t)[:, 0]
+
+    with jax.enable_x64(False):  # noqa: FBT003
+        A = jnp.asarray(1.0)
+        got = coeffs(A)
+        assert jnp.isinf(got[0]), got  # r**-3 at 1e-30 overflows float32
+        assert got[3] == 0.0, got  # and at 1e30 underflows
+        assert jnp.all(jnp.isfinite(got[1:3])), got
+
+        cot = jnp.asarray([jnp.inf, 1.0, 1.0, jnp.nan])  # what a discard sends back
+        _, vjp = jax.vjp(coeffs, A)
+        (g,) = vjp(cot)
+        assert jnp.isfinite(g), g
+        assert jnp.allclose(g, got[1] + got[2], rtol=1e-5), (g, got)
+
+
+def test_log_harmonic_coeffs_differentiates_to_any_order_without_repair() -> None:
+    """Hessian and forward mode of a float32 projection near the maximum.
+
+    ``rho`` at the innermost radius is ``~1e37`` with ``A = 1e-3``: the
+    derivative in ``A`` is ``rho / A``, beyond the float32 maximum, yet the
+    reverse-mode gradient, Hessian and forward mode all match float64 here.
+    """
+    keys = lm_keys(2, "zrotation_zreflection")
+    n_theta, n_phi = default_angular_resolution(2)
+
+    def total(p):
+        r = jnp.asarray([4e-13, 1e-8, 1.0], dtype=p.dtype)
+        t = jnp.asarray(0.0, dtype=p.dtype)
+        log_rho = _flattened_log_density(p[0], p[1], 0.7)
+        out = log_harmonic_coeffs(log_rho, r, 2, keys, n_theta, n_phi, t)
+        return jnp.sum(out[1:] * jnp.asarray([[1.0, 0.5]]))  # not the first row
+
+    p64 = jnp.asarray([1e-3, 1.0])
+    ref_g, ref_h = jax.grad(total)(p64), jax.hessian(total)(p64)
+    with jax.enable_x64(False):  # noqa: FBT003
+        p32 = jnp.asarray([1e-3, 1.0])
+        g, h = jax.grad(total)(p32), jax.hessian(total)(p32)
+        fwd = jax.jacfwd(total)(p32)
+        assert g.dtype == jnp.float32
+    assert jnp.allclose(g, ref_g, rtol=1e-4), (g, ref_g)
+    assert jnp.allclose(fwd, ref_g, rtol=1e-4), (fwd, ref_g)
+    # Normwise: the amplitude is linear, so its own entry is ~0.
+    assert jnp.max(jnp.abs(h - ref_h)) < 1e-3 * jnp.max(jnp.abs(ref_h)), (h, ref_h)
+
+
+def test_log_harmonic_coeffs_gives_a_nan_row_for_a_nan_sample() -> None:
+    """One ``nan`` on a ring makes its row ``nan``, as in the linear projection."""
+    keys = lm_keys(0, "spherical")
+    r = jnp.asarray([0.5, 1.0, 2.0])
+
+    def nan_at_one(xyz, t):
+        radius = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+        out = -(radius**2)
+        return jnp.where(
+            (jnp.abs(radius - 1.0) < 1e-6) & (xyz[..., 2] > 0), jnp.nan, out
+        )
+
+    got = log_harmonic_coeffs(nan_at_one, r, 0, keys, 2, 2, jnp.asarray(0.0))[:, 0]
+    assert jnp.isnan(got[1]), got
+    assert jnp.all(jnp.isfinite(got[jnp.asarray([0, 2])])), got

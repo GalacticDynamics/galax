@@ -7,6 +7,7 @@ second Legendre recurrence in :math:`(\theta, \phi)`.
 
 __all__: tuple[str, ...] = ()
 
+import dataclasses
 import functools as ft
 import math
 
@@ -457,4 +458,104 @@ def harmonic_coeffs(
         default=float(jnp.finfo(Z.dtype).eps),
     )
     out: Array = _DerivativeChain(f_leaves, split, eps)(0, Z, aux)
+    return out
+
+
+@dataclasses.dataclass(frozen=True)
+class LogDensity:
+    """A density given as ``log(rho)``, to be projected by `log_harmonic_coeffs`.
+
+    `build_expansion` takes the density as a static argument and projects it
+    with `log_harmonic_coeffs` where this is passed, `harmonic_coeffs`
+    otherwise. Hashable by ``fn``, so it does not force a retrace.
+    """
+
+    fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]]
+    """``(xyz, t) -> log(rho)``, broadcasting over the leading axes of ``xyz``."""
+
+
+_LOG_MARGIN = 12.0
+"""Natural-log head-room below the dtype's range that a row must leave.
+
+It keeps ``exp(m) * (quadrature sum)`` finite, and it keeps a forward-mode
+tangent, ``rho * d log(rho)``, finite for ``|d log(rho)|`` up to ``~e**12 / 3.5``
+(``1 / A`` for ``A`` down to 1e-5, or a ``log(r / s)`` of 40 times an exponent):
+rows closer to the maximum than that are dropped like an overflow, and the
+build anchors above them. At 4 a forward-mode derivative in an amplitude of
+1e-3 was ``inf``; at 18 the value error doubled for no gain.
+"""
+
+
+@ft.partial(jax.jit, static_argnums=(0, 2, 3, 4, 5))
+def log_harmonic_coeffs(
+    log_rho_fn: Callable[[gt.BtSz3, gt.BBtSz0], Float[Array, "..."]],
+    r_knots: Float[Array, "n_r"],
+    l_max: int,
+    keys: tuple[tuple[int, int], ...],
+    n_theta: int,
+    n_phi: int,
+    t: gt.BBtSz0,
+    /,
+) -> Float[Array, "n_r n_modes"]:
+    r"""Return the harmonic coefficients of a density given as its logarithm.
+
+    The same projection as `harmonic_coeffs`, formed as
+
+    .. math::
+
+        \rho_{lm}(r) = e^{m} \sum_{ij} w_{ij} Y_{lm}(\hat u_{ij})
+                       e^{\ln\rho(r \hat u_{ij}) - m}
+
+    with :math:`m` the largest :math:`\ln\rho` on the angular grid at that
+    radius, held constant under differentiation. Every term of the sum is at
+    most :math:`|w Y|`, so no derivative of it overflows, whatever the
+    density: a derivative is the softmax-weighted sum of the derivatives of
+    :math:`\ln\rho`, which the caller writes as a sum of logs. There is nothing
+    to repair, at any order and in forward or reverse mode, and the cost is
+    that of the plain forward pass.
+
+    The density must be non-negative; ``-inf`` is a zero, and has to come from
+    a ``where`` that selects it *around* the expression (``log(A) + 2 *
+    log(clip(1 - u, 0))`` has a ``nan`` derivative where it is partly zero).
+    A ``nan`` anywhere on a row makes the row ``nan``. A radius where
+    :math:`\rho` over- or underflows has its coefficients set to ``inf`` or
+    ``0`` (`build_expansion` discards the former), and gets no derivative.
+    ``log_rho_fn`` is differentiated as written, where it is representable, so
+    its derivative must be finite there: ``log(x) - log(s)`` rather than
+    ``log(x / s)``, whose reverse pass multiplies :math:`1/x` and
+    :math:`x/s^2`, each of which can overflow where their product does not.
+    A row it cannot represent is evaluated at the middle radius instead, so
+    its derivative is never formed.
+    """
+    uvec, weights = angular_grid(n_theta, n_phi)
+    Yw = real_ylm(l_max, keys, uvec) * weights  # (n_modes, n_theta, n_phi)
+
+    def on_grid(radii: Array) -> Array:
+        return jax.vmap(lambda r: log_rho_fn(r * uvec, t))(radii)  # (n_r, nt, np)
+
+    # Find the radii the density cannot represent from a pass that is not
+    # differentiated, then evaluate the one that is somewhere benign instead.
+    # The cotangent of such a row is zero, but `log_rho_fn`'s derivative at
+    # 1e-19 (a `sqrt` of a square that underflows, say) can be infinite, and
+    # `0 * inf` is `nan`.
+    top = jnp.max(jax.lax.stop_gradient(on_grid(r_knots)), axis=(1, 2))
+    info = jnp.finfo(top.dtype)
+    over = top >= math.log(float(info.max)) - _LOG_MARGIN
+    # `not >` so a -inf row, an empty one, is dead too.
+    under = ~(top > math.log(float(info.tiny)) + _LOG_MARGIN)
+    # `max` propagates a nan, but a nan row is neither over nor under: say so.
+    isnan = jnp.isnan(top)
+    over, under = over & ~isnan, under & ~isnan
+    dead = over | under | isnan
+    r_mid = jax.lax.stop_gradient(jnp.exp(jnp.mean(jnp.log(r_knots))))
+    a = on_grid(jnp.where(dead, r_mid, r_knots))
+    m = jnp.where(dead, 0.0, top)
+    # Select the dead rows out of the sum: their cotangent may be nan or inf.
+    a_live = jnp.where(dead[:, None, None], -jnp.inf, a)
+    S = jnp.einsum("kij,rij->rk", Yw, jnp.exp(a_live - m[:, None, None]))
+    out: Array = jnp.where(
+        dead[:, None],
+        jnp.where(isnan, jnp.nan, jnp.where(over, jnp.inf, 0.0))[:, None],
+        jnp.exp(m)[:, None] * S,
+    )
     return out

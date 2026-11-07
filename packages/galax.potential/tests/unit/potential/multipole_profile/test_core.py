@@ -237,6 +237,50 @@ def test_from_density_accepts_a_bound_density_method() -> None:
     assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
 
 
+def test_from_density_takes_a_log_density_and_agrees_with_the_linear_one() -> None:
+    """``log_rho=`` builds the same expansion as ``rho=`` of its exponential."""
+
+    def log_rho(xyz, t):
+        r = safe_vector_norm(xyz)
+        return jnp.log(1e9) - (jnp.log(r) - jnp.log(10.0)) - 3.0 * jnp.log1p(r / 10.0)
+
+    def rho(xyz, t):
+        return jnp.exp(log_rho(xyz, t))
+
+    kw = {
+        "r_min": u.Q(0.1, "kpc"),
+        "r_max": u.Q(1e3, "kpc"),
+        "n_r": 48,
+        "l_max": 2,
+        "symmetry": "spherical",
+        "units": "galactic",
+    }
+    from_rho = MultipoleProfilePotential.from_density(rho, **kw)
+    from_log = MultipoleProfilePotential.from_density(log_rho=log_rho, **kw)
+
+    x = u.Q(jnp.asarray([[1.0, 2.0, 3.0], [30.0, 0.0, 40.0]]), "kpc")
+    t = u.Q(0.0, "Myr")
+    got, want = from_log.potential(x, t), from_rho.potential(x, t)
+    assert jnp.allclose(
+        u.ustrip("kpc2/Myr2", got), u.ustrip("kpc2/Myr2", want), rtol=1e-9
+    )
+
+
+def test_from_density_needs_exactly_one_of_rho_and_log_rho() -> None:
+    """Neither, and both, are errors."""
+
+    def log_rho(xyz, t):
+        return -safe_vector_norm(xyz)
+
+    kw = {"r_min": u.Q(0.1, "kpc"), "r_max": u.Q(10.0, "kpc"), "units": "galactic"}
+    with pytest.raises(TypeError, match="exactly one"):
+        MultipoleProfilePotential.from_density(**kw)
+    with pytest.raises(TypeError, match="exactly one"):
+        MultipoleProfilePotential.from_density(
+            lambda xyz, t: jnp.exp(log_rho(xyz, t)), log_rho=log_rho, **kw
+        )
+
+
 def test_from_density_defaults_angular_resolution_from_l_max() -> None:
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))

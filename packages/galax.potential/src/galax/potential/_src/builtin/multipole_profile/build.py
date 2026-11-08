@@ -44,6 +44,7 @@ from galax.potential._src.harmonic.asympt import _ln_huge
 from galax.potential._src.harmonic.poisson import (
     _ANCHOR_MARGIN,
     _log_floor,
+    _log_rel,
     gl_log_nodes,
     solve_poisson_profiles,
 )
@@ -87,7 +88,11 @@ def subtract_inner_cusp(
     either way, where dropping the split entirely gives 1.7e-05.
     """
     log_ratio = jnp.log(r_knots / r_knots[0])
-    log_inner = jnp.log(jnp.abs(rho_lm[:3, :]) + _log_floor(rho_lm))
+    # Per mode: `_log_rel` scales by one power of two, which must follow the
+    # column's own size, not the largest mode's.
+    log_inner = jax.vmap(_log_rel, in_axes=(1, None), out_axes=1)(
+        rho_lm[:3, :], _log_floor(rho_lm)
+    )
     alpha = jnp.mean(
         jnp.diff(log_inner, axis=0) / jnp.diff(jnp.log(r_knots[:3]))[:, None],
         axis=0,

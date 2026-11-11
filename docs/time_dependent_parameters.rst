@@ -211,3 +211,49 @@ A class also gives you a type to check for, which a factory does not:
 
 Use whichever fits. A one-off rule is a :class:`~galax.potential.params.CustomParameter`;
 something with a name, invariants, and a second user is a class.
+
+An orbit in a changing potential
+================================
+
+A time-dependent parameter changes the orbits too. Here a triaxial NFW halo
+flattens along :math:`y`: its ``q1`` goes from 1 to 0.6 over 0.7 Gyr, a
+:class:`~galax.potential.params.CustomParameter` carrying its end value and
+duration in ``args``:
+
+    >>> import galax.coordinates as gc
+    >>> import galax.dynamics as gd
+
+    >>> def flattening(t, q_end, t_end):
+    ...     frac = jnp.clip(u.ustrip("Gyr", t) / u.ustrip("Gyr", t_end), 0.0, 1.0)
+    ...     return u.Q(1.0 + (q_end - 1.0) * frac, "")
+
+    >>> q1 = gp.params.CustomParameter(func=flattening, args=(0.6, u.Q(0.7, "Gyr")))
+    >>> q1(u.Q(0.35, "Gyr"))
+    Q(0.8, '')
+
+    >>> def halo(q1):
+    ...     return gp.TriaxialNFWPotential(
+    ...         m=u.Q(5.4e11, "Msun"), r_s=u.Q(15.0, "kpc"),
+    ...         q1=q1, q2=u.Q(1.0, ""), units="galactic")
+
+The same starting point, integrated in the static halo and in the flattening one:
+
+    >>> w0 = gc.PhaseSpacePosition(q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0, 135, 0], "km/s"))
+    >>> ts = u.Q(jnp.linspace(0.0, 0.7, 400), "Gyr")
+    >>> orbit_static = gd.evaluate_orbit(halo(u.Q(1.0, "")), w0, ts)
+    >>> orbit_flat = gd.evaluate_orbit(halo(q1), w0, ts)
+
+    >>> round(float(u.ustrip("kpc", orbit_flat.q.y[-1] - orbit_static.q.y[-1])), 1)
+    -0.9
+
+Drawn as they are integrated, the static orbit is blue and the flattening one is
+dotted red; the shaded ellipses sketch the halo's shape at that time.
+
+.. raw:: html
+
+   <iframe src="_static/flattening_orbit.html" loading="lazy"
+           title="An orbit in a static triaxial NFW halo (blue) and in the same halo flattening with time (dotted red)"
+           style="display:block; width:100%; max-width:560px; aspect-ratio:1000/840; border:0; margin:1em auto;"></iframe>
+
+The animation is made by ``scripts/make_flattening_orbit.py``, which runs this
+example.

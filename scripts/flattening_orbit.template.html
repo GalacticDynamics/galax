@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Orbit in a flattening triaxial NFW potential (galax)</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas
+      id="c"
+      width="1000"
+      height="840"
+      aria-label="An orbit in a static triaxial NFW halo (blue) and in the same halo flattening with time (dotted red), drawn as it is integrated with galax"
+    ></canvas>
+    <script>
+      const D = "__DATA__"; // replaced by scripts/make_flattening_orbit.py
+      const cv = document.getElementById("c"),
+        g = cv.getContext("2d"),
+        W = cv.width,
+        H = cv.height;
+      const L = 110,
+        R = W - 30,
+        T = 80,
+        B = H - 90; // plot box
+      const X0 = -10,
+        X1 = 10,
+        Y0 = -10,
+        Y1 = 10; // kpc
+      const sx = (x) => L + ((x - X0) / (X1 - X0)) * (R - L),
+        sy = (y) => B - ((y - Y0) / (Y1 - Y0)) * (B - T);
+      const N = D.t.length,
+        SECONDS = 9,
+        HOLD = 1.6,
+        FADE = 0.6; // draw time, pause at the end, fade before the loop restarts
+      const BLUE = "#1f77b4",
+        RED = "#e8312f";
+
+      function axes() {
+        g.fillStyle = "#fff";
+        g.fillRect(0, 0, W, H);
+        g.strokeStyle = "#222";
+        g.lineWidth = 2;
+        g.strokeRect(L, T, R - L, B - T);
+        g.fillStyle = "#222";
+        g.font = "26px -apple-system, Helvetica, Arial, sans-serif";
+        g.textAlign = "center";
+        g.fillText(
+          "Orbit in a Flattening Triaxial NFW Potential",
+          (L + R) / 2,
+          46,
+        );
+        g.font = "22px -apple-system, Helvetica, Arial, sans-serif";
+        for (let v = -10; v <= 10; v += 5) {
+          g.fillText(String(v).replace("-", "−"), sx(v), B + 34);
+          g.textAlign = "right";
+          g.fillText(String(v).replace("-", "−"), L - 12, sy(v) + 8);
+          g.textAlign = "center";
+          g.beginPath();
+          g.moveTo(sx(v), B);
+          g.lineTo(sx(v), B + 8);
+          g.moveTo(L, sy(v));
+          g.lineTo(L - 8, sy(v));
+          g.stroke();
+        }
+        g.fillText("X [kpc]", (L + R) / 2, B + 70);
+        g.save();
+        g.translate(40, (T + B) / 2);
+        g.rotate(-Math.PI / 2);
+        g.fillText("Y [kpc]", 0, 0);
+        g.restore();
+      }
+      function halo(q) {
+        // a density contour of the halo, lightly shaded: x radius a, y radius a q
+        const a = 9.4;
+        g.save();
+        g.beginPath();
+        g.rect(L, T, R - L, B - T);
+        g.clip();
+        g.fillStyle = "rgba(31,119,180,0.09)";
+        g.beginPath();
+        g.ellipse(
+          sx(0),
+          sy(0),
+          sx(a) - sx(0),
+          sy(0) - sy(a),
+          0,
+          0,
+          2 * Math.PI,
+        );
+        g.fill();
+        g.fillStyle = "rgba(232,49,47,0.09)";
+        g.beginPath();
+        g.ellipse(
+          sx(0),
+          sy(0),
+          sx(a) - sx(0),
+          sy(0) - sy(a * q),
+          0,
+          0,
+          2 * Math.PI,
+        );
+        g.fill();
+        g.restore();
+      }
+      function path(xs, ys, k, color, dotted) {
+        g.save();
+        g.beginPath();
+        g.rect(L, T, R - L, B - T);
+        g.clip();
+        g.strokeStyle = color;
+        g.lineWidth = 3;
+        g.setLineDash(dotted ? [2, 7] : []);
+        g.lineCap = "round";
+        g.beginPath();
+        for (let i = 0; i <= k; i++) {
+          const X = sx(xs[i]),
+            Y = sy(ys[i]);
+          i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+        }
+        g.stroke();
+        g.setLineDash([]);
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(sx(xs[k]), sy(ys[k]), 9, 0, 2 * Math.PI);
+        g.fill();
+        g.restore();
+      }
+      function legend() {
+        const x = R - 250,
+          y = T + 18;
+        g.fillStyle = "#fff";
+        g.strokeStyle = "#ccc";
+        g.lineWidth = 1;
+        g.fillRect(x, y, 232, 78);
+        g.strokeRect(x, y, 232, 78);
+        g.lineWidth = 3;
+        g.strokeStyle = BLUE;
+        g.setLineDash([]);
+        g.beginPath();
+        g.moveTo(x + 14, y + 24);
+        g.lineTo(x + 64, y + 24);
+        g.stroke();
+        g.strokeStyle = RED;
+        g.setLineDash([2, 7]);
+        g.beginPath();
+        g.moveTo(x + 14, y + 56);
+        g.lineTo(x + 64, y + 56);
+        g.stroke();
+        g.setLineDash([]);
+        g.fillStyle = "#222";
+        g.font = "22px -apple-system, Helvetica, Arial, sans-serif";
+        g.textAlign = "left";
+        g.fillText("static", x + 78, y + 32);
+        g.fillText("flattening", x + 78, y + 64);
+        g.textAlign = "center";
+      }
+      function readout(k) {
+        g.fillStyle = "#5a6472";
+        g.font = "22px ui-monospace, Menlo, monospace";
+        g.textAlign = "left";
+        g.fillText(
+          "t = " +
+            D.t[k].toFixed(2) +
+            " Gyr    halo y/x = " +
+            D.q1[k].toFixed(2),
+          L + 16,
+          T + 34,
+        );
+        g.textAlign = "center";
+      }
+      function frame(k) {
+        axes();
+        halo(D.q1[k]);
+        path(D.xs, D.ys, k, BLUE, false);
+        path(D.xf, D.yf, k, RED, true);
+        legend();
+        readout(k);
+      }
+
+      const start = performance.now();
+      // a loop: draw the orbits over SECONDS, hold the finished plot, fade it out, start again
+      function tick() {
+        // the clock is performance.now(), not rAF's timestamp (which can be earlier than `start`)
+        const s = (performance.now() - start) / 1000,
+          cyc = SECONDS + HOLD + FADE,
+          p = ((s % cyc) + cyc) % cyc;
+        frame(
+          Math.min(
+            N - 1,
+            Math.floor((Math.min(p, SECONDS) / SECONDS) * (N - 1)),
+          ),
+        );
+        cv.style.opacity =
+          p > SECONDS + HOLD ? Math.max(0, 1 - (p - SECONDS - HOLD) / FADE) : 1;
+        requestAnimationFrame(tick);
+      }
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) frame(N - 1);
+      else requestAnimationFrame(tick);
+    </script>
+  </body>
+</html>

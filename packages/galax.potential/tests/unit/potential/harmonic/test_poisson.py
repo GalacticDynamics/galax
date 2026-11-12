@@ -380,6 +380,35 @@ def test_tangent_of_a_tiny_column_is_finite_under_jit(dtype: str, scale: float) 
     jax.clear_caches()
 
 
+@pytest.mark.parametrize(("dtype", "scale"), [("float32", 1e-30), ("float64", 1e-280)])
+@pytest.mark.parametrize("proportional", [True, False])
+def test_second_derivative_of_a_tiny_column_is_finite(
+    dtype: str, scale: float, proportional: bool
+) -> None:
+    """A single column far below 1 has a finite Hessian-vector product.
+
+    The tangent is either the column itself or a unit vector, and the product
+    is taken eagerly and under ``jit``.
+    """
+    r = jnp.geomspace(1e-2, 1e2, 32).astype(dtype)
+    col = (scale / (r * (1.0 + r) ** 3)).astype(dtype)[:, None]
+    tangent = col if proportional else jnp.ones_like(col)
+    l_per_mode = jnp.asarray([2.0], dtype=dtype)
+    one = jnp.asarray(1.0, dtype=dtype)
+
+    def total(x):
+        return solve_poisson_lm(r, x, l_per_mode, one).sum()
+
+    def hvp(x, dx):
+        return jax.jvp(jax.grad(total), (x,), (dx,))[1]
+
+    for f in (hvp, jax.jit(hvp)):
+        out = f(col, tangent)
+        assert out.dtype == jnp.dtype(dtype)
+        assert jnp.all(jnp.isfinite(out))
+    jax.clear_caches()
+
+
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_second_derivative_through_an_exact_zero_sample_is_finite(dtype: str) -> None:
     """Curvature at a density sample of exactly ``0.0`` is not ``0 * inf``.

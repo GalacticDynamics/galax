@@ -1049,6 +1049,41 @@ def test_float32_second_derivative_of_a_build_is_finite() -> None:
     jax.clear_caches()
 
 
+@pytest.mark.parametrize(
+    ("dtype", "scale", "l_max", "n_r", "symmetry"),
+    [
+        ("float64", 1e-280, 4, 16, "none"),
+        ("float32", 1e-30, 2, 12, "none"),
+        ("float32", 1e-30, 4, 16, "zrotation_zreflection"),
+    ],
+)
+def test_second_derivative_of_a_build_at_a_tiny_scale_is_finite(
+    dtype: str, scale: float, l_max: int, n_r: int, symmetry: str
+) -> None:
+    """``phi_lm`` has a finite second derivative in the amplitude of a tiny density."""
+    n_theta, n_phi = default_angular_resolution(l_max)
+    keys = lm_keys(l_max, symmetry)
+
+    with jax.enable_x64(dtype == "float64"):
+        r_knots = jnp.geomspace(1e-4, 1e4, n_r, dtype=dtype)
+
+        def phi(amplitude):
+            def rho(xyz, t):
+                x = jnp.sqrt(jnp.sum(xyz**2, axis=-1))
+                return amplitude * jnp.exp(-2.9 * jnp.log(x) - 1.1 * jnp.log1p(x))
+
+            return build_expansion(
+                rho, r_knots, l_max, keys, n_theta, n_phi, jnp.asarray(0.0), 1.0
+            )["phi_lm"]
+
+        a = jnp.asarray(scale, dtype=dtype)
+        second = jax.jvp(lambda x: jax.jvp(phi, (x,), (a,))[1], (a,), (a,))[1]
+
+        assert second.dtype == jnp.dtype(dtype)
+        assert jnp.all(jnp.isfinite(second))
+    jax.clear_caches()
+
+
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_hessian_vector_product_through_the_cusp_split_is_finite(dtype: str) -> None:
     """A mode that is exactly zero near the centre keeps a finite curvature.

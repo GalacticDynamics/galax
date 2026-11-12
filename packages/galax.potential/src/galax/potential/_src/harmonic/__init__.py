@@ -4,6 +4,7 @@ See the public API in `galax.potential.harmonic`.
 """
 
 __all__ = [
+    "LogDensity",
     "angular_grid",
     "asymptotic_coeffs",
     "default_angular_resolution",
@@ -11,6 +12,7 @@ __all__ = [
     "eval_log_spline_asympt",
     "fit_log_spline",
     "harmonic_coeffs",
+    "log_harmonic_coeffs",
     "lm_keys",
     "real_ylm",
     "solve_poisson_lm",
@@ -19,10 +21,12 @@ __all__ = [
 from .asympt import asymptotic_coeffs, eval_log_spline_asympt
 from .poisson import solve_poisson_lm
 from .project import (
+    LogDensity,
     angular_grid,
     default_angular_resolution,
     harmonic_coeffs,
     lm_keys,
+    log_harmonic_coeffs,
     real_ylm,
 )
 from .spline import eval_log_spline, fit_log_spline

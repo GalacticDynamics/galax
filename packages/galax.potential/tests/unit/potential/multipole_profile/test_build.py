@@ -13,6 +13,7 @@ from galax.potential._src.builtin.multipole_profile.build import (
     subtract_inner_cusp,
 )
 from galax.potential._src.harmonic import (
+    LogDensity,
     default_angular_resolution,
     eval_log_spline,
     lm_keys,
@@ -1070,4 +1071,109 @@ def test_hessian_vector_product_through_the_cusp_split_is_finite(dtype: str) -> 
 
     assert hvp.dtype == jnp.dtype(dtype)
     assert jnp.all(jnp.isfinite(hvp))
+    jax.clear_caches()
+
+
+def _log_build(n_r: int = 64, l_max: int = 0, symmetry: str = "spherical"):
+    """``phi_lm.sum()`` of a log-density build, as a function of ``(A, s, g[, q])``.
+
+    ``q``, the flattening, is 1 unless given.
+    """
+    keys = lm_keys(l_max, symmetry)
+    n_theta, n_phi = default_angular_resolution(l_max)
+
+    def total(p):
+        A, s, g, *rest = p
+        q = rest[0] if rest else jnp.ones_like(A)
+
+        def log_rho(xyz, t):
+            # The flattened radius as `log r + log(sqrt(1 + (q**-2 - 1) cos**2))`:
+            # `r` does not depend on `q`, so no `q`-derivative divides by a small
+            # radius (the norm of `xyz * (1, 1, 1 / q)` has a nan third one).
+            r = safe_vector_norm(xyz)
+            flat = 0.5 * jnp.log1p((1.0 / q**2 - 1.0) * (xyz[..., 2] / r) ** 2)
+            log_m = jnp.log(r) + flat
+            return (
+                jnp.log(A)
+                - g * (log_m - jnp.log(s))
+                - (4.0 - g) * jnp.log1p(jnp.exp(log_m) / s)
+            )
+
+        return build_expansion(
+            LogDensity(log_rho),
+            jnp.geomspace(1e-4, 1e4, n_r),
+            l_max,
+            keys,
+            n_theta,
+            n_phi,
+            jnp.asarray(0.0),
+            jnp.asarray(1.0),
+        )["phi_lm"].sum()
+
+    return total
+
+
+def _normwise(a, b) -> float:
+    return float(
+        jnp.max(jnp.abs(jnp.asarray(a, dtype=float) - b)) / jnp.max(jnp.abs(b))
+    )
+
+
+@pytest.mark.parametrize("amp", [1e-3, 1.0])
+def test_a_log_density_has_exact_float32_derivatives_to_third_order(amp) -> None:
+    """Gradient, Hessian, reverse-over-reverse and third derivative agree.
+
+    With the density given as its log nothing is repaired. At ``amp = 1e-3``
+    the inner padded samples are ``~1e36`` and ``d rho / dA = rho / A`` is
+    beyond the float32 maximum, where a linear-space density had the wrong
+    sign of gradient (+8.2e6 for -8.5e6), a Hessian ``nan`` or off by 2.5e4,
+    and a third derivative off by ~0.5. Measured against float64 here: 3e-6
+    for the gradient, 1e-5 for the Hessian and 7e-4 for the third derivative
+    at ``amp = 1e-3``, and 2e-5 or better for all of them at 1.
+    """
+    total = _log_build(n_r=48)
+    p = [amp, 1.0, 2.9, 0.8]
+
+    def rr(f):
+        return jax.jacrev(jax.jacrev(f))
+
+    def third(f):
+        return jax.jacfwd(jax.hessian(f))
+
+    tol = {
+        jax.grad: 1e-4,
+        jax.hessian: 1e-3,
+        rr: 1e-3,
+        third: 5e-3 if amp < 1.0 else 1e-3,
+    }
+    for op, bound in tol.items():
+        ref = op(total)(jnp.asarray(p))
+        assert ref.dtype == jnp.float64, "the reference needs x64; see the pytest env"
+        with jax.enable_x64(False):  # noqa: FBT003
+            got = op(total)(jnp.asarray(p))
+            assert got.dtype == jnp.float32
+            assert jnp.all(jnp.isfinite(got)), (op, got)
+            f32 = jnp.asarray(got, dtype=float)
+        assert _normwise(f32, ref) < bound, (op, _normwise(f32, ref))
+        jax.clear_caches()  # the compiled higher derivatives are large
+
+
+@pytest.mark.parametrize("amp", [1.0, 1e-3])
+def test_a_log_density_has_correct_float32_forward_mode_for_a_flattened_halo(
+    amp,
+) -> None:
+    """``jacfwd`` is finite and equals ``jacrev`` with the exponent traced.
+
+    A flattened cusp at ``l_max = 2`` has padded samples whose forward tangent,
+    the density times ``d log(rho)`` (``1 / A``, or ``~30`` for the exponent),
+    would exceed the float32 maximum while the density does not. With ``amp =
+    1e-3`` and 16 knots it reached the coefficients as `inf`, and the
+    `_LOG_MARGIN` of 4 that bounded only the density was too small.
+    """
+    total = _log_build(n_r=16, l_max=2, symmetry="zrotation_zreflection")
+    with jax.enable_x64(False):  # noqa: FBT003
+        p = jnp.asarray([amp, 1.0, 2.9, 0.6])
+        fwd, rev = jax.jacfwd(total)(p), jax.jacrev(total)(p)
+        assert jnp.all(jnp.isfinite(fwd)), fwd
+        assert jnp.allclose(fwd, rev, rtol=1e-4), (fwd, rev)
     jax.clear_caches()

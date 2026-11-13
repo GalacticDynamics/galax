@@ -64,10 +64,10 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         """Seed number for the random number generator."""
         return jr.key(12)
 
-    @pytest.fixture
-    def vmapped(self) -> bool:
-        """Whether to use `jax.vmap`."""
-        return False  # TODO: test both True and False
+    @pytest.fixture(params=[False, True], ids=["scan", "vmap"])
+    def vmapped(self, request: pytest.FixtureRequest) -> bool:
+        """Whether to use `jax.vmap` (`True`) or `jax.lax.scan` (`False`)."""
+        return request.param
 
     # ========================================
 
@@ -96,6 +96,48 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         assert allfinite(mock.q)
         assert allfinite(mock.p)
         assert jnp.all(jnp.isfinite(mock.t))
+
+    def test_particles_match_independent_orbits(
+        self,
+        mockgen: gd.MockStreamGenerator,
+        df: gd.AbstractStreamDF,
+        pot: gp.AbstractPotential,
+        t_stripping: gt.QuSzTime,
+        prog_w0: gc.PhaseSpaceCoordinate,
+        prog_mass: gt.QuSz0,
+        rng: PRNGKeyArray,
+        vmapped: bool,
+    ) -> None:
+        """Each particle is its release state integrated to the final time.
+
+        The reference integrates every particle on its own with
+        `galax.dynamics.evaluate_orbit`, from its release time to the final
+        time (which `MockStreamGenerator` bumps by 1e-3 Myr).
+        """
+        mock, _ = mockgen.run(rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped)
+
+        ics = df.sample(
+            rng, pot, gd.evaluate_orbit(pot, prog_w0, t_stripping), prog_mass
+        )
+        t_f = t_stripping[-1] + u.Q(1e-3, "Myr")
+        for arm in ("lead", "trail"):
+            w0 = ics[arm].w(units=pot.units)
+            want = jnp.stack(
+                [
+                    gd.evaluate_orbit(
+                        pot,
+                        w0[i],
+                        u.Q(jnp.stack([t_stripping[i].value, t_f.value]), "Myr"),
+                    ).w(units=pot.units)[-1]
+                    for i in range(len(t_stripping))
+                ]
+            )
+            got = mock[arm].w(units=pot.units)
+            # To the default solver's rtol (1e-7) of the coordinate scale: a
+            # batched and a separate adaptive solve accept slightly different
+            # steps (2e-9 here). A wrong release time or arm is off by O(1).
+            err = jnp.abs(got[:, :6] - want[:, :6]) / jnp.abs(want[:, :6]).max(0)
+            assert jnp.max(err) < 1e-7
 
 
 class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):

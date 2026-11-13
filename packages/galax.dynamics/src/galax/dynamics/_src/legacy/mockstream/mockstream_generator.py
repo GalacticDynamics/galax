@@ -76,18 +76,22 @@ class MockStreamGenerator(eqx.Module):
         """Integrate a leading and a trailing particle, ``(2, 6)``, from t0 to t1.
 
         Each particle gets its own `Integrator` call (so an adaptive solver
-        picks its steps per particle, as before), returning only the final
-        state. Going through `evaluate_orbit` instead adds an empty first leg
-        (to ``t0``), saves at two times and builds an `Orbit`, which costs as
-        much as the integration itself for a fixed-step solver.
+        picks its steps per particle, as before), saving only at ``t1``. Going
+        through `evaluate_orbit` instead adds an empty first leg (to ``t0``),
+        saves at two times and builds an `Orbit`.
         """
         # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
         # an init field; on `HamiltonianField` it is a property.
         field = HamiltonianField(self.potential)  # type: ignore[call-arg]
+        # Save at the time ``t1`` rather than with ``SaveAt(t1=True)``: the
+        # latter is ~2.4x slower for an adaptive solver inside `_run_scan` (the
+        # CPU default), for a reason we haven't pinned down.
+        saveat = jnp.asarray([t1])
 
         def final_state(w: gt.Sz6) -> gt.Sz6:
-            out: gt.Sz6 = self.stream_integrator(field, w, t0, t1).w(units=self.units)
-            return out
+            out = self.stream_integrator(field, w, t0, t1, saveat=saveat)
+            w1: gt.Sz6 = out.w(units=self.units)[-1]
+            return w1
 
         w = jax.vmap(final_state)(w0)
         return w[0], w[1]
@@ -122,7 +126,7 @@ class MockStreamGenerator(eqx.Module):
                 Index of the current point.
             """
             i, w0_l_i, w0_t_i = carry
-            # Both arms in one solve, straight to the final state.
+            # Each arm in its own solve, straight to the final state.
             w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])
             w_l, w_t = self._integrate_to(w0_lt_i, ts[i], t_f)
             # Prepare for next iteration
@@ -156,7 +160,7 @@ class MockStreamGenerator(eqx.Module):
         def one_pt_intg(
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
-            # Both arms in one solve, straight to the final state.
+            # Each arm in its own solve, straight to the final state.
             return self._integrate_to(jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f)
 
         w0_lead = mock0_lead.w(units=self.units)

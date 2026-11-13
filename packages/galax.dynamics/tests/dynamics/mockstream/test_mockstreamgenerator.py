@@ -81,7 +81,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         rng: PRNGKeyArray,
         vmapped: bool,
     ) -> None:
-        """Test the run method with ``vmapped=False``."""
+        """Test the run method, with `jax.lax.scan` and with `jax.vmap`."""
         mock, prog_o = mockgen.run(
             rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped
         )
@@ -152,7 +152,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
             got = mock[arm].w(units=pot.units)
             # Same steps, so only round-off separates them. A wrong release
             # time or arm is off by O(1).
-            err = jnp.abs(got[:, :6] - want[:, :6]) / jnp.abs(want[:, :6]).max(0)
+            err = jnp.abs(got - want) / jnp.abs(want).max(0)
             assert jnp.max(err) < 1e-10
 
 
@@ -173,3 +173,28 @@ class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
         """Mock stream DF."""
         with pytest.warns(RuntimeWarning):
             return gd.ChenStreamDF()
+
+
+def test_integrate_to_solves_each_particle_on_its_own():
+    """With an adaptive solver, each arm keeps its own step sizes.
+
+    A leading and a trailing particle on very different orbits, integrated
+    together by `MockStreamGenerator._integrate_to`, each equal a solve of that
+    particle alone. One solve of both would share a step size and miss this.
+    """
+    pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
+    gen = gd.MockStreamGenerator(gd.FardalStreamDF(), pot)
+    w0 = jnp.array(
+        [[30.0, 10.0, 20.0, 0.01, -0.15, -0.02], [2.0, 0.0, 0.5, 0.0, 0.3, 0.05]]
+    )
+    t0, t1 = u.Q(0.0, "Myr"), u.Q(300.0, "Myr")
+    got = gen._integrate_to(w0, t0, t1)
+
+    field = gd.fields.HamiltonianField(pot)
+    for i in range(2):
+        want = gen.stream_integrator(field, w0[i], t0, t1, saveat=jnp.asarray([t1])).w(
+            units=pot.units
+        )[-1]
+        # A vmapped and a single adaptive solve differ at ~1e-12 of the
+        # coordinate scale; one solve of both particles is off by > 7e-9.
+        assert jnp.max(jnp.abs(got[i] - want)) < 1e-10 * jnp.max(jnp.abs(want))

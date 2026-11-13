@@ -98,13 +98,11 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     def __check_init__(self) -> None:
         t = u.Q(0.0, "Myr")
         # TODO: simplify this check
-        a1 = self.a1(t, ustrip=self.units["dimensionless"])
-        a2 = self.a2(t, ustrip=self.units["dimensionless"])
-        a3 = self.a3(t, ustrip=self.units["dimensionless"])
+        p = self.params(t)
         _ = eqx.error_if(
             t,
-            jnp.logical_or(a1 < a2, a2 < a3),
-            f"a1 {a1} >= a2 {a2} >= a3 {a3} is required",
+            jnp.logical_or(p["a1"] < p["a2"], p["a2"] < p["a3"]),
+            f"a1 {p['a1']} >= a2 {p['a2']} >= a3 {p['a3']} is required",
         )
 
     @ft.partial(jax.jit)

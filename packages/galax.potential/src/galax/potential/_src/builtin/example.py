@@ -79,13 +79,12 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
-        omega = self.omega(t, ustrip=self.units["frequency"])
+        p = self.params(t)
 
-        _result = 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(omega) * xyz), axis=-1)
+        _result = 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(p["omega"]) * xyz), axis=-1)
         return _result  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit)
@@ -94,15 +93,13 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     ) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
 
         # Compute parameters
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2
         # A scalar omega is broadcast over all N axes, as in the potential.
-        omega = jnp.broadcast_to(
-            self.omega(t, ustrip=self.units["frequency"]), xyz.shape
-        )
-        denom = 4 * jnp.pi * self.constants["G"].value
+        p = self.params(t)
+        omega = jnp.broadcast_to(p["omega"], xyz.shape)
+        denom = 4 * jnp.pi * p["G"]
         return jnp.sum(omega**2, axis=-1) / denom  # type: ignore[no-any-return]
 
 

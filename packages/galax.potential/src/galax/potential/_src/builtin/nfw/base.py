@@ -361,7 +361,6 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     where $m$ is the characteristic mass and $r_s$ is the scale radius.
 
     """
-    r_s = p["r_s"]
-    x = r / r_s
-    phi0 = -p["G"] * p["m"] / r_s
+    x = r / p["r_s"]
+    phi0 = -p["G"] * p["m"] / p["r_s"]
     return phi0 * jnp.log1p(x) / x  # type: ignore[no-any-return]

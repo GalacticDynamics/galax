@@ -90,15 +90,14 @@ def _bar_terms(p: gt.Params, xyz: gt.Sz3, /) -> tuple[gt.Sz0, ...]:
     $\eta^2 = y'^2 + (b + \zeta)^2$ and $T_\pm = \sqrt{(a \pm |x'|)^2 + \eta^2}$;
     everything below is even in $x'$, so it is written for $|x'|$.
     """
-    alpha, a, b, c = p["alpha"], p["a"], p["b"], p["c"]
     x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-    xp = x * jnp.cos(alpha) + y * jnp.sin(alpha)
-    yp = -x * jnp.sin(alpha) + y * jnp.cos(alpha)
-    zeta = jnp.sqrt(c**2 + z**2)
-    eta2 = yp**2 + (b + zeta) ** 2
+    xp = x * jnp.cos(p["alpha"]) + y * jnp.sin(p["alpha"])
+    yp = -x * jnp.sin(p["alpha"]) + y * jnp.cos(p["alpha"])
+    zeta = jnp.sqrt(p["c"] ** 2 + z**2)
+    eta2 = yp**2 + (p["b"] + zeta) ** 2
     ax = jnp.abs(xp)
-    T_plus = jnp.sqrt((a + ax) ** 2 + eta2)
-    T_minus = jnp.sqrt((a - ax) ** 2 + eta2)
+    T_plus = jnp.sqrt((p["a"] + ax) ** 2 + eta2)
+    T_minus = jnp.sqrt((p["a"] - ax) ** 2 + eta2)
     return xp, yp, zeta, eta2, ax, T_plus, T_minus
 
 
@@ -122,19 +121,20 @@ def _gradient_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz3:
     $T_- + T_+ - 2|x'| = \eta^2/(T_+ + |x'| + a) + (T_- - |x'| + a)$ and the
     last term rationalized like the potential's numerator.
     """
-    alpha, a, b = p["alpha"], p["a"], p["b"]
     GM = p["G"] * p["m_tot"]
     xp, yp, zeta, eta2, ax, T_plus, T_minus = _bar_terms(p, xyz)
     T_sum, T_prod = T_minus + T_plus, T_plus * T_minus
 
     dphi_dxp = 2 * GM * xp / (T_sum * T_prod)
     # T_- - |x'| + a; T_- > |a - |x'|| since eta >= b + c > 0, so no 0/0.
-    minus_part = jnp.where(ax >= a, eta2 / (T_minus + ax - a), T_minus + a - ax)
-    T_sum_m2x = eta2 / (T_plus + ax + a) + minus_part
+    minus_part = jnp.where(
+        ax >= p["a"], eta2 / (T_minus + ax - p["a"]), T_minus + p["a"] - ax
+    )
+    T_sum_m2x = eta2 / (T_plus + ax + p["a"]) + minus_part
     # (1/eta) dPhi/deta
     k = GM / (2 * eta2) * T_sum_m2x * (T_sum + 2 * ax) / (T_sum * T_prod)
 
-    ca, sa = jnp.cos(alpha), jnp.sin(alpha)
+    ca, sa = jnp.cos(p["alpha"]), jnp.sin(p["alpha"])
     z = xyz[..., 2]
     # z / zeta, 0 on the mid-plane of a razor-thin (c = 0) bar, where it is 0/0
     on_plane = zeta == 0
@@ -143,25 +143,26 @@ def _gradient_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz3:
         [
             dphi_dxp * ca - k * yp * sa,
             dphi_dxp * sa + k * yp * ca,
-            k * (b + zeta) * z_zeta,
+            k * (p["b"] + zeta) * z_zeta,
         ],
         axis=-1,
     )
 
 
 def _potential_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
-    a = p["a"]
     _, _, _, eta2, ax, T_plus, T_minus = _bar_terms(p, xyz)
     # |x'| - a + T_-, rationalized where its terms cancel (|x'| < a)
-    numer = jnp.where(ax >= a, ax - a + T_minus, eta2 / (T_minus + a - ax))
-    denom = ax + a + T_plus
+    numer = jnp.where(
+        ax >= p["a"], ax - p["a"] + T_minus, eta2 / (T_minus + p["a"] - ax)
+    )
+    denom = ax + p["a"] + T_plus
     # Far out numer / denom -> 1, so take log1p of their difference, which is
     # -2a (T_- + T_+ + 2|x'|) / (T_- + T_+): no cancellation.
     T_sum = T_minus + T_plus
-    diff = -2 * a * (T_sum + 2 * ax) / T_sum
+    diff = -2 * p["a"] * (T_sum + 2 * ax) / T_sum
     ratio = numer / denom
     log_ratio = jnp.where(ratio > 0.5, jnp.log1p(diff / denom), jnp.log(ratio))
-    return p["G"] * p["m_tot"] / (2.0 * a) * log_ratio  # type: ignore[no-any-return]
+    return p["G"] * p["m_tot"] / (2.0 * p["a"]) * log_ratio  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -195,29 +196,26 @@ def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
     individually meaningful); verified numerically against the
     finite-difference Hessian of :func:`potential`.
     """
-    alpha = p["alpha"]
-    a, b, c, G, m_tot = p["a"], p["b"], p["c"], p["G"], p["m_tot"]
-
     x0, y0, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-    x = x0 * jnp.cos(alpha) + y0 * jnp.sin(alpha)
-    y = -x0 * jnp.sin(alpha) + y0 * jnp.cos(alpha)
+    x = x0 * jnp.cos(p["alpha"]) + y0 * jnp.sin(p["alpha"])
+    y = -x0 * jnp.sin(p["alpha"]) + y0 * jnp.cos(p["alpha"])
 
-    e0 = a - x
+    e0 = p["a"] - x
     e1 = e0**2
     e2 = y**2
     e3 = z**2
-    e4 = c**2 + e3
+    e4 = p["c"] ** 2 + e3
     e5 = jnp.sqrt(e4)
-    e6 = b + e5
+    e6 = p["b"] + e5
     e7 = e6**2
     e8 = e2 + e7
     e9 = e1 + e8
     e10 = jnp.sqrt(e9)
-    e11 = -a + x + e10
+    e11 = -p["a"] + x + e10
     e12 = 1 / e11
     e13 = e9 ** (-1.5)
     e14 = 1 / e10
-    e15 = a + x
+    e15 = p["a"] + x
     e16 = e15**2
     e17 = e16 + e8
     e18 = jnp.sqrt(e17)
@@ -243,8 +241,8 @@ def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
 
     lap = (
         0.5
-        * G
-        * m_tot
+        * p["G"]
+        * p["m_tot"]
         * e12
         * (
             e11 * e19 * e22 * e3 * e34 * e6
@@ -273,6 +271,6 @@ def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
             - e30 * e31 * e33
             - e30
         )
-        / a
+        / p["a"]
     )
-    return lap / (4 * jnp.pi * G)  # type: ignore[no-any-return]
+    return lap / (4 * jnp.pi * p["G"])  # type: ignore[no-any-return]

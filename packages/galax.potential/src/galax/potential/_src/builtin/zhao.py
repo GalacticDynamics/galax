@@ -276,10 +276,14 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
         \quad u = r / r_s
 
     """
-    alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
     uu = r / p["r_s"]
-    b = (beta - gamma) * alpha
-    _result = _norm(p) / p["r_s"] ** 3 / uu**gamma / (1.0 + uu ** (1.0 / alpha)) ** b
+    b = (p["beta"] - p["gamma"]) * p["alpha"]
+    _result = (
+        _norm(p)
+        / p["r_s"] ** 3
+        / uu ** p["gamma"]
+        / (1.0 + uu ** (1.0 / p["alpha"])) ** b
+    )
     return _result  # type: ignore[no-any-return]
 
 
@@ -301,10 +305,9 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 @ft.partial(jax.jit)
 def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""$dM/dr = 4\pi r^2 \rho(r)$, without forming $r_s^3$ (see `density`)."""
-    alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
     uu = r / p["r_s"]
-    b = (beta - gamma) * alpha
-    shape = uu ** (2.0 - gamma) / (1.0 + uu ** (1.0 / alpha)) ** b
+    b = (p["beta"] - p["gamma"]) * p["alpha"]
+    shape = uu ** (2.0 - p["gamma"]) / (1.0 + uu ** (1.0 / p["alpha"])) ** b
     return 4.0 * jnp.pi * _norm(p) / p["r_s"] * shape  # type: ignore[no-any-return]
 
 

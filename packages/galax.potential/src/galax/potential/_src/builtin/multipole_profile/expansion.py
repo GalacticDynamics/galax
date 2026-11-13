@@ -175,8 +175,9 @@ def expansion_density(
     # amplitude overflow it afterwards, and bounding `z` by
     # `ln_huge - log|amp|` is *looser* than `ln_huge` whenever `|amp| < 1`,
     # so `exp(z)` then overflows on its own.
-    amp = p["rho_amplitude"]
-    log_amp = jnp.log(jnp.abs(amp) + jnp.finfo(z.dtype).tiny)
+    log_amp = jnp.log(jnp.abs(p["rho_amplitude"]) + jnp.finfo(z.dtype).tiny)
     lim = _ln_huge(z)
-    background = jnp.sign(amp) * jnp.exp(jnp.clip(log_amp + z, -lim, lim))
+    background = jnp.sign(p["rho_amplitude"]) * jnp.exp(
+        jnp.clip(log_amp + z, -lim, lim)
+    )
     return jnp.sum((residual + background) * Y, axis=-1)  # type: ignore[no-any-return]

@@ -280,12 +280,11 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     finite (unlike e.g. the Kepler potential) at the center.
 
     """
-    r_s = p["r_s"]
     # erf(x)/x -> sqrt(2/pi)/r_s as r -> 0; guard the division so autodiff
     # doesn't see a 0/0 either.
     safe_r = jnp.where(r == 0, 1.0, r)
-    x = safe_r / r_s
+    x = safe_r / p["r_s"]
     phi0 = -p["G"] * p["m_tot"] / safe_r
     phi = phi0 * jsp.erf(x / jnp.sqrt(2.0))
-    phi_origin = -p["G"] * p["m_tot"] * jnp.sqrt(2.0 / jnp.pi) / r_s
+    phi_origin = -p["G"] * p["m_tot"] * jnp.sqrt(2.0 / jnp.pi) / p["r_s"]
     return jnp.where(r == 0, phi_origin, phi)  # type: ignore[no-any-return]

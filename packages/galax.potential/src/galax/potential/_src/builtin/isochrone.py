@@ -107,8 +107,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$
 
     """
-    r_s = p["r_s"]
-    _result = -p["G"] * p["m_tot"] / (r_s + jnp.sqrt(r**2 + r_s**2))
+    _result = -p["G"] * p["m_tot"] / (p["r_s"] + jnp.sqrt(r**2 + p["r_s"] ** 2))
     return _result  # type: ignore[no-any-return]
 
 
@@ -124,8 +123,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$
 
     """
-    r_s, m_tot = p["r_s"], p["m_tot"]
-    s = jnp.sqrt(r**2 + r_s**2)
-    numer = m_tot * r_s * (3 * r_s * s + 2 * r**2 + 3 * r_s**2)
-    denom = 4 * jnp.pi * s**3 * (r_s + s) ** 3
+    s = jnp.sqrt(r**2 + p["r_s"] ** 2)
+    numer = p["m_tot"] * p["r_s"] * (3 * p["r_s"] * s + 2 * r**2 + 3 * p["r_s"] ** 2)
+    denom = 4 * jnp.pi * s**3 * (p["r_s"] + s) ** 3
     return numer / denom  # type: ignore[no-any-return]

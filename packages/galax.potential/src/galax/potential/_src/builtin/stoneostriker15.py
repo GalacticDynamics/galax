@@ -95,8 +95,11 @@ def rhoc_of_mtot(p: gt.Params, /) -> gt.FloatSz0:
     $$ \rho_c = \frac{ M_{tot} (r_h + r_c)}{2\pi^2 r_c^2 r_h^2 } $$
 
     """
-    r_c, r_h = p["r_c"], p["r_h"]
-    rho_c = p["m_tot"] * (r_h + r_c) / (2 * jnp.pi**2 * r_c**2 * r_h**2)
+    rho_c = (
+        p["m_tot"]
+        * (p["r_h"] + p["r_c"])
+        / (2 * jnp.pi**2 * p["r_c"] ** 2 * p["r_h"] ** 2)
+    )
     return rho_c  # type: ignore[no-any-return]
 
 
@@ -126,8 +129,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$ M(<r) = \frac{2 M_{tot}}{\pi (r_h-r_c)} (r_h \atan(r/r_h) - r_c \atan(r/r_c)) $$
 
     """
-    r_c, r_h = p["r_c"], p["r_h"]
-    A = 2 * p["m_tot"] / (jnp.pi * (r_h - r_c))
+    A = 2 * p["m_tot"] / (jnp.pi * (p["r_h"] - p["r_c"]))
     return A * _atan_difference(p, r)  # type: ignore[no-any-return]
 
 
@@ -166,11 +168,10 @@ def _atan_difference(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     less than $r$ never cancels by more than the ratio of $r_h$ and $r_c$.
     Both pairs share the two arctangents.
     """
-    r_c, r_h = p["r_c"], p["r_h"]
-    x_c, x_h = r / r_c, r / r_h
+    x_c, x_h = r / p["r_c"], r / p["r_h"]
     a_c, a_h = jnp.atan(x_c), jnp.atan(x_h)
-    g_c, g_h = r_c * _x_minus_atan(x_c, a_c), r_h * _x_minus_atan(x_h, a_h)
-    direct = r_h * a_h - r_c * a_c
+    g_c, g_h = p["r_c"] * _x_minus_atan(x_c, a_c), p["r_h"] * _x_minus_atan(x_h, a_h)
+    direct = p["r_h"] * a_h - p["r_c"] * a_c
     return jnp.where(g_c + g_h < r, g_c - g_h, direct)  # type: ignore[no-any-return]
 
 
@@ -181,10 +182,9 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     The derivative of S&O15 Eq. 4, with
     $(r/r_c)^2 - (r/r_h)^2 = (r/r_c)^2 (1 - (r_c/r_h)^2)$ so it does not cancel.
     """
-    r_c, r_h = p["r_c"], p["r_h"]
-    A = 2 * p["m_tot"] / (jnp.pi * (r_h - r_c))
-    xc2, xh2 = (r / r_c) ** 2, (r / r_h) ** 2
-    return A * xc2 * (1 - (r_c / r_h) ** 2) / ((1 + xc2) * (1 + xh2))  # type: ignore[no-any-return]
+    A = 2 * p["m_tot"] / (jnp.pi * (p["r_h"] - p["r_c"]))
+    xc2, xh2 = (r / p["r_c"]) ** 2, (r / p["r_h"]) ** 2
+    return A * xc2 * (1 - (p["r_c"] / p["r_h"]) ** 2) / ((1 + xc2) * (1 + xh2))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -197,9 +197,8 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     inside the log is $\approx 1$ far out, and $r^2$ overflows float32 in SI
     units.
     """
-    r_c, r_h = p["r_c"], p["r_h"]
-    A = -2 * p["G"] * p["m_tot"] / (jnp.pi * (r_h - r_c))
+    A = -2 * p["G"] * p["m_tot"] / (jnp.pi * (p["r_h"] - p["r_c"]))
     atan_term = _atan_difference(p, r) / r
-    k = r_c / r_h
-    log_term = 0.5 * jnp.log1p((1 - k) * (1 + k) / ((r / r_h) ** 2 + k**2))
+    k = p["r_c"] / p["r_h"]
+    log_term = 0.5 * jnp.log1p((1 - k) * (1 + k) / ((r / p["r_h"]) ** 2 + k**2))
     return A * (atan_term + log_term)  # type: ignore[no-any-return]

@@ -250,8 +250,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""$dM/dr = 4\pi r^2 \rho = m x^{2-\gamma} (1+x)^{\gamma-3} / r_s$."""
     x = r / p["r_s"]
-    g = p["gamma"]
-    return p["m"] / p["r_s"] * x ** (2 - g) * (1 + x) ** (g - 3)
+    return p["m"] / p["r_s"] * x ** (2 - p["gamma"]) * (1 + x) ** (p["gamma"] - 3)
 
 
 # -----------------------------------------------
@@ -302,8 +301,6 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     Array(True, dtype=bool)
 
     """
-    rs = p["r_s"]
-
     # Inner term from integral 0 to r
     inner = mass_enclosed(p, r) / r
 
@@ -311,9 +308,9 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     # (1 - (1-w)^b) / b, or -ln(1-w) at b = 0. ln(1-w) = -ln(1 + 1/x) is taken
     # directly, since 1 - w loses its digits as x -> 0.
     b = 2.0 - p["gamma"]
-    log1mw = -jnp.log1p(rs / r)
+    log1mw = -jnp.log1p(p["r_s"] / r)
     safe_b = jnp.where(b == 0, jnp.ones_like(b), b)  # avoid 0/0 below
-    outer = (p["m"] / rs) * jnp.where(
+    outer = (p["m"] / p["r_s"]) * jnp.where(
         b == 0, -log1mw, -jnp.expm1(safe_b * log1mw) / safe_b
     )
 

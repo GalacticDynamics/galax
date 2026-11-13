@@ -266,9 +266,8 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     every term positive, where the form above cancels both as $x \to 0$ and
     as $x \to \infty$.
     """
-    r_s = p["r_s"]
-    x = r / r_s
-    prefactor = p["G"] * p["m"] / (r_s * CONST_BURKER)
+    x = r / p["r_s"]
+    prefactor = p["G"] * p["m"] / (p["r_s"] * CONST_BURKER)
     # atan2(1, x) = atan(1/x) for x > 0 without forming 1/x, and the last term
     # -> 0 as x -> 0: x can underflow to 0 at the origin in float32 SI units.
     pos = x > 0

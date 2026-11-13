@@ -94,13 +94,18 @@ def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
 @ft.partial(jax.jit)
 def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
     r"""Density function for the Satoh potential (Satoh 1980)."""
-    a, b, m_tot = p["a"], p["b"], p["m_tot"]
     R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
     z = xyz[..., 2]
-    zeta = jnp.sqrt(z**2 + b**2)
-    term = R2 + z**2 + a * (a + 2 * zeta)
+    zeta = jnp.sqrt(z**2 + p["b"] ** 2)
+    term = R2 + z**2 + p["a"] * (p["a"] + 2 * zeta)
     numer = (
-        m_tot * a * b**2 * (zeta * (R2 + a**2 + 6 * b**2 + 7 * z**2) + 5 * a * zeta**2)
+        p["m_tot"]
+        * p["a"]
+        * p["b"] ** 2
+        * (
+            zeta * (R2 + p["a"] ** 2 + 6 * p["b"] ** 2 + 7 * z**2)
+            + 5 * p["a"] * zeta**2
+        )
     )
     denom = 4 * jnp.pi * zeta**4 * term**2.5
     return numer / denom  # type: ignore[no-any-return]

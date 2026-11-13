@@ -270,8 +270,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     For more details see the NFW ``mass_enclosed`` method.
 
     """
-    r_t = p["r_t"]
-    _result = nfw_mass_enclosed(p, jnp.where(r <= r_t, r, r_t))
+    _result = nfw_mass_enclosed(p, jnp.where(r <= p["r_t"], r, p["r_t"]))
     return _result  # type: ignore[no-any-return]
 
 

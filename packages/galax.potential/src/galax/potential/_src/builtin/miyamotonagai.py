@@ -105,9 +105,8 @@ def potential(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
 @ft.partial(jax.jit)
 def density(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
     r"""Miyamoto-Nagai density function (Miyamoto & Nagai 1975, eq. 4)."""
-    a, b, m_tot = p["a"], p["b"], p["m_tot"]
     R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
-    zeta = jnp.sqrt(xyz[..., 2] ** 2 + b**2)
-    numer = a * R2 + (a + 3 * zeta) * (a + zeta) ** 2
-    denom = (R2 + (a + zeta) ** 2) ** 2.5 * zeta**3
-    return b**2 * m_tot / (4 * jnp.pi) * numer / denom  # type: ignore[no-any-return]
+    zeta = jnp.sqrt(xyz[..., 2] ** 2 + p["b"] ** 2)
+    numer = p["a"] * R2 + (p["a"] + 3 * zeta) * (p["a"] + zeta) ** 2
+    denom = (R2 + (p["a"] + zeta) ** 2) ** 2.5 * zeta**3
+    return p["b"] ** 2 * p["m_tot"] / (4 * jnp.pi) * numer / denom  # type: ignore[no-any-return]

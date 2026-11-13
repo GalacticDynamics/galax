@@ -129,10 +129,9 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     With $s = r/r_c$ and $a = (3-\alpha)/2$.
     """
-    alpha, r_c = p["alpha"], p["r_c"]
-    s = r / r_c
-    norm = 2 * p["m_tot"] / (jsp.gamma(1.5 - alpha / 2) * r_c)
-    return norm * s ** (2 - alpha) * jnp.exp(-(s**2))  # type: ignore[no-any-return]
+    s = r / p["r_c"]
+    norm = 2 * p["m_tot"] / (jsp.gamma(1.5 - p["alpha"] / 2) * p["r_c"])
+    return norm * s ** (2 - p["alpha"]) * jnp.exp(-(s**2))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -178,7 +177,6 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $$
 
     """
-    alpha, r_c, m_tot = p["alpha"], p["r_c"], p["m_tot"]
-    norm = m_tot / (2 * jnp.pi * jsp.gamma(1.5 - alpha / 2) * r_c**3)
-    _result = norm * (r_c / r) ** alpha * jnp.exp(-((r / r_c) ** 2))
+    norm = p["m_tot"] / (2 * jnp.pi * jsp.gamma(1.5 - p["alpha"] / 2) * p["r_c"] ** 3)
+    _result = norm * (p["r_c"] / r) ** p["alpha"] * jnp.exp(-((r / p["r_c"]) ** 2))
     return _result  # type: ignore[no-any-return]

@@ -286,6 +286,43 @@ def _check_time_independent(pot: AbstractPotential, /) -> None:
         raise ValueError(msg)
 
 
+def _concrete_bracket(r_min: Any, r_max: Any, usys: Any, /) -> tuple[float, float]:
+    """Read ``r_min`` and ``r_max`` as Python floats in ``usys`` length units.
+
+    Compare as Python floats, not 0-d arrays. A 0-d array is fine in an `if`,
+    but a *traced* one raises `TracerBoolConversionError`, which would turn a
+    clear "r_min must be < r_max" into a confusing jax error. The grid bracket
+    is build-time configuration and is required to be concrete (as are
+    ``n_r``, ``l_max`` and ``symmetry``), so forcing the conversion here
+    reports that requirement at the point it is violated.
+    """
+
+    def to_float(q: Any) -> float:
+        # Under `jax.jit` even a unit conversion of a concrete, closed-over
+        # `Quantity` is traced, which `float` cannot read back. Evaluating
+        # eagerly keeps a concrete input concrete.
+        with jax.ensure_compile_time_eval():
+            return float(u.ustrip(usys["length"], u.Q.from_(q, usys["length"])))
+
+    try:
+        return to_float(r_min), to_float(r_max)
+    except jax.errors.ConcretizationTypeError as exc:
+        msg = (
+            "r_min and r_max must be concrete, not traced: build the "
+            "`Quantity` outside `jax.jit` (or under "
+            "`jax.ensure_compile_time_eval()`) and close over it, rather "
+            "than passing it as a jitted argument "
+            f"(got r_min={r_min!r}, r_max={r_max!r})"
+        )
+        raise ValueError(msg) from exc
+    except TypeError as exc:  # a non-scalar reaches `float` as a bare error
+        msg = (
+            "r_min and r_max must be scalars, not arrays "
+            f"(got r_min={r_min!r}, r_max={r_max!r})"
+        )
+        raise ValueError(msg) from exc
+
+
 def _validate_bracket(r_min: float, r_max: float, /) -> None:
     """Reject a radial bracket the log-spaced grid cannot represent.
 
@@ -693,26 +730,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
                 msg = f"{name} must be >= 1 (got {n}); it is a quadrature node count"
                 raise ValueError(msg)
 
-        def to_len(q: Any) -> Float[Array, "..."]:
-            return jnp.asarray(  # type: ignore[no-any-return]
-                u.ustrip(usys["length"], u.Q.from_(q, usys["length"]))
-            )
-
-        # Compare as Python floats, not 0-d arrays. A 0-d array is fine in an
-        # `if`, but a *traced* one raises `TracerBoolConversionError`, which would
-        # turn a clear "r_min must be < r_max" into a confusing jax error. The
-        # grid bracket is build-time configuration and is required to be concrete
-        # (as are `n_r`, `l_max` and `symmetry`), so forcing the conversion here
-        # reports that requirement at the point it is violated.
-        try:
-            r_min_val = float(to_len(r_min))
-            r_max_val = float(to_len(r_max))
-        except TypeError as exc:  # a non-scalar reaches `float` as a bare error
-            msg = (
-                "r_min and r_max must be scalars, not arrays "
-                f"(got r_min={r_min!r}, r_max={r_max!r})"
-            )
-            raise ValueError(msg) from exc
+        r_min_val, r_max_val = _concrete_bracket(r_min, r_max, usys)
         _validate_bracket(r_min_val, r_max_val)
         _warn_if_padding_is_capped(r_min_val, r_max_val)
 

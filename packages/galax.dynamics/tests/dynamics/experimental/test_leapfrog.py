@@ -164,3 +164,85 @@ def test_leapfrog_round_trip():
     _, w2 = _nfw_leapfrog(1000.0, 0.0, w1)
     assert jnp.max(jnp.abs(w2[:3] - W0[:3])) <= 1e-10
     assert jnp.max(jnp.abs(w2[3:] - W0[3:])) <= 1e-12
+
+
+# ---------------------------------------------------------------------------
+# One force evaluation per step
+
+
+class _TwoEvalLeapfrog(experimental.Leapfrog):
+    """Reference: the same KDK step, evaluating the force twice per step."""
+
+    def init(self, terms, t0, t1, y0, args):
+        return None
+
+    def step(self, terms, t0, t1, y0, args, solver_state, made_jump):
+        f, g = terms
+        q0, p0 = y0
+        cf, cg = f.contr(t0, t1), g.contr(t0, t1)
+        p_half = p0 + g.vf_prod(t0, q0, args, 0.5 * cg)
+        q1 = q0 + f.vf_prod(t0, p_half, args, cf)
+        p1 = p_half + g.vf_prod(t1, q1, args, 0.5 * cg)
+        y1 = (q1, p1)
+        return y1, None, {"y0": y0, "y1": y1}, None, dfx.RESULTS.successful
+
+
+def test_leapfrog_one_force_evaluation_per_step():
+    """The end-of-step force is reused as the next step's start force."""
+    import jax
+
+    n_evals = []
+
+    def force(t, q, args):
+        jax.debug.callback(lambda: n_evals.append(1))
+        return -q
+
+    dfx.diffeqsolve(
+        (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force)),
+        experimental.Leapfrog(),
+        0.0,
+        1.0,
+        0.1,
+        (1.0, -0.5),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=20,
+    )
+    assert len(n_evals) == 11  # one at the start, then one per step
+
+
+@pytest.mark.parametrize("t1", [1.0, -1.0])
+def test_leapfrog_reused_force_matches_two_evaluations(t1):
+    """Reusing the force changes nothing, forward or backward."""
+    terms = (
+        dfx.ODETerm(lambda t, p, args: p),
+        dfx.ODETerm(lambda t, q, args: -q + 0.3 * jnp.sin(2 * t)),
+    )
+    kw = {"stepsize_controller": dfx.ConstantStepSize(), "max_steps": 200}
+    got = dfx.diffeqsolve(
+        terms, experimental.Leapfrog(), 0.0, t1, 0.01 * t1, (1.0, -0.5), **kw
+    )
+    ref = dfx.diffeqsolve(
+        terms, _TwoEvalLeapfrog(), 0.0, t1, 0.01 * t1, (1.0, -0.5), **kw
+    )
+    assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
+    assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)
+
+
+def test_leapfrog_recomputes_force_after_a_jump():
+    """After a jump in the force, the stored force is stale and is recomputed."""
+    terms = (
+        dfx.ODETerm(lambda t, p, args: p),
+        dfx.ODETerm(lambda t, q, args: -q + jnp.where(t > 0.55, 1.0, 0.0)),
+    )
+    kw = {
+        "stepsize_controller": dfx.ClipStepSizeController(
+            dfx.ConstantStepSize(), jump_ts=jnp.array([0.55])
+        ),
+        "max_steps": 50,
+    }
+    got = dfx.diffeqsolve(
+        terms, experimental.Leapfrog(), 0.0, 1.0, 0.1, (1.0, -0.5), **kw
+    )
+    ref = dfx.diffeqsolve(terms, _TwoEvalLeapfrog(), 0.0, 1.0, 0.1, (1.0, -0.5), **kw)
+    assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
+    assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)

@@ -212,6 +212,53 @@ A class also gives you a type to check for, which a factory does not:
 Use whichever fits. A one-off rule is a :class:`~galax.potential.params.CustomParameter`;
 something with a name, invariants, and a second user is a class.
 
+Evaluating every parameter at once
+==================================
+
+A potential keeps its parameters as the objects described above, and
+``param_objs`` maps each name to its object:
+
+    >>> pot = gp.HernquistPotential(
+    ...     m_tot=u.Q(1e12, "Msun"), r_s=u.Q(5.0, "kpc"), units="galactic")
+    >>> list(pot.param_objs)
+    ['m_tot', 'r_s']
+
+To get the values at a time, call ``params``. It evaluates every parameter at
+that time and returns a dictionary with one entry per parameter, plus ``"G"``
+from the potential's constants:
+
+    >>> sorted(pot.params(u.Q(0.0, "Gyr")))
+    ['G', 'm_tot', 'r_s']
+
+By default each value is a plain array in the potential's unit system, which is
+the form the potential's own jitted functions take, so this dictionary is also
+the quickest way to see the numbers a potential is using at a given time. Pass
+``ustrip=False`` to keep the units:
+
+    >>> pot.params(u.Q(0.0, "Gyr"), ustrip=False)["m_tot"]
+    Q(1.e+12, 'solMass')
+
+A bare number is read as a time in the potential's time unit, which is Myr in
+the ``"galactic"`` unit system used here.
+
+For a time-dependent parameter the value follows the time. Here the mass is the
+growing :class:`~galax.potential.params.CustomParameter` from above:
+
+    >>> pot = gp.HernquistPotential(
+    ...     m_tot=gp.params.CustomParameter(
+    ...         func=growing, args=(u.Q(1e12, "Msun"), u.Q(1e11, "Msun/Gyr"))),
+    ...     r_s=u.Q(5.0, "kpc"), units="galactic")
+    >>> [round(float(pot.params(u.Q(t, "Gyr"))["m_tot"]) / 1e12, 3) for t in (0.0, 2.0)]
+    [1.0, 1.2]
+
+For a composite potential the result holds one such dictionary per component,
+keyed by the component's name:
+
+    >>> bulge = gp.KeplerPotential(m_tot=u.Q(1e10, "Msun"), units="galactic")
+    >>> comp = gp.CompositePotential(halo=pot, bulge=bulge)
+    >>> {name: sorted(values) for name, values in comp.params(u.Q(0.0, "Gyr")).items()}
+    {'halo': ['G', 'm_tot', 'r_s'], 'bulge': ['G', 'm_tot']}
+
 An orbit in a changing potential
 ================================
 

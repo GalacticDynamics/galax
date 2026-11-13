@@ -157,11 +157,11 @@ def fixed_step_stream(
     ((200, 6), (6,))
 
     """
-    n_steps = math.ceil(t_age_max / dt)
-    k_rel = _release_steps(n_steps, n_release)
     if not dt > 0 or n_release < 1:
         msg = f"need dt > 0 and n_release >= 1, got dt={dt}, n_release={n_release}"
         raise ValueError(msg)
+    n_steps = math.ceil(t_age_max / dt)
+    k_rel = _release_steps(n_steps, n_release)
     # float64 even for a float32 t_age, so the step and force times keep full
     # precision; the check is written so a NaN t_age fails it too.
     t_age = jnp.asarray(t_age, dtype=jnp.result_type(prog_w0.dtype, float))

@@ -248,3 +248,13 @@ def test_float32_t_age_keeps_full_precision():
         nfw(), make_df("fardal"), jr.key(0), PROG_W0, PROG_MASS, float(t32), **kw
     )
     assert jnp.array_equal(a[0], b[0])
+
+
+@pytest.mark.parametrize(("dt", "n_release"), [(0.0, 4), (-1.0, 4), (1.0, 0)])
+def test_bad_static_args_raise(dt, n_release):
+    """A non-positive dt or no releases is rejected up front."""
+    with pytest.raises(ValueError, match="need dt > 0 and n_release >= 1"):
+        experimental.fixed_step_stream(
+            nfw(), make_df("fardal"), jr.key(0), PROG_W0, PROG_MASS, 100.0,
+            dt=dt, n_release=n_release, t_age_max=300.0,
+        )  # fmt: skip

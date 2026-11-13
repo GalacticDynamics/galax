@@ -215,6 +215,53 @@ def test_from_density_accepts_a_plain_callable() -> None:
     assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
 
 
+def test_from_density_builds_under_jit_with_a_closed_over_bracket() -> None:
+    """A concrete bracket in another unit must survive being built under `jit`.
+
+    Converting ``pc`` to ``kpc`` inside a trace yields a tracer, which the
+    `float` on the bracket then could not read.
+    """
+    hern = _reference()
+    r_min, r_max = u.Q(10.0, "pc"), u.Q(1e4, "kpc")  # built outside the trace
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+
+    @jax.jit
+    def phi(m_tot):
+        pot = MultipoleProfilePotential.from_density(
+            hern._density,
+            r_min=r_min,
+            r_max=r_max,
+            n_r=64,
+            l_max=0,
+            symmetry="spherical",
+            units=hern.units,
+        )
+        return m_tot * pot.potential(x, t=0).value
+
+    got = phi(1.0)
+    exp = hern.potential(x, t=0).value
+    assert jnp.isclose(got, exp, rtol=1e-3, atol=0.0)
+
+
+def test_from_density_rejects_a_traced_bracket() -> None:
+    """A bracket that is a jit argument must say it is traced, not "an array"."""
+    hern = _reference()
+
+    @jax.jit
+    def build(r_min):
+        return MultipoleProfilePotential.from_density(
+            hern._density,
+            r_min=u.Q(r_min, "kpc"),
+            r_max=u.Q(1e4, "kpc"),
+            n_r=32,
+            l_max=0,
+            units=hern.units,
+        ).r_knots.value
+
+    with pytest.raises(ValueError, match="must be concrete"):
+        build(1e-2)
+
+
 def test_from_density_accepts_a_bound_density_method() -> None:
     """`rho_fn` is a jit static argument, so it must not need to be hashable.
 

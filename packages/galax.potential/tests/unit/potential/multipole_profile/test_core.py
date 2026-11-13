@@ -215,51 +215,82 @@ def test_from_density_accepts_a_plain_callable() -> None:
     assert jnp.isclose(got, exp, rtol=1e-3, atol=u.Q(0.0, exp.unit))
 
 
-def test_from_density_builds_under_jit_with_a_closed_over_bracket() -> None:
-    """A concrete bracket in another unit must survive being built under `jit`.
-
-    Converting ``pc`` to ``kpc`` inside a trace yields a tracer, which the
-    `float` on the bracket then could not read.
-    """
+def _phi_from_bracket(r_min_pc, r_max_kpc, x):
+    """Potential at ``x`` of an expansion built from a bracket in mixed units."""
     hern = _reference()
-    r_min, r_max = u.Q(10.0, "pc"), u.Q(1e4, "kpc")  # built outside the trace
+    pot = MultipoleProfilePotential.from_density(
+        hern._density,
+        r_min=u.Q(r_min_pc, "pc"),
+        r_max=u.Q(r_max_kpc, "kpc"),
+        n_r=64,
+        l_max=0,
+        symmetry="spherical",
+        units=hern.units,
+    )
+    return pot.potential(x, t=0).value
+
+
+def test_from_density_bracket_may_be_a_jit_argument() -> None:
+    """``r_min`` / ``r_max`` are ordinary traced values, converted in the trace."""
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    args = (10.0, 1e4)
+
+    got = jax.jit(_phi_from_bracket)(*args, x)
+    exp = _reference().potential(x, t=0).value
+
+    assert jnp.isclose(got, exp, rtol=1e-3, atol=0.0)
+    assert jnp.allclose(got, _phi_from_bracket(*args, x), rtol=1e-6, atol=0.0)
+
+
+def test_from_density_is_differentiable_in_the_bracket() -> None:
+    """The bracket is a value like any other, so gradients flow through it."""
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    d_r_max = jax.grad(lambda r: _phi_from_bracket(10.0, r, x).sum())(1e4)
+    assert jnp.isfinite(d_r_max)
+
+
+def test_from_density_time_grid_may_be_a_jit_argument() -> None:
+    """A traced build-time grid is built and interpolated like a concrete one."""
+    hern = _reference()
     x = u.Q([1.0, 2.0, 3.0], "kpc")
 
-    @jax.jit
-    def phi(m_tot):
+    def phi(ts):
         pot = MultipoleProfilePotential.from_density(
             hern._density,
-            r_min=r_min,
-            r_max=r_max,
-            n_r=64,
-            l_max=0,
-            symmetry="spherical",
-            units=hern.units,
-        )
-        return m_tot * pot.potential(x, t=0).value
-
-    got = phi(1.0)
-    exp = hern.potential(x, t=0).value
-    assert jnp.isclose(got, exp, rtol=1e-3, atol=0.0)
-
-
-def test_from_density_rejects_a_traced_bracket() -> None:
-    """A bracket that is a jit argument must say it is traced, not "an array"."""
-    hern = _reference()
-
-    @jax.jit
-    def build(r_min):
-        return MultipoleProfilePotential.from_density(
-            hern._density,
-            r_min=u.Q(r_min, "kpc"),
-            r_max=u.Q(1e4, "kpc"),
+            r_min=u.Q(1e-2, "kpc"),
+            r_max=u.Q(1e3, "kpc"),
             n_r=32,
             l_max=0,
+            symmetry="spherical",
+            t=u.Q(ts, "Myr"),
             units=hern.units,
-        ).r_knots.value
+        )
+        return pot.potential(x, u.Q(250.0, "Myr")).value
 
-    with pytest.raises(ValueError, match="must be concrete"):
-        build(1e-2)
+    ts = jnp.asarray([0.0, 500.0])
+    assert jnp.allclose(jax.jit(phi)(ts), phi(ts), rtol=1e-6, atol=0.0)
+
+
+@pytest.mark.parametrize(
+    ("r_min_pc", "r_max_kpc", "match"),
+    [
+        (-1.0, 1e4, "r_min must be > 0"),
+        (1e4, 1.0, "r_min must be < r_max"),
+        (10.0, float("nan"), "must be finite"),
+    ],
+)
+def test_from_density_rejects_a_bad_bracket_under_jit(
+    r_min_pc, r_max_kpc, match
+) -> None:
+    """A bad traced bracket is a runtime error, not a silent ``nan`` grid.
+
+    The exception type is jax's to choose: a call that compiles raises a
+    `RuntimeError`, while one served from the jit cache surfaces the same
+    callback error as a `ValueError`. The message is what is ours.
+    """
+    x = u.Q([1.0, 2.0, 3.0], "kpc")
+    with pytest.raises((RuntimeError, ValueError), match=match):
+        jax.block_until_ready(jax.jit(_phi_from_bracket)(r_min_pc, r_max_kpc, x))
 
 
 def test_from_density_accepts_a_bound_density_method() -> None:
@@ -419,7 +450,7 @@ def test_from_density_rejects_a_non_positive_r_min(r_min_kpc) -> None:
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
 
-    with pytest.raises(ValueError, match="r_min must be > 0"):
+    with pytest.raises(RuntimeError, match="r_min must be > 0"):
         MultipoleProfilePotential.from_density(
             rho,
             r_min=u.Q(r_min_kpc, "kpc"),
@@ -436,7 +467,7 @@ def test_from_density_rejects_r_min_greater_or_equal_to_r_max() -> None:
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
 
-    with pytest.raises(ValueError, match="r_min must be < r_max"):
+    with pytest.raises(RuntimeError, match="r_min must be < r_max"):
         MultipoleProfilePotential.from_density(
             rho,
             r_min=u.Q(1e2, "kpc"),
@@ -642,7 +673,7 @@ def test_from_density_rejects_a_non_finite_bracket(r_min_kpc, r_max_kpc) -> None
     def rho(xyz, t):
         return jnp.exp(-jnp.linalg.norm(xyz, axis=-1))
 
-    with pytest.raises(ValueError, match="must be finite"):
+    with pytest.raises(RuntimeError, match="must be finite"):
         MultipoleProfilePotential.from_density(
             rho,
             r_min=u.Q(r_min_kpc, "kpc"),
@@ -656,10 +687,9 @@ def test_from_density_rejects_a_non_finite_bracket(r_min_kpc, r_max_kpc) -> None
 def test_from_density_rejects_a_non_scalar_bracket() -> None:
     """A non-scalar bracket must name the argument, not leak a `TypeError`.
 
-    ``r_min`` / ``r_max`` are build-time configuration and go through
-    ``float(...)``, which reports only "Only scalar arrays can be converted
-    to Python scalars" -- true, but it does not say which of the two, nor
-    that they were meant to be scalars in the first place.
+    An array bracket would otherwise reach `geomspace` and build a grid of
+    grids, which fails far from the cause. The shape is static, so it is
+    checked even under `jax.jit`.
     """
 
     def rho(xyz, t):
@@ -972,22 +1002,34 @@ def test_time_grid_clamps_outside_the_grid() -> None:
 
 
 @pytest.mark.parametrize(
-    ("t", "match"),
+    ("t", "match", "exc"),
     [
-        (jnp.zeros((2, 2)), "must be a scalar or 1-D"),
-        (jnp.asarray([1.0]), "at least 2 entries"),
-        (jnp.asarray([0.0, 200.0, 100.0, 300.0]), "strictly increasing"),
-        (jnp.asarray([0.0, 100.0, 100.0, 300.0]), "strictly increasing"),
+        (jnp.zeros((2, 2)), "must be a scalar or 1-D", ValueError),
+        (jnp.asarray([1.0]), "at least 2 entries", ValueError),
+        (jnp.asarray([0.0, 200.0, 100.0, 300.0]), "strictly increasing", RuntimeError),
+        (jnp.asarray([0.0, 100.0, 100.0, 300.0]), "strictly increasing", RuntimeError),
         # `inf` satisfies `diff > 0` -- `inf - 100` is `inf` -- so finiteness
         # is a separate condition, and without it this builds and then makes
         # every interpolated value `nan`. `nan` needs no separate case: no
         # comparison involving it is true, so monotonicity already rejects it.
-        (jnp.asarray([0.0, 100.0, jnp.inf]), "strictly increasing and finite"),
-        (jnp.asarray([-jnp.inf, 100.0, 300.0]), "strictly increasing and finite"),
-        (jnp.asarray([0.0, jnp.nan, 300.0]), "strictly increasing and finite"),
+        (
+            jnp.asarray([0.0, 100.0, jnp.inf]),
+            "strictly increasing and finite",
+            RuntimeError,
+        ),
+        (
+            jnp.asarray([-jnp.inf, 100.0, 300.0]),
+            "strictly increasing and finite",
+            RuntimeError,
+        ),
+        (
+            jnp.asarray([0.0, jnp.nan, 300.0]),
+            "strictly increasing and finite",
+            RuntimeError,
+        ),
     ],
 )
-def test_time_grid_rejects_a_malformed_time(t, match: str) -> None:
+def test_time_grid_rejects_a_malformed_time(t, match: str, exc) -> None:
     """A malformed time grid must be refused rather than quietly misused.
 
     All of these have to be caught here, because none of them fails on its
@@ -1005,7 +1047,7 @@ def test_time_grid_rejects_a_malformed_time(t, match: str) -> None:
     used ``1/(1 + 0.01 t)`` and the two index paths happened to land on
     numerically coincident cubics, agreeing to the last digit.
     """
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(exc, match=match):
         gp.MultipoleProfilePotential.from_density(
             _growing_hernquist,
             r_min=u.Q(1e-2, "kpc"),

@@ -344,3 +344,38 @@ def test_solve_from_init_state_with_batched_t1(solver):
     want = s.solve(field, w0, t1, **kw).ys
     assert jnp.allclose(got[0], want[0], rtol=1e-13, atol=0)
     assert jnp.allclose(got[1], want[1], rtol=1e-13, atol=0)
+
+
+def test_solve_from_state_reuses_the_stored_force(monkeypatch):
+    """An unbatched solve from a saved state reuses its force: 10 steps, 10 forces."""
+    import unxt as u
+
+    import galax.coordinates as gc
+    import galax.dynamics as gd
+    import galax.potential as gp
+    from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
+
+    n_evals = []
+    dv_dt = HamiltonianField.dv_dt
+
+    def counted(self, t, q, args):
+        jax.debug.callback(lambda: n_evals.append(1))
+        return dv_dt(self, t, q, args)
+
+    monkeypatch.setattr(HamiltonianField, "dv_dt", counted)
+
+    field = gd.fields.HamiltonianField(
+        gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
+    )
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([8.0, 0, 9], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
+    )
+    solver = gd.OrbitSolver(
+        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    state = solver.init(field, w0, None)
+    jax.effects_barrier()
+    n_evals.clear()
+    solver.solve(field, state, u.Q(100.0, "Myr"), dt0=10.0).ys[0].block_until_ready()
+    jax.effects_barrier()
+    assert len(n_evals) == 10

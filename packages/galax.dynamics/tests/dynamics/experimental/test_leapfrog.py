@@ -1,6 +1,7 @@
 # ruff: noqa: ARG005
 
 import diffrax as dfx
+import jax
 import jax.numpy as jnp
 import pytest
 
@@ -142,8 +143,6 @@ W0 = jnp.array([15.0, 0.0, 10.0, 0.0, 0.17, -0.05])
 
 def test_leapfrog_backward():
     """t1 < t0 integrates backward: matches a hand-written KDK scan with h = -dt."""
-    import jax
-
     pot, w = _nfw_leapfrog(0.0, -1000.0, W0)
 
     def kdk(qp, _):
@@ -189,8 +188,6 @@ class _TwoEvalLeapfrog(experimental.Leapfrog):
 
 def test_leapfrog_one_force_evaluation_per_step():
     """The end-of-step force is reused as the next step's start force."""
-    import jax
-
     n_evals = []
 
     def force(t, q, args):
@@ -259,8 +256,6 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
     The callback has no batched arguments, so it fires once per batched
     evaluation. Without `unvmap_any`, the recompute would run every step.
     """
-    import jax
-
     n_evals = []
 
     def force(t, q, args):
@@ -312,3 +307,40 @@ def test_leapfrog_orbitsolver_step_after_run():
         out.append(solver.step(field, state, u.Q(60, "Myr"), None).y)
     assert jnp.allclose(out[0][0], out[1][0], rtol=1e-13, atol=0)
     assert jnp.allclose(out[0][1], out[1][1], rtol=1e-13, atol=0)
+
+
+@pytest.mark.parametrize(
+    "solver",
+    [experimental.Leapfrog(), None],
+    ids=["leapfrog", "default"],
+)
+def test_solve_from_init_state_with_batched_t1(solver):
+    """A state from `OrbitSolver.init` solves to a batched end time.
+
+    The batched solve is split per particle, so the stored solver state, which
+    is batched over both particles, can't be reused as is.
+    """
+    import unxt as u
+
+    import galax.coordinates as gc
+    import galax.dynamics as gd
+    import galax.potential as gp
+
+    field = gd.fields.HamiltonianField(
+        gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
+    )
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([[8.0, 0, 9], [9, 0, 3]], "kpc"),
+        p=u.Q([[0.0, 220, 0], [0, 200, 10]], "km/s"),
+        t=u.Q(0.0, "Myr"),
+    )
+    t1 = u.Q([100.0, 50.0], "Myr")
+    if solver is None:
+        s, kw = gd.OrbitSolver(), {}
+    else:
+        s = gd.OrbitSolver(solver, stepsize_controller=dfx.ConstantStepSize())
+        kw = {"dt0": 0.5}
+    got = s.solve(field, s.init(field, w0, None), t1, **kw).ys
+    want = s.solve(field, w0, t1, **kw).ys
+    assert jnp.allclose(got[0], want[0], rtol=1e-13, atol=0)
+    assert jnp.allclose(got[1], want[1], rtol=1e-13, atol=0)

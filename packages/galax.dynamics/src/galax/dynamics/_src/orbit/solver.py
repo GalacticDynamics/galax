@@ -1066,7 +1066,11 @@ def solve(
     **kw: Any,
 ) -> dfx.Solution:
     """Solve for state, end time."""
-    kw["solver_state"] = state.solver_state
+    # The loop strategies split a batched solve per element but would hand
+    # each element the whole batched solver state, so only an unbatched solve
+    # reuses it; a batched one re-initializes the solver per element.
+    if jnp.ndim(state.t) == 0 and jnp.ndim(t1) == 0:
+        kw["solver_state"] = state.solver_state
     return self.solve(loop_strategy, field, state.y, state.t, t1, **kw)
 
 

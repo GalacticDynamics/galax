@@ -8,7 +8,10 @@ def test_all() -> None:
     """Test the `galax.fields` API."""
     assert set(gf.__all__) == {
         "AbstractField",
+        "AbstractOrbitField",
         "AbstractSolver",
+        "HamiltonianField",
+        "NBodyField",
         "SolveState",
         "integrate_field",
         "parse_time_specification",

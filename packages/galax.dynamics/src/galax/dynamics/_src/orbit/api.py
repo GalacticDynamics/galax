@@ -13,7 +13,7 @@ from plum import dispatch
 
 import galax.potential as gp
 from .orbit import Orbit
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from galax.fields import AbstractOrbitField
 
 
 @dispatch.abstract

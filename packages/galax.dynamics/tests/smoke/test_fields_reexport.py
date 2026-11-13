@@ -7,7 +7,10 @@ import galax.fields as gf
 
 NAMES = (
     "AbstractField",
+    "AbstractOrbitField",
     "AbstractSolver",
+    "HamiltonianField",
+    "NBodyField",
     "SolveState",
     "integrate_field",
     "parse_time_specification",
@@ -17,6 +20,13 @@ NAMES = (
 @pytest.mark.parametrize("name", NAMES)
 def test_same_objects(name):
     assert getattr(gd, name) is getattr(gf, name)
+
+
+@pytest.mark.parametrize(
+    "name", ["AbstractField", "AbstractOrbitField", "HamiltonianField", "NBodyField"]
+)
+def test_fields_module_same_objects(name):
+    assert getattr(gd.fields, name) is getattr(gf, name)
 
 
 def test_submodule_reexports():

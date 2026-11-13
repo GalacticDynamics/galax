@@ -29,9 +29,8 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
-from .field_base import AbstractOrbitField
 from galax.dynamics.fields import AbstractField
-from galax.fields import AbstractSolver, SolveState
+from galax.fields import AbstractOrbitField, AbstractSolver, SolveState
 from galax.fields.custom_types import Terms
 from galax.fields.utils import parse_saveat, parse_to_t_y
 

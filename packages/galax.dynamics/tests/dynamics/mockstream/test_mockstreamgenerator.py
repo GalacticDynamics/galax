@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 
 from jaxtyping import PRNGKeyArray
 
+import diffrax as dfx
 import jax.random as jr
 import jax.tree as jtu
 import pytest
@@ -99,7 +100,6 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
     def test_particles_match_independent_orbits(
         self,
-        mockgen: gd.MockStreamGenerator,
         df: gd.AbstractStreamDF,
         pot: gp.AbstractPotential,
         t_stripping: gt.QuSzTime,
@@ -113,12 +113,28 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         The reference integrates every particle on its own with
         `galax.dynamics.evaluate_orbit`, from its release time to the final
         time (which `MockStreamGenerator` bumps by 1e-3 Myr).
+
+        Both use a fixed-step `Leapfrog`, so they take the same steps on any
+        platform. Two adaptive solves would not: their accepted steps differ
+        with rounding, by an amount that varies between machines. Every leg
+        runs forward here (the stripping times start at the progenitor's time),
+        so a constant step works without a sign-aware ``dt0``.
         """
+        integrator = gd.integrate.Integrator(
+            gd.OrbitSolver(
+                gd.experimental.Leapfrog(),
+                stepsize_controller=dfx.ConstantStepSize(),
+                max_steps=5000,
+            ),
+            diffeq_kw={"dt0": 1.0, "max_steps": 5000},
+        )
+        mockgen = gd.MockStreamGenerator(
+            df, pot, progenitor_integrator=integrator, stream_integrator=integrator
+        )
         mock, _ = mockgen.run(rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped)
 
-        ics = df.sample(
-            rng, pot, gd.evaluate_orbit(pot, prog_w0, t_stripping), prog_mass
-        )
+        prog_orbit = gd.evaluate_orbit(pot, prog_w0, t_stripping, integrator=integrator)
+        ics = df.sample(rng, pot, prog_orbit, prog_mass)
         t_f = t_stripping[-1] + u.Q(1e-3, "Myr")
         for arm in ("lead", "trail"):
             w0 = ics[arm].w(units=pot.units)
@@ -128,16 +144,16 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
                         pot,
                         w0[i],
                         u.Q(jnp.stack([t_stripping[i].value, t_f.value]), "Myr"),
+                        integrator=integrator,
                     ).w(units=pot.units)[-1]
                     for i in range(len(t_stripping))
                 ]
             )
             got = mock[arm].w(units=pot.units)
-            # To the default solver's rtol (1e-7) of the coordinate scale: a
-            # batched and a separate adaptive solve accept slightly different
-            # steps (2e-9 here). A wrong release time or arm is off by O(1).
+            # Same steps, so only round-off separates them. A wrong release
+            # time or arm is off by O(1).
             err = jnp.abs(got[:, :6] - want[:, :6]) / jnp.abs(want[:, :6]).max(0)
-            assert jnp.max(err) < 1e-7
+            assert jnp.max(err) < 1e-10
 
 
 class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):

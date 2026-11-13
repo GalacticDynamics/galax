@@ -186,7 +186,7 @@ def call(
 
     A given ``dt0`` sets the size of the first step, and ``t0 -> t1`` sets its
     direction. `diffrax.diffeqsolve` needs the sign of ``dt0`` to match
-    ``t1 - t0``, so without this one fixed-step solver could not integrate both
+    ``t1 - t0``, so without this, one fixed-step solver could not integrate both
     backward and forward, as `galax.dynamics.evaluate_orbit` does when the
     orbit's start time lies inside the requested times.
 

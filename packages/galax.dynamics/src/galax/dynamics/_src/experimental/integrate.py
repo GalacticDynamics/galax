@@ -384,7 +384,7 @@ def integrate_orbit(
     t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
 
     # Pass the field, not its terms, so the solve goes through the field
-    # dispatch (which also sets the sign of a fixed `dt0` from t0 -> t1).
+    # dispatch (which also sets the sign of a given `dt0` from t0 -> t1).
     soln: dfx.Solution = solver(
         field, t0=t0, t1=t1, y0=qp0, saveat=saver, **(solver_kwargs or {})
     )

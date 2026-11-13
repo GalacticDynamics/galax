@@ -239,8 +239,8 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
 def test_experimental_integrate_orbit_fixed_step_backward():
     """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the same fix.
 
-    A constant step with ``dt0 = +1`` integrates backward, matching a
-    hand-written backward KDK scan.
+    A constant step with ``dt0 = +0.5`` integrates backward with steps of 0.5,
+    matching a hand-written backward KDK scan.
     """
     import jax
 
@@ -261,17 +261,52 @@ def test_experimental_integrate_orbit_fixed_step_backward():
         0.0,
         -50.0,
         solver=solver,
-        solver_kwargs=ImmutableMap({"dt0": 1.0}),
+        solver_kwargs=ImmutableMap({"dt0": 0.5}),
     )
 
     def kdk(qp, _):
         q, p = qp
-        h = -1.0
+        h = -0.5
         p = p - 0.5 * h * pot._gradient(q, 0.0)
         q = q + h * p
         p = p - 0.5 * h * pot._gradient(q, 0.0)
         return (q, p), None
 
-    (q, p), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=50)
+    (q, p), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=100)
     assert jnp.allclose(soln.ys[0][-1], q, rtol=1e-12, atol=0)
     assert jnp.allclose(soln.ys[1][-1], p, rtol=1e-12, atol=0)
+
+
+def test_stream_simulator_fixed_step():
+    """`StreamSimulator` runs with a fixed-step `Leapfrog`, for either sign of dt0.
+
+    Its progenitor is integrated back to the first release time and then
+    forward, so one constant-step solver has to go both ways.
+    """
+    import jax.random as jr
+
+    import diffraxtra as dfxtra
+    from xmmutablemap import ImmutableMap
+
+    import galax.dynamics as gd
+    import galax.potential as gp
+
+    pot = gp.HernquistPotential(1e12, 10, units="galactic")
+    qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
+    solver = dfxtra.DiffEqSolver(
+        experimental.Leapfrog(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=1000,
+    )
+    sim = gd.experimental.stream.StreamSimulator()
+    leads = []
+    for dt0 in (1.0, -1.0):
+        kw = {"solver": solver, "solver_kwargs": ImmutableMap({"dt0": dt0})}
+        ics = sim.init(
+            pot, qp0, 0.0, release_times=jnp.linspace(-400.0, -150.0, 20),
+            Msat=1e5, key=jr.key(0), **kw,
+        )  # fmt: skip
+        lead, _ = sim.run(pot, ics, t1=0.0, **kw)
+        assert jnp.all(jnp.isfinite(lead[0]))
+        leads.append(lead[0])
+    assert jnp.array_equal(leads[0], leads[1])

@@ -207,6 +207,7 @@ def test_leapfrog_one_force_evaluation_per_step():
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=20,
     )
+    jax.effects_barrier()
     assert len(n_evals) == 11  # one at the start, then one per step
 
 
@@ -232,7 +233,11 @@ def test_leapfrog_recomputes_force_after_a_jump():
     """After a jump in the force, the stored force is stale and is recomputed."""
     terms = (
         dfx.ODETerm(lambda t, p, args: p),
-        dfx.ODETerm(lambda t, q, args: -q + jnp.where(t > 0.55, 1.0, 0.0)),
+        # The jump plus a smooth time dependence: a recompute at the wrong time
+        # would show.
+        dfx.ODETerm(
+            lambda t, q, args: -q + jnp.where(t > 0.55, 1.0, 0.0) + 0.3 * jnp.sin(2 * t)
+        ),
     )
     kw = {
         "stepsize_controller": dfx.ClipStepSizeController(
@@ -246,3 +251,64 @@ def test_leapfrog_recomputes_force_after_a_jump():
     ref = dfx.diffeqsolve(terms, _TwoEvalLeapfrog(), 0.0, 1.0, 0.1, (1.0, -0.5), **kw)
     assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
     assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)
+
+
+def test_leapfrog_one_force_evaluation_per_step_under_vmap():
+    """Under vmap with possible jumps but none taken, still one force per step.
+
+    The callback has no batched arguments, so it fires once per batched
+    evaluation. Without `unvmap_any`, the recompute would run every step.
+    """
+    import jax
+
+    n_evals = []
+
+    def force(t, q, args):
+        jax.debug.callback(lambda: n_evals.append(1))
+        return -q
+
+    def solve(t_jump):
+        return dfx.diffeqsolve(
+            (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force)),
+            experimental.Leapfrog(),
+            0.0,
+            1.0,
+            0.1,
+            (1.0, -0.5),
+            stepsize_controller=dfx.ClipStepSizeController(
+                dfx.ConstantStepSize(), jump_ts=jnp.atleast_1d(t_jump)
+            ),
+            max_steps=20,
+        ).ys
+
+    # A batched jump time makes `made_jump` batched; none is reached.
+    jax.vmap(solve)(jnp.array([5.0, 6.0, 7.0, 8.0]))
+    jax.effects_barrier()
+    assert len(n_evals) == 11
+
+
+def test_leapfrog_orbitsolver_step_after_run():
+    """`OrbitSolver.run` keeps no solver state; the next `step` still works."""
+    import unxt as u
+
+    import galax.coordinates as gc
+    import galax.dynamics as gd
+    import galax.potential as gp
+
+    field = gd.fields.HamiltonianField(
+        gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    )
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
+    )
+    out = []
+    for leapfrog in (experimental.Leapfrog(), _TwoEvalLeapfrog()):
+        solver = gd.OrbitSolver(
+            solver=leapfrog, stepsize_controller=dfx.ConstantStepSize(), max_steps=200
+        )
+        state = solver.run(
+            field, solver.init(field, w0, None), u.Q(50, "Myr"), None, dt0=1.0
+        )
+        out.append(solver.step(field, state, u.Q(60, "Myr"), None).y)
+    assert jnp.allclose(out[0][0], out[1][0], rtol=1e-13, atol=0)
+    assert jnp.allclose(out[0][1], out[1][1], rtol=1e-13, atol=0)

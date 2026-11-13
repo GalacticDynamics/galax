@@ -71,7 +71,10 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
 
     The force ``g(t1, x1)`` ending one step is the force starting the next, so
     it is kept in the solver state and each step costs one evaluation of ``g``.
-    After a jump (``jump_ts`` or an event) it is evaluated afresh.
+    After a jump (``jump_ts``, or ``made_jump=True`` passed to
+    `diffrax.diffeqsolve`) it is evaluated afresh. When resuming from a saved
+    ``solver_state`` after an event or a change to ``y``, pass
+    ``made_jump=True``.
     """
 
     term_structure: ClassVar = (AbstractTerm, AbstractTerm)
@@ -106,9 +109,11 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         f, g = terms
         q0, p0 = y0
 
-        # The force at (t0, q0), from the end of the previous step. diffrax
-        # resolves `made_jump` to a static False unless jumps are possible.
-        a0 = solver_state
+        # The force at (t0, q0), from the end of the previous step, or afresh
+        # if the caller kept no solver state (`galax.dynamics.OrbitSolver.run`
+        # stores none). diffrax resolves `made_jump` to a static False unless
+        # jumps are possible.
+        a0 = g.vf(t0, q0, args) if solver_state is None else solver_state
         if made_jump is not False:
 
             def recompute() -> VF:

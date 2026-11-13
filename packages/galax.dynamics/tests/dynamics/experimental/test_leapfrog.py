@@ -109,3 +109,58 @@ def test_leapfrog_conserves_energy_over_many_periods():
     # drift step using v0 instead of v_half).
     assert second_half_max < 5 * first_half_max
     assert second_half_max < 0.05
+
+
+# ---------------------------------------------------------------------------
+# Direction (GalacticDynamics/galax#963)
+
+
+def _nfw_leapfrog(t0, t1, w0):
+    """`OrbitSolver(Leapfrog)` on an NFW, fixed |dt| = 1 Myr, final state (6,)."""
+    import galax.dynamics as gd
+    import galax.potential as gp
+    from galax.dynamics.fields import HamiltonianField
+
+    pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    solver = gd.OrbitSolver(
+        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    n = int(abs(t1 - t0))
+    soln = solver.solve(
+        HamiltonianField(pot),
+        (w0[:3], w0[3:]),
+        t0,
+        t1,
+        dt0=jnp.sign(t1 - t0) * 1.0,
+        max_steps=n + 1,
+    )
+    return pot, jnp.concat([soln.ys[0].reshape(-1), soln.ys[1].reshape(-1)])
+
+
+W0 = jnp.array([15.0, 0.0, 10.0, 0.0, 0.17, -0.05])
+
+
+def test_leapfrog_backward():
+    """t1 < t0 integrates backward: matches a hand-written KDK scan with h = -dt."""
+    import jax
+
+    pot, w = _nfw_leapfrog(0.0, -1000.0, W0)
+
+    def kdk(qp, _):
+        q, p = qp
+        h = -1.0
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        q = q + h * p
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        return (q, p), None
+
+    (q, p), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=1000)
+    assert jnp.allclose(w, jnp.concat([q, p]), rtol=1e-12, atol=0)
+
+
+def test_leapfrog_round_trip():
+    """Forward 1000 Myr then back returns the initial state to round-off."""
+    _, w1 = _nfw_leapfrog(0.0, 1000.0, W0)
+    _, w2 = _nfw_leapfrog(1000.0, 0.0, w1)
+    assert jnp.max(jnp.abs(w2[:3] - W0[:3])) <= 1e-10
+    assert jnp.max(jnp.abs(w2[3:] - W0[3:])) <= 1e-12

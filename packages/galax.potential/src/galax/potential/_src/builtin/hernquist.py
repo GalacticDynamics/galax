@@ -161,13 +161,11 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        t = u.Q.from_(t, self.units["time"])
-
-        u1 = self.units["dimensionless"]
-        q1, q2 = self.q1(t, ustrip=u1), self.q2(t, ustrip=u1)
-        rprime = safe_sqrt(
-            xyz[..., 0] ** 2 + (xyz[..., 1] / q1) ** 2 + (xyz[..., 2] / q2) ** 2
-        )
 
         params = self.params(t)
+        rprime = safe_sqrt(
+            xyz[..., 0] ** 2
+            + (xyz[..., 1] / params["q1"]) ** 2
+            + (xyz[..., 2] / params["q2"]) ** 2
+        )
         return potential(params, rprime)  # type: ignore[no-any-return]

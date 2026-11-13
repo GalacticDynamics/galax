@@ -88,8 +88,8 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
         # Transform the position
-        u1 = self.units["dimensionless"]
-        xyz = xyz.at[..., 2].divide(self.q_z(t, ustrip=u1))
+        p = self.params(t)
+        xyz = xyz.at[..., 2].divide(p["q_z"])
 
         # Evaluate the potential energy at the transformed position, time.
         return self.base_potential._potential(xyz, t)  # noqa: SLF001

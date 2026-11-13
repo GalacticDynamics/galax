@@ -164,3 +164,74 @@ def test_leapfrog_round_trip():
     _, w2 = _nfw_leapfrog(1000.0, 0.0, w1)
     assert jnp.max(jnp.abs(w2[:3] - W0[:3])) <= 1e-10
     assert jnp.max(jnp.abs(w2[3:] - W0[3:])) <= 1e-12
+
+
+# ---------------------------------------------------------------------------
+# A fixed step whose sign doesn't match the direction
+
+
+def test_fixed_step_dt0_sign_follows_direction():
+    """With a constant step, `dt0` sets the size; t0 -> t1 sets the direction."""
+    import galax.dynamics as gd
+    import galax.potential as gp
+    from galax.dynamics.fields import HamiltonianField
+
+    field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
+    solver = gd.OrbitSolver(
+        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    y0 = (W0[:3], W0[3:])
+    want = solver.solve(field, y0, 0.0, -100.0, dt0=-1.0, max_steps=101)
+    got = solver.solve(field, y0, 0.0, -100.0, dt0=1.0, max_steps=101)
+    assert jnp.array_equal(got.ys[0], want.ys[0])
+    assert jnp.array_equal(got.ys[1], want.ys[1])
+
+
+def test_evaluate_orbit_fixed_step_back_then_forward():
+    """One fixed-step integrator does `evaluate_orbit`'s backward-then-forward legs.
+
+    The orbit starts at t = 0 and is saved from t = -100 to 0, so the progenitor
+    is first integrated back to -100 and then forward again (as
+    `MockStreamGenerator` does with its progenitor). It must come back to the
+    start to round-off, and its first saved state must match a hand-written
+    backward KDK scan.
+    """
+    import jax
+
+    import unxt as u
+
+    import galax.coordinates as gc
+    import galax.dynamics as gd
+    import galax.potential as gp
+    from galax.dynamics._src.legacy.integrator import Integrator
+
+    pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    integrator = Integrator(
+        gd.OrbitSolver(
+            experimental.Leapfrog(),
+            stepsize_controller=dfx.ConstantStepSize(),
+            max_steps=200,
+        ),
+        diffeq_kw={"dt0": 1.0, "max_steps": 200},
+    )
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
+    )
+    ts = u.Q(jnp.linspace(-100.0, 0.0, 11), "Myr")
+    orbit = gd.evaluate_orbit(pot, w0, ts, integrator=integrator)
+    q = jnp.stack([u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"], -1)
+    p = jnp.stack([u.ustrip("kpc/Myr", getattr(orbit.p, c)) for c in "xyz"], -1)
+
+    def kdk(qp, _):
+        q, p = qp
+        h = -1.0
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        q = q + h * p
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        return (q, p), None
+
+    (q_back, p_back), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=100)
+    assert jnp.allclose(q[0], q_back, rtol=1e-12, atol=0)
+    assert jnp.allclose(p[0], p_back, rtol=1e-12, atol=0)
+    assert jnp.max(jnp.abs(q[-1] - W0[:3])) <= 1e-10
+    assert jnp.max(jnp.abs(p[-1] - W0[3:])) <= 1e-12

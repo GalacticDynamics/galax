@@ -215,8 +215,8 @@ def _check_grid_config(n_r: int, l_max: int, /) -> None:
         raise ValueError(msg)
 
 
-def _check_build_times(t: Float[Array, "..."], /) -> bool:
-    """Validate the build time(s); return whether they form a grid.
+def _check_build_times(t: Float[Array, "..."], /) -> tuple[Float[Array, "..."], bool]:
+    """Validate the build time(s); return them, and whether they form a grid.
 
     A scalar builds one expansion and a 1-D grid builds one per time.
     Anything else has no meaning here, and it has to be rejected rather than
@@ -251,15 +251,18 @@ def _check_build_times(t: Float[Array, "..."], /) -> bool:
     # Finiteness is separate from monotonicity: `inf` passes `diff > 0`,
     # because `inf - 1` is `inf`, and then every interpolated value is
     # `nan`. `nan` is already caught, since no comparison with it is true.
-    if t.ndim == 1 and not bool(jnp.all(jnp.isfinite(t)) & jnp.all(jnp.diff(t) > 0)):
-        msg = (
+    # A value check, so `eqx.error_if`: it works on a traced ``t`` too. The
+    # returned ``t`` carries the check.
+    if t.ndim == 1:
+        t = eqx.error_if(
+            t,
+            ~(jnp.all(jnp.isfinite(t)) & jnp.all(jnp.diff(t) > 0)),
             "t must be strictly increasing and finite; the expansion is "
             "interpolated against it with a sorted-grid search, so an "
             "out-of-order grid returns wrong values rather than failing, "
-            "and a non-finite entry makes every interpolated value nan"
+            "and a non-finite entry makes every interpolated value nan",
         )
-        raise ValueError(msg)
-    return bool(t.ndim == 1)
+    return t, t.ndim == 1
 
 
 def _check_time_independent(pot: AbstractPotential, /) -> None:
@@ -286,65 +289,40 @@ def _check_time_independent(pot: AbstractPotential, /) -> None:
         raise ValueError(msg)
 
 
-def _concrete_bracket(r_min: Any, r_max: Any, usys: Any, /) -> tuple[float, float]:
-    """Read ``r_min`` and ``r_max`` as Python floats in ``usys`` length units.
-
-    Compare as Python floats, not 0-d arrays. A 0-d array is fine in an `if`,
-    but a *traced* one raises `TracerBoolConversionError`, which would turn a
-    clear "r_min must be < r_max" into a confusing jax error. The grid bracket
-    is build-time configuration and is required to be concrete (as are
-    ``n_r``, ``l_max`` and ``symmetry``), so forcing the conversion here
-    reports that requirement at the point it is violated.
-    """
-
-    def to_float(q: Any) -> float:
-        # Under `jax.jit` even a unit conversion of a concrete, closed-over
-        # `Quantity` is traced, which `float` cannot read back. Evaluating
-        # eagerly keeps a concrete input concrete.
-        with jax.ensure_compile_time_eval():
-            return float(u.ustrip(usys["length"], u.Q.from_(q, usys["length"])))
-
-    try:
-        return to_float(r_min), to_float(r_max)
-    except jax.errors.ConcretizationTypeError as exc:
-        msg = (
-            "r_min and r_max must be concrete, not traced: build the "
-            "`Quantity` outside `jax.jit` (or under "
-            "`jax.ensure_compile_time_eval()`) and close over it, rather "
-            "than passing it as a jitted argument "
-            f"(got r_min={r_min!r}, r_max={r_max!r})"
-        )
-        raise ValueError(msg) from exc
-    except TypeError as exc:  # a non-scalar reaches `float` as a bare error
-        msg = (
-            "r_min and r_max must be scalars, not arrays "
-            f"(got r_min={r_min!r}, r_max={r_max!r})"
-        )
-        raise ValueError(msg) from exc
-
-
-def _validate_bracket(r_min: float, r_max: float, /) -> None:
+def _check_bracket(
+    r_min: Float[Array, ""], r_max: Float[Array, ""], /
+) -> Float[Array, ""]:
     """Reject a radial bracket the log-spaced grid cannot represent.
 
-    Each failure is caught here, where the message can name the argument,
-    rather than later as an opaque `JaxRuntimeError` from inside the jitted
-    build.
+    Works on traced values: the value checks are `eqx.error_if`, which raises
+    eagerly and under `jax.jit` alike. They are tied to the returned
+    ``r_min``, which the grid is built from, so they cannot be dropped.
+    Shapes are static, so the scalar check is an ordinary `ValueError`.
     """
+    if r_min.ndim or r_max.ndim:
+        msg = (
+            "r_min and r_max must be scalars, not arrays "
+            f"(got shapes {r_min.shape} and {r_max.shape})"
+        )
+        raise ValueError(msg)
     # Every comparison below is False against a `nan`, so a non-finite bracket
     # would pass both remaining guards and reach `geomspace`, which returns an
     # all-`nan` grid -- exactly the opaque failure they exist to stop.
-    if not (math.isfinite(r_min) and math.isfinite(r_max)):
-        msg = f"r_min and r_max must be finite (got r_min={r_min}, r_max={r_max})"
-        raise ValueError(msg)
-    if r_min <= 0.0:
-        msg = f"r_min must be > 0 (got {r_min}); the radial grid is log-spaced"
-        raise ValueError(msg)
-    if r_min >= r_max:
-        msg = f"r_min must be < r_max (got r_min={r_min}, r_max={r_max})"
-        raise ValueError(msg)
+    r_min = eqx.error_if(
+        r_min,
+        ~(jnp.isfinite(r_min) & jnp.isfinite(r_max)),
+        "r_min and r_max must be finite",
+    )
+    r_min = eqx.error_if(
+        r_min, r_min <= 0, "r_min must be > 0; the radial grid is log-spaced"
+    )
+    out: Float[Array, ""] = eqx.error_if(r_min, r_min >= r_max, "r_min must be < r_max")
+    return out
 
 
-def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
+def _warn_if_padding_is_capped(
+    r_min: Float[Array, ""], r_max: Float[Array, ""], /
+) -> None:
     """Say so when the dtype will not carry the full padded reach.
 
     `build_expansion` pads by `_PAD_MULTIPLE` spans each side to push the
@@ -355,7 +333,9 @@ def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
 
     Only this constructor can say anything about it. `build_expansion` takes
     `r_knots` as a traced array, so the span is not known where the padding
-    happens; here `r_min` and `r_max` are concrete floats.
+    happens. Here it is, when the bracket is concrete; a warning is raised
+    at trace time, so a traced bracket has nothing to report and is skipped.
+    The cap applies either way.
 
     Deliberately independent of ``l_max``. The exponent used to scale with
     :math:`l`, which is what made high-:math:`l` builds return `nan`
@@ -373,12 +353,15 @@ def _warn_if_padding_is_capped(r_min: float, r_max: float, /) -> None:
     costs ~5e-06 rather than the 11% that dropping them used to. See
     `solve_poisson_profiles`.
     """
-    span = math.log(r_max / r_min)
+    if isinstance(r_min, jax.core.Tracer) or isinstance(r_max, jax.core.Tracer):
+        return
+    lo, hi = float(r_min), float(r_max)
+    span = math.log(hi / lo)
     dtype = jnp.zeros(()).dtype  # the working float dtype, x64 or not
     budget = _ln_huge(jnp.zeros((), dtype=dtype))
     if _PAD_MULTIPLE * span > 0.5 * max(budget - span, 0.0):
         msg = (
-            f"[{r_min:g}, {r_max:g}] spans {span:.0f} e-folds, which {dtype} "
+            f"[{lo:g}, {hi:g}] spans {span:.0f} e-folds, which {dtype} "
             f"cannot pad by the full {_PAD_MULTIPLE} spans a side ({budget:.0f} "
             f"available). The padding is capped, so the boundary power-law "
             f"model contributes more than it otherwise would. Narrow the "
@@ -518,9 +501,11 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             that of ``rho`` (milliseconds); a derivative of the build costs 2
             to 28 times less.
         r_min, r_max : Quantity
-            Inner and outer radii bracketing the region of interest. These are
-            build-time grid configuration and must be concrete: like ``n_r``,
-            ``l_max`` and ``symmetry``, they are not traceable under `jax.jit`.
+            Inner and outer radii bracketing the region of interest. Scalars,
+            and traceable: they may be `jax.jit` arguments or be differentiated
+            through. (``n_r``, ``l_max`` and ``symmetry`` set array shapes and
+            stay static.) Under `jax.jit` the bracket checks are runtime
+            errors, and the warning below is not issued.
         n_r : int, optional
             Number of radial knots (default 512). Must be >= 4.
 
@@ -601,9 +586,14 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         ------
         ValueError
             If ``n_r < 4``, ``l_max < 0``, ``n_theta`` or ``n_phi`` is given and
-            is ``< 1``, ``r_min <= 0``, or ``r_min >= r_max``; or if ``t`` is
+            is ``< 1``, or ``r_min`` or ``r_max`` is not a scalar; or if ``t`` is
             more than 1-D, or is a 1-D grid with fewer than two entries or one
             that is not strictly increasing and finite.
+        RuntimeError
+            If ``r_min`` or ``r_max`` is not finite, ``r_min <= 0``, or
+            ``r_min >= r_max``. Raised by `equinox.error_if`, so it fires under
+            `jax.jit` as well, where the exception type is whatever jax
+            surfaces for the error callback.
 
         Notes
         -----
@@ -730,11 +720,14 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
                 msg = f"{name} must be >= 1 (got {n}); it is a quadrature node count"
                 raise ValueError(msg)
 
-        r_min_val, r_max_val = _concrete_bracket(r_min, r_max, usys)
-        _validate_bracket(r_min_val, r_max_val)
-        _warn_if_padding_is_capped(r_min_val, r_max_val)
+        r_lo, r_hi = (
+            jnp.asarray(u.ustrip(usys["length"], u.Q.from_(r, usys["length"])))
+            for r in (r_min, r_max)
+        )
+        r_lo = _check_bracket(r_lo, r_hi)
+        _warn_if_padding_is_capped(r_lo, r_hi)
 
-        r_knots = jnp.geomspace(r_min_val, r_max_val, n_r)
+        r_knots = jnp.geomspace(r_lo, r_hi, n_r)
         t_ = jnp.asarray(
             u.ustrip(
                 usys["time"],
@@ -747,7 +740,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
         # array `t` reaching the scalar path would not fail -- it would
         # silently average the expansion over those times and hand it back as
         # though it were one.
-        on_time_grid = _check_build_times(t_)
+        t_, on_time_grid = _check_build_times(t_)
 
         if (rho is None) == (log_rho is None):
             msg = "give exactly one of `rho` and `log_rho`"

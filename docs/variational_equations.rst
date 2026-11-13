@@ -91,7 +91,8 @@ Symplectic solvers
 
 With a symplectic solver the deviations go through the same drift and kick
 steps as the orbit. The result is the exact tangent map of the integrator, so
-:math:`\det M = 1` to rounding error:
+at the end of each step :math:`\det M = 1` to rounding error. Here every
+output time is a multiple of ``dt0``, so every one lands on a step:
 
     >>> import diffrax as dfx
     >>> solver = gd.OrbitSolver(gd.experimental.Leapfrog(),
@@ -99,6 +100,10 @@ steps as the orbit. The result is the exact tangent map of the integrator, so
     >>> _, M = gd.orbit.compute_variational(pot, w0, ts, solver=solver, dt0=0.5)
     >>> bool(jnp.allclose(jnp.linalg.det(M), 1.0, atol=1e-10))
     True
+
+Between steps the solver interpolates the state linearly, and the interpolated
+:math:`M` is not exactly symplectic. To check symplecticity, we choose output
+times on the step grid.
 
 
 Lyapunov exponents

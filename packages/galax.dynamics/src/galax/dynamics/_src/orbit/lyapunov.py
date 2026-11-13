@@ -49,7 +49,9 @@ def compute_lyapunov(
 
     The deviation norm mixes positions and velocities in the field's units.
     The limit does not depend on that choice. With a constant-step solver the
-    renormalization interval must be a multiple of ``dt0``.
+    renormalization interval should be a multiple of ``dt0``. For ``t1``
+    before ``w0.t`` we divide by the elapsed time's magnitude, so the result is
+    the spectrum of the backward flow.
 
     Parameters
     ----------
@@ -117,6 +119,7 @@ def compute_lyapunov(
     x0, v0 = x0.reshape(-1, 3), v0.reshape(-1, 3)
 
     def single(t0: Any, x0: Any, v0: Any) -> Any:
+        t0 = eqx.error_if(t0, t0 == t1, "t1 must differ from w0.t")
         tis = jnp.linspace(t0, t1, n_renorm + 1)
 
         def interval(carry: Any, tt: Any) -> Any:

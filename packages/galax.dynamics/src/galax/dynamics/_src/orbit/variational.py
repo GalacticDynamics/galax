@@ -90,7 +90,8 @@ def tangent_terms(
 
     The drift acts on ``(v, dV)`` and the kick on ``(x, dX)``. Because a
     symplectic solver applies the same sub-steps to the deviations as to the
-    orbit, the deviations follow the exact tangent map of the integrator.
+    orbit, the deviations follow the exact tangent map of the integrator at the
+    end of each step. Between steps the solver's interpolation applies.
 
     Examples
     --------

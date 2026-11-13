@@ -1,7 +1,9 @@
 """Tests for Lyapunov exponents from the variational equations."""
 
 import diffrax as dfx
+import equinox as eqx
 import jax.numpy as jnp
+import pytest
 
 import unxt as u
 
@@ -88,3 +90,28 @@ def test_constant_step_backward():
     )
     assert jnp.all(jnp.isfinite(lam))
     assert jnp.abs(lam[-1].sum()) < 1e-10
+
+
+def test_backward_exponents_match_qr_of_stm():
+    """Backward exponents are log|diag R| of QR(M q0), divided by |t1 - t0|.
+
+    The product of the per-interval R factors is the R factor of M q0, so the
+    final estimate equals a single QR of the state-transition matrix. This
+    pins each of the k exponents, and their sign for a backward run.
+    """
+    t0, t1, k = 500.0, 0.0, 3
+    _, lam = compute_lyapunov(
+        POT, make_w0(XV0, t=t0), u.Q(t1, "Myr"), n_renorm=4, k=k, solver=TIGHT
+    )
+    q0 = jnp.linalg.qr(jnp.ones((6, k)) + jnp.eye(6, k))[0]
+    _, D = compute_variational(
+        POT, make_w0(XV0, t=t0), u.Q([t1], "Myr"), dw0=q0, solver=TIGHT
+    )
+    r = jnp.linalg.qr(D[0])[1]
+    expected = jnp.log(jnp.abs(jnp.diag(r))) / abs(t1 - t0)
+    assert jnp.allclose(lam[-1], expected, rtol=1e-6, atol=1e-10)
+
+
+def test_zero_duration_raises():
+    with pytest.raises(eqx.EquinoxRuntimeError, match="t1 must differ from w0.t"):
+        compute_lyapunov(POT, make_w0(XV0, t=100.0), u.Q(100, "Myr"), n_renorm=3)

@@ -132,7 +132,13 @@ def _solve_augmented(
     saveat: dfx.SaveAt,
     dt0: float | None,
 ) -> Any:
-    """Integrate an augmented state with the solver's settings; return ``ys``."""
+    """Integrate an augmented state with the solver's settings; return ``ys``.
+
+    ``dt0`` is taken as a magnitude and given the sign of ``t1 - t0``, so one
+    ``dt0`` serves forward, backward, and mixed-direction stages.
+    """
+    if dt0 is not None:
+        dt0 = jnp.where(t1 >= t0, 1, -1) * jnp.abs(dt0)
     soln = solver(terms, t0=t0, t1=t1, dt0=dt0, y0=y0, saveat=saveat)
     return soln.ys
 
@@ -160,8 +166,9 @@ def compute_variational(
     Parameters
     ----------
     field
-        The orbit field. A potential is wrapped in a
-        `galax.dynamics.fields.HamiltonianField`.
+        A single-particle orbit field. A potential is wrapped in a
+        `galax.dynamics.fields.HamiltonianField`. N-body fields are not
+        supported.
     w0
         The initial phase-space coordinate, with any batch shape.
     ts

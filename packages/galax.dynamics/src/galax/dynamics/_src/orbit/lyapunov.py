@@ -44,7 +44,7 @@ def compute_lyapunov(
     orthonormalize them by a QR decomposition at ``n_renorm`` evenly spaced
     times between ``w0.t`` and ``t1``, and add up the logarithms of the
     diagonal of :math:`R`. Dividing by the elapsed time gives the running
-    estimate :math:`\\lambda_j(t_i)`. With ``k=1`` this is the largest exponent;
+    estimate :math:`\lambda_j(t_i)`. With ``k=1`` this is the largest exponent;
     with ``k=6`` it is the full spectrum.
 
     The deviation norm mixes positions and velocities in the field's units.
@@ -54,8 +54,9 @@ def compute_lyapunov(
     Parameters
     ----------
     field
-        The orbit field. A potential is wrapped in a
-        `galax.dynamics.fields.HamiltonianField`.
+        A single-particle orbit field. A potential is wrapped in a
+        `galax.dynamics.fields.HamiltonianField`. N-body fields are not
+        supported.
     w0
         The initial phase-space coordinate, with any batch shape.
     t1

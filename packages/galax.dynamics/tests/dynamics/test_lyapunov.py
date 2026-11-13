@@ -71,3 +71,20 @@ def test_batched_initial_conditions():
     assert ts.shape == (2, 5)
     assert lam.shape == (2, 5, 1)
     assert jnp.allclose(lam[1], lam1, rtol=1e-12)
+
+
+def test_constant_step_backward():
+    solver = gd.OrbitSolver(
+        gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    _, lam = compute_lyapunov(
+        POT,
+        make_w0(XV0, t=500.0),
+        u.Q(0, "Myr"),
+        n_renorm=5,
+        k=6,
+        solver=solver,
+        dt0=0.5,
+    )
+    assert jnp.all(jnp.isfinite(lam))
+    assert jnp.abs(lam[-1].sum()) < 1e-10

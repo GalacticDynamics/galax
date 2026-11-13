@@ -222,3 +222,35 @@ def test_batched_and_jitted():
     assert D.shape == (2, 5, 6, 6)
     assert jnp.allclose(D[0], stm(xv[0]), rtol=1e-12)
     assert jnp.allclose(D[1], stm(xv[1]), rtol=1e-12)
+
+
+LEAPFROG = gd.OrbitSolver(
+    gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+)
+
+
+def test_constant_step_backward_integration():
+    """A positive dt0 also works when integrating backward."""
+    _, Df = compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), solver=LEAPFROG, dt0=0.5)
+    orbit, _ = compute_variational(
+        POT, _w0(XV0), u.Q(TS, "Myr"), solver=LEAPFROG, dt0=0.5
+    )
+    xv1 = jnp.concat(
+        [
+            jnp.stack([u.ustrip("kpc", c) for c in orbit.q[-1].asdict().values()]),
+            jnp.stack([u.ustrip("kpc/Myr", c) for c in orbit.p[-1].asdict().values()]),
+        ]
+    )
+    _, Db = compute_variational(
+        POT, _w0(xv1, t=500.0), u.Q(TS[::-1], "Myr"), solver=LEAPFROG, dt0=0.5
+    )
+    assert jnp.allclose(Db[-1] @ Df[-1], jnp.eye(6), atol=1e-6)
+
+
+def test_constant_step_mixed_directions():
+    """Stage one runs forward and stage two backward; both use |dt0|."""
+    _, D = compute_variational(
+        POT, _w0(XV0), u.Q([500.0, 250.0], "Myr"), solver=LEAPFROG, dt0=0.5
+    )
+    assert jnp.all(jnp.isfinite(D))
+    assert jnp.allclose(jnp.linalg.det(D), 1.0, atol=1e-10)

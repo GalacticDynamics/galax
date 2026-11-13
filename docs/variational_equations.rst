@@ -18,8 +18,9 @@ The state-transition matrix :math:`M(t) = \partial w(t) / \partial w_0` solves
 the same equations with :math:`M = I` at the start. :mod:`galax` integrates
 these deviations together with the orbit, under the same solver and the same
 error control. It takes the Jacobian from the field with automatic
-differentiation, so every potential and every orbit field works without extra
-code.
+differentiation, so every potential works without extra code, and so do
+single-particle fields with velocity-dependent forces such as dynamical
+friction. N-body fields are not supported yet.
 
 For these examples::
 

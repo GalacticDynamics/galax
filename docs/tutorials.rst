@@ -13,6 +13,7 @@ an issue on GitHub <https://github.com/GalacticDynamics/galax/issues>`_.
     :maxdepth: 1
 
     time_dependent_parameters
+    variational_equations
 
 
 .. TODO: uncomment

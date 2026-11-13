@@ -11,11 +11,10 @@ import jax
 
 import unxt as u
 
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
-from galax.fields.utils import parse_to_t_y
+from .utils import parse_to_t_y
 
 
 @final
@@ -238,12 +237,12 @@ class HamiltonianField(AbstractOrbitField):
     # TODO: enable full gamut of inputs
 
     @jax.jit
-    def dx_dt(self, t: Any, v_xyz: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
+    def dx_dt(self, t: Any, v_xyz: gt.BBtParr, args: Any, /) -> gt.BBtParr:  # noqa: ARG002
         """Call with time, position quantity arrays."""
         return v_xyz
 
     @jax.jit
-    def dv_dt(self, t: gt.BBtSz0, xyz: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
+    def dv_dt(self, t: gt.BBtSz0, xyz: gt.BBtQarr, _: Any, /) -> gt.BtAarr:
         """Call with time, velocity quantity arrays."""
         grad = self.potential._gradient(xyz, t)  # noqa: SLF001
         return -grad  # type: ignore[no-any-return]
@@ -312,7 +311,7 @@ def terms(
 
 @AbstractOrbitField.__call__.dispatch
 @ft.partial(jax.jit)
-def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.BtPAarr:
+def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tqp, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
@@ -322,7 +321,7 @@ def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.Bt
 @ft.partial(jax.jit)
 def call(
     self: HamiltonianField, tq: Any, qp: Any, args: gt.OptArgs = None, /
-) -> gdt.BtPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tq, qp, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
@@ -332,7 +331,7 @@ def call(
 @ft.partial(jax.jit)
 def call(
     self: HamiltonianField, t: Any, q: Any, p: Any, args: gt.OptArgs = None, /
-) -> gdt.BtPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, t, q, p, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)

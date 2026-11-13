@@ -2,9 +2,6 @@
 
 from .api import *
 from .base import AbstractOrbit
-from .field_base import *
-from .field_hamiltonian import *
-from .field_nbody import *
 from .interp import *
 from .lyapunov import compute_lyapunov as compute_lyapunov
 from .orbit import *

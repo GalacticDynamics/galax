@@ -11,8 +11,8 @@ from typing import Any, override
 
 from plum import dispatch
 
-from galax.fields import AbstractField
-from galax.fields.utils import parse_to_t_y
+from .fields import AbstractField
+from .utils import parse_to_t_y
 
 
 class AbstractOrbitField(AbstractField):

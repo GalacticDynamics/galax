@@ -9,13 +9,28 @@ right-hand side is the Jacobian of the field applied to each column.
 
 """
 
-__all__ = ["tangent_terms"]
+__all__ = ["compute_variational", "tangent_terms"]
 
+from jaxtyping import Array, Float
 from typing import Any
 
 import diffrax as dfx
+import equinox as eqx
 import jax
+import jax.tree as jtu
 from plum import dispatch
+
+import quaxed.numpy as jnp
+import unxt as u
+from unxt.quantity import AllowValue
+
+import galax.coordinates as gc
+import galax.potential as gp
+from .field_base import AbstractOrbitField
+from .field_hamiltonian import HamiltonianField
+from .orbit import Orbit
+from .solver import OrbitSolver
+from galax.dynamics._src.utils import parse_to_t_y
 
 
 def _linearize_columns(
@@ -103,3 +118,127 @@ def _tangent_split(term: dfx.ODETerm, /) -> dfx.ODETerm:
         return _linearize_columns(lambda z: term.vf(t, z, args), (z,), (dz,))
 
     return dfx.ODETerm(vf)
+
+
+# ===================================================================
+
+
+def _solve_augmented(
+    terms: Any,
+    solver: OrbitSolver,
+    t0: Any,
+    t1: Any,
+    y0: Any,
+    saveat: dfx.SaveAt,
+    dt0: float | None,
+) -> Any:
+    """Integrate an augmented state with the solver's settings; return ``ys``."""
+    soln = solver(terms, t0=t0, t1=t1, dt0=dt0, y0=y0, saveat=saveat)
+    return soln.ys
+
+
+@eqx.filter_jit
+def compute_variational(
+    field: AbstractOrbitField | gp.AbstractPotential,
+    w0: gc.AbstractPhaseSpaceCoordinate,
+    ts: Any,
+    /,
+    *,
+    dw0: Float[Array, "6 k"] | None = None,
+    solver: OrbitSolver | None = None,
+    dt0: float | None = None,
+) -> tuple[Orbit, Float[Array, "*batch time 6 k"]]:
+    r"""Integrate an orbit together with its deviation vectors.
+
+    The deviations :math:`\delta w` obey the variational equations
+    :math:`d\delta w / dt = J(t)\, \delta w`, with :math:`J` the Jacobian of
+    the field along the orbit. With ``dw0=None`` the deviations start as the
+    identity, so the result is the state-transition matrix
+    :math:`M(t) = \partial w(t) / \partial w_0`, where :math:`w_0` is the
+    phase-space position ``w0`` at its time ``w0.t``.
+
+    Parameters
+    ----------
+    field
+        The orbit field. A potential is wrapped in a
+        `galax.dynamics.fields.HamiltonianField`.
+    w0
+        The initial phase-space coordinate, with any batch shape.
+    ts
+        The output times. A `unxt.Quantity` is converted to the field's units.
+    dw0
+        The ``k`` initial deviation vectors, as the columns of a ``(6, k)``
+        array in Cartesian ``(x, y, z, v_x, v_y, v_z)`` order and the field's
+        units. Defaults to the ``(6, 6)`` identity.
+    solver
+        The solver. Defaults to `galax.dynamics.OrbitSolver`. Its error control
+        includes the deviations.
+    dt0
+        Initial step size, needed for constant-step solvers.
+
+    Returns
+    -------
+    orbit
+        The orbit at ``ts``.
+    D
+        The deviations at ``ts``, shape ``(*batch, time, 6, k)``, as a plain
+        array in Cartesian order and the field's units.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8.0, 0, 0], "kpc"),
+    ...                              p=u.Q([0, 220, 0], "km/s"),
+    ...                              t=u.Q(0, "Myr"))
+    >>> ts = u.Q(jnp.linspace(0, 100, 5), "Myr")
+    >>> orbit, M = gd.orbit.compute_variational(pot, w0, ts)
+    >>> M.shape
+    (5, 6, 6)
+    >>> bool(jnp.allclose(M[0], jnp.eye(6)))
+    True
+    >>> bool(jnp.allclose(jnp.linalg.det(M), 1.0))
+    True
+
+    """
+    thefield = (
+        field if isinstance(field, AbstractOrbitField) else HamiltonianField(field)  # type: ignore[call-arg]
+    )
+    solver = OrbitSolver() if solver is None else solver
+    units = thefield.units
+    ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))
+    dws = jnp.eye(6) if dw0 is None else jnp.asarray(dw0)
+    terms = tangent_terms(thefield.terms(solver.solver))
+
+    t0, (x0, v0) = parse_to_t_y(None, w0, ustrip=units)
+    batch = x0.shape[:-1]
+    t0 = jnp.broadcast_to(t0, batch).reshape(-1)
+    x0, v0 = x0.reshape(-1, 3), v0.reshape(-1, 3)
+
+    def single(t0: Any, x0: Any, v0: Any) -> Any:
+        y0 = ((x0, dws[:3]), (v0, dws[3:]))
+        # Integrate from `w0.t` to `ts[0]`, then save along `ts`.
+        ys = _solve_augmented(terms, solver, t0, ts[0], y0, dfx.SaveAt(ts=ts[:1]), dt0)
+        if ts.shape != (1,):
+            y1 = jtu.map(lambda y: y[0], ys)
+            ys = _solve_augmented(
+                terms, solver, ts[0], ts[-1], y1, dfx.SaveAt(ts=ts), dt0
+            )
+        return ys
+
+    (x, dx), (v, dv) = jax.vmap(single)(t0, x0, v0)
+    x, v = x.reshape(*batch, *x.shape[1:]), v.reshape(*batch, *v.shape[1:])
+    D = jnp.concat([dx, dv], axis=-2).reshape(*batch, len(ts), 6, dws.shape[-1])
+
+    orbit = Orbit(
+        q=u.Q(x, units["length"]),
+        p=u.Q(v, units["speed"]),
+        t=u.Q(ts, units["time"]),
+        frame=w0.frame,
+    )
+    return orbit, D

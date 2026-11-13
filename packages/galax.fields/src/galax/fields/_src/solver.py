@@ -38,10 +38,10 @@ DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], 
 class SolveState(eqx.Module):
     """State of the solver.
 
-    This is used as the return value for `galax.dynamics.AbstractSolver.init`
-    and `galax.dynamics.AbstractSolver.step`. It is used as the argument to
-    `galax.dynamics.AbstractSolver.step`, `galax.dynamics.AbstractSolver.run`,
-    and can also be passed to `galax.dynamics.AbstractSolver.solve`.
+    This is used as the return value for `galax.fields.AbstractSolver.init`
+    and `galax.fields.AbstractSolver.step`. It is used as the argument to
+    `galax.fields.AbstractSolver.step`, `galax.fields.AbstractSolver.run`,
+    and can also be passed to `galax.fields.AbstractSolver.solve`.
 
     """
 
@@ -287,7 +287,7 @@ def integrate_field(
     ts : Array[real, (n>2,)]
         Array of saved times. Must be at least length 2, specifying a minimum
         and maximum time. This does *not* determine the timestep
-    field : `galax.dynamics.fields.AbstractField`
+    field : `galax.fields.AbstractField`
         Specifies the field that we are integrating on. This field must have a
         `terms` method that returns the correct PyTree of `diffrax.AbstractTerm`
         objects given the solver.
@@ -335,17 +335,17 @@ def integrate_field(
     --------
     >>> import diffrax as dfx
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.HamiltonianField(pot)
 
     - From `jax.Array`:
 
     >>> y0 = (jnp.array([8., 0, 0]), jnp.array([0, 0.22499668, 0]))  # [kpc, kpc/Myr]
     >>> ts = jnp.linspace(0, 1_000, 100)  # [Myr]
 
-    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln = gf.integrate_field(field, y0, ts)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[100],
               ys=(f64[100,3], f64[100,3]),
@@ -367,7 +367,7 @@ def integrate_field(
     >>> y0 = (u.Q([8., 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
     >>> ts = u.Q(jnp.linspace(0, 1, 100), "Gyr")
 
-    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln = gf.integrate_field(field, y0, ts)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[100],
               ys=(f64[100,3], f64[100,3]),
@@ -385,7 +385,7 @@ def integrate_field(
             [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
 
     Additional input types are dependent on the `field`.
-    `galax.dynamics.orbit.AbstractOrbitField` can handle many more input types.
+    `galax.fields.AbstractOrbitField` can handle many more input types.
     See that class and `galax.dynamics.orbit.OrbitSolver` for more information.
     As a single example, here is how to use a
     `galax.coordinates.PhaseSpaceCoordinate`:
@@ -395,7 +395,7 @@ def integrate_field(
     >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
     ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
 
-    >>> soln = gd.integrate_field(field, w0, ts)
+    >>> soln = gf.integrate_field(field, w0, ts)
     >>> soln
     Solution( t0=f64[], t1=f64[], ts=f64[100],
               ys=(f64[100,3], f64[100,3]),

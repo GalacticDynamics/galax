@@ -1,4 +1,4 @@
-"""Dynamics fields.
+"""Field base classes.
 
 This is private API.
 

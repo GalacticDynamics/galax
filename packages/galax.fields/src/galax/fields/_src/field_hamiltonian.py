@@ -50,9 +50,10 @@ class HamiltonianField(AbstractOrbitField):
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.HamiltonianField(pot)
     >>> field
     HamiltonianField( potential=HernquistPotential( ... ) )
 
@@ -101,9 +102,9 @@ class HamiltonianField(AbstractOrbitField):
     combinations of arguments. Let's work up the type ladder:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.HamiltonianField(pot)
 
-    `galax.dynamics.fields.HamiltonianField` can be called using many
+    `galax.fields.HamiltonianField` can be called using many
     different combinations of arguments. Let's work up the type ladder:
 
     - `jax.Array` (assumed to be Cartesian coordinates and in the unit
@@ -261,9 +262,9 @@ def terms(
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
     See also `galax.dynamics.experimental.Leapfrog`, another symplectic solver,
-    for which the analogous dispatch is registered in
-    `galax.dynamics._src.experimental.leapfrog` (to avoid this core module
-    importing the experimental package).
+    for which the analogous dispatch is registered by `galax.dynamics` (in
+    ``galax/dynamics/_src/experimental/leapfrog.py``), because `galax.fields`
+    does not depend on `galax.dynamics`.
 
     Examples
     --------
@@ -272,9 +273,10 @@ def terms(
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
     >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.HamiltonianField(pot)
 
     >>> solver = dfx.SemiImplicitEuler()
 

@@ -36,13 +36,14 @@ class NBodyField(AbstractOrbitField):
     --------
     >>> import unxt as u
     >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
 
     >>> q = u.Q([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Q([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
     >>> solver = gd.OrbitSolver()
 
-    >>> field = gd.fields.NBodyField(
+    >>> field = gf.NBodyField(
     ...     masses=u.Q([1, 1], "Msun"),
     ...     eps=u.Q(1e-4, "AU"),
     ...     external_potential=gp.NullPotential(units="solarsystem"))

@@ -46,7 +46,7 @@ def _within(name: str, packages: tuple[str, ...], /) -> bool:
 
 
 @pytest.mark.parametrize(
-    "portion", ["coordinates", "potential", "dynamics", "actionangle"]
+    "portion", ["coordinates", "potential", "fields", "dynamics", "actionangle"]
 )
 def test_portion_imports_alone(portion: str) -> None:
     """Each portion imports on its own, with no sibling imported first."""
@@ -54,11 +54,12 @@ def test_portion_imports_alone(portion: str) -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-# `coordinates` -> `potential` -> `dynamics` -> `actionangle`: each portion may
-# import the ones below it, never the ones above.
+# `coordinates` -> `potential` -> `fields` -> `dynamics` -> `actionangle`: each
+# portion may import the ones below it, never the ones above.
 ABOVE = {
-    "coordinates": ["potential", "dynamics", "actionangle"],
-    "potential": ["dynamics", "actionangle"],
+    "coordinates": ["potential", "fields", "dynamics", "actionangle"],
+    "potential": ["fields", "dynamics", "actionangle"],
+    "fields": ["dynamics", "actionangle"],
     "dynamics": ["actionangle"],
 }
 

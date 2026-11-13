@@ -8,10 +8,9 @@ import pytest
 
 import unxt as u
 
-import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from ._variational_helpers import LinearDragField, make_w0
 from galax.dynamics._src.orbit.variational import compute_variational, tangent_terms
 
 POT = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
@@ -67,10 +66,7 @@ TS = jnp.linspace(0.0, 500.0, 5)  # Myr
 OMEGA = jnp.block([[jnp.zeros((3, 3)), jnp.eye(3)], [-jnp.eye(3), jnp.zeros((3, 3))]])
 
 
-def _w0(xv, t=0.0):
-    return gc.PhaseSpaceCoordinate(
-        q=u.Q(xv[..., :3], "kpc"), p=u.Q(xv[..., 3:], "kpc/Myr"), t=u.Q(t, "Myr")
-    )
+_w0 = make_w0
 
 
 def _end_state(pot, xv, ts, t=0.0, solver=TIGHT):
@@ -79,21 +75,6 @@ def _end_state(pot, xv, ts, t=0.0, solver=TIGHT):
     q = jnp.stack([u.ustrip("kpc", c) for c in orbit.q[-1].asdict().values()])
     p = jnp.stack([u.ustrip("kpc/Myr", c) for c in orbit.p[-1].asdict().values()])
     return jnp.concat([q, p])
-
-
-class LinearDragField(AbstractOrbitField):
-    """Test-only field with a linear drag, a = -grad Phi - gamma v."""
-
-    potential: gp.AbstractPotential
-    gamma: float
-
-    @property
-    def units(self):
-        return self.potential.units
-
-    def __call__(self, t, qp, args=None, /):
-        x, v = qp
-        return v, -self.potential._gradient(x, t) - self.gamma * v
 
 
 def test_stm_is_identity_at_start():
@@ -202,7 +183,7 @@ def test_velocity_dependent_field_liouville():
 
 
 def test_backward_integration_inverts_forward():
-    orbit, Df = compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), solver=TIGHT)
+    _, Df = compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), solver=TIGHT)
     xv1 = _end_state(POT, XV0, TS)
     _, Db = compute_variational(
         POT, _w0(xv1, t=500.0), u.Q(TS[::-1], "Myr"), solver=TIGHT

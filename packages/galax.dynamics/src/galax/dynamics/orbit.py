@@ -1,6 +1,7 @@
 """:mod:`galax.dynamics.orbit`."""
 
 __all__ = [
+    "compute_lyapunov",
     "compute_orbit",
     "compute_variational",
     "parse_time_specification",
@@ -17,6 +18,7 @@ with install_import_hook("galax.dynamics.orbit"):
         Orbit,
         OrbitSolver,
         PhaseSpaceInterpolation,
+        compute_lyapunov,
         compute_orbit,
         compute_variational,
     )

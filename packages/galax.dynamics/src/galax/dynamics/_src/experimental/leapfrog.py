@@ -38,7 +38,7 @@ DenseInfo: TypeAlias = Any
 RealScalarLike: TypeAlias = Any
 
 _ErrorEstimate: TypeAlias = None
-_SolverState: TypeAlias = VF  # the force g(t0, x0) for the next step
+_SolverState: TypeAlias = VF | None  # the force g(t0, q0) for the next step
 
 Ya: TypeAlias = PyTree[Float[ArrayLike, "?*y"], " Y"]
 Yb: TypeAlias = PyTree[Float[ArrayLike, "?*y"], " Y"]
@@ -114,7 +114,7 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         # stores none). diffrax resolves `made_jump` to a static False unless
         # jumps are possible.
         a0 = g.vf(t0, q0, args) if solver_state is None else solver_state
-        if made_jump is not False:
+        if made_jump is not False and made_jump is not None:
 
             def recompute() -> VF:
                 a_new = g.vf(t0, q0, args)

@@ -22,9 +22,10 @@ import pytest
 import galax.actionangle as gaa
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
 
-PORTIONS: tuple[ModuleType, ...] = (gc, gp, gd, gaa)
+PORTIONS: tuple[ModuleType, ...] = (gc, gp, gf, gd, gaa)
 
 
 def _hook_targets(path: pathlib.Path, /) -> Iterator[str]:

@@ -15,7 +15,7 @@ import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
-from galax.dynamics._src.utils import parse_to_t_y
+from galax.fields.utils import parse_to_t_y
 
 
 @final

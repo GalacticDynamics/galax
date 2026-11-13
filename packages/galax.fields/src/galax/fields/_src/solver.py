@@ -1,4 +1,4 @@
-"""Dynamics Solvers.
+"""Field solvers.
 
 This is private API.
 
@@ -24,12 +24,11 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 from .fields import AbstractField
 
 USys: TypeAlias = u.AbstractUnitSystem
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
-Terms: TypeAlias = PyTree
 DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
 
 # =========================================================
@@ -136,7 +135,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
 
     def _step_impl_scalar(
         self,
-        field: AbstractField | Terms,
+        field: AbstractField | gt.Terms,
         state: SolveState,
         t1: gt.Sz0,
         args: Any,
@@ -215,7 +214,7 @@ def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSol
     return cls(**{f.name: getattr(solver, f.name) for f in fields(cls)})
 
 
-def _parse_field(field: AbstractField | Terms, solver: AbstractSolver) -> Terms:
+def _parse_field(field: AbstractField | gt.Terms, solver: AbstractSolver) -> gt.Terms:
     return field.terms(solver) if isinstance(field, AbstractField) else field
 
 

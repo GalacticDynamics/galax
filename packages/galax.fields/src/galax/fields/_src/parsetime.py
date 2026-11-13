@@ -1,4 +1,4 @@
-"""Utilities for dynamics."""
+"""Utilities for field solvers."""
 
 __all__ = ("parse_time_specification",)
 

@@ -23,7 +23,7 @@ from .field_base import AbstractOrbitField
 from .field_hamiltonian import HamiltonianField
 from .solver import OrbitSolver
 from .variational import _solve_augmented, tangent_terms
-from galax.dynamics._src.utils import parse_to_t_y
+from galax.fields.utils import parse_to_t_y
 
 
 @eqx.filter_jit

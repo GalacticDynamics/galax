@@ -30,7 +30,7 @@ from .field_base import AbstractOrbitField
 from .field_hamiltonian import HamiltonianField
 from .orbit import Orbit
 from .solver import OrbitSolver
-from galax.dynamics._src.utils import parse_to_t_y
+from galax.fields.utils import parse_to_t_y
 
 
 def _linearize_columns(

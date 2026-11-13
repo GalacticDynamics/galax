@@ -1,6 +1,6 @@
-"""Utils for dynamics solvers.
+"""Utils for field solvers.
 
-This is private API.
+Semi-public API: import these from `galax.fields.utils`.
 
 """
 
@@ -25,8 +25,7 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
-from . import custom_types as gdt
+import galax.fields.custom_types as gt
 from galax.potential.utils import coord_dispatcher, speed_of_light
 
 #####################################################################
@@ -134,7 +133,7 @@ def parse_to_t_y(
     >>> import coordinax as cx
     >>> import coordinax.vecs as cxv
     >>> import galax.coordinates as gc
-    >>> from galax.dynamics._src.utils import parse_to_t_y
+    >>> from galax.fields.utils import parse_to_t_y
 
     >>> usys = u.unitsystem("galactic")
 
@@ -288,11 +287,11 @@ def parse_to_t_y(
 def parse_to_t_y(
     to_frame: OptRefFrame,  # TODO: enable Array-like
     t: gt.BBtLikeSz0 | gt.BBtQuSz0,
-    xv: tuple[gdt.BBtQarr, gdt.BBtParr],  # [xyz, v_xyz]
+    xv: tuple[gt.BBtQarr, gt.BBtParr],  # [xyz, v_xyz]
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     """Convert from tuple of arrays."""
     # Parse inputs to array-ish objects
     t = jnp.asarray(t, dtype=None)
@@ -317,13 +316,13 @@ def parse_to_t_y(
     to_frame: OptRefFrame,
     t: Any,
     qp: tuple[
-        gdt.BBtQ | cxv.AbstractPos3D,
-        gdt.BBtP | cxv.AbstractVel3D,
+        gt.BBtQ | cxv.AbstractPos3D,
+        gt.BBtP | cxv.AbstractVel3D,
     ],
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     t = eqx.error_if(t, t is None, "t is None, q does not contain a time")
     q = u.ustrip(ustrip["length"], convert(qp[0], u.Quantity))
     p = u.ustrip(ustrip["speed"], convert(qp[1], u.Quantity))
@@ -338,7 +337,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     q, p = qp
     t = u.ustrip(AllowValue, ustrip["time"], q.t)
     t = eqx.error_if(
@@ -359,7 +358,7 @@ def parse_to_t_y(
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, qp: tuple[cxv.FourVector, Any], /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     q, p = qp
     t = u.ustrip(AllowValue, ustrip["time"], q.t)
     return parse_to_t_y(to_frame, t, (q.q, p), ustrip=ustrip)
@@ -373,7 +372,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, qt.t, (qt.q, p), ustrip=ustrip)
 
 
@@ -388,7 +387,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     # Parse inputs to t, x, v
     tx, v = txv
     t, x = tx[..., 0], tx[..., 1:]
@@ -418,7 +417,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, None, txv, ustrip=ustrip)
 
 
@@ -430,7 +429,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     t, x = tx[..., 0], tx[..., 1:]
     return parse_to_t_y(to_frame, t, (x, v), ustrip=ustrip)
 
@@ -438,35 +437,35 @@ def parse_to_t_y(
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, t: Any, xv: gt.BBtSz6, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, t, (xv[..., :3], xv[..., 3:]), ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, tref: Any, xv: gt.BBtSz7, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, tref, (xv[..., 0:4], xv[..., 4:]), ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, xv: gt.BBtSz7, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, None, (xv[..., 0:4], xv[..., 4:]), ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, t: Any, q: Any, p: Any, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, t, (q, p), ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, t: Any, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     t = eqx.error_if(
         t,
@@ -479,7 +478,7 @@ def parse_to_t_y(
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, qp: cxv.KinematicSpace, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     q, p = qp["length"], qp["speed"]
     return parse_to_t_y(to_frame, None, (q, p), ustrip=ustrip)
 
@@ -492,21 +491,21 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, t, coord.data, ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, coord: cxf.AbstractCoordinate, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, coord.data, ustrip=ustrip)
 
 
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, t: Any, w: gc.PhaseSpacePosition, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, t, (w.q, w.p), ustrip=ustrip)
 
 
@@ -518,7 +517,7 @@ def parse_to_t_y(
     /,
     *,
     ustrip: UnitSystem,
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     t = u.ustrip(AllowValue, ustrip["time"], wt.t)
     t = eqx.error_if(
         t,
@@ -538,7 +537,7 @@ def parse_to_t_y(
 @coord_dispatcher
 def parse_to_t_y(
     to_frame: OptRefFrame, wt: gc.PhaseSpaceCoordinate, /, *, ustrip: UnitSystem
-) -> tuple[gt.BBtSz0, gdt.BBtQParr]:
+) -> tuple[gt.BBtSz0, gt.BBtQParr]:
     return parse_to_t_y(to_frame, wt.t, (wt.q, wt.p), ustrip=ustrip)
 
 

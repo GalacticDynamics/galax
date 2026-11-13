@@ -98,11 +98,15 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
 
         f, g = terms
         q0, p0 = y0
-        h = t1 - t0
+        # Use the terms' control, not ``t1 - t0``: for ``t1 < t0`` diffrax
+        # flips time and wraps the terms, and only ``contr`` carries the sign
+        # back (GalacticDynamics/galax#963).
+        cf, cg = f.contr(t0, t1), g.contr(t0, t1)
+        half_cg = (0.5 * cg**ω).ω
 
-        v_half = (p0**ω + 0.5 * h * g.vf(t0, q0, args) ** ω).ω
-        q1 = (q0**ω + h * f.vf(t0, v_half, args) ** ω).ω
-        p1 = (v_half**ω + 0.5 * h * g.vf(t1, q1, args) ** ω).ω
+        v_half = (p0**ω + g.vf_prod(t0, q0, args, half_cg) ** ω).ω
+        q1 = (q0**ω + f.vf_prod(t0, v_half, args, cf) ** ω).ω
+        p1 = (v_half**ω + g.vf_prod(t1, q1, args, half_cg) ** ω).ω
 
         y1 = (q1, p1)
         dense_info = {"y0": y0, "y1": y1}

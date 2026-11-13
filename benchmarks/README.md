@@ -71,3 +71,18 @@ Folding the terms instead removed a cost that scaled with `lmax` and not with
 The lesson generalizes past this table: a speedup that grows with a parameter is
 not evidence that the parameter is what the algorithm is good at. Here it was
 evidence of a fixed overhead being amortized.
+
+## `fixed_step_stream.py`
+
+Milliseconds per stream for `galax.dynamics.experimental.fixed_step_stream`
+under `jax.jit(jax.vmap(...))` (a batch of streams with different host masses,
+progenitor positions and keys) against `MockStreamGenerator.run` one stream at a
+time.
+
+```bash
+uv run python benchmarks/fixed_step_stream.py --n-streams 500
+JAX_PLATFORMS=cpu uv run python benchmarks/fixed_step_stream.py --n-streams 500
+```
+
+Defaults: 2000 particles, `t_age` 3000 Myr, `dt` 1 Myr, Fardal release. Run it
+on an otherwise idle machine; the numbers scale with the free cores.

@@ -31,7 +31,7 @@ from .field_hamiltonian import HamiltonianField
 from .field_nbody import NBodyField
 from .orbit import Orbit
 from .solver import OrbitSolver
-from galax.dynamics._src.utils import parse_to_t_y
+from galax.fields.utils import parse_to_t_y
 
 
 def _linearize_columns(

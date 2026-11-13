@@ -22,8 +22,7 @@ with install_import_hook("galax.dynamics.orbit"):
         compute_orbit,
         compute_variational,
     )
-    from ._src.parsetime import parse_time_specification
-    from ._src.solver import AbstractSolver
+    from galax.fields import AbstractSolver, parse_time_specification
 
 # Cleanup
 del install_import_hook

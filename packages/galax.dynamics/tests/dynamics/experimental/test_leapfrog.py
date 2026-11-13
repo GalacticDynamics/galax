@@ -203,10 +203,9 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     import galax.coordinates as gc
     import galax.dynamics as gd
     import galax.potential as gp
-    from galax.dynamics._src.legacy.integrator import Integrator
 
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
-    integrator = Integrator(
+    integrator = gd.integrate.Integrator(
         gd.OrbitSolver(
             experimental.Leapfrog(),
             stepsize_controller=dfx.ConstantStepSize(),
@@ -235,3 +234,44 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     assert jnp.allclose(p[0], p_back, rtol=1e-12, atol=0)
     assert jnp.max(jnp.abs(q[-1] - W0[:3])) <= 1e-10
     assert jnp.max(jnp.abs(p[-1] - W0[3:])) <= 1e-12
+
+
+def test_experimental_integrate_orbit_fixed_step_backward():
+    """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the same fix.
+
+    A constant step with ``dt0 = +1`` integrates backward, matching a
+    hand-written backward KDK scan.
+    """
+    import jax
+
+    import diffraxtra as dfxtra
+    from xmmutablemap import ImmutableMap
+
+    import galax.potential as gp
+
+    pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    solver = dfxtra.DiffEqSolver(
+        experimental.Leapfrog(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=100,
+    )
+    soln = experimental.integrate_orbit(
+        pot,
+        (W0[:3], W0[3:]),
+        0.0,
+        -50.0,
+        solver=solver,
+        solver_kwargs=ImmutableMap({"dt0": 1.0}),
+    )
+
+    def kdk(qp, _):
+        q, p = qp
+        h = -1.0
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        q = q + h * p
+        p = p - 0.5 * h * pot._gradient(q, 0.0)
+        return (q, p), None
+
+    (q, p), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=50)
+    assert jnp.allclose(soln.ys[0][-1], q, rtol=1e-12, atol=0)
+    assert jnp.allclose(soln.ys[1][-1], p, rtol=1e-12, atol=0)

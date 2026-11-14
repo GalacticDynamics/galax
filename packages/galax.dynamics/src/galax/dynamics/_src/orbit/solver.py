@@ -29,10 +29,10 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
-from .field_base import AbstractOrbitField
-from galax.dynamics._src.solver import AbstractSolver, SolveState, Terms
-from galax.dynamics._src.utils import parse_saveat, parse_to_t_y
 from galax.dynamics.fields import AbstractField
+from galax.fields import AbstractOrbitField, AbstractSolver, SolveState
+from galax.fields.custom_types import Terms
+from galax.fields.utils import parse_saveat, parse_to_t_y
 
 BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 
@@ -113,6 +113,19 @@ class OrbitSolver(AbstractSolver):
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
     OrbitSolver(solver=Dopri8(), stepsize_controller=ConstantStepSize())
+
+    3. From a `diffraxtra.DiffEqSolver` instance.
+
+    >>> import diffraxtra as dfxtra
+    >>> diffeqsolver = dfxtra.DiffEqSolver(dfx.Dopri5())
+    >>> solver = gd.OrbitSolver.from_(diffeqsolver)
+    >>> solver
+    OrbitSolver(
+      solver=Dopri5(),
+      stepsize_controller=ConstantStepSize(),
+      adjoint=RecursiveCheckpointAdjoint(),
+      max_steps=4096
+    )
 
     """
 

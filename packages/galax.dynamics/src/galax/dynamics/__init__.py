@@ -51,8 +51,6 @@ with install_import_hook("galax.dynamics"):
     from . import cluster, examples, fields, integrate, mockstream, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
-    from ._src.parsetime import parse_time_specification
-    from ._src.solver import AbstractSolver, SolveState, integrate_field
     from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField
     from .integrate import evaluate_orbit
     from .mockstream import (
@@ -63,7 +61,13 @@ with install_import_hook("galax.dynamics"):
         MockStreamArm,
         MockStreamGenerator,
     )
-    from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
+    from .orbit import Orbit, OrbitSolver, compute_orbit
+    from galax.fields import (
+        AbstractSolver,
+        SolveState,
+        integrate_field,
+        parse_time_specification,
+    )
 
     # isort: split
     from ._src import experimental  # noqa: F401

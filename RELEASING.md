@@ -12,6 +12,7 @@ alone — but the usual case is a coordinated release of all of them.
 | `galax.actionangle`        | `galax-actionangle-v`        | `packages/galax.actionangle`        |
 | `galax.coordinates`        | `galax-coordinates-v`        | `packages/galax.coordinates`        |
 | `galax.dynamics`           | `galax-dynamics-v`           | `packages/galax.dynamics`           |
+| `galax.fields`             | `galax-fields-v`             | `packages/galax.fields`             |
 | `galax.interop.astropy`    | `galax-interop-astropy-v`    | `packages/galax.interop.astropy`    |
 | `galax.interop.gala`       | `galax-interop-gala-v`       | `packages/galax.interop.gala`       |
 | `galax.interop.galpy`      | `galax-interop-galpy-v`      | `packages/galax.interop.galpy`      |
@@ -25,7 +26,7 @@ Two branches release independently, and they do **not** share machinery:
 | line     | branch            | distributions | how CD fires                  |
 | -------- | ----------------- | ------------- | ----------------------------- |
 | `v0.1.x` | `versions/v0.1.x` | one (`galax`) | publish a GitHub release      |
-| `v0.2.x` | `main`            | nine          | the coordinated fan-out below |
+| `v0.2.x` | `main`            | ten           | the coordinated fan-out below |
 
 `versions/v0.1.x` predates the namespace split: it carries only `cd.yml` and
 `ci.yml`, with no per-package CD workflows and no `create-package-tags.yml`, and
@@ -71,7 +72,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## What does not work yet
 
 - **The per-package CD workflows build; they do not publish.** Publishing needs
-  eighteen trusted publishers (nine distributions, each on PyPI and TestPyPI),
+  twenty trusted publishers (ten distributions, each on PyPI and TestPyPI),
   which only the repository owner can create. That is deliberately out of scope
   for the split itself.
 - **The coordinator fan-out's dispatch step is untested.** Tags pushed with
@@ -92,7 +93,7 @@ so a mistyped prefix fails the build rather than publishing a wrong version.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Eighteen configurations. A publisher
+keyed to its own workflow filename.** Twenty configurations. A publisher
 registered against the wrong filename fails with `invalid-publisher` at publish
 time, after the tag exists — so verify one end to end on TestPyPI before tagging
 the rest.
@@ -103,6 +104,7 @@ the rest.
 | `galax.actionangle`        | `cd-galax-actionangle.yml`        |
 | `galax.coordinates`        | `cd-galax-coordinates.yml`        |
 | `galax.dynamics`           | `cd-galax-dynamics.yml`           |
+| `galax.fields`             | `cd-galax-fields.yml`             |
 | `galax.interop.astropy`    | `cd-galax-interop-astropy.yml`    |
 | `galax.interop.gala`       | `cd-galax-interop-gala.yml`       |
 | `galax.interop.galpy`      | `cd-galax-interop-galpy.yml`      |

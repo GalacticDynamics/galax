@@ -21,8 +21,7 @@ from diffrax import (
 )
 from equinox.internal import ω  # noqa: PLC2403
 
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
-from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
+from galax.fields import AbstractOrbitField, HamiltonianField
 
 # diffrax doesn't publicly export these; they're type hints only (no runtime
 # behavior depends on them), so redeclare as `Any` rather than importing

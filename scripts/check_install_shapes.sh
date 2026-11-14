@@ -6,6 +6,7 @@
 #   4. `galax.potential` installs with coordinates but without dynamics
 #   5. `galax.dynamics` installs on its own, pulling the portions below it
 #   6. `galax.actionangle` installs on its own, without dynamics
+#   7. `galax.fields` installs on its own, without dynamics
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -125,6 +126,13 @@ if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/actionangle/' >/dev/nu
   echo "the root galax wheel contains galax/actionangle/ files"; exit 1
 fi
 
+echo "== the root wheel ships no galax/fields/ =="
+# `galax.fields` owns that leaf. A root wheel carrying it would let two
+# distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/fields/' >/dev/null; then
+  echo "the root galax wheel contains galax/fields/ files"; exit 1
+fi
+
 echo "== shape 1: bare \`pip install galax\` =="
 # Install the freshly built root wheel *by path*, so a published PyPI version
 # cannot satisfy it; --find-links resolves its inter-distribution pins from the
@@ -140,10 +148,12 @@ import astropy.units as apyu
 import numpy as np
 
 # The core portions must all import on a bare install; `galax.actionangle`,
-# `galax.coordinates` and `galax.dynamics` are imported for that alone.
+# `galax.coordinates`, `galax.dynamics` and `galax.fields` are imported for
+# that alone.
 import galax.actionangle
 import galax.coordinates
 import galax.dynamics
+import galax.fields
 import galax.potential as gp
 
 # astropy interop is a REQUIRED dependency, so it must register with no extras.
@@ -312,6 +322,35 @@ for absent in ("galax.dynamics", "galax.interop", "gala", "galpy", "matplotlib")
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("actionangle-only install OK")
+PY
+
+echo "== shape 7: \`galax.fields\` alone =="
+# Pulls coordinates and potential, which it declares, and neither
+# `galax.dynamics` nor anything from the interop layer.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_fields-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+import galax.fields as gf
+import galax.potential as gp
+
+pot = gp.KeplerPotential(m_tot=u.Q(1e11, "Msun"), units="galactic")
+field = gf.HamiltonianField(pot)
+dq, dp = field(u.Q(0, "Gyr"), u.Q([8.0, 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
+assert dq.shape == (3,), dq.shape
+assert dp.shape == (3,), dp.shape
+
+for absent in (
+    "galax.dynamics", "galax.actionangle", "galax.interop", "gala", "galpy",
+    "matplotlib",
+):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("fields-only install OK")
 PY
 
 echo "all install shapes OK"

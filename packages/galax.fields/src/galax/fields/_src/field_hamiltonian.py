@@ -45,11 +45,11 @@ class HamiltonianField(AbstractOrbitField):
     --------
     >>> import quaxed.numpy as jnp
     >>> import diffrax as dfx
+    >>> import diffraxtra as dfxtra
     >>> import unxt as u
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
     >>> import galax.fields as gf
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
@@ -72,31 +72,29 @@ class HamiltonianField(AbstractOrbitField):
     (ODETerm(...), ODETerm(...))
 
     Just to continue the example, we can use this field to integrate the
-    equations of motion:
+    equations of motion with `galax.fields.integrate_field`:
 
-    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
-    >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"),
-    ...     t=u.Q(0, "Gyr"))
-    >>> t1 = u.Q(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t1)
+    >>> solver = dfxtra.DiffEqSolver(
+    ...     dfx.Dopri8(), stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7))
+    >>> y0 = (u.Q([[8., 0, 9], [9, 0, 3]], "kpc"),
+    ...       u.Q([[0., 220, 0], [0, 220, 0]], "km/s"))
+    >>> ts = u.Q([0., 1], "Gyr")
+    >>> soln = gf.integrate_field(field, y0, ts, solver=solver)
     >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[1],
-              ys=(f64[1,2,3], f64[1,2,3]),
+    Solution( t0=f64[], t1=f64[], ts=f64[2],
+              ys=(f64[2,2,3], f64[2,2,3]),
               ... )
 
-    >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
-    >>> print(w, w.shape, sep='\n')
-    PhaseSpaceCoordinate(
-        q=<CartesianPos3D: (x, y, z) [kpc]
-            [[-5.151 -6.454 -5.795]
-             [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
-            [[ 0.225 -0.068  0.253]
-             [-0.439 -0.002 -0.146]]>,
-        t=Q(1000., 'Myr'), frame=SimulationFrame() )
-    (2,)
+    The solution has the initial and final states of the two orbits, in the
+    units of the field (kpc and kpc/Myr).
+
+    >>> soln.ys[0][-1].round(3)
+    Array([[-5.151, -6.454, -5.795],
+           [ 4.277,  4.633,  1.426]], dtype=float64)
+
+    >>> soln.ys[1][-1].round(3)
+    Array([[ 0.225, -0.068,  0.253],
+           [-0.439, -0.002, -0.146]], dtype=float64)
 
     The ``__call__`` is very flexible and can be called with many different
     combinations of arguments. Let's work up the type ladder:
@@ -269,10 +267,9 @@ def terms(
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
+    >>> import diffraxtra as dfxtra
+    >>> import quaxed.numpy as jnp
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
     >>> import galax.fields as gf
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
@@ -283,25 +280,17 @@ def terms(
     >>> field.terms(solver)
     (ODETerm(...), ODETerm(...))
 
-    For completeness we'll integrate the EoM.
+    For completeness we'll integrate the EoM. The initial conditions are in the
+    units of the field (kpc and kpc/Myr).
 
-    >>> dynamics_solver = gd.OrbitSolver(solver,
-    ...                                     stepsize_controller=dfx.ConstantStepSize())
-    >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Q([8., 0, 0], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"),
-    ...     t=u.Q(0, "Gyr"))
-    >>> t1 = u.Q(200, "Myr")
+    >>> dynamics_solver = dfxtra.DiffEqSolver(
+    ...     solver, stepsize_controller=dfx.ConstantStepSize(), max_steps=200_000)
+    >>> y0 = (jnp.asarray([8., 0, 0]), jnp.asarray([0, 0.22499668, 0]))
 
-    >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
-    >>> print(w)
-    PhaseSpaceCoordinate(
-        q=<CartesianPos3D: (x, y, z) [kpc]
-            [7.091 3.504 0.   ]>,
-        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
-            [-0.111  0.199  0. ]>,
-        t=Q(200., 'Myr'), frame=SimulationFrame() )
+    >>> soln = dynamics_solver(field, 0., 200., 0.001, y0)  # t0, t1, dt0 [Myr]
+    >>> soln.ys[0].round(3), soln.ys[1].round(3)
+    (Array([[7.091, 3.504, 0.   ]], dtype=float64),
+     Array([[-0.111,  0.199,  0.   ]], dtype=float64))
 
     """
     return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))

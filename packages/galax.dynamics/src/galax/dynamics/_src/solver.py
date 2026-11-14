@@ -120,12 +120,17 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
         A scalar ``t0`` starts every element of ``y0`` (which may be batched)
         at that time. A batched ``t0`` gives one start time per element: each
         leaf of ``y0`` must then lead with ``t0``'s shape (GalacticDynamics/galax#1027).
+        ``t0`` should be an array: a Python float is static under the jit, so
+        each new value would retrace.
         """
         t0 = jnp.asarray(t0)
         if t0.ndim == 0:
             return self._init_one(field, t0, y0, args, units)
 
         batch = t0.shape
+        if any(x.shape[: len(batch)] != batch for x in jax.tree.leaves(y0)):
+            msg = f"each leaf of y0 must lead with t0's batch shape {batch}"
+            raise ValueError(msg)
         y0_flat = jax.tree.map(lambda x: x.reshape(-1, *x.shape[len(batch) :]), y0)
         states = eqx.filter_vmap(lambda t, y: self._init_one(field, t, y, args, units))(
             t0.reshape(-1), y0_flat

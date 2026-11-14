@@ -72,7 +72,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
     # ========================================
 
-    def test_run_scan(
+    def test_run(
         self,
         mockgen: gd.MockStreamGenerator,
         t_stripping: gt.QuSzTime,
@@ -195,6 +195,7 @@ def test_integrate_to_solves_each_particle_on_its_own():
         want = gen.stream_integrator(field, w0[i], t0, t1, saveat=jnp.asarray([t1])).w(
             units=pot.units
         )[-1]
-        # A vmapped and a single adaptive solve differ at ~1e-12 of the
-        # coordinate scale; one solve of both particles is off by > 7e-9.
+        # For this pair, a vmapped and a single adaptive solve differ at
+        # ~1e-12 of the coordinate scale (they aren't bitwise equal in
+        # general); one solve of both particles is off by > 7e-9.
         assert jnp.max(jnp.abs(got[i] - want)) < 1e-10 * jnp.max(jnp.abs(want))

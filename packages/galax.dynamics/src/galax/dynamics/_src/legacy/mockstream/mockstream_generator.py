@@ -83,9 +83,10 @@ class MockStreamGenerator(eqx.Module):
         # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
         # an init field; on `HamiltonianField` it is a property.
         field = HamiltonianField(self.potential)  # type: ignore[call-arg]
-        # Save at the time ``t1`` rather than with ``SaveAt(t1=True)``: the
-        # latter is ~2.4x slower for an adaptive solver inside `_run_scan` (the
-        # CPU default), for a reason we haven't pinned down.
+        # Save at the time ``t1`` rather than with ``SaveAt(t1=True)``: in the
+        # compiled `run` with an adaptive solver on the scan path (the CPU
+        # default), the latter is ~2.4x slower. It takes the same steps; the
+        # slowdown seems to be how XLA compiles the whole program.
         saveat = jnp.asarray([t1])
 
         def final_state(w: gt.Sz6) -> gt.Sz6:

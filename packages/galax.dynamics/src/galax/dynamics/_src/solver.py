@@ -8,7 +8,6 @@ __all__ = ["AbstractSolver", "SolveState", "integrate_field"]
 
 
 import abc
-import functools as ft
 from dataclasses import fields
 
 from jaxtyping import Array, PyTree, Real
@@ -106,8 +105,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
 
     """
 
-    @ft.partial(jnp.vectorize, excluded=(0, 1, 3, 4, 5))
-    @ft.partial(eqx.filter_jit)
+    @eqx.filter_jit
     def _init_impl(
         self,
         field: AbstractField,
@@ -117,7 +115,31 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
         units: USys,
         /,
     ) -> SolveState:
-        """`init` helper."""
+        """`init` helper.
+
+        A scalar ``t0`` starts every element of ``y0`` (which may be batched)
+        at that time. A batched ``t0`` gives one start time per element: each
+        leaf of ``y0`` must then lead with ``t0``'s shape (GalacticDynamics/galax#1027).
+        """
+        t0 = jnp.asarray(t0)
+        if t0.ndim == 0:
+            return self._init_one(field, t0, y0, args, units)
+
+        batch = t0.shape
+        y0_flat = jax.tree.map(lambda x: x.reshape(-1, *x.shape[len(batch) :]), y0)
+        states = eqx.filter_vmap(lambda t, y: self._init_one(field, t, y, args, units))(
+            t0.reshape(-1), y0_flat
+        )
+        out: SolveState = jax.tree.map(
+            lambda x: x.reshape(*batch, *x.shape[1:]) if eqx.is_array(x) else x,
+            states,
+        )
+        return out
+
+    def _init_one(
+        self, field: AbstractField, t0: gt.Sz0, y0: PyTree, args: Any, units: USys, /
+    ) -> SolveState:
+        """Initialize at one start time."""
         terms = field.terms(self)
         # Initializes the state from diffrax. Steps from t0 to t0!
         solver_state = self.solver.init(terms, t0, t0, y0, args)

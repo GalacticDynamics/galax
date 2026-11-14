@@ -2,6 +2,8 @@
 
 import pickle
 
+import numpy as np
+
 import unxt as u
 
 import galax.fields as gf
@@ -16,3 +18,10 @@ def test_hamiltonian_field_roundtrip() -> None:
     out = pickle.loads(pickle.dumps(field))
 
     assert type(out) is gf.HamiltonianField
+
+    # The potential survives too: both fields give the same output.
+    t = u.Q(0, "Gyr")
+    x = u.Q([8.0, 0, 0], "kpc")
+    v = u.Q([0, 220, 0], "km/s")
+    for expected, got in zip(field(t, x, v), out(t, x, v), strict=True):
+        np.testing.assert_allclose(got, expected)

@@ -6,9 +6,11 @@ from .field_base import *
 from .field_hamiltonian import *
 from .field_nbody import *
 from .interp import *
+from .lyapunov import compute_lyapunov as compute_lyapunov
 from .orbit import *
 from .plot_helper import ProxyAbstractOrbit, plot_components as plot_components
 from .solver import *
+from .variational import compute_variational as compute_variational
 
 # Register by import
 # isort: split

@@ -363,6 +363,9 @@ def test_solve_from_state_reuses_the_stored_force(monkeypatch):
         return dv_dt(self, t, q, args)
 
     monkeypatch.setattr(HamiltonianField, "dv_dt", counted)
+    # The patched method isn't part of the jit cache key: drop compiled solves
+    # so this one retraces with the counter.
+    jax.clear_caches()
 
     field = gd.fields.HamiltonianField(
         gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")

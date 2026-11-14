@@ -7,7 +7,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from galax.fields import AbstractOrbitField
 
 
 def make_w0(xv, t=0.0):

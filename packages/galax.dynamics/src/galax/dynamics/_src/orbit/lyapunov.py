@@ -20,9 +20,8 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.potential as gp
 from .field_base import AbstractOrbitField
-from .field_hamiltonian import HamiltonianField
 from .solver import OrbitSolver
-from .variational import _solve_augmented, tangent_terms
+from .variational import _prepare, _solve_augmented, tangent_terms
 from galax.dynamics._src.utils import parse_to_t_y
 
 
@@ -36,7 +35,7 @@ def compute_lyapunov(
     n_renorm: int,
     k: int = 1,
     solver: OrbitSolver | None = None,
-    dt0: float | None = None,
+    dt0: Any = None,
 ) -> tuple[Float[Array, "*batch n_renorm"], Float[Array, "*batch n_renorm k"]]:
     r"""Compute running estimates of the Lyapunov exponents of an orbit.
 
@@ -46,6 +45,11 @@ def compute_lyapunov(
     diagonal of :math:`R`. Dividing by the elapsed time gives the running
     estimate :math:`\lambda_j(t_i)`. With ``k=1`` this is the largest exponent;
     with ``k=6`` it is the full spectrum.
+
+    Each interval must be short enough that the deviations do not overflow,
+    roughly :math:`\lambda \Delta t \lesssim 700` in double precision. An
+    overflow shows up as diffrax's "maximum number of solver steps" error,
+    which a larger ``max_steps`` does not fix; use a larger ``n_renorm``.
 
     The deviation norm mixes positions and velocities in the field's units.
     The limit does not depend on that choice. With a constant-step solver the
@@ -70,7 +74,9 @@ def compute_lyapunov(
     solver
         The solver. Defaults to `galax.dynamics.OrbitSolver`.
     dt0
-        Initial step size, needed for constant-step solvers.
+        Initial step size, needed for constant-step solvers. A plain number is
+        in the field's time unit, and a `unxt.Quantity` is converted. Only its
+        size is used; the direction of integration sets its sign.
 
     Returns
     -------
@@ -104,11 +110,13 @@ def compute_lyapunov(
     True
 
     """
-    thefield = (
-        field if isinstance(field, AbstractOrbitField) else HamiltonianField(field)  # type: ignore[call-arg]
-    )
-    solver = OrbitSolver() if solver is None else solver
-    units = thefield.units
+    if not 1 <= k <= 6:
+        msg = f"k must be between 1 and 6, got {k}."
+        raise ValueError(msg)
+    if n_renorm < 1:
+        msg = f"n_renorm must be at least 1, got {n_renorm}."
+        raise ValueError(msg)
+    thefield, solver, units, dt0 = _prepare(field, solver, dt0)
     t1 = u.ustrip(AllowValue, units["time"], t1)
     terms = tangent_terms(thefield.terms(solver.solver))
     q0 = jnp.linalg.qr(jnp.ones((6, k)) + jnp.eye(6, k))[0]

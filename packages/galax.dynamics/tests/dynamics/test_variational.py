@@ -10,7 +10,7 @@ import unxt as u
 
 import galax.dynamics as gd
 import galax.potential as gp
-from ._variational_helpers import LinearDragField, make_w0
+from ._variational_helpers import LinearDragField, make_nbody_field, make_w0
 from galax.dynamics._src.orbit.variational import compute_variational, tangent_terms
 
 POT = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
@@ -249,8 +249,43 @@ def test_constant_step_backward_integration():
 
 def test_constant_step_mixed_directions():
     """Stage one runs forward and stage two backward; both use |dt0|."""
+    method = gd.experimental.Leapfrog()
     _, D = compute_variational(
         POT, _w0(XV0), u.Q([500.0, 250.0], "Myr"), solver=LEAPFROG, dt0=0.5
     )
-    assert jnp.all(jnp.isfinite(D))
-    assert jnp.allclose(jnp.linalg.det(D), 1.0, atol=1e-10)
+    terms = FIELD.terms(method)
+
+    def stage(t0, t1, dt0, y0):
+        soln = dfx.diffeqsolve(
+            terms, method, t0, t1, dt0, y0, max_steps=2_000, adjoint=dfx.ForwardMode()
+        )
+        return soln.ys[0][-1], soln.ys[1][-1]
+
+    def end(xv):
+        y = stage(0.0, 500.0, 0.5, (xv[:3], xv[3:]))
+        y = stage(500.0, 250.0, -0.5, y)
+        return jnp.concat(y)
+
+    assert jnp.allclose(D[-1], jax.jacfwd(end)(XV0), rtol=1e-10, atol=1e-12)
+
+
+@pytest.mark.parametrize("dt0", [u.Q(0.5, "Myr"), u.Q(5e-4, "Gyr")])
+def test_dt0_accepts_a_quantity(dt0):
+    _, D_float = compute_variational(
+        POT, _w0(XV0), u.Q(TS, "Myr"), solver=LEAPFROG, dt0=0.5
+    )
+    _, D_q = compute_variational(
+        POT, _w0(XV0), u.Q(TS, "Myr"), solver=LEAPFROG, dt0=dt0
+    )
+    assert jnp.allclose(D_q, D_float, rtol=1e-12)
+
+
+@pytest.mark.parametrize("shape", [(6,), (5, 2), (6, 2, 1)])
+def test_dw0_must_have_six_rows(shape):
+    with pytest.raises(ValueError, match=r"dw0 must have shape \(6, k\)"):
+        compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), dw0=jnp.ones(shape))
+
+
+def test_nbody_field_is_rejected():
+    with pytest.raises(TypeError, match="N-body fields are not supported"):
+        compute_variational(make_nbody_field(), _w0(XV0), u.Q(TS, "Myr"))

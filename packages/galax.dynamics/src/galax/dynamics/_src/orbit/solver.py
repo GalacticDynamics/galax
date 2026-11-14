@@ -663,6 +663,15 @@ def init(
     """Initialize from terms, unit/array tuple, and time."""
     # Parse the inputs to jax arrays
     t0, y0 = parse_to_t_y(None, t0, qp, ustrip=field.units)  # TODO: frame
+    # Batched start times: one per particle, so broadcast the times and the
+    # particles to a common batch (GalacticDynamics/galax#1027).
+    if jnp.ndim(t0) > 0:
+        batch = jnp.broadcast_shapes(jnp.shape(t0), y0[0].shape[:-1], y0[1].shape[:-1])
+        t0 = jnp.broadcast_to(t0, batch)
+        y0 = (
+            jnp.broadcast_to(y0[0], (*batch, 3)),
+            jnp.broadcast_to(y0[1], (*batch, 3)),
+        )
     # Initialize the state
     return self._init_impl(field, t0, y0, args, field.units)
 

@@ -46,10 +46,15 @@ def compute_lyapunov(
     estimate :math:`\lambda_j(t_i)`. With ``k=1`` this is the largest exponent;
     with ``k=6`` it is the full spectrum.
 
-    Each interval must be short enough that the deviations do not overflow,
-    roughly :math:`\lambda \Delta t \lesssim 700` in double precision. An
-    overflow shows up as diffrax's "maximum number of solver steps" error,
-    which a larger ``max_steps`` does not fix; use a larger ``n_renorm``.
+    Each interval :math:`\Delta t` must be short. For the largest exponent,
+    :math:`\lambda_1 \Delta t` near 700 makes the deviations overflow in
+    double precision. An adaptive solver then stops with diffrax's "maximum
+    number of solver steps" error, which a larger ``max_steps`` does not fix,
+    and a constant-step solver returns NaN without an error. For ``k > 1`` the
+    limit is much tighter: the QR step recovers the smaller exponents only
+    while :math:`(\lambda_1 - \lambda_k) \Delta t` stays well below
+    :math:`\ln(1/\epsilon) \approx 36`, and beyond that they come out wrong
+    with no error. In both cases use a larger ``n_renorm``.
 
     The deviation norm mixes positions and velocities in the field's units.
     The limit does not depend on that choice. With a constant-step solver the

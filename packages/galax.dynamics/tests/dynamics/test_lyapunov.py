@@ -131,3 +131,11 @@ def test_n_renorm_must_be_positive():
 def test_nbody_field_is_rejected():
     with pytest.raises(TypeError, match="N-body fields are not supported"):
         compute_lyapunov(make_nbody_field(), make_w0(XV0), u.Q(100, "Myr"), n_renorm=2)
+
+
+def test_single_interval_is_allowed():
+    """``n_renorm=1`` is the smallest valid value."""
+    ts, lam = compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), n_renorm=1)
+    assert ts.shape == (1,)
+    assert lam.shape == (1, 1)
+    assert jnp.all(jnp.isfinite(lam))

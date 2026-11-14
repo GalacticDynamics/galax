@@ -213,6 +213,12 @@ class OrbitSolver(AbstractSolver):
         >>> solver.init(field, (q0, p0), t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
+        A batch of start times gives each particle its own start time (here two
+        particles, at 0 and 10 Myr):
+
+        >>> solver.init(field, (q0, p0), u.Q([0.0, 10.0], "Myr"), None)
+        SolveState( t=f64[2], y=(f64[2,3], f64[2,3]), ... )
+
         - From a `coordinax.vecs.KinematicSpace`:
 
         >>> space = cx.KinematicSpace(length=q0, speed=p0)

@@ -128,7 +128,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
             return self._init_one(field, t0, y0, args, units)
 
         batch = t0.shape
-        if any(x.shape[: len(batch)] != batch for x in jax.tree.leaves(y0)):
+        if any(jnp.shape(x)[: len(batch)] != batch for x in jax.tree.leaves(y0)):
             msg = f"each leaf of y0 must lead with t0's batch shape {batch}"
             raise ValueError(msg)
         y0_flat = jax.tree.map(lambda x: x.reshape(-1, *x.shape[len(batch) :]), y0)

@@ -193,22 +193,8 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
 def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSolver:
     """Create a new solver from a `diffraxtra.DiffeqSolver`.
 
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import diffraxtra as dfxtra
-    >>> import galax.dynamics as gd
-
-    >>> solver = dfxtra.DiffEqSolver(dfx.Dopri5())
-
-    >>> new_solver = gd.OrbitSolver.from_(solver)
-    >>> new_solver
-    OrbitSolver(
-      solver=Dopri5(),
-      stepsize_controller=ConstantStepSize(),
-      adjoint=RecursiveCheckpointAdjoint(),
-      max_steps=4096
-    )
+    The fields-level package ships no concrete `AbstractSolver`; for a worked
+    example see `galax.dynamics.OrbitSolver`.
 
     """
     return cls(**{f.name: getattr(solver, f.name) for f in fields(cls)})
@@ -333,7 +319,8 @@ def integrate_field(
 
     Examples
     --------
-    >>> import diffrax as dfx
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
     >>> import galax.potential as gp
     >>> import galax.fields as gf
 

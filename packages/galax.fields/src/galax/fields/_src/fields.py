@@ -119,18 +119,12 @@ def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.ODETerm:
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import unxt as u
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
     >>> import galax.fields as gf
 
     >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
     >>> field = gf.HamiltonianField(pot)
 
-    >>> field.terms(dfx.Dopri8())
-    ODETerm(...)
-
-    >>> field = gd.cluster.ZeroMassRate(units="galactic")
     >>> field.terms(dfx.Dopri8())
     ODETerm(...)
 

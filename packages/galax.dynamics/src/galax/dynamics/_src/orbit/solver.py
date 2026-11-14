@@ -114,6 +114,19 @@ class OrbitSolver(AbstractSolver):
     >>> solver
     OrbitSolver(solver=Dopri8(), stepsize_controller=ConstantStepSize())
 
+    3. From a `diffraxtra.DiffEqSolver` instance.
+
+    >>> import diffraxtra as dfxtra
+    >>> diffeqsolver = dfxtra.DiffEqSolver(dfx.Dopri5())
+    >>> solver = gd.OrbitSolver.from_(diffeqsolver)
+    >>> solver
+    OrbitSolver(
+      solver=Dopri5(),
+      stepsize_controller=ConstantStepSize(),
+      adjoint=RecursiveCheckpointAdjoint(),
+      max_steps=4096
+    )
+
     """
 
     #: The solver for the differential equation.

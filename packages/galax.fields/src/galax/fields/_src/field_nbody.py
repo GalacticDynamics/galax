@@ -34,22 +34,25 @@ class NBodyField(AbstractOrbitField):
 
     Examples
     --------
+    >>> import diffrax as dfx
+    >>> import diffraxtra as dfxtra
     >>> import unxt as u
-    >>> import galax.dynamics as gd
+    >>> import galax.potential as gp
     >>> import galax.fields as gf
 
     >>> q = u.Q([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Q([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
-    >>> solver = gd.OrbitSolver()
+    >>> solver = dfxtra.DiffEqSolver(
+    ...     dfx.Dopri8(), stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7))
 
     >>> field = gf.NBodyField(
     ...     masses=u.Q([1, 1], "Msun"),
     ...     eps=u.Q(1e-4, "AU"),
     ...     external_potential=gp.NullPotential(units="solarsystem"))
 
-    >>> t0, t1 = u.Q(0, "yr"), u.Q(2, "yr")
-    >>> soln = solver.solve(field, (q, p), t0, t1)
+    >>> ts = u.Q([0., 2], "yr")
+    >>> soln = gf.integrate_field(field, (q, p), ts, solver=solver)
 
     >>> soln.ys[0][-1, :, :].round(4)
     Array([[ 0.799 , -0.6521,  0.    ],

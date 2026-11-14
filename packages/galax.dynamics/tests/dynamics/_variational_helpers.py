@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
+import galax.dynamics as gd
 import galax.potential as gp
 from galax.dynamics._src.orbit.field_base import AbstractOrbitField
 
@@ -30,3 +31,12 @@ class LinearDragField(AbstractOrbitField):
         x, v = qp
         grad = self.potential._gradient(x, t)
         return v, -grad - self.gamma * jnp.asarray(v)
+
+
+def make_nbody_field():
+    """Build a small N-body field, which the variational functions reject."""
+    return gd.fields.NBodyField(
+        masses=u.Q([1.0, 1.0], "Msun"),
+        eps=u.Q(1e-4, "AU"),
+        external_potential=gp.NullPotential(units="galactic"),
+    )

@@ -71,6 +71,14 @@ star started 0.01 kpc further out in :math:`x` is displaced at 500 Myr by
 The matrix is relative to ``w0`` at its own time ``w0.t``, even when the output
 times start later. Integrating backward in time works the same way.
 
+The step-size control covers the deviations as well as the orbit, so it takes
+more steps than :func:`~galax.dynamics.orbit.compute_orbit` and the returned
+orbit can differ from it slightly at the same tolerances. On a chaotic orbit
+:math:`M` grows exponentially, and over a long enough time it overflows. That
+shows up as diffrax's "maximum number of solver steps" error, which a larger
+``max_steps`` does not fix. For long chaotic runs we use
+:func:`~galax.dynamics.orbit.compute_lyapunov` instead.
+
 
 Deviation vectors
 =================
@@ -129,7 +137,9 @@ For a regular orbit like this one the estimates keep falling toward zero, as
 roughly :math:`\ln t / t`. For a chaotic orbit the largest one levels off at a
 positive value. The renormalization keeps the deviations from overflowing,
 which is why we use this function rather than the raw state-transition matrix
-over long times.
+over long times. Each interval still has to be short enough: if the largest
+exponent times the interval length nears 700, the deviations overflow within
+it, and we need a larger ``n_renorm``.
 
 
 Derivatives with respect to potential parameters

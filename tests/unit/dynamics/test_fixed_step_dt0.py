@@ -80,17 +80,23 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
 
 
 def test_experimental_integrate_orbit_fixed_step_backward():
-    """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the fix."""
+    """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the fix.
+
+    With ``dt0 = +0.5`` it steps backward by 0.5: it equals a direct
+    `diffrax.diffeqsolve` given ``dt0 = -0.5``, which pins the size of ``dt0``.
+    """
     solver = _diffeq_solver(200)
-    out = [
-        experimental.integrate_orbit(
-            POT, (W0[:3], W0[3:]), 0.0, -50.0, solver=solver,
-            solver_kwargs=ImmutableMap({"dt0": dt0}),
-        ).ys
-        for dt0 in (0.5, -0.5)
-    ]  # fmt: skip
-    assert jnp.array_equal(out[0][0], out[1][0])
-    assert jnp.array_equal(out[0][1], out[1][1])
+    y0 = (W0[:3], W0[3:])
+    got = experimental.integrate_orbit(
+        POT, y0, 0.0, -50.0, solver=solver, solver_kwargs=ImmutableMap({"dt0": 0.5})
+    ).ys
+    want = dfx.diffeqsolve(
+        HamiltonianField(POT).terms(solver.solver), dfx.SemiImplicitEuler(),
+        0.0, -50.0, -0.5, y0, stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=200,
+    ).ys  # fmt: skip
+    assert jnp.array_equal(got[0], want[0])
+    assert jnp.array_equal(got[1], want[1])
 
 
 def test_stream_simulator_fixed_step():

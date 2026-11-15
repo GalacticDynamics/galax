@@ -21,24 +21,6 @@ T0 = u.Q([0.0, 10.0], "Myr")
 T1 = u.Q(100.0, "Myr")
 
 
-def test_one_start_time_per_particle():
-    """Each start time goes with its own particle, not with every particle."""
-    state = gd.OrbitSolver().init(FIELD, (Q, P), T0, None)
-    assert state.t.shape == (2,)
-    assert state.y[0].shape == (2, 3)
-    assert state.y[1].shape == (2, 3)
-    assert jnp.array_equal(state.t, u.ustrip("Myr", T0))
-    assert jnp.allclose(state.y[0], u.ustrip("kpc", Q), rtol=1e-15, atol=0)
-
-
-def test_one_particle_at_several_start_times():
-    """A single particle with batched start times is that particle at each."""
-    state = gd.OrbitSolver().init(FIELD, (Q[0], P[0]), T0, None)
-    assert state.t.shape == (2,)
-    assert state.y[0].shape == (2, 3)
-    assert jnp.allclose(state.y[0][0], state.y[0][1], rtol=0, atol=0)
-
-
 def test_solve_from_batched_time_state():
     """Solving from the state equals solving from the initial conditions.
 
@@ -83,8 +65,8 @@ def test_mismatched_batches_raise():
 )
 @pytest.mark.parametrize(
     ("t0_shape", "q_shape"),
-    [((2, 3), (2, 3)), ((2, 1), (3,)), ((2, 3), ())],
-    ids=["2x3-2x3", "2x1-3", "2x3-one"],
+    [((2,), (2,)), ((2,), ()), ((2, 3), (2, 3)), ((2, 1), (3,)), ((2, 3), ())],
+    ids=["2-2", "2-one", "2x3-2x3", "2x1-3", "2x3-one"],
 )
 def test_batched_state_equals_per_element_inits(solver, t0_shape, q_shape):
     """Every leaf, solver state included, equals a scalar `init` of that element."""

@@ -672,12 +672,9 @@ def init(
     # Batched start times: one per particle, so broadcast the times and the
     # particles to a common batch (GalacticDynamics/galax#1027).
     if jnp.ndim(t0) > 0:
-        batch = jnp.broadcast_shapes(jnp.shape(t0), y0[0].shape[:-1], y0[1].shape[:-1])
+        batch = jnp.broadcast_shapes(jnp.shape(t0), *(x.shape[:-1] for x in y0))
         t0 = jnp.broadcast_to(t0, batch)
-        y0 = (
-            jnp.broadcast_to(y0[0], (*batch, 3)),
-            jnp.broadcast_to(y0[1], (*batch, 3)),
-        )
+        y0 = tuple(jnp.broadcast_to(x, (*batch, 3)) for x in y0)
     # Initialize the state
     return self._init_impl(field, t0, y0, args, field.units)
 

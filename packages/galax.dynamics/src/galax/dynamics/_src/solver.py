@@ -117,11 +117,9 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
     ) -> SolveState:
         """`init` helper.
 
-        A scalar ``t0`` starts every element of ``y0`` (which may be batched)
-        at that time. A batched ``t0`` gives one start time per element: each
-        leaf of ``y0`` must then lead with ``t0``'s shape (GalacticDynamics/galax#1027).
-        ``t0`` should be an array: a Python float is static under the jit, so
-        each new value would retrace.
+        A scalar ``t0`` starts all of ``y0`` then; a batched ``t0`` gives one start
+        time per element, and each leaf of ``y0`` must lead with its shape. Pass
+        ``t0`` as an array: a Python float is static under the jit.
         """
         t0 = jnp.asarray(t0)
         if t0.ndim == 0:

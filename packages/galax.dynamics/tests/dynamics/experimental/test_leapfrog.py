@@ -3,9 +3,18 @@
 import diffrax as dfx
 import jax
 import jax.numpy as jnp
+import jax.random as jr
 import pytest
 
+import diffraxtra as dfxtra
+import unxt as u
+from xmmutablemap import ImmutableMap
+
+import galax.coordinates as gc
+import galax.dynamics as gd
+import galax.potential as gp
 from galax.dynamics import experimental
+from galax.dynamics.fields import HamiltonianField
 
 
 def shaped_allclose(x, y, **kwargs):
@@ -118,10 +127,6 @@ def test_leapfrog_conserves_energy_over_many_periods():
 
 def _nfw_leapfrog(t0, t1, w0):
     """`OrbitSolver(Leapfrog)` on an NFW, fixed |dt| = 1 Myr, final state (6,)."""
-    import galax.dynamics as gd
-    import galax.potential as gp
-    from galax.dynamics.fields import HamiltonianField
-
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     solver = gd.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
@@ -171,10 +176,6 @@ def test_leapfrog_round_trip():
 
 def test_fixed_step_dt0_sign_follows_direction():
     """With a constant step, `dt0` sets the size; t0 -> t1 sets the direction."""
-    import galax.dynamics as gd
-    import galax.potential as gp
-    from galax.dynamics.fields import HamiltonianField
-
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
     solver = gd.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
@@ -195,14 +196,6 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     start to round-off, and its first saved state must match a hand-written
     backward KDK scan.
     """
-    import jax
-
-    import unxt as u
-
-    import galax.coordinates as gc
-    import galax.dynamics as gd
-    import galax.potential as gp
-
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     integrator = gd.integrate.Integrator(
         gd.OrbitSolver(
@@ -241,13 +234,6 @@ def test_experimental_integrate_orbit_fixed_step_backward():
     A constant step with ``dt0 = +0.5`` integrates backward with steps of 0.5,
     matching a hand-written backward KDK scan.
     """
-    import jax
-
-    import diffraxtra as dfxtra
-    from xmmutablemap import ImmutableMap
-
-    import galax.potential as gp
-
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     solver = dfxtra.DiffEqSolver(
         experimental.Leapfrog(),
@@ -282,14 +268,6 @@ def test_stream_simulator_fixed_step():
     Its progenitor is integrated back to the first release time and then
     forward, so one constant-step solver has to go both ways.
     """
-    import jax.random as jr
-
-    import diffraxtra as dfxtra
-    from xmmutablemap import ImmutableMap
-
-    import galax.dynamics as gd
-    import galax.potential as gp
-
     pot = gp.HernquistPotential(1e12, 10, units="galactic")
     qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
     solver = dfxtra.DiffEqSolver(
@@ -331,13 +309,20 @@ class _TwoEvalLeapfrog(experimental.Leapfrog):
         return y1, None, {"y0": y0, "y1": y1}, None, dfx.RESULTS.successful
 
 
-def test_leapfrog_one_force_evaluation_per_step():
-    """The end-of-step force is reused as the next step's start force."""
+def _counting_force():
+    """Return a force -q that records each evaluation, and the record."""
     n_evals = []
 
     def force(t, q, args):
         jax.debug.callback(lambda: n_evals.append(1))
         return -q
+
+    return force, n_evals
+
+
+def test_leapfrog_one_force_evaluation_per_step():
+    """The end-of-step force is reused as the next step's start force."""
+    force, n_evals = _counting_force()
 
     dfx.diffeqsolve(
         (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force)),
@@ -353,44 +338,38 @@ def test_leapfrog_one_force_evaluation_per_step():
     assert len(n_evals) == 11  # one at the start, then one per step
 
 
-@pytest.mark.parametrize("t1", [1.0, -1.0])
-def test_leapfrog_reused_force_matches_two_evaluations(t1):
-    """Reusing the force changes nothing, forward or backward."""
-    terms = (
-        dfx.ODETerm(lambda t, p, args: p),
-        dfx.ODETerm(lambda t, q, args: -q + 0.3 * jnp.sin(2 * t)),
-    )
-    kw = {"stepsize_controller": dfx.ConstantStepSize(), "max_steps": 200}
-    got = dfx.diffeqsolve(
-        terms, experimental.Leapfrog(), 0.0, t1, 0.01 * t1, (1.0, -0.5), **kw
-    )
-    ref = dfx.diffeqsolve(
-        terms, _TwoEvalLeapfrog(), 0.0, t1, 0.01 * t1, (1.0, -0.5), **kw
-    )
-    assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
-    assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)
+def _smooth(t, q, args):
+    return -q + 0.3 * jnp.sin(2 * t)
 
 
-def test_leapfrog_recomputes_force_after_a_jump():
-    """After a jump in the force, the stored force is stale and is recomputed."""
-    terms = (
-        dfx.ODETerm(lambda t, p, args: p),
-        # The jump plus a smooth time dependence: a recompute at the wrong time
-        # would show.
-        dfx.ODETerm(
-            lambda t, q, args: -q + jnp.where(t > 0.55, 1.0, 0.0) + 0.3 * jnp.sin(2 * t)
+def _jumpy(t, q, args):  # a jump at 0.55, plus smooth time dependence
+    return -q + jnp.where(t > 0.55, 1.0, 0.0) + 0.3 * jnp.sin(2 * t)
+
+
+@pytest.mark.parametrize(
+    ("force", "t1", "dt0", "controller"),
+    [
+        (_smooth, 1.0, 0.01, dfx.ConstantStepSize()),
+        (_smooth, -1.0, -0.01, dfx.ConstantStepSize()),
+        (
+            _jumpy,
+            1.0,
+            0.1,
+            dfx.ClipStepSizeController(
+                dfx.ConstantStepSize(), jump_ts=jnp.array([0.55])
+            ),
         ),
-    )
-    kw = {
-        "stepsize_controller": dfx.ClipStepSizeController(
-            dfx.ConstantStepSize(), jump_ts=jnp.array([0.55])
-        ),
-        "max_steps": 50,
-    }
+    ],
+    ids=["forward", "backward", "jump"],
+)
+def test_leapfrog_reused_force_matches_two_evaluations(force, t1, dt0, controller):
+    """Reusing the force changes nothing, forward, backward, or after a jump."""
+    terms = (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force))
+    kw = {"stepsize_controller": controller, "max_steps": 200}
     got = dfx.diffeqsolve(
-        terms, experimental.Leapfrog(), 0.0, 1.0, 0.1, (1.0, -0.5), **kw
+        terms, experimental.Leapfrog(), 0.0, t1, dt0, (1.0, -0.5), **kw
     )
-    ref = dfx.diffeqsolve(terms, _TwoEvalLeapfrog(), 0.0, 1.0, 0.1, (1.0, -0.5), **kw)
+    ref = dfx.diffeqsolve(terms, _TwoEvalLeapfrog(), 0.0, t1, dt0, (1.0, -0.5), **kw)
     assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
     assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)
 
@@ -401,11 +380,7 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
     The callback has no batched arguments, so it fires once per batched
     evaluation. Without `unvmap_any`, the recompute would run every step.
     """
-    n_evals = []
-
-    def force(t, q, args):
-        jax.debug.callback(lambda: n_evals.append(1))
-        return -q
+    force, n_evals = _counting_force()
 
     def solve(t_jump):
         return dfx.diffeqsolve(
@@ -429,12 +404,6 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
 
 def test_leapfrog_orbitsolver_step_after_run():
     """`OrbitSolver.run` keeps no solver state; the next `step` still works."""
-    import unxt as u
-
-    import galax.coordinates as gc
-    import galax.dynamics as gd
-    import galax.potential as gp
-
     field = gd.fields.HamiltonianField(
         gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     )
@@ -465,12 +434,6 @@ def test_solve_from_init_state_with_batched_t1(solver):
     The batched solve is split per particle, so the stored solver state, which
     is batched over both particles, can't be reused as is.
     """
-    import unxt as u
-
-    import galax.coordinates as gc
-    import galax.dynamics as gd
-    import galax.potential as gp
-
     field = gd.fields.HamiltonianField(
         gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     )
@@ -493,13 +456,6 @@ def test_solve_from_init_state_with_batched_t1(solver):
 
 def test_solve_from_state_reuses_the_stored_force(monkeypatch, request):
     """An unbatched solve from a saved state reuses its force: 10 steps, 10 forces."""
-    import unxt as u
-
-    import galax.coordinates as gc
-    import galax.dynamics as gd
-    import galax.potential as gp
-    from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
-
     n_evals = []
     dv_dt = HamiltonianField.dv_dt
 

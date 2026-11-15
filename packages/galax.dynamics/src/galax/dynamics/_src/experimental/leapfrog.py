@@ -13,8 +13,6 @@ from typing import Any, ClassVar, TypeAlias
 
 import equinox.internal as eqxi
 import jax
-import jax.numpy as jnp
-import jax.tree as jtu
 from diffrax import (
     RESULTS,
     AbstractSolver,
@@ -69,12 +67,9 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         x1 = x0 + h * f(t0, v_half)
         v1 = v_half + h/2 * g(t1, x1)
 
-    The force ``g(t1, x1)`` ending one step is the force starting the next, so
-    it is kept in the solver state and each step costs one evaluation of ``g``.
-    After a jump (``jump_ts``, or ``made_jump=True`` passed to
-    `diffrax.diffeqsolve`) it is evaluated afresh. When resuming from a saved
-    ``solver_state`` after an event or a change to ``y``, pass
-    ``made_jump=True``.
+    Each step reuses the previous step's end force ``g(t1, x1)``, so it costs one
+    evaluation of ``g``. Pass ``made_jump=True`` after a jump, an event or a
+    change to ``y``, so the force is evaluated afresh.
     """
 
     term_structure: ClassVar = (AbstractTerm, AbstractTerm)
@@ -109,19 +104,13 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         f, g = terms
         q0, p0 = y0
 
-        # The force at (t0, q0), from the end of the previous step, or afresh
-        # if the caller kept no solver state (`galax.dynamics.OrbitSolver.run`
-        # stores none). diffrax resolves `made_jump` to a static False unless
-        # jumps are possible.
+        # Force at (t0, q0): stored from the last step, or afresh if none.
         a0 = g.vf(t0, q0, args) if solver_state is None else solver_state
         if made_jump is not False and made_jump is not None:
-
-            def recompute() -> VF:
-                a_new = g.vf(t0, q0, args)
-                return jtu.map(lambda x, y: jnp.where(made_jump, x, y), a_new, a0)
-
             # `unvmap_any`: under vmap, only evaluate if some lane jumped.
-            a0 = jax.lax.cond(eqxi.unvmap_any(made_jump), recompute, lambda: a0)
+            a0 = jax.lax.cond(
+                eqxi.unvmap_any(made_jump), lambda: g.vf(t0, q0, args), lambda: a0
+            )
 
         # Use the terms' control, not ``t1 - t0``: for ``t1 < t0`` diffrax
         # flips time and wraps the terms, and only ``contr`` carries the sign

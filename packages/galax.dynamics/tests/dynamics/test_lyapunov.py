@@ -3,6 +3,7 @@
 import diffrax as dfx
 import equinox as eqx
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 import unxt as u
@@ -151,3 +152,19 @@ def test_dt0_accepts_a_quantity():
         POT, make_w0(XV0), u.Q(100, "Myr"), dt0=u.Q(5e-4, "Gyr"), **kw
     )
     assert jnp.allclose(lam_q, lam, rtol=1e-12)
+
+
+@pytest.mark.parametrize("k", [np.int64(2), jnp.int32(2)])
+def test_k_and_n_renorm_accept_array_integers(k):
+    ts, lam = compute_lyapunov(
+        POT, make_w0(XV0), u.Q(100, "Myr"), n_renorm=np.int64(2), k=k
+    )
+    assert ts.shape == (2,)
+    assert lam.shape == (2, 2)
+
+
+@pytest.mark.parametrize("name", ["k", "n_renorm"])
+def test_k_and_n_renorm_must_be_integers(name):
+    kw = {"n_renorm": 2, "k": 2, name: 2.5}
+    with pytest.raises(TypeError, match=f"{name} must be an integer"):
+        compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), **kw)

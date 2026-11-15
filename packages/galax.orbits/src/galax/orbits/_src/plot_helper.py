@@ -29,7 +29,7 @@ class PlotOrbitDescriptor[BndTo](InstanceDescriptor[BndTo]):
     ) -> Any:
         """Plot specified components of the orbit.
 
-        This calls `galax.dynamics.plot.plot_components`.
+        This calls `galax.orbits.plot.plot_components`.
 
         """
         return plot_components(self.enclosing, backend, **kwargs)

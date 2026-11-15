@@ -18,8 +18,6 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Array, Int, Real, ScalarLike
 from typing import TypeAlias
 
-import unxt as u
-
 from galax.coordinates.custom_types import (
     BBtFloatQuSz0 as BBtFloatQuSz0,
     BBtQuSz0 as BBtQuSz0,
@@ -37,6 +35,7 @@ from galax.orbits.custom_types import (
     BBtSz4 as BBtSz4,
     BBtSz6 as BBtSz6,
     OptArgs as OptArgs,
+    QuSz1 as QuSz1,
 )
 from galax.potential.custom_types import (
     BBtLikeSz0 as BBtLikeSz0,
@@ -61,6 +60,5 @@ from galax.potential.custom_types import (
 
 IntSz0: TypeAlias = Int[Array, ""]
 RealScalarLike: TypeAlias = Real[ScalarLike, ""]
-QuSz1: TypeAlias = Real[u.AbstractQuantity, "1"]
 BtQuSz3: TypeAlias = Real[QuSz3, "*batch"]
 SzTime: TypeAlias = Real[Array, "time"]

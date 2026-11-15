@@ -71,6 +71,33 @@ class HamiltonianField(AbstractOrbitField):
     >>> field.terms(solver)
     (ODETerm(...), ODETerm(...))
 
+    Just to continue the example, we can use this field to integrate the
+    equations of motion:
+
+    >>> solver = go.OrbitSolver()  # defaults to Dopri8
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(1, "Gyr")
+    >>> soln = solver.solve(field, w0, t1)
+    >>> soln
+    Solution( t0=f64[], t1=f64[], ts=f64[1],
+              ys=(f64[1,2,3], f64[1,2,3]),
+              ... )
+
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
+    >>> print(w, w.shape, sep='\n')
+    PhaseSpaceCoordinate(
+        q=<CartesianPos3D: (x, y, z) [kpc]
+            [[-5.151 -6.454 -5.795]
+             [ 4.277  4.633  1.426]]>,
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
+            [[ 0.225 -0.068  0.253]
+             [-0.439 -0.002 -0.146]]>,
+        t=Q(1000., 'Myr'), frame=SimulationFrame() )
+    (2,)
+
     The next examples integrate the field.
     `galax.fields.integrate_field` integrates this field, and any other field
     that implements ``parse_inputs``. From `jax.Array` initial conditions in the
@@ -297,6 +324,26 @@ def terms(
 
     >>> field.terms(solver)
     (ODETerm(...), ODETerm(...))
+
+    For completeness we'll integrate the EoM.
+
+    >>> dynamics_solver = go.OrbitSolver(solver,
+    ...                                     stepsize_controller=dfx.ConstantStepSize())
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Q([8., 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"),
+    ...     t=u.Q(0, "Gyr"))
+    >>> t1 = u.Q(200, "Myr")
+
+    >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
+    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
+    >>> print(w)
+    PhaseSpaceCoordinate(
+        q=<CartesianPos3D: (x, y, z) [kpc]
+            [7.091 3.504 0.   ]>,
+        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
+            [-0.111  0.199  0. ]>,
+        t=Q(200., 'Myr'), frame=SimulationFrame() )
 
     """
     return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))

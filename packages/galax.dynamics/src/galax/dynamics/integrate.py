@@ -16,8 +16,8 @@ with install_import_hook("galax.dynamics.integrate"):
         InterpolatedPhaseSpaceCoordinate,
         evaluate_orbit,
     )
-    from ._src.orbit import PhaseSpaceInterpolation
     from galax.fields import parse_time_specification
+    from galax.orbits import PhaseSpaceInterpolation
 
 # Cleanup
 del install_import_hook

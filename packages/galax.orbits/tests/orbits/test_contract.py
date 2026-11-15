@@ -1,6 +1,6 @@
 """A copy of `galax.coordinates`' phase-space contract, for `Orbit`.
 
-`Orbit` is a `galax.dynamics` type that implements the `galax.coordinates`
+`Orbit` is a `galax.orbits` type that implements the `galax.coordinates`
 phase-space contract, so it must be tested against it. The contract lives in
 `galax.coordinates`' own test tree, which after #916 is a different
 distribution and not an importable path -- `packages/galax.coordinates`

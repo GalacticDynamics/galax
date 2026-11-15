@@ -14,12 +14,13 @@ from galax.orbits.custom_types import (
     BBtQParr as BBtQParr,
     BtAarr as BtAarr,
     BtPAarr as BtPAarr,
+    Parr as Parr,
+    Qarr as Qarr,
 )
 
 # ---------------------------
 # Q
 
-Qarr: TypeAlias = gt.Sz3
 BtQarr: TypeAlias = gt.BtSz3
 
 BQarr: TypeAlias = Real[gt.Sz3, "batch"]
@@ -30,7 +31,6 @@ BtQ: TypeAlias = gt.BtQuSz3
 # ---------------------------
 # P
 
-Parr: TypeAlias = gt.Sz3
 BtParr: TypeAlias = gt.BtSz3
 
 P: TypeAlias = gt.QuSz3

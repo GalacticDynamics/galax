@@ -1,21 +1,15 @@
 """Orbits. Private module."""
 
-from .api import *
-from .base import AbstractOrbit
 from .field_nbody import *
-from .interp import *
 from .lyapunov import compute_lyapunov as compute_lyapunov
-from .orbit import *
-from .plot_helper import ProxyAbstractOrbit, plot_components as plot_components
-from .solver import *
 from .variational import compute_variational as compute_variational
 from galax.orbits import (
+    AbstractOrbit as AbstractOrbit,
     AbstractOrbitField as AbstractOrbitField,
     HamiltonianField as HamiltonianField,
+    Orbit as Orbit,
+    OrbitSolver as OrbitSolver,
+    PhaseSpaceInterpolation as PhaseSpaceInterpolation,
+    compute_orbit as compute_orbit,
 )
-
-# Register by import
-# isort: split
-from . import compute, register_dfx  # noqa: F401
-
-ProxyAbstractOrbit.deliver(AbstractOrbit)
+from galax.orbits.plot import plot_components as plot_components

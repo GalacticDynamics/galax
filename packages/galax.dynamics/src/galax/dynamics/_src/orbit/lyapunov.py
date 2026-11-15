@@ -21,9 +21,8 @@ from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 import galax.potential as gp
-from .solver import OrbitSolver
 from .variational import _prepare, _solve_augmented, tangent_terms
-from galax.orbits import AbstractOrbitField
+from galax.orbits import AbstractOrbitField, OrbitSolver
 from galax.orbits.utils import parse_to_t_y
 
 

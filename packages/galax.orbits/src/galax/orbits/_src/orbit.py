@@ -10,7 +10,7 @@ import coordinax as cx
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 from .base import AbstractOrbit
 
 
@@ -29,7 +29,7 @@ class Orbit(AbstractOrbit):
     >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     >>> potential = gp.KeplerPotential(m_tot=1e11, units="galactic")
@@ -39,13 +39,13 @@ class Orbit(AbstractOrbit):
     ...     t=u.Q(0, "Myr"))
     >>> ts = u.Q(jnp.linspace(0., 1., 10), "Gyr")
 
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...),
       t=Q( [ 0. , ..., 1000. ], 'Myr' ),
       frame=SimulationFrame(), interpolant=None )
 
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts, dense=True)
+    >>> orbit = go.compute_orbit(potential, w0, ts, dense=True)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=PhaseSpaceInterpolation(...) )

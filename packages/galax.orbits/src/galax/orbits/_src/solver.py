@@ -27,16 +27,14 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
-from galax.dynamics.fields import AbstractField
-from galax.fields import AbstractSolver, SolveState
+import galax.orbits.custom_types as gt
+from .field_base import AbstractOrbitField
+from .utils import parse_to_t_y
+from galax.fields import AbstractField, AbstractSolver, SolveState
 from galax.fields.custom_types import Terms
 from galax.fields.utils import parse_saveat
-from galax.orbits import AbstractOrbitField
-from galax.orbits.utils import parse_to_t_y
 
-BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
+BBtQParr: TypeAlias = tuple[gt.BBtQarr, gt.BBtParr]
 
 default_saveat = dfx.SaveAt(t1=True)
 
@@ -58,15 +56,15 @@ class OrbitSolver(AbstractSolver):
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
-    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
+    >>> solver = go.OrbitSolver()  # defaults to Dopri8
 
     Define the vector field. In this example it's to solve Hamilton's EoM in a
     gravitational potential.
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
     Define the initial conditions, here a phase-space position
 
@@ -96,11 +94,11 @@ class OrbitSolver(AbstractSolver):
 
     The solver can be customized. Here are a few examples:
 
-    1. From a `galax.dynamics.integrate.DiffEqSolver` instance.
+    1. From a `diffraxtra.DiffEqSolver` instance.
 
-    >>> diffeqsolver = gd.DiffEqSolver(dfx.Dopri8(),
+    >>> diffeqsolver = dfxtra.DiffEqSolver(dfx.Dopri8(),
     ...     stepsize_controller=dfx.PIDController(rtol=1e-5, atol=1e-5))
-    >>> solver = gd.OrbitSolver.from_(diffeqsolver)
+    >>> solver = go.OrbitSolver.from_(diffeqsolver)
     >>> solver
     OrbitSolver(
         solver=Dopri8(),
@@ -111,7 +109,7 @@ class OrbitSolver(AbstractSolver):
 
     2. A `dict` of keyword arguments:
 
-    >>> solver = gd.OrbitSolver.from_({
+    >>> solver = go.OrbitSolver.from_({
     ...     "solver": dfx.Dopri8(), "stepsize_controller": dfx.ConstantStepSize()})
     >>> solver
     OrbitSolver(solver=Dopri8(), stepsize_controller=ConstantStepSize())
@@ -120,7 +118,7 @@ class OrbitSolver(AbstractSolver):
 
     >>> import diffraxtra as dfxtra
     >>> diffeqsolver = dfxtra.DiffEqSolver(dfx.Dopri5())
-    >>> solver = gd.OrbitSolver.from_(diffeqsolver)
+    >>> solver = go.OrbitSolver.from_(diffeqsolver)
     >>> solver
     OrbitSolver(
       solver=Dopri5(),
@@ -162,7 +160,7 @@ class OrbitSolver(AbstractSolver):
     def init(  # type: ignore[override]
         self: "OrbitSolver", field: Any, t0: Any, t1: Any, y0: Any, args: Any
     ) -> Any:
-        """Initialize the `galax.dynamics.SolveState`.
+        """Initialize the `galax.fields.SolveState`.
 
         Examples
         --------
@@ -172,15 +170,15 @@ class OrbitSolver(AbstractSolver):
         >>> import coordinax as cx
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
+        >>> import galax.orbits as go
 
-        >>> solver = gd.OrbitSolver()
+        >>> solver = go.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
         >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
+        >>> field = go.HamiltonianField(pot)
 
         Define the initial conditions, here a phase-space position
 
@@ -189,7 +187,7 @@ class OrbitSolver(AbstractSolver):
         ...     p=u.Q([0, 220, 0], "km/s"),
         ...     t=u.Q(0, "Gyr"))
 
-        Then the `galax.dynamics.SolveState` can be initialized.
+        Then the `galax.fields.SolveState` can be initialized.
 
         >>> state = solver.init(field, w0, None)
         >>> state
@@ -306,15 +304,15 @@ class OrbitSolver(AbstractSolver):
         >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
+        >>> import galax.orbits as go
 
-        >>> solver = gd.OrbitSolver()
+        >>> solver = go.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
         >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
+        >>> field = go.HamiltonianField(pot)
 
         Define the initial conditions:
 
@@ -364,15 +362,15 @@ class OrbitSolver(AbstractSolver):
         >>> import unxt as u
         >>> import galax.coordinates as gc
         >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
+        >>> import galax.orbits as go
 
-        >>> solver = gd.OrbitSolver()
+        >>> solver = go.OrbitSolver()
 
         Define the vector field. In this example it's to solve Hamilton's EoM in
         a gravitational potential.
 
         >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
+        >>> field = go.HamiltonianField(pot)
 
         Define the initial conditions:
 
@@ -438,14 +436,14 @@ class OrbitSolver(AbstractSolver):
         --------
         >>> import unxt as u
         >>> import galax.potential as gp
-        >>> import galax.dynamics as gd
+        >>> import galax.orbits as go
 
-        >>> solver = gd.OrbitSolver()
+        >>> solver = go.OrbitSolver()
 
         Specify the vector field.
 
         >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-        >>> field = gd.fields.HamiltonianField(pot)
+        >>> field = go.HamiltonianField(pot)
 
         Solve for a single set of initial conditions.
 
@@ -580,7 +578,7 @@ class OrbitSolver(AbstractSolver):
         'w02': Solution( t0=f64[], t1=f64[], ts=f64[],
                         ys=(f64[3], f64[3]), ... )}
 
-        - `galax.dynamics.SolveState` from ``.init()``:
+        - `galax.fields.SolveState` from ``.init()``:
 
         >>> state = solver.init(field, w0, u.Q(0, "Gyr"), None)
         >>> soln = solver.solve(field, state, t1, unbatch_time=True)
@@ -803,7 +801,7 @@ def run(
 def solve(
     self: OrbitSolver,
     field: AbstractOrbitField,
-    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp0: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
     /,
@@ -833,7 +831,7 @@ def solve(
 scalar_solver = OrbitSolver.solve.invoke(
     OrbitSolver,
     AbstractOrbitField,
-    tuple[gdt.BBtQarr, gdt.BBtParr],
+    tuple[gt.BBtQarr, gt.BBtParr],
     gt.LikeSz0,
     gt.LikeSz0,
 )
@@ -847,7 +845,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp0: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
     /,
@@ -865,7 +863,7 @@ def solve(
 def solve(
     self: OrbitSolver,
     field: AbstractOrbitField,
-    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -883,7 +881,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -917,7 +915,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -933,7 +931,7 @@ def solve(
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
     @ft.partial(jnp.vectorize, signature="(3),(3),(),()->()")
-    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+    def batched_call(q: gt.Qarr, p: gt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
     # Solve the batched problem
@@ -962,7 +960,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp0: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -987,7 +985,7 @@ def solve(
 
     # Build the vectorized solver.
     @ft.partial(jax.vmap, in_axes=(0, 0, 0, 0))
-    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+    def batched_call(q: gt.Qarr, p: gt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
     # Solve the batched problem
@@ -1017,7 +1015,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
+    qp0: tuple[gt.BBtQarr, gt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,

@@ -27,9 +27,7 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.potential as gp
 from .field_nbody import NBodyField
-from .orbit import Orbit
-from .solver import OrbitSolver
-from galax.orbits import AbstractOrbitField, HamiltonianField
+from galax.orbits import AbstractOrbitField, HamiltonianField, Orbit, OrbitSolver
 from galax.orbits.utils import parse_to_t_y
 
 

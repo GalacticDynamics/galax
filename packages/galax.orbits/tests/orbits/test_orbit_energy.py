@@ -6,8 +6,8 @@ than by its own registration. That is exactly the case worth a test: an orbit
 carries a *vector* of times, so the shape and time-broadcast contract is
 non-trivial in a way a single coordinate's is not.
 
-These live in the dynamics tree, not beside the other energy tests, because
-`Orbit` is a `galax.dynamics` type. `dynamics` may depend on `potential`; the
+These live in the orbits tree, not beside the other energy tests, because
+`Orbit` is a `galax.orbits` type. `orbits` may depend on `potential`; the
 reverse is what the distribution split exists to prevent.
 """
 
@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics as gd
+import galax.orbits as go
 import galax.potential as gp
 
 
@@ -28,7 +28,7 @@ def pot() -> gp.KeplerPotential:
 
 
 @pytest.fixture
-def orbit(pot: gp.KeplerPotential) -> gd.Orbit:
+def orbit(pot: gp.KeplerPotential) -> go.Orbit:
     """Return an orbit sampled at 10 times."""
     w0 = gc.PhaseSpaceCoordinate(
         q=u.Q([8.0, 0.0, 0.0], "kpc"),
@@ -36,7 +36,7 @@ def orbit(pot: gp.KeplerPotential) -> gd.Orbit:
         t=u.Q(0.0, "Myr"),
     )
     ts = u.Q(jnp.linspace(0.0, 100.0, 10), "Myr")
-    return gd.evaluate_orbit(pot, w0, ts)
+    return go.compute_orbit(pot, w0, ts)
 
 
 def test_potential_energy_follows_the_orbit(orbit, pot) -> None:

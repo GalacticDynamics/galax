@@ -9,12 +9,10 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics as gd
+import galax.orbits as go
 import galax.potential as gp
 
-FIELD = gd.fields.HamiltonianField(
-    gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-)
+FIELD = go.HamiltonianField(gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic"))
 Q = u.Q([[8.0, 0, 9], [9, 0, 3]], "kpc")
 P = u.Q([[0.0, 220, 0], [0, 200, 10]], "km/s")
 T0 = u.Q([0.0, 10.0], "Myr")
@@ -28,7 +26,7 @@ def test_solve_from_batched_time_state():
     default Dopri8) also needs a batched solve not to hand every particle the
     whole batched solver state, which #1025 fixes.
     """
-    s = gd.OrbitSolver(
+    s = go.OrbitSolver(
         dfx.SemiImplicitEuler(), stepsize_controller=dfx.ConstantStepSize()
     )
     got = s.solve(FIELD, s.init(FIELD, (Q, P), T0, None), T1, dt0=0.5).ys
@@ -40,7 +38,7 @@ def test_solve_from_batched_time_state():
 
 def test_scalar_start_time_unchanged():
     """A scalar start time with a batch of particles is one batched state."""
-    state = gd.OrbitSolver().init(FIELD, (Q, P), T0[0], None)
+    state = go.OrbitSolver().init(FIELD, (Q, P), T0[0], None)
     assert state.t.shape == ()
     assert state.y[0].shape == (2, 3)
 
@@ -50,14 +48,14 @@ def test_mismatched_batches_raise():
     q3 = jnp.concat([Q, Q[:1]])
     p3 = jnp.concat([P, P[:1]])
     with pytest.raises(ValueError, match="broadcast"):
-        gd.OrbitSolver().init(FIELD, (q3, p3), T0, None)
+        go.OrbitSolver().init(FIELD, (q3, p3), T0, None)
 
 
 @pytest.mark.parametrize(
     "solver",
     [
-        gd.OrbitSolver(),
-        gd.OrbitSolver(
+        go.OrbitSolver(),
+        go.OrbitSolver(
             dfx.SemiImplicitEuler(), stepsize_controller=dfx.ConstantStepSize()
         ),
     ],
@@ -94,4 +92,4 @@ def test_init_impl_checks_the_batch():
     t0 = jnp.zeros((2, 3))
     y0 = (jnp.ones((3, 2, 3)), jnp.ones((3, 2, 3)))
     with pytest.raises(ValueError, match="lead with t0's batch shape"):
-        gd.OrbitSolver()._init_impl(FIELD, t0, y0, None, FIELD.units)
+        go.OrbitSolver()._init_impl(FIELD, t0, y0, None, FIELD.units)

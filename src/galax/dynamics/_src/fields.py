@@ -14,6 +14,7 @@ import equinox as eqx
 from plum import dispatch
 
 import diffraxtra as dfxtra
+import quaxed.numpy as jnp
 import unxt as u
 
 
@@ -183,6 +184,14 @@ def call(
     Re-dispatches to `diffraxtra.AbstractDiffEqSolver` after determining the
     terms structure.
 
+    A given ``dt0`` sets the size of the first step, and ``t0 -> t1`` sets its
+    direction. `diffrax.diffeqsolve` needs the sign of ``dt0`` to match
+    ``t1 - t0``, so without this, one fixed-step solver could not integrate both
+    backward and forward, as `galax.dynamics.evaluate_orbit` does when the
+    orbit's start time lies inside the requested times.
+
     """
     terms = field.terms(self.solver)
+    if dt0 is not None:
+        dt0 = jnp.where(t1 < t0, -1, 1) * jnp.abs(dt0)
     return self(terms, t0, t1, dt0, y0, args, **kwargs)

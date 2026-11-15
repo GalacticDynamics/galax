@@ -491,7 +491,7 @@ def test_solve_from_init_state_with_batched_t1(solver):
     assert jnp.allclose(got[1], want[1], rtol=1e-13, atol=0)
 
 
-def test_solve_from_state_reuses_the_stored_force(monkeypatch):
+def test_solve_from_state_reuses_the_stored_force(monkeypatch, request):
     """An unbatched solve from a saved state reuses its force: 10 steps, 10 forces."""
     import unxt as u
 
@@ -509,8 +509,10 @@ def test_solve_from_state_reuses_the_stored_force(monkeypatch):
 
     monkeypatch.setattr(HamiltonianField, "dv_dt", counted)
     # The patched method isn't part of the jit cache key: drop compiled solves
-    # so this one retraces with the counter.
+    # so this one retraces with the counter, and drop the counted trace after
+    # the test so no later solve reuses it.
     jax.clear_caches()
+    request.addfinalizer(jax.clear_caches)
 
     field = gd.fields.HamiltonianField(
         gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")

@@ -148,7 +148,10 @@ Choosing the solver
 
 The ``solver`` keyword takes a :class:`diffraxtra.DiffEqSolver`, which bundles a
 diffrax solver, a step size controller and the other options of
-:func:`diffrax.diffeqsolve`. This one is Tsit5 with a tighter tolerance:
+:func:`diffrax.diffeqsolve`. ``integrate_field`` always lets the solver choose
+the first step (``dt0=None``), so the solver needs an adaptive step size
+controller such as :class:`diffrax.PIDController`; a constant-step solver raises
+an error. This one is Tsit5 with a tighter tolerance:
 
     >>> solver = dfxtra.DiffEqSolver(
     ...     dfx.Tsit5(),

@@ -28,7 +28,9 @@ class CustomField(AbstractField):
     ----------
     func : Callable[[t, y, args], dy_dt]
         The function. It is called as ``func(t, y, args)`` and returns ``dy/dt``
-        with the same PyTree structure as ``y``.
+        with the same PyTree structure as ``y``. It receives and returns plain
+        arrays (no Quantities) in the field's ``units``, because ``integrate_field``
+        strips units before calling it.
     units : `unxt.AbstractUnitSystem`, keyword-only
         The unit system the integration runs in. ``Quantity`` leaves of the
         initial conditions are converted to it, according to their dimension,

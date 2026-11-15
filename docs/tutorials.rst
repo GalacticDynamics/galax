@@ -14,6 +14,7 @@ an issue on GitHub <https://github.com/GalacticDynamics/galax/issues>`_.
 
     time_dependent_parameters
     variational_equations
+    fields
 
 
 .. TODO: uncomment

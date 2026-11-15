@@ -31,7 +31,7 @@ import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .uniform_acceleration import UniformAcceleration
-from galax.dynamics._src.fields import AbstractField
+from galax.fields import AbstractField
 
 QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
 QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]

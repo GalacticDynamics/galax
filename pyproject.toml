@@ -38,6 +38,7 @@ dependencies = [
   "galax.actionangle",
   "galax.coordinates",
   "galax.dynamics",
+  "galax.fields",
   # Required, not an extra: `astropy` is already a required dependency, so this
   # interop's entry point registers on every install today. Demoting it would
   # silently stop astropy conversions from registering -- a missing entry point
@@ -104,6 +105,7 @@ members = ["packages/*"]
 "galax.actionangle" = { workspace = true }
 "galax.coordinates" = { workspace = true }
 "galax.dynamics" = { workspace = true }
+"galax.fields" = { workspace = true }
 "galax.interop.astropy" = { workspace = true }
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }
@@ -237,6 +239,7 @@ run.source = [
   "packages/galax.actionangle/src",
   "packages/galax.coordinates/src",
   "packages/galax.dynamics/src",
+  "packages/galax.fields/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
@@ -258,6 +261,7 @@ mypy_path = [
   "packages/galax.actionangle/src",
   "packages/galax.coordinates/src",
   "packages/galax.dynamics/src",
+  "packages/galax.fields/src",
   "packages/galax.interop.astropy/src",
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
@@ -481,6 +485,7 @@ banned-from = ["astropy.coordinates"]
 "galax.coordinates" = "gc"
 "galax.potential" = "gp"
 "galax.dynamics" = "gd"
+"galax.fields" = "gf"
 "jax.extend" = "jex"
 "optimistix" = "optx"
 "unxt" = "u"

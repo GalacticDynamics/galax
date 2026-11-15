@@ -1,4 +1,4 @@
-"""Dynamics Solvers.
+"""Field solvers.
 
 This is private API.
 
@@ -23,12 +23,11 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 from .fields import AbstractField
 
 USys: TypeAlias = u.AbstractUnitSystem
 DenseInfo: TypeAlias = dict[str, PyTree[Array]]
-Terms: TypeAlias = PyTree
 DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], ""]
 
 # =========================================================
@@ -38,10 +37,10 @@ DfxRealScalarLike: TypeAlias = Real[int | float | Array | np.ndarray[Any, Any], 
 class SolveState(eqx.Module):
     """State of the solver.
 
-    This is used as the return value for `galax.dynamics.AbstractSolver.init`
-    and `galax.dynamics.AbstractSolver.step`. It is used as the argument to
-    `galax.dynamics.AbstractSolver.step`, `galax.dynamics.AbstractSolver.run`,
-    and can also be passed to `galax.dynamics.AbstractSolver.solve`.
+    This is used as the return value for `galax.fields.AbstractSolver.init`
+    and `galax.fields.AbstractSolver.step`. It is used as the argument to
+    `galax.fields.AbstractSolver.step`, `galax.fields.AbstractSolver.run`,
+    and can also be passed to `galax.fields.AbstractSolver.solve`.
 
     """
 
@@ -161,7 +160,7 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
 
     def _step_impl_scalar(
         self,
-        field: AbstractField | Terms,
+        field: AbstractField | gt.Terms,
         state: SolveState,
         t1: gt.Sz0,
         args: Any,
@@ -219,28 +218,14 @@ class AbstractSolver(dfxtra.AbstractDiffEqSolver):  # type: ignore[misc]
 def from_(cls: type[AbstractSolver], solver: dfxtra.DiffEqSolver) -> AbstractSolver:
     """Create a new solver from a `diffraxtra.DiffeqSolver`.
 
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import diffraxtra as dfxtra
-    >>> import galax.dynamics as gd
-
-    >>> solver = dfxtra.DiffEqSolver(dfx.Dopri5())
-
-    >>> new_solver = gd.OrbitSolver.from_(solver)
-    >>> new_solver
-    OrbitSolver(
-      solver=Dopri5(),
-      stepsize_controller=ConstantStepSize(),
-      adjoint=RecursiveCheckpointAdjoint(),
-      max_steps=4096
-    )
+    The fields-level package ships no concrete `AbstractSolver`; for a worked
+    example see `galax.dynamics.OrbitSolver`.
 
     """
     return cls(**{f.name: getattr(solver, f.name) for f in fields(cls)})
 
 
-def _parse_field(field: AbstractField | Terms, solver: AbstractSolver) -> Terms:
+def _parse_field(field: AbstractField | gt.Terms, solver: AbstractSolver) -> gt.Terms:
     return field.terms(solver) if isinstance(field, AbstractField) else field
 
 
@@ -313,7 +298,7 @@ def integrate_field(
     ts : Array[real, (n>2,)]
         Array of saved times. Must be at least length 2, specifying a minimum
         and maximum time. This does *not* determine the timestep
-    field : `galax.dynamics.fields.AbstractField`
+    field : `galax.fields.AbstractField`
         Specifies the field that we are integrating on. This field must have a
         `terms` method that returns the correct PyTree of `diffrax.AbstractTerm`
         objects given the solver.
@@ -359,85 +344,62 @@ def integrate_field(
 
     Examples
     --------
-    >>> import diffrax as dfx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.fields as gf
 
-    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    Exponential decay, ``dy/dt = -k y`` with ``k = 0.003`` per Myr:
+
+    >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)
 
     - From `jax.Array`:
 
-    >>> y0 = (jnp.array([8., 0, 0]), jnp.array([0, 0.22499668, 0]))  # [kpc, kpc/Myr]
-    >>> ts = jnp.linspace(0, 1_000, 100)  # [Myr]
+    >>> y0 = jnp.array([1.0])
+    >>> ts = jnp.linspace(0, 1_000, 5)  # [Myr]
 
-    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln = gf.integrate_field(field, y0, ts)
     >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
+    Solution( t0=f64[], t1=f64[], ts=f64[5],
+              ys=f64[5,1],
               interpolation=None, ... )
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.64330621,  2.23875468,  0.        ],
-            ...
-            [-4.39816948,  5.13828441,  0.        ],
-            [-5.93659008,  2.90704886,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986448, -0.18744046,  0.        ],
-            [-0.10991138, -0.24937802,  0.        ]], dtype=float64))
+    >>> soln.ys.round(4)
+    Array([[1.    ],
+           [0.4724],
+           [0.2231],
+           [0.1054],
+           [0.0498]], dtype=float64)
 
     - From `unxt.Quantity`:
 
-    >>> y0 = (u.Q([8., 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
-    >>> ts = u.Q(jnp.linspace(0, 1, 100), "Gyr")
+    >>> y0 = u.Q([1.0], "kpc")
+    >>> ts = u.Q(jnp.linspace(0, 1, 5), "Gyr")
 
-    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln = gf.integrate_field(field, y0, ts)
+    >>> soln.ys.round(4)
+    Array([[1.    ],
+           [0.4724],
+           [0.2231],
+           [0.1054],
+           [0.0498]], dtype=float64)
+
+    The state can be any PyTree. Here is a harmonic oscillator with state
+    ``(x, v)``, where each `unxt.Quantity` leaf is converted to the field's
+    units according to its dimension:
+
+    >>> osc = gf.CustomField(lambda t, y, args: (y[1], -0.001 * y[0]))
+    >>> y0 = (u.Q(1.0, "kpc"), u.Q(0.0, "km/s"))
+
+    >>> soln = gf.integrate_field(osc, y0, ts)
     >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
+    Solution( t0=f64[], t1=f64[], ts=f64[5],
+              ys=(f64[5], f64[5]),
               interpolation=None, ... )
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.6433062 ,  2.23875464,  0.        ],
-            ...
-            [-4.3981766 ,  5.13827691,  0.        ],
-            [-5.93659409,  2.90703882,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986424, -0.18744076,  0.        ],
-            [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
+    >>> soln.ys[0].round(4)
+    Array([ 1.    , -0.0517, -0.9947,  0.1545,  0.9787], dtype=float64)
 
-    Additional input types are dependent on the `field`.
-    `galax.dynamics.orbit.AbstractOrbitField` can handle many more input types.
-    See that class and `galax.dynamics.orbit.OrbitSolver` for more information.
-    As a single example, here is how to use a
-    `galax.coordinates.PhaseSpaceCoordinate`:
-
-    >>> import galax.coordinates as gc
-
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
-
-    >>> soln = gd.integrate_field(field, w0, ts)
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
-              interpolation=None, ... )
-
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.6433062 ,  2.23875464,  0.        ],
-            ...
-            [-4.3981766 ,  5.13827691,  0.        ],
-            [-5.93659409,  2.90703882,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986424, -0.18744076,  0.        ],
-            [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
+    Fields on orbits, such as `galax.dynamics.HamiltonianField`, can handle many
+    more input types. See that class and `galax.dynamics.orbit.OrbitSolver` for
+    more information.
 
     """
     # -----------------------

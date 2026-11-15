@@ -5,18 +5,13 @@ This is private API.
 """
 
 __all__ = [
-    "parse_saveat",
     "parse_to_t_y",
 ]
 
-from dataclasses import replace
-
-from jaxtyping import ArrayLike
 from typing import Any, TypeAlias
 
-import diffrax as dfx
 import equinox as eqx
-from plum import convert, dispatch
+from plum import convert
 
 import coordinax.frames as cxf
 import coordinax.vecs as cxv
@@ -28,90 +23,6 @@ import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
 from . import custom_types as gdt
 from galax.potential.utils import coord_dispatcher, speed_of_light
-
-#####################################################################
-# Parse SaveAt
-
-
-@dispatch
-def parse_saveat(obj: dfx.SaveAt, /, *, dense: bool | None) -> dfx.SaveAt:
-    """Return the input object.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> parse_saveat(dfx.SaveAt(ts=[0, 1, 2, 3]), dense=True)
-    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
-
-    """
-    return obj if dense is None else replace(obj, dense=dense)
-
-
-@dispatch
-def parse_saveat(
-    _: u.AbstractUnitSystem | None, obj: dfx.SaveAt, /, *, dense: bool | None
-) -> dfx.SaveAt:
-    """Return the input object.
-
-    Examples
-    --------
-    >>> import diffrax as dfx
-    >>> import unxt as u
-
-    >>> units = u.unitsystem("galactic")
-    >>> parse_saveat(units, dfx.SaveAt(ts=[0, 1, 2, 3]), dense=True)
-    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
-
-    """
-    return obj if dense is None else replace(obj, dense=dense)
-
-
-@dispatch
-def parse_saveat(
-    _: u.AbstractUnitSystem | None,
-    ts: ArrayLike | list[ArrayLike],
-    /,
-    *,
-    dense: bool | None,
-) -> dfx.SaveAt:
-    """Convert to a `SaveAt`.
-
-    Examples
-    --------
-    >>> import jax.numpy as jnp
-
-    >>> parse_saveat(None, 0.5, dense=True)
-    SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
-
-    >>> parse_saveat(units, [0, 1, 2, 3], dense=True)
-    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
-
-    """
-    ts = jnp.atleast_1d(jnp.asarray(ts))
-    return dfx.SaveAt(ts=ts, dense=False if dense is None else dense)
-
-
-@dispatch
-def parse_saveat(
-    units: u.AbstractUnitSystem, ts: u.AbstractQuantity, /, *, dense: bool | None
-) -> dfx.SaveAt:
-    """Convert to a `SaveAt`.
-
-    Examples
-    --------
-    >>> import unxt as u
-
-    >>> units = u.unitsystem("galactic")
-
-    >>> parse_saveat(units, u.Q(0.5, "Myr"), dense=True)
-    SaveAt(subs=SubSaveAt(ts=weak_f64[1]), dense=True)
-
-    >>> parse_saveat(units, u.Q([0, 1, 2, 3], "Myr"), dense=True)
-    SaveAt(subs=SubSaveAt(ts=i64[4]), dense=True)
-
-    """
-    return parse_saveat(units, ts.ustrip(units["time"]), dense=dense)
-
 
 #####################################################################
 # to y0, t0

@@ -33,37 +33,26 @@ class AbstractField(eqx.Module):
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import quaxed.numpy as jnp
+    >>> import galax.fields as gf
 
-    Define a Hamiltonian field:
+    Define a field from a function, here exponential decay (``dy/dt = -k y``)
+    with ``k = 0.003`` per Myr:
 
-    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)
 
-    Evaluate the field at a given coordinate:
+    Evaluate the field at a given time and state:
 
-    >>> t = u.Q(0, "Gyr")
-    >>> x = u.Q([8., 0, 0], "kpc")
-    >>> v = u.Q([0, 220, 0], "km/s")
+    >>> field(0.0, jnp.array([1.0]))
+    Array([-0.003], dtype=float64)
 
-    >>> field(t, x, v)
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-     Array([-0.00702891, -0.        , -0.     ], dtype=float64))
+    The state can be any PyTree, for example a harmonic oscillator with state
+    ``(x, v)``:
 
-    This can also be done with `jax.Array` directly, but care must be taken to
-    ensure the units are correct. In this case ``x`` is in the right units, but
-    ``t``, ``v`` are not. We use `unxt.ustrip` to correctly convert and remove
-    the units:
-
-    >>> field(t.ustrip("Myr"), x.value, v.ustrip("kpc/Myr"))
-    (Array([0.        , 0.22499668, 0.        ], dtype=float64),
-     Array([-0.00702891, -0.        , -0.     ], dtype=float64))
-
-    Field evaluation is very flexible and can work with a large variety of
-    inputs. For more information, see the
-    `galax.dynamics.fields.HamiltonianField` class.
+    >>> osc = gf.CustomField(lambda t, y, args: (y[1], -0.001 * y[0]))
+    >>> osc(0.0, (jnp.array(1.0), jnp.array(0.0)))
+    (Array(0., dtype=float64, weak_type=True),
+     Array(-0.001, dtype=float64, weak_type=True))
 
     For integration with `diffrax.diffeqsolve` the ``terms`` method returns the
     correctly-structured `diffrax.AbstractTerm` `jaxtyping.PyTree`. The term is
@@ -73,8 +62,7 @@ class AbstractField(eqx.Module):
     >>> field.terms(dfx.Dopri8())
     ODETerm(...)
 
-    >>> field.terms(dfx.SemiImplicitEuler())
-    (ODETerm(...), ODETerm(...))
+    For fields on orbits see `galax.dynamics.HamiltonianField`.
 
     """
 
@@ -89,7 +77,7 @@ class AbstractField(eqx.Module):
         """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration."""
         raise NotImplementedError  # pragma: no cover
 
-    # TODO: consider the frame information, like in `parse_to_t_y`
+    # TODO: consider the frame information, like in `galax.dynamics`'s `parse_to_t_y`
     @dispatch.abstract
     def parse_inputs(self, *args: Any, **kwargs: Any) -> Any:
         """Parse inputs for the field.
@@ -120,17 +108,10 @@ def terms(self: AbstractField, _: dfx.AbstractSolver, /) -> dfx.ODETerm:
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)
 
-    >>> field.terms(dfx.Dopri8())
-    ODETerm(...)
-
-    >>> field = gd.cluster.ZeroMassRate(units="galactic")
     >>> field.terms(dfx.Dopri8())
     ODETerm(...)
 
@@ -147,13 +128,12 @@ def terms(
     Examples
     --------
     >>> import diffrax as dfx
-    >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import diffraxtra as dfxtra
+    >>> import galax.fields as gf
 
-    >>> solver = gd.DiffEqSolver(dfx.Dopri8())
+    >>> solver = dfxtra.DiffEqSolver(dfx.Dopri8())
 
-    >>> pot = gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)
 
     >>> field.terms(solver)
     ODETerm(...)
@@ -179,7 +159,7 @@ def call(
     args: PyTree[Any] = None,
     **kwargs: Any,
 ) -> dfx.Solution:
-    """`diffraxtra.AbstractDiffEqSolver` supports `galax.dynamics.AbstractField`.
+    """`diffraxtra.AbstractDiffEqSolver` supports `galax.fields.AbstractField`.
 
     Re-dispatches to `diffraxtra.AbstractDiffEqSolver` after determining the
     terms structure.

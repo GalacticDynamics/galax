@@ -1,4 +1,4 @@
-"""Utilities for dynamics."""
+"""Utilities for field solvers."""
 
 __all__ = ("parse_time_specification",)
 
@@ -67,98 +67,98 @@ def parse_time_specification(
     Examples
     --------
     >>> import unxt as u
-    >>> import galax.dynamics.integrate as gdi
+    >>> import galax.fields as gf
 
     From a Quantity:
 
-    >>> gdi.parse_time_specification(t=u.Q([1, 2, 3], "Myr"))
+    >>> gf.parse_time_specification(t=u.Q([1, 2, 3], "Myr"))
     Q([1, 2, 3], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="galactic", t=u.Q([1, 2, 3], "Myr"))
+    >>> gf.parse_time_specification(units="galactic", t=u.Q([1, 2, 3], "Myr"))
     Q([1, 2, 3], 'Myr')
 
-    >>> gdi.parse_time_specification(units="solarsystem", t=u.Q([1, 2, 3], "Myr"))
+    >>> gf.parse_time_specification(units="solarsystem", t=u.Q([1, 2, 3], "Myr"))
     Q([1000000., 2000000., 3000000.], 'yr')
 
     From a non-Quantity array, interpreted as having the time units of the given
     unit system:
 
-    >>> gdi.parse_time_specification(units="solarsystem", t=[1, 2, 3])
+    >>> gf.parse_time_specification(units="solarsystem", t=[1, 2, 3])
     Q([1, 2, 3], 'yr')
 
-    >>> gdi.parse_time_specification(units="galactic", t=[1, 2, 3])
+    >>> gf.parse_time_specification(units="galactic", t=[1, 2, 3])
     Q([1, 2, 3], 'Myr')
 
     From the starting time, ending time, and number of steps:
 
-    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
+    >>> gf.parse_time_specification(t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
     Q([0. , 0.5, 1. ], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="solarsystem", t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
+    >>> gf.parse_time_specification(units="solarsystem", t0=u.Q(0, "Myr"), t1=u.Q(1, "Myr"), n_steps=3)
     Q([      0.,  500000., 1000000.], 'yr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
-    >>> gdi.parse_time_specification(units="solarsystem", t0=0, t1=1, n_steps=3)
+    >>> gf.parse_time_specification(units="solarsystem", t0=0, t1=1, n_steps=3)
     Q([0. , 0.5, 1. ], 'yr')
 
     From the starting time, timestep, and number of steps:
 
-    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
+    >>> gf.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
     Q([0. , 1.5, 3. ], 'Myr')
 
     In the units of a specific unit system:
 
-    >>> gdi.parse_time_specification(units="galactic", t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
+    >>> gf.parse_time_specification(units="galactic", t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), n_steps=3)
     Q([0. , 1.5, 3. ], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
-    >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, n_steps=3)
+    >>> gf.parse_time_specification(units="solarsystem", t0=0, dt=1, n_steps=3)
     Q([0. , 1.5, 3. ], 'yr')
 
     From the starting time, time step, and ending time:
 
-    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), t1=u.Q(3, "Myr"))
+    >>> gf.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q(1, "Myr"), t1=u.Q(3, "Myr"))
     Q([0, 1, 2], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
-    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=1, t1=3)
+    >>> gf.parse_time_specification(units="galactic", t0=0, dt=1, t1=3)
     Q([0, 1, 2], 'Myr')
 
-    >>> gdi.parse_time_specification(units="solarsystem", t0=0, dt=1, t1=3)
+    >>> gf.parse_time_specification(units="solarsystem", t0=0, dt=1, t1=3)
     Q([0, 1, 2], 'yr')
 
     From the starting time and an array of time steps:
 
-    >>> gdi.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q([1, 2], "Myr"))
+    >>> gf.parse_time_specification(t0=u.Q(0, "Myr"), dt=u.Q([1, 2], "Myr"))
     Q([0, 1, 3], 'Myr')
 
     The steps accumulate from ``t0``, which only shows when it is nonzero:
 
-    >>> gdi.parse_time_specification(t0=u.Q(10, "Myr"), dt=u.Q([1, 2, 3], "Myr"))
+    >>> gf.parse_time_specification(t0=u.Q(10, "Myr"), dt=u.Q([1, 2, 3], "Myr"))
     Q([10, 11, 13, 16], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> import jax.numpy as jnp
-    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=jnp.asarray([1, 2]))
+    >>> gf.parse_time_specification(units="galactic", t0=0, dt=jnp.asarray([1, 2]))
     Q([0, 1, 3], 'Myr')
 
     From non-Quantity numbers, interpreted as having the time units of the given
     unit system:
 
     >>> import jax.numpy as jnp
-    >>> gdi.parse_time_specification(units="galactic", t0=0, dt=[1, 2])
+    >>> gf.parse_time_specification(units="galactic", t0=0, dt=[1, 2])
     Q([0, 1, 3], 'Myr')
 
     """  # noqa: E501

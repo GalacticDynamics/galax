@@ -98,6 +98,49 @@ class HamiltonianField(AbstractOrbitField):
         t=Q(1000., 'Myr'), frame=SimulationFrame() )
     (2,)
 
+    The next examples integrate the field.
+    `galax.dynamics.integrate_field` (the re-export of
+    `galax.fields.integrate_field`) integrates this field, and any other field
+    that implements ``parse_inputs``. From `jax.Array` initial conditions in the
+    unit system of the field:
+
+    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    >>> field = gd.fields.HamiltonianField(pot)
+    >>> y0 = (jnp.array([8., 0, 0]), jnp.array([0, 0.22499668, 0]))  # [kpc, kpc/Myr]
+    >>> ts = jnp.linspace(0, 1_000, 100)  # [Myr]
+
+    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln.ys
+    (Array([[ 8.        ,  0.        ,  0.        ],
+            [ 7.64330621,  2.23875468,  0.        ],
+            ...
+            [-4.39816948,  5.13828441,  0.        ],
+            [-5.93659008,  2.90704886,  0.        ]], dtype=float64),
+     Array([[ 0.        ,  0.22499668,  0.        ],
+            [-0.07025128,  0.21491986,  0.        ],
+            ...
+            [-0.18986448, -0.18744046,  0.        ],
+            [-0.10991138, -0.24937802,  0.        ]], dtype=float64))
+
+    An orbit field also accepts a `galax.coordinates.PhaseSpaceCoordinate`:
+
+    >>> ts = u.Q(jnp.linspace(0, 1, 100), "Gyr")
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
+    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
+
+    >>> soln = gd.integrate_field(field, w0, ts)
+    >>> soln.ys
+    (Array([[ 8.        ,  0.        ,  0.        ],
+            [ 7.6433062 ,  2.23875464,  0.        ],
+            ...
+            [-4.3981766 ,  5.13827691,  0.        ],
+            [-5.93659409,  2.90703882,  0.        ]], dtype=float64),
+     Array([[ 0.        ,  0.22499668,  0.        ],
+            [-0.07025128,  0.21491986,  0.        ],
+            ...
+            [-0.18986424, -0.18744076,  0.        ],
+            [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
+
     The ``__call__`` is very flexible and can be called with many different
     combinations of arguments. Let's work up the type ladder:
 

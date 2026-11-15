@@ -20,7 +20,7 @@ import quaxed.numpy as jnp
 import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
+from galax.orbits import AbstractOrbitField
 
 BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
 
@@ -377,7 +377,7 @@ def integrate_orbit(
 
     """
     # Note: this is needed to prevent a circular import
-    from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
+    from galax.orbits import HamiltonianField
 
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
 

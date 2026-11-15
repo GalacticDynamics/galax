@@ -21,10 +21,10 @@ from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 import galax.potential as gp
-from .field_base import AbstractOrbitField
 from .solver import OrbitSolver
 from .variational import _prepare, _solve_augmented, tangent_terms
-from galax.dynamics._src.utils import parse_to_t_y
+from galax.orbits import AbstractOrbitField
+from galax.orbits.utils import parse_to_t_y
 
 
 def compute_lyapunov(

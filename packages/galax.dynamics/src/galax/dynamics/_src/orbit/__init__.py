@@ -2,8 +2,6 @@
 
 from .api import *
 from .base import AbstractOrbit
-from .field_base import *
-from .field_hamiltonian import *
 from .field_nbody import *
 from .interp import *
 from .lyapunov import compute_lyapunov as compute_lyapunov
@@ -11,6 +9,10 @@ from .orbit import *
 from .plot_helper import ProxyAbstractOrbit, plot_components as plot_components
 from .solver import *
 from .variational import compute_variational as compute_variational
+from galax.orbits import (
+    AbstractOrbitField as AbstractOrbitField,
+    HamiltonianField as HamiltonianField,
+)
 
 # Register by import
 # isort: split

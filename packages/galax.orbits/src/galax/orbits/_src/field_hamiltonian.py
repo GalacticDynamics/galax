@@ -11,11 +11,10 @@ import jax
 
 import unxt as u
 
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
-from galax.dynamics._src.utils import parse_to_t_y
+from .utils import parse_to_t_y
 
 
 @final
@@ -50,10 +49,11 @@ class HamiltonianField(AbstractOrbitField):
     >>> import coordinax as cx
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
+    >>> import galax.orbits as go
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
     >>> field
     HamiltonianField( potential=HernquistPotential( ... ) )
 
@@ -71,45 +71,17 @@ class HamiltonianField(AbstractOrbitField):
     >>> field.terms(solver)
     (ODETerm(...), ODETerm(...))
 
-    Just to continue the example, we can use this field to integrate the
-    equations of motion:
-
-    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
-    >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"),
-    ...     t=u.Q(0, "Gyr"))
-    >>> t1 = u.Q(1, "Gyr")
-    >>> soln = solver.solve(field, w0, t1)
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[1],
-              ys=(f64[1,2,3], f64[1,2,3]),
-              ... )
-
-    >>> w = gc.PhaseSpaceCoordinate.from_(soln, frame=w0.frame, units=pot.units)
-    >>> print(w, w.shape, sep='\n')
-    PhaseSpaceCoordinate(
-        q=<CartesianPos3D: (x, y, z) [kpc]
-            [[-5.151 -6.454 -5.795]
-             [ 4.277  4.633  1.426]]>,
-        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
-            [[ 0.225 -0.068  0.253]
-             [-0.439 -0.002 -0.146]]>,
-        t=Q(1000., 'Myr'), frame=SimulationFrame() )
-    (2,)
-
     The next examples integrate the field.
-    `galax.dynamics.integrate_field` (the re-export of
-    `galax.fields.integrate_field`) integrates this field, and any other field
+    `galax.fields.integrate_field` integrates this field, and any other field
     that implements ``parse_inputs``. From `jax.Array` initial conditions in the
     unit system of the field:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
     >>> y0 = (jnp.array([8., 0, 0]), jnp.array([0, 0.22499668, 0]))  # [kpc, kpc/Myr]
     >>> ts = jnp.linspace(0, 1_000, 100)  # [Myr]
 
-    >>> soln = gd.integrate_field(field, y0, ts)
+    >>> soln = gf.integrate_field(field, y0, ts)
     >>> soln.ys
     (Array([[ 8.        ,  0.        ,  0.        ],
             [ 7.64330621,  2.23875468,  0.        ],
@@ -128,7 +100,7 @@ class HamiltonianField(AbstractOrbitField):
     >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
     ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
 
-    >>> soln = gd.integrate_field(field, w0, ts)
+    >>> soln = gf.integrate_field(field, w0, ts)
     >>> soln.ys
     (Array([[ 8.        ,  0.        ,  0.        ],
             [ 7.6433062 ,  2.23875464,  0.        ],
@@ -145,9 +117,9 @@ class HamiltonianField(AbstractOrbitField):
     combinations of arguments. Let's work up the type ladder:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
-    `galax.dynamics.fields.HamiltonianField` can be called using many
+    `galax.orbits.HamiltonianField` can be called using many
     different combinations of arguments. Let's work up the type ladder:
 
     - `jax.Array` (assumed to be Cartesian coordinates and in the unit
@@ -281,12 +253,12 @@ class HamiltonianField(AbstractOrbitField):
     # TODO: enable full gamut of inputs
 
     @jax.jit
-    def dx_dt(self, t: Any, v_xyz: gdt.BBtParr, args: Any, /) -> gdt.BBtParr:  # noqa: ARG002
+    def dx_dt(self, t: Any, v_xyz: gt.BBtParr, args: Any, /) -> gt.BBtParr:  # noqa: ARG002
         """Call with time, position quantity arrays."""
         return v_xyz
 
     @jax.jit
-    def dv_dt(self, t: gt.BBtSz0, xyz: gdt.BBtQarr, _: Any, /) -> gdt.BtAarr:
+    def dv_dt(self, t: gt.BBtSz0, xyz: gt.BBtQarr, _: Any, /) -> gt.BtAarr:
         """Call with time, velocity quantity arrays."""
         grad = self.potential._gradient(xyz, t)  # noqa: SLF001
         return -grad  # type: ignore[no-any-return]
@@ -315,35 +287,16 @@ def terms(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.fields as gf
+    >>> import galax.orbits as go
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
     >>> solver = dfx.SemiImplicitEuler()
 
     >>> field.terms(solver)
     (ODETerm(...), ODETerm(...))
-
-    For completeness we'll integrate the EoM.
-
-    >>> dynamics_solver = gd.OrbitSolver(solver,
-    ...                                     stepsize_controller=dfx.ConstantStepSize())
-    >>> w0 = gc.PhaseSpaceCoordinate(
-    ...     q=u.Q([8., 0, 0], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"),
-    ...     t=u.Q(0, "Gyr"))
-    >>> t1 = u.Q(200, "Myr")
-
-    >>> soln = dynamics_solver.solve(field, w0, t1, dt0=0.001, max_steps=200_000)
-    >>> w = gc.PhaseSpaceCoordinate.from_(soln, units=pot.units, frame=w0.frame)
-    >>> print(w)
-    PhaseSpaceCoordinate(
-        q=<CartesianPos3D: (x, y, z) [kpc]
-            [7.091 3.504 0.   ]>,
-        p=<CartesianVel3D: (x, y, z) [kpc / Myr]
-            [-0.111  0.199  0. ]>,
-        t=Q(200., 'Myr'), frame=SimulationFrame() )
 
     """
     return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))
@@ -355,7 +308,7 @@ def terms(
 
 @AbstractOrbitField.__call__.dispatch
 @ft.partial(jax.jit)
-def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.BtPAarr:
+def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tqp, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
@@ -365,7 +318,7 @@ def call(self: HamiltonianField, tqp: Any, args: gt.OptArgs = None, /) -> gdt.Bt
 @ft.partial(jax.jit)
 def call(
     self: HamiltonianField, tq: Any, qp: Any, args: gt.OptArgs = None, /
-) -> gdt.BtPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, tq, qp, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)
@@ -375,7 +328,7 @@ def call(
 @ft.partial(jax.jit)
 def call(
     self: HamiltonianField, t: Any, q: Any, p: Any, args: gt.OptArgs = None, /
-) -> gdt.BtPAarr:
+) -> gt.BtPAarr:
     """Call with time, position, velocity quantity arrays."""
     t, (xyz, v_xyz) = parse_to_t_y(None, t, q, p, ustrip=self.units)
     return self.dx_dt(t, v_xyz, args), self.dv_dt(t, xyz, args)

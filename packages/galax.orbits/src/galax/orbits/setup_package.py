@@ -1,4 +1,4 @@
-"""`galax.fields` package setup.
+"""`galax.orbits` package setup.
 
 Copyright (c) 2023 galax maintainers. All rights reserved.
 """

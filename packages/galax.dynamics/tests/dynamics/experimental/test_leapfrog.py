@@ -228,6 +228,49 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     assert jnp.max(jnp.abs(p[-1] - W0[3:])) <= 1e-12
 
 
+@pytest.mark.parametrize("sign", [1.0, -1.0], ids=["forward", "backward"])
+def test_compute_orbit_fixed_step_dt0(sign):
+    """`compute_orbit` passes ``dt0`` on, so a constant-step solver runs through it.
+
+    It matches `OrbitSolver.solve` with the same ``dt0``. A
+    `PhaseSpaceCoordinate` starting before ``ts[0]`` (in the direction of
+    integration) takes a first leg to ``ts[0]``, here 20 steps of 0.5 Myr.
+    """
+    field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
+    solver = gd.OrbitSolver(
+        experimental.Leapfrog(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=400,
+    )
+    ts = sign * jnp.linspace(10.0, 100.0, 10)
+    dt0 = u.Q(0.5, "Myr")
+
+    def via_solve(y0, t0):
+        soln = solver.solve(
+            field, y0, t0, ts[-1], saveat=dfx.SaveAt(ts=ts), dt0=0.5, unbatch_time=True
+        )
+        return jnp.concat(soln.ys, axis=-1)
+
+    def via_compute(w0):
+        orbit = gd.compute_orbit(field, w0, u.Q(ts, "Myr"), solver=solver, dt0=dt0)
+        q = [u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"]
+        p = [u.ustrip("kpc/Myr", getattr(orbit.p, c)) for c in "xyz"]
+        return jnp.stack(q + p, axis=-1)
+
+    q0, p0 = u.Q(W0[:3], "kpc"), u.Q(W0[3:], "kpc/Myr")
+
+    # PhaseSpacePosition: w0 is at ts[0]
+    got = via_compute(gc.PhaseSpacePosition(q=q0, p=p0))
+    want = via_solve((W0[:3], W0[3:]), ts[0])
+    assert jnp.allclose(got, want, rtol=1e-12, atol=0)
+
+    # PhaseSpaceCoordinate: w0 is at t = 0, integrated to ts[0] first
+    got = via_compute(gc.PhaseSpaceCoordinate(q=q0, p=p0, t=u.Q(0.0, "Myr")))
+    leg0 = solver.solve(field, (W0[:3], W0[3:]), 0.0, ts[0], dt0=0.5, unbatch_time=True)
+    want = via_solve(leg0.ys, ts[0])
+    assert jnp.allclose(got, want, rtol=1e-12, atol=0)
+
+
 def test_experimental_integrate_orbit_fixed_step_backward():
     """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the same fix.
 

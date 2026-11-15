@@ -15,7 +15,6 @@ from jaxtyping import Array, Real
 from typing import Any, TypeAlias, final, override
 
 import equinox as eqx
-import interpax as ipx
 import jax
 import jax.tree as jtu
 from jax import lax
@@ -30,7 +29,6 @@ from unxt.quantity import AllowValue
 import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from .uniform_acceleration import UniformAcceleration
 from galax.fields import AbstractField
 
 QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
@@ -303,6 +301,12 @@ def make_mw_lmc_potential(
 ) -> gp.CompositePotential:
     """Build a MW + LMC potential.
 
+    The MW and LMC are rigid potentials whose centres follow the orbits
+    integrated from ``mw_w0`` and ``lmc_w0`` with `RigidMWandLMCField`. The
+    returned potential is in the inertial frame of ``mw_w0`` and ``lmc_w0``:
+    the MW centre moves, so the MW's reflex motion is already included and no
+    fictitious force is needed.
+
     Parameters
     ----------
     mw_pot
@@ -342,8 +346,7 @@ def make_mw_lmc_potential(
         'lmc': TranslatedPotential(
             base_potential=NFWPotential( ... ),
             translation=TimeDependentTranslationParameter( ... )
-        ),
-        'mw_acc': UniformAcceleration( ... )})
+        )})
 
     """
     # Deferred: `galax.dynamics` imports this `examples` subpackage, so a
@@ -380,10 +383,4 @@ def make_mw_lmc_potential(
         ),
     )
 
-    unif_acc = UniformAcceleration(
-        velocity_func=ipx.CubicSpline(soln.ts[::-1], soln.ys[0][1][::-1]),
-        units=units,
-        func_supports_units=False,
-    )
-
-    return gp.CompositePotential(mw=mw_moving, lmc=lmc_moving, mw_acc=unif_acc)
+    return gp.CompositePotential(mw=mw_moving, lmc=lmc_moving)

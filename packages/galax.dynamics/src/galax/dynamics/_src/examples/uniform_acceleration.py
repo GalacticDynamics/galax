@@ -13,6 +13,7 @@ from typing import final
 import equinox as eqx
 import jax
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -66,6 +67,8 @@ class UniformAcceleration(gp.AbstractSinglePotential):
         # This does not have a potential
         raise NotImplementedError
 
+    # `excluded=(0,)` skips `self`, as `vectorize_method` does for the base class.
+    @ft.partial(jnp.vectorize, excluded=(0,), signature="(3),()->(3)")
     @ft.partial(jax.jit)
     def _gradient(self, _: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /) -> gt.FloatSz3:
         # The gradient is the jacobian of the velocity function
@@ -76,6 +79,7 @@ class UniformAcceleration(gp.AbstractSinglePotential):
         _result = u.ustrip(AllowValue, self.units["acceleration"], grad)
         return _result  # type: ignore[no-any-return]
 
+    @ft.partial(jnp.vectorize, excluded=(0,), signature="(3),()->(3,3)")
     @ft.partial(jax.jit)
     def _hessian(
         self, xyz: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0 | gt.Sz0, /

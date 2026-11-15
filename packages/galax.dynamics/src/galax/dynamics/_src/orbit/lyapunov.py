@@ -6,6 +6,8 @@ This is private API.
 
 __all__ = ["compute_lyapunov"]
 
+import operator
+
 from jaxtyping import Array, Float
 from typing import Any
 
@@ -25,7 +27,6 @@ from .variational import _prepare, _solve_augmented, tangent_terms
 from galax.dynamics._src.utils import parse_to_t_y
 
 
-@eqx.filter_jit
 def compute_lyapunov(
     field: AbstractOrbitField | gp.AbstractPotential,
     w0: gc.AbstractPhaseSpaceCoordinate,
@@ -73,9 +74,9 @@ def compute_lyapunov(
     t1
         The final time. A `unxt.Quantity` is converted to the field's units.
     n_renorm
-        The number of renormalization intervals.
+        The number of renormalization intervals, an integer of at least 1.
     k
-        The number of exponents, from 1 to 6.
+        The number of exponents, an integer from 1 to 6.
     solver
         The solver. Defaults to `galax.dynamics.OrbitSolver`.
     dt0
@@ -115,12 +116,43 @@ def compute_lyapunov(
     True
 
     """
+    # Check and convert the integer arguments before tracing: under
+    # `eqx.filter_jit` an array integer would be traced, but `k` and `n_renorm`
+    # set array shapes, so they must be Python ints.
+    k, n_renorm = _as_int(k, "k"), _as_int(n_renorm, "n_renorm")
     if not 1 <= k <= 6:
         msg = f"k must be between 1 and 6, got {k}."
         raise ValueError(msg)
     if n_renorm < 1:
         msg = f"n_renorm must be at least 1, got {n_renorm}."
         raise ValueError(msg)
+    return _compute_lyapunov(
+        field, w0, t1, n_renorm=n_renorm, k=k, solver=solver, dt0=dt0
+    )
+
+
+def _as_int(value: Any, name: str, /) -> int:
+    """Return ``value`` as a Python int, or raise a clear TypeError."""
+    try:
+        return operator.index(value)
+    except TypeError as err:
+        msg = f"{name} must be an integer, got {value!r}."
+        raise TypeError(msg) from err
+
+
+@eqx.filter_jit
+def _compute_lyapunov(
+    field: AbstractOrbitField | gp.AbstractPotential,
+    w0: gc.AbstractPhaseSpaceCoordinate,
+    t1: Any,
+    /,
+    *,
+    n_renorm: int,
+    k: int,
+    solver: OrbitSolver | None,
+    dt0: Any,
+) -> tuple[Float[Array, "*batch n_renorm"], Float[Array, "*batch n_renorm k"]]:
+    """Run `compute_lyapunov` with checked integer arguments."""
     thefield, solver, units, dt0 = _prepare(field, solver, dt0)
     t1 = u.ustrip(AllowValue, units["time"], t1)
     terms = tangent_terms(thefield.terms(solver.solver))

@@ -8,6 +8,7 @@ import pytest
 
 import unxt as u
 
+import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 from ._variational_helpers import LinearDragField, make_nbody_field, make_w0
@@ -280,7 +281,7 @@ def test_dt0_accepts_a_quantity(dt0):
     assert jnp.allclose(D_q, D_float, rtol=1e-12)
 
 
-@pytest.mark.parametrize("shape", [(6,), (5, 2), (6, 2, 1)])
+@pytest.mark.parametrize("shape", [(6,), (5, 2), (6, 2, 1), (6, 0)])
 def test_dw0_must_have_six_rows(shape):
     with pytest.raises(ValueError, match=r"dw0 must have shape \(6, k\)"):
         compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), dw0=jnp.ones(shape))
@@ -289,3 +290,15 @@ def test_dw0_must_have_six_rows(shape):
 def test_nbody_field_is_rejected():
     with pytest.raises(TypeError, match="N-body fields are not supported"):
         compute_variational(make_nbody_field(), _w0(XV0), u.Q(TS, "Myr"))
+
+
+def test_dt0_quantity_uses_the_field_time_unit():
+    """In solar-system units the time unit is yr, not Myr."""
+    pot = gp.KeplerPotential(m_tot=u.Q(1.0, "Msun"), units="solarsystem")
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([1.0, 0, 0], "AU"), p=u.Q([0, 6.28, 0], "AU/yr"), t=u.Q(0, "yr")
+    )
+    ts = u.Q(jnp.linspace(0, 1, 3), "yr")
+    _, D = compute_variational(pot, w0, ts, solver=LEAPFROG, dt0=0.01)
+    _, D_q = compute_variational(pot, w0, ts, solver=LEAPFROG, dt0=u.Q(3.6525, "day"))
+    assert jnp.allclose(D_q, D, rtol=1e-12)

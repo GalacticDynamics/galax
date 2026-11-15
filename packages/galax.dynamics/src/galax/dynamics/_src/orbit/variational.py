@@ -202,7 +202,7 @@ def compute_variational(
     dw0
         The ``k`` initial deviation vectors, as the columns of a ``(6, k)``
         array in Cartesian ``(x, y, z, v_x, v_y, v_z)`` order and the field's
-        units. Defaults to the ``(6, 6)`` identity.
+        units, with ``k >= 1``. Defaults to the ``(6, 6)`` identity.
     solver
         The solver. Defaults to `galax.dynamics.OrbitSolver`. Its error control
         includes the deviations, so the returned orbit can differ slightly from
@@ -246,8 +246,8 @@ def compute_variational(
     thefield, solver, units, dt0 = _prepare(field, solver, dt0)
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))
     dws = jnp.eye(6) if dw0 is None else jnp.asarray(dw0)
-    if dws.ndim != 2 or dws.shape[0] != 6:
-        msg = f"dw0 must have shape (6, k), got {dws.shape}."
+    if dws.ndim != 2 or dws.shape[0] != 6 or dws.shape[1] < 1:
+        msg = f"dw0 must have shape (6, k) with k >= 1, got {dws.shape}."
         raise ValueError(msg)
     terms = tangent_terms(thefield.terms(solver.solver))
 

@@ -68,8 +68,9 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         v1 = v_half + h/2 * g(t1, x1)
 
     Each step reuses the previous step's end force ``g(t1, x1)``, so it costs one
-    evaluation of ``g``. Pass ``made_jump=True`` after a jump, an event or a
-    change to ``y``, so the force is evaluated afresh.
+    evaluation of ``g``. After a jump in ``jump_ts`` the force is evaluated
+    afresh. When resuming from a saved ``solver_state`` after an event or a
+    change to ``y``, pass ``made_jump=True``.
     """
 
     term_structure: ClassVar = (AbstractTerm, AbstractTerm)
@@ -105,6 +106,7 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         q0, p0 = y0
 
         # Force at (t0, q0): stored from the last step, or afresh if none.
+        # diffrax makes `made_jump` a static False unless jumps are possible.
         a0 = g.vf(t0, q0, args) if solver_state is None else solver_state
         if made_jump is not False and made_jump is not None:
             # `unvmap_any`: under vmap, only evaluate if some lane jumped.

@@ -16,7 +16,7 @@ import coordinax as cx
 import unxt as u
 
 import galax.coordinates as gc
-import galax.fields.custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .progenitor import ConstantMassProtenitor, ProgenitorMassCallable
 from galax.dynamics._src.mockstream.arm import MockStreamArm

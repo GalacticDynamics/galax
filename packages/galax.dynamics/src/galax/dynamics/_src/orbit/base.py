@@ -15,7 +15,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 
 import galax.coordinates as gc
-import galax.fields.custom_types as gt
+import galax.dynamics.custom_types as gt
 from .plot_helper import PlotOrbitDescriptor
 from galax.coordinates.utils import batched_shape, getitem, vector_batched_shape
 

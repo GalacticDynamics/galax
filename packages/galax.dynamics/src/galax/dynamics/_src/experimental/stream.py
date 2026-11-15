@@ -19,7 +19,8 @@ import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from dataclassish.converters import dataclass
 
-import galax.fields.custom_types as gt
+import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .df import AbstractKinematicDF, Fardal2015DF
 from .integrate import integrate_orbit
@@ -62,8 +63,8 @@ class StreamICs:
 # =========================================================
 
 
-ICSScanIn: TypeAlias = tuple[gt.Sz0, gt.Qarr, gt.Parr, gt.Sz0]  # t, x, v, Msat
-ICSScanOut: TypeAlias = tuple[gt.Qarr, gt.Parr, gt.Qarr, gt.Parr]  # x/v_l1, x/v_l2
+ICSScanIn: TypeAlias = tuple[gt.Sz0, gdt.Qarr, gdt.Parr, gt.Sz0]  # t, x, v, Msat
+ICSScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]  # x/v_l1, x/v_l2
 ICSScanCarry: TypeAlias = tuple[PRNGKeyArray, *ICSScanOut]
 
 
@@ -121,7 +122,7 @@ class StreamSimulator:
     def init(
         self,
         pot: gp.AbstractPotential,
-        prog_w0: gt.QParr,
+        prog_w0: gdt.QParr,
         prog_t0: gt.LikeSz0,
         /,
         release_times: gt.SzTime,
@@ -328,7 +329,7 @@ def run(
 # ---------------------------
 
 
-StreamScanOut: TypeAlias = tuple[gt.Qarr, gt.Parr, gt.Qarr, gt.Parr]
+StreamScanOut: TypeAlias = tuple[gdt.Qarr, gdt.Parr, gdt.Qarr, gdt.Parr]
 StreamCarry: TypeAlias = tuple[int, *StreamScanOut]
 
 
@@ -361,7 +362,7 @@ def run(
 
     @ft.partial(jax.jit)
     @ft.partial(jax.vmap, in_axes=((0, 0), None))  # map over stream arms
-    def integrate_orbits(xv0: gt.QParr, t0: gt.Sz0) -> gt.QParr:
+    def integrate_orbits(xv0: gdt.QParr, t0: gt.Sz0) -> gdt.QParr:
         soln: dfx.Solution = integrate_orbit(
             pot, xv0, t0, t1, dense=dense, solver=solver, solver_kwargs=solver_kwargs
         )
@@ -422,7 +423,9 @@ def run(
 
     @ft.partial(jax.jit)
     @ft.partial(jax.vmap, in_axes=((0, 0), 0))  # map over particles
-    def integrate_particle_orbit(xv0: gt.QParr, t0: gt.Sz0) -> dfx.Solution | gt.QParr:
+    def integrate_particle_orbit(
+        xv0: gdt.QParr, t0: gt.Sz0
+    ) -> dfx.Solution | gdt.QParr:
         soln = integrate_orbit(
             pot, xv0, t0, t1, solver=solver, solver_kwargs=solver_kwargs, dense=dense
         )

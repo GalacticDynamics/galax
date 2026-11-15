@@ -17,7 +17,7 @@ import unxt as u
 from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
-import galax.fields.custom_types as gt
+import galax.dynamics.custom_types as gt
 from .df import AbstractStreamDF, ProgenitorMassCallable
 from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit
 from galax.dynamics._src.legacy.integrator import Integrator

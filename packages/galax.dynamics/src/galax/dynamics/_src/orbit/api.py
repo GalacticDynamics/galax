@@ -101,5 +101,20 @@ def compute_orbit(
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([...], 'Myr'),
            frame=SimulationFrame(), interpolant=None )
 
+    A constant-step solver needs a step size, given by ``dt0``. A plain number
+    is in the field's time unit, and a `unxt.Quantity` is converted. Only its
+    size is used; the direction of integration sets its sign, so the same
+    ``dt0`` works forward and backward:
+
+    >>> import diffrax as dfx
+    >>> from galax.dynamics import experimental
+    >>> solver = gd.OrbitSolver(experimental.Leapfrog(),
+    ...                         stepsize_controller=dfx.ConstantStepSize())
+    >>> ts = u.Q(jnp.linspace(0, -1, 4), "Gyr")
+    >>> orbit = gd.compute_orbit(potential, w0, ts, solver=solver,
+    ...                          dt0=u.Q(1, "Myr"))
+    >>> orbit.t
+    Q([    0.        ,  -333.33333333,  -666.66666667, -1000.        ], 'Myr')
+
     """
     raise NotImplementedError  # pragma: no cover

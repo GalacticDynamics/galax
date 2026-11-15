@@ -35,16 +35,19 @@ def compute_orbit(
     *,
     solver: OrbitSolver | None = None,
     dense: bool = False,
+    dt0: Any = None,
 ) -> Orbit:
     # Parse inputs
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
     solver = default_solver if solver is None else solver
     units = thefield.units
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
+    # Only the size of `dt0` is used; the solver sets its sign per leg.
+    dt0 = None if dt0 is None else u.ustrip(AllowValue, units["time"], dt0)
 
     # Initial integration from `w0.t` to `ts[0]`
     # TODO: use `.init()`, `.run()` instead then can directly pass the state
-    soln0 = solver.solve(thefield, w0, ts[0], dense=False, unbatch_time=True)
+    soln0 = solver.solve(thefield, w0, ts[0], dense=False, unbatch_time=True, dt0=dt0)
 
     # Integrate from `ts[0]` to `ts[-1]`
     if ts.shape == (1,):
@@ -59,6 +62,7 @@ def compute_orbit(
             dense=dense,
             unbatch_time=True,
             vectorize_interpolation=True,
+            dt0=dt0,
         )
 
     # Return the orbit
@@ -75,12 +79,15 @@ def compute_orbit(
     *,
     solver: OrbitSolver | None = None,
     dense: bool = False,
+    dt0: Any = None,
 ) -> Orbit:
     # Parse inputs
     thefield = field if isinstance(field, HamiltonianField) else HamiltonianField(field)
     solver = OrbitSolver() if solver is None else solver
     units = thefield.units
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))  # ensure t units
+    # Only the size of `dt0` is used; the solver sets its sign per leg.
+    dt0 = None if dt0 is None else u.ustrip(AllowValue, units["time"], dt0)
 
     # Integrate from `ts[0]` to `ts[-1]`
     soln = solver.solve(
@@ -92,6 +99,7 @@ def compute_orbit(
         dense=dense,
         unbatch_time=True,
         vectorize_interpolation=True,
+        dt0=dt0,
     )
 
     # Return the orbit

@@ -23,7 +23,7 @@ from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit
 from galax.dynamics._src.legacy.integrator import Integrator
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
-from galax.dynamics._src.orbit import Orbit
+from galax.dynamics._src.orbit import HamiltonianField, Orbit
 from galax.potential import AbstractPotential
 from galax.potential.utils import cond_reverse
 
@@ -70,6 +70,28 @@ class MockStreamGenerator(eqx.Module):
             ),
         )
 
+    def _integrate_to(
+        self, w0: gt.BtSz6, t0: gt.QuSz0, t1: gt.QuSz0
+    ) -> tuple[gt.Sz6, gt.Sz6]:
+        """Integrate a leading and a trailing particle ``(2, 6)`` from t0 to t1.
+
+        Each gets its own solve, so an adaptive solver picks its steps per particle.
+        """
+        # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
+        # an init field; on `HamiltonianField` it is a property.
+        field = HamiltonianField(self.potential)  # type: ignore[call-arg]
+        # `SaveAt(t1=True)` is ~2.4x slower here on the adaptive scan path (an
+        # XLA whole-program effect), so save at the time `t1` instead.
+        saveat = jnp.asarray([t1])
+
+        def final_state(w: gt.Sz6) -> gt.Sz6:
+            out = self.stream_integrator(field, w, t0, t1, saveat=saveat)
+            w1: gt.Sz6 = out.w(units=self.units)[-1]
+            return w1
+
+        w = jax.vmap(final_state)(w0)
+        return w[0], w[1]
+
     # ==========================================================================
 
     @ft.partial(jax.jit)
@@ -100,17 +122,7 @@ class MockStreamGenerator(eqx.Module):
                 Index of the current point.
             """
             i, w0_l_i, w0_t_i = carry
-            tstep = jnp.asarray([ts[i], t_f])
-
-            def integ_ics(ics: gt.Sz6) -> gt.SzN:
-                # TODO: only return the final state
-                return evaluate_orbit(  # type: ignore[no-any-return]
-                    self.potential, ics, tstep, integrator=self.stream_integrator
-                ).w(units=self.units)[-1]
-
-            # vmap integration over leading and trailing arm
-            w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])
-            w_l, w_t = jax.vmap(integ_ics, in_axes=(0,))(w0_lt_i)
+            w_l, w_t = self._integrate_to(jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f)
             # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
             return carry_out, (w_l, w_t)
@@ -142,14 +154,7 @@ class MockStreamGenerator(eqx.Module):
         def one_pt_intg(
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
-            tstep = jnp.asarray([ts[i], t_f])
-            w_lead = evaluate_orbit(
-                self.potential, w0_l_i, tstep, integrator=self.stream_integrator
-            ).w(units=self.potential.units)[-1]
-            w_trail = evaluate_orbit(
-                self.potential, w0_t_i, tstep, integrator=self.stream_integrator
-            ).w(units=self.potential.units)[-1]
-            return w_lead, w_trail
+            return self._integrate_to(jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f)
 
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)

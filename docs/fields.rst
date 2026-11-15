@@ -10,7 +10,7 @@ position. :func:`galax.fields.integrate_field` integrates it with `diffrax
 <https://docs.kidger.site/diffrax/>`_. The design follows the ``fields.py`` of
 `streamsculptor
 <https://github.com/jnibauer/streamsculptor/blob/main/streamsculptor/fields.py>`_,
-where a field is any module with a ``term(t, coords, args)`` method.
+where a field is any class with a ``term(t, coords, args)`` method.
 
 For these examples::
 
@@ -83,7 +83,8 @@ Passing ``args``
 
 Parameters of the field go in ``args``, which can be any PyTree. It is passed as
 the third argument of ``func``, so one field covers many parameter values. This
-is the same oscillator with the squared frequency taken from a dictionary:
+is the same oscillator with the squared frequency :math:`\omega^2`, which was
+0.001 above, taken from the dictionary entry ``k``, here 0.004:
 
     >>> osc = gf.CustomField(lambda t, y, args: (y[1], -args["k"] * y[0]))
     >>> soln = gf.integrate_field(osc, y0, ts, args={"k": 0.004})
@@ -121,14 +122,25 @@ The solution is a plain array in the field's units, so ``soln.ts`` is in Myr and
     >>> u.Q(soln.ys, "kpc")[-1]
     Q([0.04978707], 'kpc')
 
-The ``units`` keyword picks another unit system. In "solarsystem" units the same
-Gyr and kpc inputs are converted to years and AU, and the decay rate is then per
-year:
+The ``units`` keyword picks another unit system. In "solarsystem" units, time is
+in years and length in AU, so the decay rate of 0.003 is now per year. Here the
+initial condition is given in km (about 1 AU) and the times in kyr, and both are
+converted to AU and years before the integration:
 
     >>> field = gf.CustomField(lambda t, y, args: -0.003 * y, units="solarsystem")
-    >>> soln = gf.integrate_field(field, u.Q([1.0], "AU"), u.Q(jnp.linspace(0, 1, 5), "yr"))
+    >>> ts = u.Q(jnp.linspace(0, 1, 5), "kyr")
+    >>> soln = gf.integrate_field(field, u.Q([1.496e8], "km"), ts)
     >>> soln.ts
-    Array([0.  , 0.25, 0.5 , 0.75, 1.  ], dtype=float64)
+    Array([   0.,  250.,  500.,  750., 1000.], dtype=float64)
+    >>> soln.ys.round(4)
+    Array([[1.    ],
+           [0.4724],
+           [0.2231],
+           [0.1054],
+           [0.0498]], dtype=float64)
+
+``soln.ts`` is in years and ``soln.ys`` in AU, and they match the Myr and kpc
+numbers above.
 
 
 Choosing the solver

@@ -16,6 +16,7 @@ from plum import dispatch
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 
 
 class AbstractField(eqx.Module):
@@ -165,7 +166,8 @@ def call(
     terms structure.
 
     A given ``dt0`` sets the size of the first step, and ``t0 -> t1`` sets its
-    direction. `diffrax.diffeqsolve` needs the sign of ``dt0`` to match
+    direction. A `unxt.Quantity` ``dt0`` is converted to the field's time
+    unit. `diffrax.diffeqsolve` needs the sign of ``dt0`` to match
     ``t1 - t0``, so without this, one fixed-step solver could not integrate both
     backward and forward, as `galax.dynamics.evaluate_orbit` does when the
     orbit's start time lies inside the requested times.
@@ -173,5 +175,6 @@ def call(
     """
     terms = field.terms(self.solver)
     if dt0 is not None:
+        dt0 = u.ustrip(AllowValue, field.units["time"], dt0)
         dt0 = jnp.where(t1 < t0, -1, 1) * jnp.abs(dt0)
     return self(terms, t0, t1, dt0, y0, args, **kwargs)

@@ -187,6 +187,26 @@ def test_fixed_step_dt0_sign_follows_direction():
     assert jnp.array_equal(got.ys[1], want.ys[1])
 
 
+@pytest.mark.parametrize("method", ["solve", "run"])
+def test_fixed_step_dt0_quantity(method):
+    """A `unxt.Quantity` ``dt0`` is converted to the field's time unit."""
+    field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
+    solver = gd.OrbitSolver(
+        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    y0 = (W0[:3], W0[3:])
+
+    def ys(dt0):
+        if method == "solve":
+            return solver.solve(field, y0, 0.0, -100.0, dt0=dt0, max_steps=101).ys
+        state = solver.init(field, y0, 0.0, None)
+        return solver.run(field, state, -100.0, None, dt0=dt0, max_steps=101).y
+
+    want, got = ys(1.0), ys(u.Q(1000, "kyr"))
+    assert jnp.array_equal(got[0], want[0])
+    assert jnp.array_equal(got[1], want[1])
+
+
 def test_evaluate_orbit_fixed_step_back_then_forward():
     """One fixed-step integrator does `evaluate_orbit`'s backward-then-forward legs.
 

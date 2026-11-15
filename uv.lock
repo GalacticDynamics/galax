@@ -1251,12 +1251,9 @@ test = [
 name = "galax-fields"
 source = { editable = "packages/galax.fields" }
 dependencies = [
-    { name = "coordinax" },
     { name = "diffrax" },
     { name = "diffraxtra" },
     { name = "equinox" },
-    { name = "galax-coordinates" },
-    { name = "galax-potential" },
     { name = "jax" },
     { name = "jaxtyping" },
     { name = "numpy" },
@@ -1278,12 +1275,9 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "diffrax", specifier = ">=0.7" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
-    { name = "galax-coordinates", editable = "packages/galax.coordinates" },
-    { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "jax", specifier = ">=0.7.2" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
     { name = "numpy", specifier = ">=2.0" },

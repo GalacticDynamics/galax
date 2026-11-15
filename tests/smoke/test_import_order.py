@@ -54,12 +54,13 @@ def test_portion_imports_alone(portion: str) -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-# `coordinates` -> `potential` -> `fields` -> `dynamics` -> `actionangle`: each
-# portion may import the ones below it, never the ones above.
+# `fields` and `coordinates` -> `potential` -> `dynamics` -> `actionangle`: each
+# portion may import the ones below it, never the ones above. `fields` imports
+# no other galax portion.
 ABOVE = {
     "coordinates": ["potential", "fields", "dynamics", "actionangle"],
     "potential": ["fields", "dynamics", "actionangle"],
-    "fields": ["dynamics", "actionangle"],
+    "fields": ["coordinates", "potential", "dynamics", "actionangle"],
     "dynamics": ["actionangle"],
 }
 

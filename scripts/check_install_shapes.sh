@@ -325,8 +325,8 @@ print("actionangle-only install OK")
 PY
 
 echo "== shape 7: \`galax.fields\` alone =="
-# Pulls coordinates and potential, which it declares, and neither
-# `galax.dynamics` nor anything from the interop layer.
+# Declares no galax dependency, so neither another portion nor anything from
+# the interop layer comes with it.
 uv run --isolated --no-project \
   --find-links "$WHEELS" \
   --with "$(echo "$WHEELS"/galax_fields-*.whl)" \
@@ -337,13 +337,13 @@ import quaxed.numpy as jnp
 
 import galax.fields as gf
 
-field = gf.CustomField(lambda t, y, args: -0.3 * y)
-soln = gf.integrate_field(field, jnp.array([1.0]), jnp.linspace(0, 10, 3))
-assert soln.ys.shape == (3, 1), soln.ys.shape
+field = gf.CustomField(lambda t, y, args: -y)
+out = field(0.0, jnp.array([1.0, 2.0]))
+assert jnp.allclose(out, jnp.array([-1.0, -2.0])), out
 
 for absent in (
-    "galax.dynamics", "galax.actionangle", "galax.interop", "gala", "galpy",
-    "matplotlib",
+    "galax.coordinates", "galax.potential", "galax.dynamics",
+    "galax.actionangle", "galax.interop", "gala", "galpy", "matplotlib",
 ):
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 

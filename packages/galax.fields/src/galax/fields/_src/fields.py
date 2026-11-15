@@ -77,7 +77,7 @@ class AbstractField(eqx.Module):
         """Return the `diffrax.AbstractTerm` `jaxtyping.PyTree` for integration."""
         raise NotImplementedError  # pragma: no cover
 
-    # TODO: consider the frame information, like in `parse_to_t_y`
+    # TODO: consider the frame information, like in `galax.dynamics`'s `parse_to_t_y`
     @dispatch.abstract
     def parse_inputs(self, *args: Any, **kwargs: Any) -> Any:
         """Parse inputs for the field.

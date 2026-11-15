@@ -16,8 +16,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
   "Typing :: Typed",
 ]
-# Three galax dependencies, all downward: this portion sits above `galax.fields`
-# and below `galax.actionangle` in the import graph. Not `galax` -- depending on
+# Three galax dependencies, all downward: this portion sits above
+# `galax.coordinates`, `galax.potential` and `galax.fields`, and below
+# `galax.actionangle` in the import graph. Not `galax` -- depending on
 # the root would recreate the very cycle this PR dissolves.
 #
 # `numpy` is imported at module scope by `_src/orbit/base.py` (and, in

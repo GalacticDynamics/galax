@@ -4,7 +4,7 @@ Fields, solvers and the integration base for
 [galax](https://github.com/GalacticDynamics/galax).
 
 This distribution contributes the `galax.fields` portion of the `galax`
-namespace package. It depends on `galax.coordinates` and `galax.potential` only.
+namespace package. It depends on no other galax portion.
 
 ```bash
 pip install galax.fields

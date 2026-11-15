@@ -346,84 +346,60 @@ def integrate_field(
     --------
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
-    >>> import galax.potential as gp
     >>> import galax.fields as gf
 
-    >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    >>> field = gf.HamiltonianField(pot)
+    Exponential decay, ``dy/dt = -k y`` with ``k = 0.003`` per Myr:
+
+    >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)
 
     - From `jax.Array`:
 
-    >>> y0 = (jnp.array([8., 0, 0]), jnp.array([0, 0.22499668, 0]))  # [kpc, kpc/Myr]
-    >>> ts = jnp.linspace(0, 1_000, 100)  # [Myr]
+    >>> y0 = jnp.array([1.0])
+    >>> ts = jnp.linspace(0, 1_000, 5)  # [Myr]
 
     >>> soln = gf.integrate_field(field, y0, ts)
     >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
+    Solution( t0=f64[], t1=f64[], ts=f64[5],
+              ys=f64[5,1],
               interpolation=None, ... )
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.64330621,  2.23875468,  0.        ],
-            ...
-            [-4.39816948,  5.13828441,  0.        ],
-            [-5.93659008,  2.90704886,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986448, -0.18744046,  0.        ],
-            [-0.10991138, -0.24937802,  0.        ]], dtype=float64))
+    >>> soln.ys.round(4)
+    Array([[1.    ],
+           [0.4724],
+           [0.2231],
+           [0.1054],
+           [0.0498]], dtype=float64)
 
     - From `unxt.Quantity`:
 
-    >>> y0 = (u.Q([8., 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
-    >>> ts = u.Q(jnp.linspace(0, 1, 100), "Gyr")
+    >>> y0 = u.Q([1.0], "kpc")
+    >>> ts = u.Q(jnp.linspace(0, 1, 5), "Gyr")
 
     >>> soln = gf.integrate_field(field, y0, ts)
+    >>> soln.ys.round(4)
+    Array([[1.    ],
+           [0.4724],
+           [0.2231],
+           [0.1054],
+           [0.0498]], dtype=float64)
+
+    The state can be any PyTree. Here is a harmonic oscillator with state
+    ``(x, v)``, where each `unxt.Quantity` leaf is converted to the field's
+    units according to its dimension:
+
+    >>> osc = gf.CustomField(lambda t, y, args: (y[1], -0.001 * y[0]))
+    >>> y0 = (u.Q(1.0, "kpc"), u.Q(0.0, "km/s"))
+
+    >>> soln = gf.integrate_field(osc, y0, ts)
     >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
+    Solution( t0=f64[], t1=f64[], ts=f64[5],
+              ys=(f64[5], f64[5]),
               interpolation=None, ... )
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.6433062 ,  2.23875464,  0.        ],
-            ...
-            [-4.3981766 ,  5.13827691,  0.        ],
-            [-5.93659409,  2.90703882,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986424, -0.18744076,  0.        ],
-            [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
+    >>> soln.ys[0].round(4)
+    Array([ 1.    , -0.0517, -0.9947,  0.1545,  0.9787], dtype=float64)
 
-    Additional input types are dependent on the `field`.
-    `galax.fields.AbstractOrbitField` can handle many more input types.
-    See that class and `galax.dynamics.orbit.OrbitSolver` for more information.
-    As a single example, here is how to use a
-    `galax.coordinates.PhaseSpaceCoordinate`:
-
-    >>> import galax.coordinates as gc
-
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8, 0, 0], "kpc"),
-    ...     p=u.Q([0, 220, 0], "km/s"), t=u.Q(0, "Gyr"))
-
-    >>> soln = gf.integrate_field(field, w0, ts)
-    >>> soln
-    Solution( t0=f64[], t1=f64[], ts=f64[100],
-              ys=(f64[100,3], f64[100,3]),
-              interpolation=None, ... )
-
-    >>> soln.ys
-    (Array([[ 8.        ,  0.        ,  0.        ],
-            [ 7.6433062 ,  2.23875464,  0.        ],
-            ...
-            [-4.3981766 ,  5.13827691,  0.        ],
-            [-5.93659409,  2.90703882,  0.        ]], dtype=float64),
-     Array([[ 0.        ,  0.22499668,  0.        ],
-            [-0.07025128,  0.21491986,  0.        ],
-            ...
-            [-0.18986424, -0.18744076,  0.        ],
-            [-0.10991102, -0.24937821,  0.        ]], dtype=float64))
+    Fields on orbits, such as `galax.dynamics.HamiltonianField`, can handle many
+    more input types. See that class and `galax.dynamics.orbit.OrbitSolver` for
+    more information.
 
     """
     # -----------------------

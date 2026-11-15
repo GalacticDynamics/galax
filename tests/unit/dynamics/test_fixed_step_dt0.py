@@ -71,12 +71,19 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     orbit = gd.evaluate_orbit(POT, W0_PSC, ts, integrator=_integrator(0.5))
     q = jnp.stack([u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"], -1)
 
-    # The first saved state is the backward leg's end: a plain backward solve.
-    back = _orbit_solver().solve(
-        HamiltonianField(POT), (W0[:3], W0[3:]), 0.0, -100.0, dt0=-0.5, max_steps=500
+    # Both legs against direct diffrax solves, which take dt0 as given: back
+    # to -100 in steps of -0.5, then forward to 0 in steps of +0.5.
+    terms = HamiltonianField(POT).terms(dfx.SemiImplicitEuler())
+    kw = {"stepsize_controller": dfx.ConstantStepSize(), "max_steps": 500}
+    back = dfx.diffeqsolve(
+        terms, dfx.SemiImplicitEuler(), 0.0, -100.0, -0.5, (W0[:3], W0[3:]), **kw
     )
-    assert jnp.allclose(q[0], back.ys[0].reshape(3), rtol=1e-12, atol=0)
-    assert jnp.all(jnp.isfinite(q))
+    y_back = (back.ys[0][-1], back.ys[1][-1])
+    fwd = dfx.diffeqsolve(
+        terms, dfx.SemiImplicitEuler(), -100.0, 0.0, 0.5, y_back, **kw
+    )
+    assert jnp.allclose(q[0], y_back[0], rtol=1e-12, atol=0)
+    assert jnp.allclose(q[-1], fwd.ys[0][-1], rtol=1e-12, atol=0)
 
 
 def test_experimental_integrate_orbit_fixed_step_backward():

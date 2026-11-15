@@ -9,7 +9,7 @@ import unxt as u
 
 import galax.dynamics as gd
 import galax.potential as gp
-from ._variational_helpers import LinearDragField, make_w0
+from ._variational_helpers import LinearDragField, make_nbody_field, make_w0
 from galax.dynamics._src.orbit.lyapunov import compute_lyapunov
 from galax.dynamics._src.orbit.variational import compute_variational
 
@@ -115,3 +115,39 @@ def test_backward_exponents_match_qr_of_stm():
 def test_zero_duration_raises():
     with pytest.raises(eqx.EquinoxRuntimeError, match="t1 must differ from w0.t"):
         compute_lyapunov(POT, make_w0(XV0, t=100.0), u.Q(100, "Myr"), n_renorm=3)
+
+
+@pytest.mark.parametrize("k", [0, 7])
+def test_k_must_be_between_one_and_six(k):
+    with pytest.raises(ValueError, match="k must be between 1 and 6"):
+        compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), n_renorm=2, k=k)
+
+
+def test_n_renorm_must_be_positive():
+    with pytest.raises(ValueError, match="n_renorm must be at least 1"):
+        compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), n_renorm=0)
+
+
+def test_nbody_field_is_rejected():
+    with pytest.raises(TypeError, match="N-body fields are not supported"):
+        compute_lyapunov(make_nbody_field(), make_w0(XV0), u.Q(100, "Myr"), n_renorm=2)
+
+
+def test_single_interval_is_allowed():
+    """``n_renorm=1`` is the smallest valid value."""
+    ts, lam = compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), n_renorm=1)
+    assert ts.shape == (1,)
+    assert lam.shape == (1, 1)
+    assert jnp.all(jnp.isfinite(lam))
+
+
+def test_dt0_accepts_a_quantity():
+    solver = gd.OrbitSolver(
+        gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    kw = {"n_renorm": 2, "k": 2, "solver": solver}
+    _, lam = compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), dt0=0.5, **kw)
+    _, lam_q = compute_lyapunov(
+        POT, make_w0(XV0), u.Q(100, "Myr"), dt0=u.Q(5e-4, "Gyr"), **kw
+    )
+    assert jnp.allclose(lam_q, lam, rtol=1e-12)

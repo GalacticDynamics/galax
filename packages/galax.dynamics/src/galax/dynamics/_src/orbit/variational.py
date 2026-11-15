@@ -28,6 +28,7 @@ import galax.coordinates as gc
 import galax.potential as gp
 from .field_base import AbstractOrbitField
 from .field_hamiltonian import HamiltonianField
+from .field_nbody import NBodyField
 from .orbit import Orbit
 from .solver import OrbitSolver
 from galax.dynamics._src.utils import parse_to_t_y
@@ -144,6 +145,30 @@ def _solve_augmented(
     return soln.ys
 
 
+def _prepare(
+    field: AbstractOrbitField | gp.AbstractPotential,
+    solver: OrbitSolver | None,
+    dt0: Any,
+) -> tuple[AbstractOrbitField, OrbitSolver, u.AbstractUnitSystem, Any]:
+    """Check and normalize the field, solver, and ``dt0`` arguments.
+
+    A potential is wrapped in a `HamiltonianField`, N-body fields are
+    rejected, and a `unxt.Quantity` ``dt0`` is converted to the field's time
+    unit.
+    """
+    if isinstance(field, NBodyField):
+        msg = "N-body fields are not supported; pass a single-particle field."
+        raise TypeError(msg)
+    thefield = (
+        field if isinstance(field, AbstractOrbitField) else HamiltonianField(field)  # type: ignore[call-arg]
+    )
+    solver = OrbitSolver() if solver is None else solver
+    units = thefield.units
+    if dt0 is not None:
+        dt0 = u.ustrip(AllowValue, units["time"], dt0)
+    return thefield, solver, units, dt0
+
+
 @eqx.filter_jit
 def compute_variational(
     field: AbstractOrbitField | gp.AbstractPotential,
@@ -153,7 +178,7 @@ def compute_variational(
     *,
     dw0: Float[Array, "6 k"] | None = None,
     solver: OrbitSolver | None = None,
-    dt0: float | None = None,
+    dt0: Any = None,
 ) -> tuple[Orbit, Float[Array, "*batch time 6 k"]]:
     r"""Integrate an orbit together with its deviation vectors.
 
@@ -180,9 +205,13 @@ def compute_variational(
         units. Defaults to the ``(6, 6)`` identity.
     solver
         The solver. Defaults to `galax.dynamics.OrbitSolver`. Its error control
-        includes the deviations.
+        includes the deviations, so the returned orbit can differ slightly from
+        `galax.dynamics.orbit.compute_orbit` at the same tolerances. A solver
+        ``event`` sees the augmented state ``((x, dX), (v, dV))``.
     dt0
-        Initial step size, needed for constant-step solvers.
+        Initial step size, needed for constant-step solvers. A plain number is
+        in the field's time unit, and a `unxt.Quantity` is converted. Only its
+        size is used; the direction of integration sets its sign.
 
     Returns
     -------
@@ -214,13 +243,12 @@ def compute_variational(
     True
 
     """
-    thefield = (
-        field if isinstance(field, AbstractOrbitField) else HamiltonianField(field)  # type: ignore[call-arg]
-    )
-    solver = OrbitSolver() if solver is None else solver
-    units = thefield.units
+    thefield, solver, units, dt0 = _prepare(field, solver, dt0)
     ts = jnp.atleast_1d(u.ustrip(AllowValue, units["time"], ts))
     dws = jnp.eye(6) if dw0 is None else jnp.asarray(dw0)
+    if dws.ndim != 2 or dws.shape[0] != 6:
+        msg = f"dw0 must have shape (6, k), got {dws.shape}."
+        raise ValueError(msg)
     terms = tangent_terms(thefield.terms(solver.solver))
 
     t0, (x0, v0) = parse_to_t_y(None, w0, ustrip=units)

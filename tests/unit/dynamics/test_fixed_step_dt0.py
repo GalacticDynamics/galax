@@ -23,9 +23,30 @@ POT = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
 W0 = jnp.array([15.0, 0.0, 10.0, 0.0, 0.17, -0.05])
 
 
-def _orbit_solver():
+W0_PSC = gc.PhaseSpaceCoordinate(
+    q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
+)
+
+
+def _orbit_solver(max_steps=4096):
     return gd.OrbitSolver(
-        dfx.SemiImplicitEuler(), stepsize_controller=dfx.ConstantStepSize()
+        dfx.SemiImplicitEuler(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=max_steps,
+    )
+
+
+def _integrator(dt0):
+    return gd.integrate.Integrator(
+        _orbit_solver(500), diffeq_kw={"dt0": dt0, "max_steps": 500}
+    )
+
+
+def _diffeq_solver(max_steps):
+    return dfxtra.DiffEqSolver(
+        dfx.SemiImplicitEuler(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        max_steps=max_steps,
     )
 
 
@@ -46,19 +67,8 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     The orbit starts at t = 0 and is saved from t = -100 to 0, so it is first
     integrated back to -100 (in steps of 0.5) and then forward again.
     """
-    integrator = gd.integrate.Integrator(
-        gd.OrbitSolver(
-            dfx.SemiImplicitEuler(),
-            stepsize_controller=dfx.ConstantStepSize(),
-            max_steps=500,
-        ),
-        diffeq_kw={"dt0": 0.5, "max_steps": 500},
-    )
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
-    )
     ts = u.Q(jnp.linspace(-100.0, 0.0, 11), "Myr")
-    orbit = gd.evaluate_orbit(POT, w0, ts, integrator=integrator)
+    orbit = gd.evaluate_orbit(POT, W0_PSC, ts, integrator=_integrator(0.5))
     q = jnp.stack([u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"], -1)
 
     # The first saved state is the backward leg's end: a plain backward solve.
@@ -71,11 +81,7 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
 
 def test_experimental_integrate_orbit_fixed_step_backward():
     """`experimental.integrate_orbit` (used by `StreamSimulator`) gets the fix."""
-    solver = dfxtra.DiffEqSolver(
-        dfx.SemiImplicitEuler(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        max_steps=200,
-    )
+    solver = _diffeq_solver(200)
     out = [
         experimental.integrate_orbit(
             POT, (W0[:3], W0[3:]), 0.0, -50.0, solver=solver,
@@ -91,11 +97,7 @@ def test_stream_simulator_fixed_step():
     """`StreamSimulator` runs with a fixed step, for either sign of dt0."""
     pot = gp.HernquistPotential(1e12, 10, units="galactic")
     qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-    solver = dfxtra.DiffEqSolver(
-        dfx.SemiImplicitEuler(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        max_steps=1000,
-    )
+    solver = _diffeq_solver(1000)
     sim = gd.experimental.stream.StreamSimulator()
     leads = []
     for dt0 in (1.0, -1.0):
@@ -112,27 +114,17 @@ def test_stream_simulator_fixed_step():
 
 def test_mockstreamgenerator_fixed_step():
     """`MockStreamGenerator` runs with fixed-step integrators, either sign of dt0."""
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
-    )
     ts = u.Q(jnp.linspace(-100.0, 0.0, 11), "Myr")
     out = []
     for dt0 in (1.0, -1.0):
-        integ = gd.integrate.Integrator(
-            gd.OrbitSolver(
-                dfx.SemiImplicitEuler(),
-                stepsize_controller=dfx.ConstantStepSize(),
-                max_steps=500,
-            ),
-            diffeq_kw={"dt0": dt0, "max_steps": 500},
-        )
+        integ = _integrator(dt0)
         gen = gd.MockStreamGenerator(
             gd.FardalStreamDF(),
             POT,
             progenitor_integrator=integ,
             stream_integrator=integ,
         )
-        stream, _ = gen.run(jr.key(0), ts, w0, u.Q(1e5, "Msun"))
+        stream, _ = gen.run(jr.key(0), ts, W0_PSC, u.Q(1e5, "Msun"))
         x = u.ustrip("kpc", stream["lead"].q.x)
         assert jnp.all(jnp.isfinite(x))
         out.append(x)

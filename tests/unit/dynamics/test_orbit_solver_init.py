@@ -26,7 +26,7 @@ def test_solve_from_batched_time_state():
 
     This uses a solver without a solver state. A solver with one (e.g. the
     default Dopri8) also needs a batched solve not to hand every particle the
-    whole batched solver state, which #1025 fixes.
+    whole batched solver state.
     """
     s = gd.OrbitSolver(
         dfx.SemiImplicitEuler(), stepsize_controller=dfx.ConstantStepSize()

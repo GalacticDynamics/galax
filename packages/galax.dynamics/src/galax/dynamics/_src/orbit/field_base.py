@@ -1,4 +1,4 @@
-"""Field base classes.
+"""Dynamics fields.
 
 This is private API.
 
@@ -11,8 +11,8 @@ from typing import Any, override
 
 from plum import dispatch
 
-from .fields import AbstractField
-from .utils import parse_to_t_y
+from galax.dynamics._src.utils import parse_to_t_y
+from galax.fields import AbstractField
 
 
 class AbstractOrbitField(AbstractField):

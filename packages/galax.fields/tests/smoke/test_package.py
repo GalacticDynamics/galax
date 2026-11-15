@@ -8,11 +8,8 @@ def test_all() -> None:
     """Test the `galax.fields` API."""
     assert set(gf.__all__) == {
         "AbstractField",
-        "AbstractOrbitField",
         "AbstractSolver",
         "CustomField",
-        "HamiltonianField",
-        "NBodyField",
         "SolveState",
         "integrate_field",
         "parse_time_specification",
@@ -23,6 +20,6 @@ def test_all() -> None:
 
 def test_utils_all() -> None:
     """Test the `galax.fields.utils` API."""
-    assert set(gfu.__all__) == {"parse_saveat", "parse_to_t_y"}
+    assert set(gfu.__all__) == {"parse_saveat"}
     for name in gfu.__all__:
         assert hasattr(gfu, name)

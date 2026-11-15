@@ -13,11 +13,11 @@ import quaxed.numpy as jnp
 from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
-import galax.fields.custom_types as gt
+import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .integrator import Integrator
-from galax.dynamics._src.orbit import Orbit
-from galax.fields import HamiltonianField
+from galax.dynamics._src.orbit import HamiltonianField, Orbit
 
 # TODO: enable setting the default integrator
 default_integrator: Integrator = Integrator()
@@ -42,7 +42,7 @@ def orbit_from_psp(w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime) -> Orbit:
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractPotential,
-    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition | gt.BtQParr | gt.BtSz6,
+    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition | gdt.BtQParr | gt.BtSz6,
     t: Any,
     /,
     *,

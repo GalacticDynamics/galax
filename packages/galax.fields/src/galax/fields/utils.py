@@ -4,6 +4,6 @@
 exported from `galax.fields` itself -- import the module explicitly.
 """
 
-__all__ = ["parse_saveat", "parse_to_t_y"]
+__all__ = ["parse_saveat"]
 
-from ._src.utils import parse_saveat, parse_to_t_y
+from ._src.utils import parse_saveat

@@ -27,13 +27,16 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
-import galax.fields.custom_types as gt
+import galax.dynamics._src.custom_types as gdt
+import galax.dynamics.custom_types as gt
+from .field_base import AbstractOrbitField
+from galax.dynamics._src.utils import parse_to_t_y
 from galax.dynamics.fields import AbstractField
-from galax.fields import AbstractOrbitField, AbstractSolver, SolveState
+from galax.fields import AbstractSolver, SolveState
 from galax.fields.custom_types import Terms
-from galax.fields.utils import parse_saveat, parse_to_t_y
+from galax.fields.utils import parse_saveat
 
-BBtQParr: TypeAlias = tuple[gt.BBtQarr, gt.BBtParr]
+BBtQParr: TypeAlias = tuple[gdt.BBtQarr, gdt.BBtParr]
 
 default_saveat = dfx.SaveAt(t1=True)
 
@@ -800,7 +803,7 @@ def run(
 def solve(
     self: OrbitSolver,
     field: AbstractOrbitField,
-    qp0: tuple[gt.BBtQarr, gt.BBtParr],
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
     /,
@@ -830,7 +833,7 @@ def solve(
 scalar_solver = OrbitSolver.solve.invoke(
     OrbitSolver,
     AbstractOrbitField,
-    tuple[gt.BBtQarr, gt.BBtParr],
+    tuple[gdt.BBtQarr, gdt.BBtParr],
     gt.LikeSz0,
     gt.LikeSz0,
 )
@@ -844,7 +847,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gt.BBtQarr, gt.BBtParr],
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.LikeSz0,
     t1: gt.LikeSz0,
     /,
@@ -862,7 +865,7 @@ def solve(
 def solve(
     self: OrbitSolver,
     field: AbstractOrbitField,
-    qp: tuple[gt.BBtQarr, gt.BBtParr],
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -880,7 +883,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Determine],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp: tuple[gt.BBtQarr, gt.BBtParr],
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -914,7 +917,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Vectorize],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp: tuple[gt.BBtQarr, gt.BBtParr],
+    qp: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -930,7 +933,7 @@ def solve(
     # Build the vectorized solver. To get the right broadcasting the Q, P need
     # to be split up, then recombined.
     @ft.partial(jnp.vectorize, signature="(3),(3),(),()->()")
-    def batched_call(q: gt.Qarr, p: gt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
     # Solve the batched problem
@@ -959,7 +962,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.VMap],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gt.BBtQarr, gt.BBtParr],
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,
@@ -984,7 +987,7 @@ def solve(
 
     # Build the vectorized solver.
     @ft.partial(jax.vmap, in_axes=(0, 0, 0, 0))
-    def batched_call(q: gt.Qarr, p: gt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
+    def batched_call(q: gdt.Qarr, p: gdt.Parr, t0: gt.Sz0, t1: gt.Sz0) -> dfx.Solution:
         return scalar_solver(self, field, (q, p), t0, t1, saveat=saveat, **kw)
 
     # Solve the batched problem
@@ -1014,7 +1017,7 @@ def solve(
     self: OrbitSolver,
     loop_strategy: type[lstrat.Scan],  # noqa: ARG001
     field: AbstractOrbitField,
-    qp0: tuple[gt.BBtQarr, gt.BBtParr],
+    qp0: tuple[gdt.BBtQarr, gdt.BBtParr],
     t0: gt.BBtLikeSz0,
     t1: gt.BBtLikeSz0,
     /,

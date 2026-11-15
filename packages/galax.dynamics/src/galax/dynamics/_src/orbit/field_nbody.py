@@ -13,7 +13,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax.fields.custom_types as gt
+import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
 
@@ -34,25 +34,21 @@ class NBodyField(AbstractOrbitField):
 
     Examples
     --------
-    >>> import diffrax as dfx
-    >>> import diffraxtra as dfxtra
     >>> import unxt as u
-    >>> import galax.potential as gp
-    >>> import galax.fields as gf
+    >>> import galax.dynamics as gd
 
     >>> q = u.Q([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Q([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
-    >>> solver = dfxtra.DiffEqSolver(
-    ...     dfx.Dopri8(), stepsize_controller=dfx.PIDController(rtol=1e-7, atol=1e-7))
+    >>> solver = gd.OrbitSolver()
 
-    >>> field = gf.NBodyField(
+    >>> field = gd.fields.NBodyField(
     ...     masses=u.Q([1, 1], "Msun"),
     ...     eps=u.Q(1e-4, "AU"),
     ...     external_potential=gp.NullPotential(units="solarsystem"))
 
-    >>> ts = u.Q([0., 2], "yr")
-    >>> soln = gf.integrate_field(field, (q, p), ts, solver=solver)
+    >>> t0, t1 = u.Q(0, "yr"), u.Q(2, "yr")
+    >>> soln = solver.solve(field, (q, p), t0, t1)
 
     >>> soln.ys[0][-1, :, :].round(4)
     Array([[ 0.799 , -0.6521,  0.    ],

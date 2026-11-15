@@ -1,4 +1,4 @@
-"""Pickling of `galax.fields` objects."""
+"""Pickling of `galax.dynamics.fields` objects."""
 
 import pickle
 
@@ -6,18 +6,18 @@ import numpy as np
 
 import unxt as u
 
-import galax.fields as gf
+import galax.dynamics as gd
 import galax.potential as gp
 
 
 def test_hamiltonian_field_roundtrip() -> None:
     """A `HamiltonianField` survives a pickle round trip."""
     pot = gp.KeplerPotential(m_tot=u.Q(1e11, "Msun"), units="galactic")
-    field = gf.HamiltonianField(pot)
+    field = gd.fields.HamiltonianField(pot)
 
     out = pickle.loads(pickle.dumps(field))
 
-    assert type(out) is gf.HamiltonianField
+    assert type(out) is gd.fields.HamiltonianField
 
     # The potential survives too: both fields give the same output.
     t = u.Q(0, "Gyr")

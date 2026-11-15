@@ -333,16 +333,13 @@ uv run --isolated --no-project \
   python - <<'PY'
 import importlib.util
 
-import unxt as u
+import quaxed.numpy as jnp
 
 import galax.fields as gf
-import galax.potential as gp
 
-pot = gp.KeplerPotential(m_tot=u.Q(1e11, "Msun"), units="galactic")
-field = gf.HamiltonianField(pot)
-dq, dp = field(u.Q(0, "Gyr"), u.Q([8.0, 0, 0], "kpc"), u.Q([0, 220, 0], "km/s"))
-assert dq.shape == (3,), dq.shape
-assert dp.shape == (3,), dp.shape
+field = gf.CustomField(lambda t, y, args: -0.3 * y)
+soln = gf.integrate_field(field, jnp.array([1.0]), jnp.linspace(0, 10, 3))
+assert soln.ys.shape == (3, 1), soln.ys.shape
 
 for absent in (
     "galax.dynamics", "galax.actionangle", "galax.interop", "gala", "galpy",

@@ -61,13 +61,8 @@ with install_import_hook("galax.dynamics"):
         MockStreamArm,
         MockStreamGenerator,
     )
-    from .orbit import Orbit, OrbitSolver, compute_orbit
-    from galax.fields import (
-        AbstractSolver,
-        SolveState,
-        integrate_field,
-        parse_time_specification,
-    )
+    from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
+    from galax.fields import SolveState, integrate_field, parse_time_specification
 
     # isort: split
     from ._src import experimental  # noqa: F401

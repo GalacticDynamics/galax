@@ -10,12 +10,10 @@ __all__ = [
 from .setup_package import install_import_hook
 
 with install_import_hook("galax.dynamics.fields"):
-    from galax.fields import (
-        AbstractField,
-        AbstractOrbitField,
-        HamiltonianField,
-        NBodyField,
-    )
+    from ._src.orbit.field_base import AbstractOrbitField
+    from ._src.orbit.field_hamiltonian import HamiltonianField
+    from ._src.orbit.field_nbody import NBodyField
+    from galax.fields import AbstractField
 
 # Cleanup
 del install_import_hook

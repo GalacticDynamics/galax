@@ -73,20 +73,15 @@ class MockStreamGenerator(eqx.Module):
     def _integrate_to(
         self, w0: gt.BtSz6, t0: gt.QuSz0, t1: gt.QuSz0
     ) -> tuple[gt.Sz6, gt.Sz6]:
-        """Integrate a leading and a trailing particle, ``(2, 6)``, from t0 to t1.
+        """Integrate a leading and a trailing particle ``(2, 6)`` from t0 to t1.
 
-        Each particle gets its own `Integrator` call (so an adaptive solver
-        picks its steps per particle, as before), saving only at ``t1``. Going
-        through `evaluate_orbit` instead adds an empty first leg (to ``t0``),
-        saves at two times and builds an `Orbit`.
+        Each gets its own solve, so an adaptive solver picks its steps per particle.
         """
         # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
         # an init field; on `HamiltonianField` it is a property.
         field = HamiltonianField(self.potential)  # type: ignore[call-arg]
-        # Save at the time ``t1`` rather than with ``SaveAt(t1=True)``: in the
-        # compiled `run` with an adaptive solver on the scan path (the CPU
-        # default), the latter is ~2.4x slower. It takes the same steps; the
-        # slowdown seems to be how XLA compiles the whole program.
+        # `SaveAt(t1=True)` is ~2.4x slower here on the adaptive scan path (an
+        # XLA whole-program effect), so save at the time `t1` instead.
         saveat = jnp.asarray([t1])
 
         def final_state(w: gt.Sz6) -> gt.Sz6:
@@ -127,9 +122,7 @@ class MockStreamGenerator(eqx.Module):
                 Index of the current point.
             """
             i, w0_l_i, w0_t_i = carry
-            # Each arm in its own solve, straight to the final state.
-            w0_lt_i = jnp.vstack([w0_l_i, w0_t_i])
-            w_l, w_t = self._integrate_to(w0_lt_i, ts[i], t_f)
+            w_l, w_t = self._integrate_to(jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f)
             # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
             return carry_out, (w_l, w_t)
@@ -161,7 +154,6 @@ class MockStreamGenerator(eqx.Module):
         def one_pt_intg(
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
-            # Each arm in its own solve, straight to the final state.
             return self._integrate_to(jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f)
 
         w0_lead = mock0_lead.w(units=self.units)

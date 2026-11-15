@@ -110,15 +110,9 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
     ) -> None:
         """Each particle is its release state integrated to the final time.
 
-        The reference integrates every particle on its own with
-        `galax.dynamics.evaluate_orbit`, from its release time to the final
-        time (which `MockStreamGenerator` bumps by 1e-3 Myr).
-
-        Both use a fixed-step `Leapfrog`, so they take the same steps on any
-        platform. Two adaptive solves would not: their accepted steps differ
-        with rounding, by an amount that varies between machines. Every leg
-        runs forward here (the stripping times start at the progenitor's time),
-        so a constant step works without a sign-aware ``dt0``.
+        The reference runs `evaluate_orbit` per particle. Both use a fixed-step
+        `Leapfrog`, so they take the same steps on any platform (two adaptive
+        solves would not).
         """
         integrator = gd.integrate.Integrator(
             gd.OrbitSolver(
@@ -143,7 +137,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
                     gd.evaluate_orbit(
                         pot,
                         w0[i],
-                        u.Q(jnp.stack([t_stripping[i].value, t_f.value]), "Myr"),
+                        jnp.stack([t_stripping[i], t_f]),
                         integrator=integrator,
                     ).w(units=pot.units)[-1]
                     for i in range(len(t_stripping))
@@ -195,7 +189,5 @@ def test_integrate_to_solves_each_particle_on_its_own():
         want = gen.stream_integrator(field, w0[i], t0, t1, saveat=jnp.asarray([t1])).w(
             units=pot.units
         )[-1]
-        # For this pair, a vmapped and a single adaptive solve differ at
-        # ~1e-12 of the coordinate scale (they aren't bitwise equal in
-        # general); one solve of both particles is off by > 7e-9.
+        # Here ~1e-12 of the scale; one solve of both particles is off by > 7e-9.
         assert jnp.max(jnp.abs(got[i] - want)) < 1e-10 * jnp.max(jnp.abs(want))

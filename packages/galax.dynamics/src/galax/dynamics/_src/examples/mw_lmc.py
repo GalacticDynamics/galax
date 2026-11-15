@@ -271,11 +271,7 @@ def __call__(
     self: RigidMWandLMCField, t: gt.QuSz0, coords: QPQP, args: gt.OptArgs = None, /
 ) -> QPQParr:
     t = u.ustrip(AllowValue, self.units["time"], t)
-    coords = jtu.map(
-        partial(u.ustrip, AllowValue, self.units["length"]),
-        coords,
-        is_leaf=u.quantity.is_any_quantity,
-    )
+    coords = _parse_y0(coords, self.units)
     return self(t, coords, args)
 
 

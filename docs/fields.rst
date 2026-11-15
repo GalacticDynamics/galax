@@ -178,11 +178,12 @@ Times from a specification
 
 :func:`galax.fields.parse_time_specification` builds ``ts`` from a start time,
 an end time and a number of times, or from other combinations that its
-docstring lists. The result is a Quantity, so it goes straight into
-:func:`~galax.fields.integrate_field`:
+docstring lists. The result is a Quantity, and when its values are floats it
+goes straight into :func:`~galax.fields.integrate_field`. Integer times break
+the integration, so the example gives the start and end times as floats:
 
     >>> ts = gf.parse_time_specification(units="galactic",
-    ...                                  t0=u.Q(0, "Myr"), t1=u.Q(500, "Myr"), n_steps=5)
+    ...                                  t0=u.Q(0.0, "Myr"), t1=u.Q(500.0, "Myr"), n_steps=5)
     >>> ts
     Q([  0., 125., 250., 375., 500.], 'Myr')
     >>> field = gf.CustomField(lambda t, y, args: -0.003 * y)

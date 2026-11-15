@@ -98,12 +98,11 @@ class HamiltonianField(AbstractOrbitField):
         t=Q(1000., 'Myr'), frame=SimulationFrame() )
     (2,)
 
-    Integrating the field
-    ---------------------
-
+    The next examples integrate the field.
     `galax.dynamics.integrate_field` (the re-export of
-    `galax.fields.integrate_field`) integrates any field. From `jax.Array`
-    initial conditions in the unit system of the field:
+    `galax.fields.integrate_field`) integrates this field, and any other field
+    that implements ``parse_inputs``. From `jax.Array` initial conditions in the
+    unit system of the field:
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> field = gd.fields.HamiltonianField(pot)

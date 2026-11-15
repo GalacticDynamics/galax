@@ -14,7 +14,7 @@ import equinox as eqx
 
 from coordinax.ops import AbstractOperator
 
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 
 
 @final

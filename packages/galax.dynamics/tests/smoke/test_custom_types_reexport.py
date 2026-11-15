@@ -1,8 +1,7 @@
-"""The dynamics custom_types modules re-export the aliases held by `galax.fields`."""
+"""`galax.dynamics.custom_types` re-exports the aliases held by `galax.fields`."""
 
 import pytest
 
-import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.fields.custom_types as ft
 
@@ -48,38 +47,7 @@ GT_NAMES = (
     "SzTime",
 )
 
-GDT_NAMES = (
-    "Aarr",
-    "BBtP",
-    "BBtParr",
-    "BBtQ",
-    "BBtQP",
-    "BBtQParr",
-    "BBtQarr",
-    "BQarr",
-    "BtAarr",
-    "BtP",
-    "BtPAarr",
-    "BtParr",
-    "BtQ",
-    "BtQP",
-    "BtQParr",
-    "BtQarr",
-    "P",
-    "PAarr",
-    "Parr",
-    "Q",
-    "QP",
-    "QParr",
-    "Qarr",
-)
-
 
 @pytest.mark.parametrize("name", GT_NAMES)
 def test_public_names_are_the_same_objects(name):
     assert getattr(gt, name) is getattr(ft, name)
-
-
-@pytest.mark.parametrize("name", GDT_NAMES)
-def test_private_names_are_the_same_objects(name):
-    assert getattr(gdt, name) is getattr(ft, name)

@@ -27,14 +27,13 @@ import unxt as u
 from dataclassish.converters import Unless
 from unxt.quantity import AllowValue
 
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 import galax.potential as gp
 from .uniform_acceleration import UniformAcceleration
 from galax.fields import AbstractField
 
-QPQParr: TypeAlias = tuple[gdt.QParr, gdt.QParr]
-QPQP: TypeAlias = tuple[gdt.QP, gdt.QP]
+QPQParr: TypeAlias = tuple[gt.QParr, gt.QParr]
+QPQP: TypeAlias = tuple[gt.QP, gt.QP]
 
 
 @ft.partial(jax.jit, static_argnames=("log10r_max", "log10r_num"))
@@ -294,8 +293,8 @@ b_coulomb_min_default = u.Q(1, "kpc")
 def make_mw_lmc_potential(
     mw_pot: gp.AbstractPotential,
     lmc_pot: gp.AbstractPotential,  # LMC potential
-    mw_w0: gdt.QP | gdt.QParr,  # MW present-day phase-space position
-    lmc_w0: gdt.QP | gdt.QParr,  # LMC present-day phase-space position
+    mw_w0: gt.QP | gt.QParr,  # MW present-day phase-space position
+    lmc_w0: gt.QP | gt.QParr,  # LMC present-day phase-space position
     sigma_func: Callable[[gt.Sz3], gt.Sz0] = _sigma_fn,
     b_coulomb_min: u.Quantity["length"] = b_coulomb_min_default,
     t_interp: u.Quantity["time"] = t_interp,

@@ -9,7 +9,7 @@ from typing import Any
 
 from plum import dispatch
 
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 
 
 @dispatch.abstract

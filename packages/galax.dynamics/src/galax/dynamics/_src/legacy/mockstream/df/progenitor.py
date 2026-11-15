@@ -9,7 +9,7 @@ import equinox as eqx
 import quaxed.numpy as jnp
 import unxt as u
 
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 
 
 @runtime_checkable

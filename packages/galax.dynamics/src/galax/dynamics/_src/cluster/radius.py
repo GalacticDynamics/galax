@@ -29,7 +29,7 @@ import unxt as u
 from unxt.quantity import AllowValue, Quantity
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 import galax.potential as gp
 from galax.dynamics._src.api import omega
 

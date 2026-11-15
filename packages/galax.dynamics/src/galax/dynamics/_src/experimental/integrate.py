@@ -17,12 +17,11 @@ from plum import dispatch
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 import galax.potential as gp
 from galax.fields import AbstractOrbitField, HamiltonianField
 
-BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
+BQParr: TypeAlias = tuple[Real[gt.Qarr, "B"], Real[gt.Parr, "B"]]
 
 default_solver = dfxtra.DiffEqSolver(
     solver=dfx.Dopri8(scan_kind="bounded"),
@@ -301,7 +300,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     (
         type[lstrat.AbstractLoopStrategy],
         gp.AbstractPotential | AbstractOrbitField,
-        gdt.QParr,
+        gt.QParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
     ),
@@ -321,7 +320,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     pot: gp.AbstractPotential | AbstractOrbitField,
-    qp0: gdt.QParr,
+    qp0: gt.QParr,
     /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,

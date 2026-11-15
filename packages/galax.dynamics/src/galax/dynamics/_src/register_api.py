@@ -16,7 +16,7 @@ import quaxed.numpy as jnp
 from unxt.quantity import Quantity
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 from . import api
 
 # ===================================================================

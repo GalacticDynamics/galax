@@ -10,7 +10,7 @@ import coordinax as cx
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 from .base import AbstractOrbit
 
 

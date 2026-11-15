@@ -15,7 +15,7 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 import galax.potential as gp
 from .api import L1L2LagrangePoints
 from .radius import tidal_radius_king1962

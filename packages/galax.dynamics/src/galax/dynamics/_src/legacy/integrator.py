@@ -18,8 +18,7 @@ from unxt.quantity import AbstractQuantity, Quantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.fields.custom_types as gt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
 from galax.dynamics._src.orbit import OrbitSolver, PhaseSpaceInterpolation
 from galax.dynamics.fields import AbstractOrbitField
@@ -180,8 +179,8 @@ class Integrator(eqx.Module):
     def _call_(
         self: "Integrator",
         field: AbstractOrbitField,
-        q0: gdt.BtQ,
-        p0: gdt.BtP,
+        q0: gt.BtQ,
+        p0: gt.BtP,
         t0: gt.QuSz0,
         t1: gt.QuSz0,
         /,
@@ -271,7 +270,7 @@ class Integrator(eqx.Module):
 def call(
     self: Integrator,
     field: AbstractOrbitField,
-    qp0: gdt.BtQP | gdt.BtQParr | gt.BtSz6,
+    qp0: gt.BtQP | gt.BtQParr | gt.BtSz6,
     t0: Time,
     t1: Time,
     /,
@@ -451,7 +450,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractOrbitField,
-    y0: gdt.BBtQP | gdt.BBtQParr | gt.BBtSz6,
+    y0: gt.BBtQP | gt.BBtQParr | gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,

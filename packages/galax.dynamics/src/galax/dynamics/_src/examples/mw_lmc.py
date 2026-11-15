@@ -110,8 +110,8 @@ class RigidMWandLMCField(AbstractField):
     lmc_pot
         LMC Potential.
     sigma_func
-        Velocity dispersion function of the MW at the LMC position. Maps
-        (Array[float, (3)]) -> Array[float, ()].
+        Velocity dispersion of the MW at the LMC's distance from the MW
+        center. Maps (Array[float, ()]) -> Array[float, ()].
     b_coulomb_min
         Minimum impact parameter for Coulomb logarithm.
 
@@ -124,7 +124,7 @@ class RigidMWandLMCField(AbstractField):
     >>> mw_pot = gp.MilkyWayPotential(units="galactic")
     >>> lmc_pot = gp.NFWPotential(m=1e11, r_s=5, units="galactic")
 
-    >>> def sigma_fn(xyz):
+    >>> def sigma_fn(r):
     ...     return u.Q(130, "km/s").ustrip("kpc/Myr")
 
     >>> b_coulomb_min=u.Q(1, "kpc")
@@ -150,7 +150,7 @@ class RigidMWandLMCField(AbstractField):
     lmc_pot: gp.AbstractPotential
     """LMC Potential."""
 
-    sigma_func: Callable[[gt.Sz3], gt.Sz0] = eqx.field(
+    sigma_func: Callable[[gt.Sz0], gt.Sz0] = eqx.field(
         converter=Unless(eqx.Partial, eqx.Partial)
     )
     """Velocity dispersion function of the MW at the LMC position."""
@@ -246,7 +246,11 @@ def __call__(
     # (an approximation that best matches the results of N-body simulations)
     sigma = self.sigma_func(dist)  # velocity dispersion of MW at LMC position
     b_min = self.b_coulomb_min.ustrip(self.units["length"])
-    couLog = jnp.maximum(0.0, jnp.sqrt(jnp.log(dist) - jnp.log(b_min)))
+    # sqrt(max(0, log(dist / b_min))). The inner `where` keeps the sqrt and its
+    # gradient finite where the Coulomb log is clamped to zero.
+    log_ratio = jnp.log(dist / b_min)
+    outside = log_ratio > 0
+    couLog = jnp.where(outside, jnp.sqrt(jnp.where(outside, log_ratio, 1.0)), 0.0)
     X = vmag / (sigma * lax.sqrt(2.0))
     G = self.mw_pot.constants["G"].value
     drag = -(  # dynamical friction force
@@ -278,10 +282,10 @@ def __call__(
 # ============================================================================
 
 
-def _sigma_fn(_: gt.Sz3, /) -> gt.Sz0:
-    """Velocity dispersion function of the MW at the LMC position.
+def _sigma_fn(_: gt.Sz0, /) -> gt.Sz0:
+    """Velocity dispersion of the MW at the LMC's distance from the MW center.
 
-    Maps (Array[float, (3)]) -> Array[float, ()].
+    Maps (Array[float, ()]) -> Array[float, ()].
 
     """
     return u.Q(130, "km/s").ustrip("kpc/Myr")  # type: ignore[no-any-return]
@@ -296,7 +300,7 @@ def make_mw_lmc_potential(
     lmc_pot: gp.AbstractPotential,  # LMC potential
     mw_w0: gdt.QP | gdt.QParr,  # MW present-day phase-space position
     lmc_w0: gdt.QP | gdt.QParr,  # LMC present-day phase-space position
-    sigma_func: Callable[[gt.Sz3], gt.Sz0] = _sigma_fn,
+    sigma_func: Callable[[gt.Sz0], gt.Sz0] = _sigma_fn,
     b_coulomb_min: u.Quantity["length"] = b_coulomb_min_default,
     t_interp: u.Quantity["time"] = t_interp,
     solver_kwargs: dict[str, Any] | None = None,
@@ -314,14 +318,14 @@ def make_mw_lmc_potential(
     lmc_w0
         LMC present-day phase-space position.
     sigma_func
-        Velocity dispersion function of the MW at the LMC position.
-        Maps (Array[float, (3)]) -> Array[float, ()].
+        Velocity dispersion of the MW at the LMC's distance from the MW
+        center. Maps (Array[float, ()]) -> Array[float, ()].
     b_coulomb_min
         Minimum impact parameter for Coulomb logarithm.
 
     Examples
     --------
-    >>> def sigma_fn(xyz):
+    >>> def sigma_fn(r):
     ...     return u.Q(130, "km/s").ustrip("kpc/Myr")
 
     >>> mw_pot = gp.MilkyWayPotential(units="galactic")

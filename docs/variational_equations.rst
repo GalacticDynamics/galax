@@ -71,9 +71,9 @@ star started 0.01 kpc further out in :math:`x` is displaced at 500 Myr by
 The matrix is relative to ``w0`` at its own time ``w0.t``, even when the output
 times start later. Integrating backward in time works the same way.
 
-The step-size control covers the deviations as well as the orbit, so it takes
-more steps than :func:`~galax.dynamics.orbit.compute_orbit` and the returned
-orbit can differ from it slightly at the same tolerances. On a chaotic orbit
+The step-size control covers the deviations as well as the orbit, so it picks
+different steps than :func:`~galax.dynamics.orbit.compute_orbit`, and the
+returned orbit can differ from it slightly at the same tolerances. On a chaotic orbit
 :math:`M` grows exponentially, and over a long enough time it overflows. With
 an adaptive solver that shows up as diffrax's "maximum number of solver steps"
 error, which a larger ``max_steps`` does not fix. A constant-step solver

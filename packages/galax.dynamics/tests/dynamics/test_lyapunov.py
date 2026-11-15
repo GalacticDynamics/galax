@@ -139,3 +139,15 @@ def test_single_interval_is_allowed():
     assert ts.shape == (1,)
     assert lam.shape == (1, 1)
     assert jnp.all(jnp.isfinite(lam))
+
+
+def test_dt0_accepts_a_quantity():
+    solver = gd.OrbitSolver(
+        gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    kw = {"n_renorm": 2, "k": 2, "solver": solver}
+    _, lam = compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), dt0=0.5, **kw)
+    _, lam_q = compute_lyapunov(
+        POT, make_w0(XV0), u.Q(100, "Myr"), dt0=u.Q(5e-4, "Gyr"), **kw
+    )
+    assert jnp.allclose(lam_q, lam, rtol=1e-12)

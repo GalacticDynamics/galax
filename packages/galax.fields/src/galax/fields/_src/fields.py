@@ -170,8 +170,13 @@ def call(
     backward and forward, as `galax.dynamics.evaluate_orbit` does when the
     orbit's start time lies inside the requested times.
 
+    A `unxt.Quantity` ``dt0`` is converted to the field's time unit; a plain
+    number is taken to be in that unit already.
+
     """
     terms = field.terms(self.solver)
     if dt0 is not None:
+        if isinstance(dt0, u.AbstractQuantity):
+            dt0 = u.ustrip(field.units["time"], dt0)
         dt0 = jnp.where(t1 < t0, -1, 1) * jnp.abs(dt0)
     return self(terms, t0, t1, dt0, y0, args, **kwargs)

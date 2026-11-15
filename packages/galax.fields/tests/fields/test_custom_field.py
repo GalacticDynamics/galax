@@ -81,3 +81,21 @@ def test_diffeqsolver_accepts_custom_field() -> None:
     soln = solver(field, t0=0.0, t1=1.0, dt0=None, y0=jnp.array([1.0]))
     assert isinstance(soln, dfx.Solution)
     assert jnp.allclose(soln.ys[-1, 0], jnp.exp(-K), rtol=1e-6)
+
+
+def test_diffeqsolver_dt0_quantity_or_number() -> None:
+    """A Quantity ``dt0`` is converted; a number is in the field's time unit."""
+    solver = dfxtra.DiffEqSolver(
+        dfx.Euler(), stepsize_controller=dfx.ConstantStepSize()
+    )
+    y0 = jnp.array([1.0])
+
+    field = gf.CustomField(decay)  # galactic: Myr
+    want = solver(field, t0=0.0, t1=1.0, dt0=0.1, y0=y0).ys
+    got = solver(field, t0=0.0, t1=1.0, dt0=u.Q(100, "kyr"), y0=y0).ys
+    assert jnp.array_equal(got, want)
+
+    # A field without a time unit still takes a plain-number dt0.
+    field = gf.CustomField(decay, units="dimensionless")
+    got = solver(field, t0=0.0, t1=1.0, dt0=0.1, y0=y0).ys
+    assert jnp.array_equal(got, want)

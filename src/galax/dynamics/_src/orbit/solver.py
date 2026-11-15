@@ -213,6 +213,12 @@ class OrbitSolver(AbstractSolver):
         >>> solver.init(field, (q0, p0), t0, None)
         SolveState( t=weak_f64[], y=(f64[2,3], f64[2,3]), ... )
 
+        A batch of start times gives each particle its own start time (here two
+        particles, at 0 and 10 Myr):
+
+        >>> solver.init(field, (q0, p0), u.Q([0.0, 10.0], "Myr"), None)
+        SolveState( t=f64[2], y=(f64[2,3], f64[2,3]), ... )
+
         - From a `coordinax.vecs.KinematicSpace`:
 
         >>> space = cx.KinematicSpace(length=q0, speed=p0)
@@ -663,6 +669,12 @@ def init(
     """Initialize from terms, unit/array tuple, and time."""
     # Parse the inputs to jax arrays
     t0, y0 = parse_to_t_y(None, t0, qp, ustrip=field.units)  # TODO: frame
+    # Batched start times: one per particle, so broadcast the times and the
+    # particles to a common batch (GalacticDynamics/galax#1027).
+    if jnp.ndim(t0) > 0:
+        batch = jnp.broadcast_shapes(jnp.shape(t0), *(x.shape[:-1] for x in y0))
+        t0 = jnp.broadcast_to(t0, batch)
+        y0 = tuple(jnp.broadcast_to(x, (*batch, 3)) for x in y0)
     # Initialize the state
     return self._init_impl(field, t0, y0, args, field.units)
 

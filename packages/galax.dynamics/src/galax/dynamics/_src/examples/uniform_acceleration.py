@@ -32,7 +32,9 @@ class UniformAcceleration(gp.AbstractSinglePotential):
     velocity_fn
         A function that takes the scalar time and returns the Cartesian velocity
         3-vector at that time. The derivative of this function is the
-        acceleration of the frame.
+        acceleration of the frame. It must be a pytree that passes through
+        `jax.jit`, e.g. an ``interpax`` spline or a plain function wrapped in
+        `jax.tree_util.Partial`.
     func_supports_units
         Whether the velocity function supports units.
         It's safer to have the velocity function support units, but it's not
@@ -71,13 +73,18 @@ class UniformAcceleration(gp.AbstractSinglePotential):
     @ft.partial(jnp.vectorize, excluded=(0,), signature="(3),()->(3)")
     @ft.partial(jax.jit)
     def _gradient(self, _: gt.FloatQuSz3 | gt.FloatSz3, t: gt.QuSz0, /) -> gt.FloatSz3:
-        # The gradient is the jacobian of the velocity function
-        if not self.func_supports_units:
-            t = u.ustrip(AllowValue, self.units["time"], t)
-
-        grad = jax.jacfwd(self.velocity_func)(t)
-        _result = u.ustrip(AllowValue, self.units["acceleration"], grad)
-        return _result  # type: ignore[no-any-return]
+        # The gradient is the jacobian of the velocity function. `jax.jacfwd`
+        # can't differentiate through a Quantity, so a unit-aware function is
+        # wrapped to take and return plain values in `self.units`.
+        t = u.ustrip(AllowValue, self.units["time"], t)
+        vel_fn = self.velocity_func
+        if self.func_supports_units:
+            vel_fn = lambda t: u.ustrip(
+                AllowValue,
+                self.units["speed"],
+                self.velocity_func(u.Q(t, self.units["time"])),
+            )
+        return jax.jacfwd(vel_fn)(t)  # type: ignore[no-any-return]
 
     @ft.partial(jnp.vectorize, excluded=(0,), signature="(3),()->(3,3)")
     @ft.partial(jax.jit)

@@ -11,6 +11,8 @@ from collections.abc import Callable
 from jaxtyping import ArrayLike, Float, PyTree
 from typing import Any, ClassVar, TypeAlias
 
+import equinox.internal as eqxi
+import jax
 from diffrax import (
     RESULTS,
     AbstractSolver,
@@ -34,7 +36,7 @@ DenseInfo: TypeAlias = Any
 RealScalarLike: TypeAlias = Any
 
 _ErrorEstimate: TypeAlias = None
-_SolverState: TypeAlias = None
+_SolverState: TypeAlias = VF | None  # the force g(t0, q0) for the next step
 
 Ya: TypeAlias = PyTree[Float[ArrayLike, "?*y"], " Y"]
 Yb: TypeAlias = PyTree[Float[ArrayLike, "?*y"], " Y"]
@@ -64,6 +66,11 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         v_half = v0 + h/2 * g(t0, x0)
         x1 = x0 + h * f(t0, v_half)
         v1 = v_half + h/2 * g(t1, x1)
+
+    Each step reuses the previous step's end force ``g(t1, x1)``, so it costs one
+    evaluation of ``g``. After a jump in ``jump_ts`` the force is evaluated
+    afresh. When resuming from a saved ``solver_state`` after an event or a
+    change to ``y``, pass ``made_jump=True``.
     """
 
     term_structure: ClassVar = (AbstractTerm, AbstractTerm)
@@ -82,7 +89,8 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         y0: tuple[Ya, Yb],
         args: Args,
     ) -> _SolverState:
-        return None
+        _, g = terms
+        return g.vf(t0, y0[0], args)
 
     def step(
         self,
@@ -94,23 +102,32 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         solver_state: _SolverState,
         made_jump: BoolScalarLike,
     ) -> tuple[tuple[Ya, Yb], _ErrorEstimate, DenseInfo, _SolverState, RESULTS]:
-        del solver_state, made_jump
-
         f, g = terms
         q0, p0 = y0
+
+        # Force at (t0, q0): stored from the last step, or afresh if none.
+        # diffrax makes `made_jump` a static False unless jumps are possible.
+        a0 = g.vf(t0, q0, args) if solver_state is None else solver_state
+        if made_jump is not False and made_jump is not None:
+            # `unvmap_any`: under vmap, only evaluate if some lane jumped.
+            a0 = jax.lax.cond(
+                eqxi.unvmap_any(made_jump), lambda: g.vf(t0, q0, args), lambda: a0
+            )
+
         # Use the terms' control, not ``t1 - t0``: for ``t1 < t0`` diffrax
         # flips time and wraps the terms, and only ``contr`` carries the sign
         # back (GalacticDynamics/galax#963).
         cf, cg = f.contr(t0, t1), g.contr(t0, t1)
         half_cg = (0.5 * cg**ω).ω
 
-        v_half = (p0**ω + g.vf_prod(t0, q0, args, half_cg) ** ω).ω
+        v_half = (p0**ω + g.prod(a0, half_cg) ** ω).ω
         q1 = (q0**ω + f.vf_prod(t0, v_half, args, cf) ** ω).ω
-        p1 = (v_half**ω + g.vf_prod(t1, q1, args, half_cg) ** ω).ω
+        a1 = g.vf(t1, q1, args)
+        p1 = (v_half**ω + g.prod(a1, half_cg) ** ω).ω
 
         y1 = (q1, p1)
         dense_info = {"y0": y0, "y1": y1}
-        return y1, None, dense_info, None, RESULTS.successful
+        return y1, None, dense_info, a1, RESULTS.successful
 
     def func(
         self,

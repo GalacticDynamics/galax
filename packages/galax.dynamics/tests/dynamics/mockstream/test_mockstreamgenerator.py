@@ -129,7 +129,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
         prog_orbit = gd.evaluate_orbit(pot, prog_w0, t_stripping, integrator=integrator)
         ics = df.sample(rng, pot, prog_orbit, prog_mass)
-        t_f = t_stripping[-1] + u.Q(1e-3, "Myr")
+        t_f = t_stripping[-1] + u.Q(1e-3, t_stripping.unit)
         for arm in ("lead", "trail"):
             w0 = ics[arm].w(units=pot.units)
             want = jnp.stack(

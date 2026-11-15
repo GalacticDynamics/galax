@@ -10,6 +10,7 @@ def test_all() -> None:
         "AbstractField",
         "AbstractOrbitField",
         "AbstractSolver",
+        "CustomField",
         "HamiltonianField",
         "NBodyField",
         "SolveState",

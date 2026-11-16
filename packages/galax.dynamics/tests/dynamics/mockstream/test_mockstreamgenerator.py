@@ -182,14 +182,14 @@ class TestFardalMockStreamGenerator(MockStreamGeneratorBase_Test):
         return gd.FardalStreamDF()
 
 
+@pytest.mark.filterwarnings('ignore:.*"no progenitor" variant')
 class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
     """Test the MockStreamGenerator class with ChenStreamDF."""
 
     @pytest.fixture
     def df(self) -> gd.AbstractStreamDF:
         """Mock stream DF."""
-        with pytest.warns(RuntimeWarning):
-            return gd.ChenStreamDF()
+        return gd.ChenStreamDF()
 
 
 def test_integrate_to_solves_each_particle_on_its_own():

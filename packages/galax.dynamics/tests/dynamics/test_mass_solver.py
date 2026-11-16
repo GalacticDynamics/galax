@@ -123,3 +123,19 @@ def test_baumgardt_reads_inputs_in_its_own_units():
 
     # The same instant, 500 Myr, in each field's time unit. The rate is per yr.
     assert jnp.allclose(ss(5e8, 1e4, params), gal(500.0, 1e4, params) / 1e6)
+
+
+def test_run_and_solve_accept_args_none():
+    """``args=None`` still works now that the solver adds the units to it."""
+    solver = gdc.MassSolver(
+        dfx.Euler(), stepsize_controller=dfx.ConstantStepSize(), event=None
+    )
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
+    M0, t0, t1 = u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1.0, "Myr")
+
+    state = solver.init(field, M0, t0, None)
+    state = solver.run(field, state, t1, None, dt0=u.Q(0.1, "Myr"))
+    soln = solver.solve(field, M0, t0, t1, dt0=u.Q(0.1, "Myr"), args=None)
+
+    assert jnp.allclose(state.y, 1e4 * 0.99**10)
+    assert jnp.allclose(soln.ys, 1e4 * 0.99**10)

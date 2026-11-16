@@ -161,7 +161,8 @@ def run(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
     solver_kw.setdefault("dt0", None)
-    args = {**args, "units": field.units}  # the event reads the mass in these
+    # The event reads the mass in ``args["units"]``: give it the field's units.
+    args = {**(args or {}), "units": field.units}
     soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
 
     return SolveState(
@@ -207,7 +208,7 @@ def solve(
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
     # The event reads the mass in ``args["units"]``. The mass is solved in the
     # field's units, so those win over any the caller passed.
-    args = {**solver_kw.pop("args", {}), "units": units}
+    args = {**(solver_kw.pop("args", None) or {}), "units": units}
     soln = self(
         field_,
         t0=u.ustrip(AllowValue, units["time"], t0),

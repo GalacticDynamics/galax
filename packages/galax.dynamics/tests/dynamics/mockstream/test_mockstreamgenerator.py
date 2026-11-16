@@ -98,6 +98,29 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         assert allfinite(mock.p)
         assert jnp.all(jnp.isfinite(mock.t))
 
+    def test_run_independent_of_time_unit(
+        self,
+        mockgen: gd.MockStreamGenerator,
+        t_stripping: gt.QuSzTime,
+        prog_w0: gc.PhaseSpaceCoordinate,
+        prog_mass: gt.QuSz0,
+        rng: PRNGKeyArray,
+        vmapped: bool,
+    ) -> None:
+        """The same stripping times in Myr and in Gyr give the same stream.
+
+        The bump on the final time was `1e-3` in the unit of `ts`, which is
+        1 Myr for `Gyr` and 1e-3 Myr for `Myr`.
+        """
+        t_gyr = t_stripping.uconvert("Gyr")
+        mock_myr, _ = mockgen.run(rng, t_stripping, prog_w0, prog_mass, vmapped=vmapped)
+        mock_gyr, _ = mockgen.run(rng, t_gyr, prog_w0, prog_mass, vmapped=vmapped)
+
+        w_myr = mock_myr.w(units="galactic")
+        w_gyr = mock_gyr.w(units="galactic")
+        # The unit bug moved positions by ~0.2 kpc; this is round-off.
+        assert jnp.max(jnp.abs(w_gyr - w_myr)) < 1e-6
+
     def test_particles_match_independent_orbits(
         self,
         df: gd.AbstractStreamDF,
@@ -129,7 +152,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
 
         prog_orbit = gd.evaluate_orbit(pot, prog_w0, t_stripping, integrator=integrator)
         ics = df.sample(rng, pot, prog_orbit, prog_mass)
-        t_f = t_stripping[-1] + u.Q(1e-3, t_stripping.unit)
+        t_f = t_stripping[-1] + u.Q(1e-3, "Myr")
         for arm in ("lead", "trail"):
             w0 = ics[arm].w(units=pot.units)
             want = jnp.stack(

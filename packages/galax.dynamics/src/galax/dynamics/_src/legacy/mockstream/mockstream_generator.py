@@ -128,14 +128,16 @@ class MockStreamGenerator(eqx.Module):
         # steps are its linear dense output, O(dt^2) off its own orbit (far
         # below the particles' own step error); align knots with steps if needed.
         n = max(KNOTS_PER_RELEASE * len(ts), MIN_KNOTS)
-        tk = jnp.linspace(ts[0], ts[-1], n)
+        # In the default float type: float32 `ts` with x64 on still gets float64
+        # knot times, and a float64 solve below.
+        tk = jnp.linspace(ts[0], ts[-1], n, dtype=jax.dtypes.canonicalize_dtype(float))
         # Dense output evaluated at the knots: `SaveAt(ts=tk)` would make
         # diffrax trace one op per knot (its t0 == t1 branch), and XLA's CPU
         # compile of that runs for minutes to hours.
         orbit = evaluate_orbit(
             self.potential,
             w0,
-            jnp.stack([ts[0], ts[-1]]),
+            jnp.stack([tk[0], tk[-1]]),
             integrator=self.progenitor_integrator,
             dense=True,
         )

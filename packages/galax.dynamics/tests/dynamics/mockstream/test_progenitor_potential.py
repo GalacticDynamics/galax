@@ -259,29 +259,55 @@ def test_matches_gala_progenitor(dfname: str, progname: str) -> None:
 # ============================================================================
 
 
-@pytest.mark.parametrize("dtype", ["float32", "float64"])
-def test_progenitor_follows_its_orbit(dtype: str) -> None:
+# (x64, dtype of ts, max error in kpc)
+FOLLOWS_CASES = {
+    "float64": (True, "float64", 1e-8),
+    "float32-ts": (True, "float32", 1e-8),
+    "float32": (False, "float32", 1e-3),
+}
+
+
+# x64 off mid-process: galax's constants were made in float64 at import (a
+# float32 user starts with x64 off and never sees this).
+@pytest.mark.filterwarnings("ignore:Explicitly requested dtype float64")
+@pytest.mark.parametrize("case", list(FOLLOWS_CASES))
+def test_progenitor_follows_its_orbit(case: str) -> None:
     """The progenitor the particles see sits on the progenitor's orbit.
 
     Checked at every release time, with the path called on all of them at
-    once. With float32 release times the knot spacing must come from the
-    whole span: ``tk[1] - tk[0]`` is off by up to half an ulp of |ts[0]|,
-    which over 2**14 knots put the progenitor up to 62 pc off its orbit here.
+    once. ``float32-ts``: float32 release times with x64 on still get float64
+    knot times. ``float32``: x64 off, as for a float32 user. There the knot
+    spacing must come from the whole span, since ``tk[1] - tk[0]`` is off by
+    up to half an ulp of |ts[0]|, which over 2**14 knots adds up to tens of pc.
+    The 1e-3 kpc bound is float32 itself: the release times are only good to
+    ~2e-4 Myr there. Leapfrog in float32, since an adaptive solver can't reach
+    its tolerance.
     """
-    ts = u.Q(jnp.linspace(-3000.0, 0.0, 200, dtype=dtype), "Myr")
-    integ = adaptive(1e-12)
-    gen = gd.MockStreamGenerator(
-        gd.ChenStreamDF(), HOST,
-        progenitor_potential=PROG_POTS["kepler"](u.Q(1e5, "Msun")),
-        progenitor_integrator=integ,
-    )  # fmt: skip
-    pot = gen._stream_potential(PROG_W0, ts)
-    got = np.asarray(pot["progenitor"].translation(ts, ustrip="kpc"))
-    orbit = gd.evaluate_orbit(HOST, PROG_W0, ts, integrator=integ)
-    want = np.asarray(orbit.w(units=USYS))[:, :3]
+    x64, dtype, tol = FOLLOWS_CASES[case]
+    with jax.enable_x64(x64):
+        host = gp.NFWPotential(m=1e12, r_s=15.0, units=USYS)
+        w0 = gc.PhaseSpaceCoordinate(
+            q=u.Q([30.0, 10, 20], "kpc"),
+            p=u.Q([10.0, -150, -20], "km/s"),
+            t=u.Q(0.0, "Myr"),
+        )
+        ts = u.Q(jnp.linspace(-3000.0, 0.0, 200, dtype=dtype), "Myr")
+        integ = adaptive(1e-12) if x64 else leapfrog(0.5, 3000.0)
+        gen = gd.MockStreamGenerator(
+            gd.ChenStreamDF(), host,
+            progenitor_potential=gp.KeplerPotential(
+                m_tot=u.Q(1e5, "Msun"), units=USYS
+            ),
+            progenitor_integrator=integ,
+        )  # fmt: skip
+        pot = gen._stream_potential(w0, ts)
+        got = np.asarray(pot["progenitor"].translation(ts, ustrip="kpc"))
+        # The reference at the same instants, solved in the default float type.
+        t_ref = jnp.asarray(ts.value, dtype=jax.dtypes.canonicalize_dtype(float))
+        orbit = gd.evaluate_orbit(host, w0, u.Q(t_ref, "Myr"), integrator=integ)
+        want = np.asarray(orbit.w(units=USYS))[:, :3]
     err = np.linalg.norm(got - want, axis=1)
-    # float32: the release times themselves are only good to ~1e-4 Myr.
-    assert err.max() <= (1e-3 if dtype == "float32" else 1e-8), err.max()
+    assert err.max() <= tol, err.max()
 
 
 def test_zero_mass_limit() -> None:

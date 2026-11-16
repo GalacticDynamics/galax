@@ -53,6 +53,7 @@ class OrbitSolver(AbstractSolver):
     problem setups. Check out the method's docstring for examples. Here we show
     a simple example.
 
+    >>> import diffraxtra as dfxtra
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
@@ -116,7 +117,6 @@ class OrbitSolver(AbstractSolver):
 
     3. From a `diffraxtra.DiffEqSolver` instance.
 
-    >>> import diffraxtra as dfxtra
     >>> diffeqsolver = dfxtra.DiffEqSolver(dfx.Dopri5())
     >>> solver = go.OrbitSolver.from_(diffeqsolver)
     >>> solver

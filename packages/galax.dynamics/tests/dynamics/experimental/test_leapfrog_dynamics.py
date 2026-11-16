@@ -83,6 +83,3 @@ def test_stream_simulator_fixed_step():
         assert jnp.all(jnp.isfinite(lead[0]))
         leads.append(lead[0])
     assert jnp.array_equal(leads[0], leads[1])
-
-
-# One force evaluation per step

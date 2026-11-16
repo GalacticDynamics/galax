@@ -45,7 +45,6 @@ Aarr: TypeAlias = gt.Sz3
 # ---------------------------
 # QP
 
-
 BtQParr: TypeAlias = tuple[BtQarr, BtParr]
 
 QP: TypeAlias = tuple[Q, P]

@@ -156,12 +156,13 @@ import astropy.units as apyu
 import numpy as np
 
 # The core portions must all import on a bare install; `galax.actionangle`,
-# `galax.coordinates`, `galax.dynamics` and `galax.fields` are imported for
-# that alone.
+# `galax.coordinates`, `galax.dynamics`, `galax.fields` and `galax.orbits` are
+# imported for that alone.
 import galax.actionangle
 import galax.coordinates
 import galax.dynamics
 import galax.fields
+import galax.orbits
 import galax.potential as gp
 
 # astropy interop is a REQUIRED dependency, so it must register with no extras.
@@ -270,8 +271,8 @@ print("potential-only install OK")
 PY
 
 echo "== shape 5: \`galax.dynamics\` alone =="
-# This portion must install standalone, pulling the two portions below it
-# and nothing from the interop layer. This is the only shape that exercises the
+# This portion must install standalone, pulling the four portions below it
+# (coordinates, potential, fields and orbits) and nothing from the interop layer. This shape (with shape 8) exercises the
 # solver stack, so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this
 # portion's metadata fails here rather than at a user's.
 uv run --isolated --no-project \
@@ -287,8 +288,8 @@ import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 
-# Integrate a real orbit: importing proves nothing, and this is the only shape
-# that touches the solver stack at all.
+# Integrate a real orbit: importing proves nothing, and this shape (with shape 8)
+# touches the solver stack.
 pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
 w0 = gc.PhaseSpaceCoordinate(
     q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")

@@ -285,6 +285,9 @@ def test_experimental_integrate_orbit_fixed_step_backward():
     assert jnp.allclose(soln.ys[1][-1], p, rtol=1e-12, atol=0)
 
 
+# One force evaluation per step
+
+
 class _TwoEvalLeapfrog(experimental.Leapfrog):
     """Reference: the same KDK step, evaluating the force twice per step."""
 

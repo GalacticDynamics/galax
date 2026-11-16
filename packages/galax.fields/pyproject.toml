@@ -20,7 +20,7 @@ classifiers = [
 # `galax` -- depending on the root would recreate the `galax` <-> portion cycle.
 # `galax.dynamics` sits above this portion, so it is in no dependency group.
 dependencies = [
-  "diffrax>=0.7",
+  "diffrax>=0.7.1",
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
   "jax>=0.7.2",

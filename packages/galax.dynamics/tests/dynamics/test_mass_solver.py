@@ -45,3 +45,17 @@ def test_init_run_read_inputs_in_field_units():
 
     assert jnp.allclose(state.t, 1e6)  # yr
     assert jnp.allclose(state.y, 1e4 * 0.99**10)
+
+
+def test_step_reads_t1_in_field_units():
+    """`step` reads ``t1`` in the field's units."""
+    solver = gdc.MassSolver(
+        dfx.Euler(), stepsize_controller=dfx.ConstantStepSize(), event=None
+    )
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -1e-7 * M, units="solarsystem")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), {})
+    state = solver.step(field, state, u.Q(0.1, "Myr"), {})
+
+    assert jnp.allclose(state.t, 1e5)  # yr
+    assert jnp.allclose(state.y, 1e4 * 0.99)

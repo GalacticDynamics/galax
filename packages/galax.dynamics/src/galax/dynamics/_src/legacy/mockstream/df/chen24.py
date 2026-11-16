@@ -85,53 +85,52 @@ class ChenStreamDF(AbstractStreamDF):
 
         r_tidal = tidal_radius(potential, x, v, mass=prog_mass, t=t)
 
-        # Bill Chen: method="cholesky" doesn't work here!
-        posvel = jr.multivariate_normal(
-            key, mean, cov, shape=r_tidal.shape, method="svd"
-        )
+        def offsets(key: PRNGKeyArray) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3]:
+            """Position and velocity offsets (along x_new, y_new, z_new)."""
+            # Bill Chen: method="cholesky" doesn't work here!
+            posvel = jr.multivariate_normal(
+                key, mean, cov, shape=r_tidal.shape, method="svd"
+            )
 
-        Dr = posvel[:, 0] * r_tidal
+            Dr = posvel[:, 0] * r_tidal
 
-        v_esc = jnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
-        Dv = posvel[:, 3] * v_esc
+            v_esc = jnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
+            Dv = posvel[:, 3] * v_esc
 
-        # convert degrees to radians
-        phi = posvel[:, 1] * 0.017453292519943295
-        theta = posvel[:, 2] * 0.017453292519943295
-        alpha = posvel[:, 4] * 0.017453292519943295
-        beta = posvel[:, 5] * 0.017453292519943295
+            # convert degrees to radians
+            phi = posvel[:, 1] * 0.017453292519943295
+            theta = posvel[:, 2] * 0.017453292519943295
+            alpha = posvel[:, 4] * 0.017453292519943295
+            beta = posvel[:, 5] * 0.017453292519943295
 
-        ctheta, stheta = jnp.cos(theta), jnp.sin(theta)
-        cphi, sphi = jnp.cos(phi), jnp.sin(phi)
-        calpha, salpha = jnp.cos(alpha), jnp.sin(alpha)
-        cbeta, sbeta = jnp.cos(beta), jnp.sin(beta)
+            ctheta, stheta = jnp.cos(theta), jnp.sin(theta)
+            cphi, sphi = jnp.cos(phi), jnp.sin(phi)
+            calpha, salpha = jnp.cos(alpha), jnp.sin(alpha)
+            cbeta, sbeta = jnp.cos(beta), jnp.sin(beta)
+
+            dx = jnp.stack([Dr * ctheta * cphi, Dr * ctheta * sphi, Dr * stheta], -1)
+            dv = jnp.stack([Dv * cbeta * calpha, Dv * cbeta * salpha, Dv * sbeta], -1)
+            return dx, dv
+
+        # Each arm gets its own draw, as in the authors' code (and gala, galpy).
+        key_trail, key_lead = jr.split(key)
 
         # Trailing arm
+        dx, dv = offsets(key_trail)
         x_trail = (
-            x
-            + (Dr * ctheta * cphi)[:, None] * x_new_hat
-            + (Dr * ctheta * sphi)[:, None] * y_new_hat
-            + (Dr * stheta)[:, None] * z_new_hat
+            x + dx[:, 0:1] * x_new_hat + dx[:, 1:2] * y_new_hat + dx[:, 2:3] * z_new_hat
         )
         v_trail = (
-            v
-            + (Dv * cbeta * calpha)[:, None] * x_new_hat
-            + (Dv * cbeta * salpha)[:, None] * y_new_hat
-            + (Dv * sbeta)[:, None] * z_new_hat
+            v + dv[:, 0:1] * x_new_hat + dv[:, 1:2] * y_new_hat + dv[:, 2:3] * z_new_hat
         )
 
-        # Leading arm
+        # Leading arm: the same DF rotated by 180 deg about z_new
+        dx, dv = offsets(key_lead)
         x_lead = (
-            x
-            - (Dr * ctheta * cphi)[:, None] * x_new_hat
-            - (Dr * ctheta * sphi)[:, None] * y_new_hat
-            + (Dr * stheta)[:, None] * z_new_hat
+            x - dx[:, 0:1] * x_new_hat - dx[:, 1:2] * y_new_hat + dx[:, 2:3] * z_new_hat
         )
         v_lead = (
-            v
-            - (Dv * cbeta * calpha)[:, None] * x_new_hat
-            - (Dv * cbeta * salpha)[:, None] * y_new_hat
-            + (Dv * sbeta)[:, None] * z_new_hat
+            v - dv[:, 0:1] * x_new_hat - dv[:, 1:2] * y_new_hat + dv[:, 2:3] * z_new_hat
         )
 
         return x_lead, v_lead, x_trail, v_trail

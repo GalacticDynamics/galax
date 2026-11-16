@@ -83,9 +83,12 @@ class MockStreamGenerator(eqx.Module):
     If given, the stream particles move in `potential` plus this potential
     centred on the progenitor as it orbits (the progenitor itself orbits in
     `potential` alone). This is the default model of Chen et al. 2024
-    (arXiv:2408.01496), with a `~galax.potential.KeplerPotential` of the
-    progenitor's mass, and gala's ``progenitor_potential``. Its mass is its own:
-    the ``prog_mass`` given to `run` only sets the release distribution.
+    (arXiv:2408.01496) and gala's ``progenitor_potential``. For Chen+24 use a
+    `~galax.potential.PlummerPotential` of the progenitor's mass with
+    ``r_s`` = 4 pc, as in the authors' notebooks; the paper uses a point mass
+    and finds that 0-4 pc doesn't noticeably change the streams. The
+    potential's mass is its own: the ``prog_mass`` given to `run` only sets the
+    release distribution.
 
     The particles see the progenitor's orbit as a cubic Hermite interpolant of
     its position and velocity on ``max(20 len(ts), 2**14)`` uniformly spaced
@@ -316,8 +319,8 @@ class MockStreamGenerator(eqx.Module):
             warnings.warn(
                 "ChenStreamDF without a progenitor_potential is the "
                 '"no progenitor" variant of the Chen+24 model; pass e.g. '
-                "progenitor_potential=KeplerPotential(m_tot=prog_mass, units=...) "
-                "for its default model.",
+                "progenitor_potential=PlummerPotential(m_tot=prog_mass, "
+                'r_s=u.Q(4, "pc"), units=...) for its default model.',
                 RuntimeWarning,
                 stacklevel=2,
             )

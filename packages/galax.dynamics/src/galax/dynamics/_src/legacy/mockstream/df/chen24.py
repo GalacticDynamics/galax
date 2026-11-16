@@ -48,11 +48,14 @@ class ChenStreamDF(AbstractStreamDF):
     https://ui.adsabs.harvard.edu/abs/2024arXiv240801496C/abstract
 
     The paper's default model integrates the particles in the host potential
-    plus the progenitor's: pass ``progenitor_potential`` (e.g. a
-    `~galax.potential.KeplerPotential` of the progenitor's mass) to
-    `~galax.dynamics.MockStreamGenerator`. Without it, the stream is the
-    paper's "no progenitor" variant, and `~galax.dynamics.MockStreamGenerator.run`
-    warns.
+    plus the progenitor's: pass ``progenitor_potential`` to
+    `~galax.dynamics.MockStreamGenerator`, e.g.
+    ``PlummerPotential(m_tot=prog_mass, r_s=u.Q(4, "pc"), units=...)`` as in
+    the authors' notebooks (github.com/ybillchen/particle_spray). The paper
+    uses a point mass and finds that a scale radius of 0-4 pc doesn't
+    noticeably change the streams. Without a progenitor potential the stream
+    is the paper's "no progenitor" variant, and
+    `~galax.dynamics.MockStreamGenerator.run` warns.
     """
 
     @ft.partial(jax.jit, inline=True)

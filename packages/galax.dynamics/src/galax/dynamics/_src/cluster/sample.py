@@ -59,8 +59,7 @@ class ReleaseTimeSampler(eqx.Module):
     >>> mass_history.evaluate(0.5)  # [Msun]
     Array(9999.46950028, dtype=float64)
 
-    >>> sampler = gdc.ReleaseTimeSampler(dm_dt=dMdt_fn, m_of_t=mass_history,
-    ...                                  units=pot.units)
+    >>> sampler = gdc.ReleaseTimeSampler(dm_dt=dMdt_fn, m_of_t=mass_history)
 
     >>> key = jr.PRNGKey(0)
     >>> n_stars = 5
@@ -75,9 +74,6 @@ class ReleaseTimeSampler(eqx.Module):
 
     #: Solution m(t) given dm_dt. Its times and masses are in ``dm_dt.units``.
     m_of_t: dfx.Solution
-
-    #: The unit system. Not used in sampling: times are read in ``dm_dt.units``.
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
 
     def __check_init__(self) -> None:
         # TODO: enable discrete times sampler

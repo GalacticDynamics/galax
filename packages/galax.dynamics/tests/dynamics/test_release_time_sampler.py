@@ -25,7 +25,7 @@ class ExpMassLoss(gdc.AbstractMassRateField):
 def test_sample_reads_mass_history_in_field_units():
     """The sampler evaluates m(t) in the units it was solved in.
 
-    The field is in yr and the sampler in galactic units (Myr). M(t) ∝ exp(-t/τ)
+    The field is in yr and t0, t1 are in Myr. M(t) ∝ exp(-t/τ)
     with τ = 10 Myr, so the escape rate is too, and its inverse CDF is
     t = -τ ln(1 - U (1 - exp(-T/τ))) for T = 10 Myr.
     """
@@ -34,7 +34,7 @@ def test_sample_reads_mass_history_in_field_units():
     m_of_t = gdc.MassSolver().solve(
         field, u.Q(1e4, "Msun"), t0, t1, dense=True, vectorize_interpolation=True
     )
-    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t, units="galactic")
+    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t)
 
     key = jr.PRNGKey(0)
     got = sampler.sample(key, t0, t1, n_stars=5, mass_params={})
@@ -51,7 +51,7 @@ def test_sample_accepts_a_custom_field():
     m_of_t = gdc.MassSolver().solve(
         field, u.Q(1e4, "Msun"), t0, t1, dense=True, vectorize_interpolation=True
     )
-    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t, units="galactic")
+    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t)
 
     key = jr.PRNGKey(0)
     got = sampler.sample(key, t0, t1, n_stars=5, mass_params={})
@@ -68,7 +68,7 @@ def test_sample_accepts_a_numpy_int_n_stars():
     m_of_t = gdc.MassSolver().solve(
         field, u.Q(1e4, "Msun"), t0, t1, dense=True, vectorize_interpolation=True
     )
-    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t, units="galactic")
+    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t)
 
     got = sampler.sample(jr.PRNGKey(0), t0, t1, n_stars=np.int64(5), mass_params={})
     assert got.shape == (5,)

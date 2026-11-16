@@ -130,7 +130,17 @@ class MockStreamGenerator(eqx.Module):
         # below the particles' own step error); align knots with steps if needed.
         n = max(KNOTS_PER_RELEASE * len(ts), MIN_KNOTS)
         tk = jnp.linspace(ts[0], ts[-1], n)
-        wk = self._progenitor_trajectory(w0, tk).w(units=self.units)
+        # Dense output evaluated at the knots: `SaveAt(ts=tk)` would make
+        # diffrax trace one op per knot (its t0 == t1 branch), and XLA's CPU
+        # compile of that runs for minutes to hours.
+        orbit = evaluate_orbit(
+            self.potential,
+            w0,
+            jnp.stack([ts[0], ts[-1]]),
+            integrator=self.progenitor_integrator,
+            dense=True,
+        )
+        wk = orbit.interpolant.evaluate(tk).w(units=self.units)
         tk = u.ustrip(self.units["time"], tk)
         path = _HermitePath(tk[0], tk[1] - tk[0], wk[:, :3], wk[:, 3:])
         moving = gp.TranslatedPotential(

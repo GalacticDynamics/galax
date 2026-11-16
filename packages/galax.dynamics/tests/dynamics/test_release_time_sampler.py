@@ -4,6 +4,7 @@ import equinox as eqx
 import jax.numpy as jnp
 import jax.random as jr
 import numpy as np
+import pytest
 
 import unxt as u
 
@@ -61,7 +62,7 @@ def test_sample_accepts_a_custom_field():
 
 
 def test_sample_accepts_a_numpy_int_n_stars():
-    """A numpy integer ``n_stars`` still sets a static output shape."""
+    """A numpy or whole-float ``n_stars`` sets a static shape; 5.5 is rejected."""
     field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
     t0, t1 = u.Q(0.0, "Myr"), u.Q(10.0, "Myr")
     m_of_t = gdc.MassSolver().solve(
@@ -71,3 +72,9 @@ def test_sample_accepts_a_numpy_int_n_stars():
 
     got = sampler.sample(jr.PRNGKey(0), t0, t1, n_stars=np.int64(5), mass_params={})
     assert got.shape == (5,)
+
+    got = sampler.sample(jr.PRNGKey(0), t0, t1, n_stars=5.0, mass_params={})
+    assert got.shape == (5,)
+
+    with pytest.raises(TypeError):
+        sampler.sample(jr.PRNGKey(0), t0, t1, n_stars=5.5, mass_params={})

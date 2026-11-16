@@ -115,8 +115,14 @@ class ReleaseTimeSampler(eqx.Module):
             Sorted sampled release times from `t0` and `t1`.
 
         """
-        # `int` so a numpy integer stays static under `filter_jit`.
-        return self._sample(key, t0, t1, n_stars=int(n_stars), mass_params=mass_params)
+        # `filter_jit` would trace a numpy integer, so make it a Python int
+        # (static). A whole-number float such as 5.0 is accepted, as before.
+        n = int(n_stars)
+        if n != n_stars:
+            msg = f"n_stars must be a whole number, got {n_stars!r}"
+            raise TypeError(msg)
+        n_stars = n
+        return self._sample(key, t0, t1, n_stars=n_stars, mass_params=mass_params)
 
     # `filter_jit` so a field holding a Python function (e.g. a
     # `CustomMassRateField`) can be passed. A Python `int` `n_stars` is static.

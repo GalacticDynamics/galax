@@ -75,7 +75,9 @@ def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
 
     The reference is from galax 6f6e5681 (the parent commit). XLA's float
     results depend on the platform and the jax version, so they are compared
-    bitwise where those match the reference's, and to 1e-12 elsewhere.
+    bitwise where those match the reference's. Elsewhere the last-bit
+    differences can change the adaptive solver's step choices (1e-9 relative on
+    Linux CI), so the comparison is to its rtol of 1e-7.
     """
     ref = np.load(DATA / "no_progenitor_reference.npz")
     ts = u.Q(jnp.linspace(0.0, 4e3, 10), "Myr")
@@ -99,7 +101,7 @@ def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
         if same_build:
             np.testing.assert_array_equal(arr, ref[f"{k}_{part}"])
         else:
-            np.testing.assert_allclose(arr, ref[f"{k}_{part}"], rtol=1e-12, atol=0)
+            np.testing.assert_allclose(arr, ref[f"{k}_{part}"], rtol=1e-7, atol=0)
 
 
 # ============================================================================

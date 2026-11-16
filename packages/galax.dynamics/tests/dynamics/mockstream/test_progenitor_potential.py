@@ -73,35 +73,49 @@ def stream_w(mock: gd.MockStream) -> np.ndarray:
 def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
     """``progenitor_potential=None`` gives what galax gave before it existed.
 
-    The reference is from galax 6f6e5681 (the parent commit). XLA's float
-    results depend on the platform and the jax version, so they are compared
-    bitwise where those match the reference's. Elsewhere the last-bit
-    differences can change the adaptive solver's step choices (1e-9 relative on
-    Linux CI), so the comparison is to its rtol of 1e-7.
+    The reference is from galax 6f6e5681 (the parent commit), with the default
+    adaptive solver and with fixed-step Leapfrog. XLA's float results depend on
+    the platform and the jax version, so where those match the reference's
+    both are compared bitwise. Elsewhere the last-bit differences can change
+    the adaptive solver's step choices, so only Leapfrog is compared, to 1e-12
+    of the position and velocity scales.
     """
     ref = np.load(DATA / "no_progenitor_reference.npz")
-    ts = u.Q(jnp.linspace(0.0, 4e3, 10), "Myr")
-    gen = gd.MockStreamGenerator(DFS[dfname](), HOST, progenitor_potential=None)
-    mock, prog = gen.run(
-        jax.random.key(12), ts, PROG_W0, u.Q(1e4, "Msun"), vmapped=vmapped
-    )
-
-    k = f"{dfname}_{'vmap' if vmapped else 'scan'}"
-    got = {
-        "lead": np.asarray(mock["lead"].w(units=USYS)),
-        "trail": np.asarray(mock["trail"].w(units=USYS)),
-        "prog": np.asarray(prog.w(units=USYS)),
-    }
     same_build = (
         str(ref["platform"]) == f"{platform.system()}-{platform.machine()}"
         and str(ref["jax"]) == jax.__version__
         and str(ref["jaxlib"]) == jaxlib.__version__
     )
-    for part, arr in got.items():
-        if same_build:
-            np.testing.assert_array_equal(arr, ref[f"{k}_{part}"])
-        else:
-            np.testing.assert_allclose(arr, ref[f"{k}_{part}"], rtol=1e-7, atol=0)
+    lf = leapfrog(0.5, 4e3)
+    runs = {"lf_": {"progenitor_integrator": lf, "stream_integrator": lf}}
+    if same_build:
+        runs[""] = {}
+    ts = u.Q(jnp.linspace(0.0, 4e3, 10), "Myr")
+    k = f"{dfname}_{'vmap' if vmapped else 'scan'}"
+    for prefix, integrators in runs.items():
+        gen = gd.MockStreamGenerator(
+            DFS[dfname](), HOST, progenitor_potential=None, **integrators
+        )
+        mock, prog = gen.run(
+            jax.random.key(12), ts, PROG_W0, u.Q(1e4, "Msun"), vmapped=vmapped
+        )
+        got = {
+            "lead": np.asarray(mock["lead"].w(units=USYS)),
+            "trail": np.asarray(mock["trail"].w(units=USYS)),
+            "prog": np.asarray(prog.w(units=USYS)),
+        }
+        for part, arr in got.items():
+            want = ref[f"{prefix}{k}_{part}"]
+            if same_build:
+                np.testing.assert_array_equal(arr, want)
+                continue
+            d = np.abs(arr - want).reshape(-1, 6)
+            scale = np.abs(want).reshape(-1, 6)
+            for name, c in (("q", slice(0, 3)), ("p", slice(3, 6))):
+                assert d[:, c].max() <= 1e-12 * scale[:, c].max(), (
+                    f"{prefix}{k}_{part} {name}: max diff {d[:, c].max():.2e}, "
+                    f"scale {scale[:, c].max():.2e}"
+                )
 
 
 # ============================================================================

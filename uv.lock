@@ -19,6 +19,7 @@ members = [
     "galax-interop-gala",
     "galax-interop-galpy",
     "galax-interop-matplotlib",
+    "galax-nbody",
     "galax-orbits",
     "galax-potential",
 ]
@@ -836,6 +837,7 @@ dependencies = [
     { name = "galax-dynamics" },
     { name = "galax-fields" },
     { name = "galax-interop-astropy" },
+    { name = "galax-nbody" },
     { name = "galax-orbits" },
     { name = "galax-potential" },
     { name = "interpax" },
@@ -976,6 +978,7 @@ requires-dist = [
     { name = "galax-interop-matplotlib", marker = "extra == 'all'", editable = "packages/galax.interop.matplotlib" },
     { name = "galax-interop-matplotlib", marker = "extra == 'plot-all'", editable = "packages/galax.interop.matplotlib" },
     { name = "galax-interop-matplotlib", marker = "extra == 'plot-matplotlib'", editable = "packages/galax.interop.matplotlib" },
+    { name = "galax-nbody", editable = "packages/galax.nbody" },
     { name = "galax-orbits", editable = "packages/galax.orbits" },
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "interpax", specifier = ">=0.3.11" },
@@ -1187,6 +1190,7 @@ dependencies = [
     { name = "equinox" },
     { name = "galax-coordinates" },
     { name = "galax-fields" },
+    { name = "galax-nbody" },
     { name = "galax-orbits" },
     { name = "galax-potential" },
     { name = "interpax" },
@@ -1224,6 +1228,7 @@ requires-dist = [
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
     { name = "galax-fields", editable = "packages/galax.fields" },
+    { name = "galax-nbody", editable = "packages/galax.nbody" },
     { name = "galax-orbits", editable = "packages/galax.orbits" },
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "interpax", specifier = ">=0.3.11" },
@@ -1489,6 +1494,55 @@ test = [
     { name = "pytest-cov", specifier = ">=5" },
     { name = "pytest-env", specifier = ">=1.1.5" },
     { name = "pytest-mpl", specifier = ">=0.17.0" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "sybil", specifier = ">=9.0.0" },
+]
+
+[[package]]
+name = "galax-nbody"
+source = { editable = "packages/galax.nbody" }
+dependencies = [
+    { name = "equinox" },
+    { name = "galax-orbits" },
+    { name = "galax-potential" },
+    { name = "jax" },
+    { name = "jaxtyping" },
+    { name = "plum" },
+    { name = "quaxed" },
+    { name = "unxt" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "optional-dependencies" },
+    { name = "pytest" },
+    { name = "pytest-arraydiff" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+    { name = "pytest-xdist" },
+    { name = "sybil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-orbits", editable = "packages/galax.orbits" },
+    { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "jax", specifier = ">=0.7.2" },
+    { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
+    { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
+    { name = "quaxed", specifier = ">=0.10.5" },
+    { name = "unxt", specifier = ">=2.0.5,<3" },
+]
+
+[package.metadata.requires-dev]
+test = [
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-arraydiff", specifier = ">=0.6.1" },
+    { name = "pytest-cov", specifier = ">=5" },
+    { name = "pytest-env", specifier = ">=1.1.5" },
     { name = "pytest-xdist", specifier = ">=3.6.1" },
     { name = "sybil", specifier = ">=9.0.0" },
 ]

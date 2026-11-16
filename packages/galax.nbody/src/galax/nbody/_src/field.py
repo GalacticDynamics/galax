@@ -13,7 +13,7 @@ import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 import galax.potential as gp
 from galax.orbits import AbstractOrbitField
 
@@ -35,14 +35,16 @@ class NBodyField(AbstractOrbitField):
     Examples
     --------
     >>> import unxt as u
-    >>> import galax.dynamics as gd
+    >>> import galax.nbody as gn
+    >>> import galax.orbits as go
+    >>> import galax.potential as gp
 
     >>> q = u.Q([[-1, 0, 0], [1, 0, 0]], "AU") / 2
     >>> p = u.Q([[0, -1, 0], [0, 1, 0]], "km/s") * 25
 
-    >>> solver = gd.OrbitSolver()
+    >>> solver = go.OrbitSolver()
 
-    >>> field = gd.fields.NBodyField(
+    >>> field = gn.NBodyField(
     ...     masses=u.Q([1, 1], "Msun"),
     ...     eps=u.Q(1e-4, "AU"),
     ...     external_potential=gp.NullPotential(units="solarsystem"))
@@ -60,7 +62,7 @@ class NBodyField(AbstractOrbitField):
     masses: Real[u.Quantity["mass"], "N"] | Real[Array, "N"]
 
     #: softening length.
-    eps: Float[u.Quantity["length"], ""] | gt.FloatSz0
+    eps: Float[u.Quantity["length"], ""] | Float[Array, ""]
 
     #: Potential.
     external_potential: gp.AbstractPotential = eqx.field(

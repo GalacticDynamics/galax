@@ -14,7 +14,7 @@ NAMES = (
     "parse_time_specification",
 )
 
-ORBIT_FIELDS = ("AbstractOrbitField", "HamiltonianField", "NBodyField")
+ORBIT_FIELDS = ("AbstractOrbitField", "HamiltonianField")
 
 
 @pytest.mark.parametrize("name", NAMES)

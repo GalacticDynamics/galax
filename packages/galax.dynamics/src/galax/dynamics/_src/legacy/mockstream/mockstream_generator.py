@@ -124,7 +124,7 @@ class MockStreamGenerator(eqx.Module):
         """Return the potential the stream particles move in."""
         if self.progenitor_potential is None:
             return self.potential
-        # ponytail: with a fixed-step progenitor integrator, knots between its
+        # With a fixed-step progenitor integrator, knots between its
         # steps are its linear dense output, O(dt^2) off its own orbit (far
         # below the particles' own step error); align knots with steps if needed.
         n = max(KNOTS_PER_RELEASE * len(ts), MIN_KNOTS)

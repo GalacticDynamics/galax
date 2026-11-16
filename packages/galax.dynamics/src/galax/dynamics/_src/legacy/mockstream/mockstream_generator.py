@@ -32,8 +32,7 @@ from galax.potential.utils import cond_reverse
 Carry: TypeAlias = tuple[gt.IntSz0, gt.SzN, gt.SzN]
 
 # Knots of the progenitor orbit that the stream particles see, per release
-# time and at least: ~0.5 Myr apart for 1000 releases over 5 Gyr, and <= 0.9
-# Myr for any ``ts`` spanning <= 14 Gyr.
+# time and at least: <= 0.9 Myr apart for any ``ts`` spanning <= 14 Gyr.
 KNOTS_PER_RELEASE = 20
 MIN_KNOTS = 2**14
 
@@ -50,12 +49,12 @@ class _HermitePath(eqx.Module):
     x: gt.SzN  # (n, 3)
     v: gt.SzN  # (n, 3)
 
-    def __call__(self, t: gt.Sz0) -> gt.Sz3:
+    def __call__(self, t: gt.BBtSz0) -> gt.BBtSz3:
         s = (t - self.t0) / self.dt
         i = jnp.clip(jnp.floor(s).astype(int), 0, self.x.shape[0] - 2)
-        a = s - i
+        a = (s - i)[..., None]
         b = 1 - a
-        x: gt.Sz3 = (
+        x: gt.BBtSz3 = (
             (b * b * (1 + 2 * a)) * self.x[i]
             + (a * b * b * self.dt) * self.v[i]
             + (a * a * (3 - 2 * a)) * self.x[i + 1]
@@ -142,7 +141,10 @@ class MockStreamGenerator(eqx.Module):
         )
         wk = orbit.interpolant.evaluate(tk).w(units=self.units)
         tk = u.ustrip(self.units["time"], tk)
-        path = _HermitePath(tk[0], tk[1] - tk[0], wk[:, :3], wk[:, 3:])
+        # The spacing from the whole span: in float32, `tk[1] - tk[0]` is off by
+        # up to half an ulp of |tk[0]|, which adds up over the n knots.
+        dt = (tk[-1] - tk[0]) / (n - 1)
+        path = _HermitePath(tk[0], dt, wk[:, :3], wk[:, 3:])
         moving = gp.TranslatedPotential(
             self.progenitor_potential,
             translation=gp.params.TimeDependentTranslationParameter(
@@ -312,8 +314,8 @@ class MockStreamGenerator(eqx.Module):
             warnings.warn(
                 "ChenStreamDF without a progenitor_potential is the "
                 '"no progenitor" variant of the Chen+24 model; pass e.g. '
-                "progenitor_potential=KeplerPotential(m_tot=prog_mass) for its "
-                "default model.",
+                "progenitor_potential=KeplerPotential(m_tot=prog_mass, units=...) "
+                "for its default model.",
                 RuntimeWarning,
                 stacklevel=2,
             )

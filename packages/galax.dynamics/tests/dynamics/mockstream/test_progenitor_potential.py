@@ -219,7 +219,7 @@ def test_matches_gala_progenitor(dfname: str, progname: str) -> None:
     )  # fmt: skip
     mock, _ = gen.run(key, ts, PROG_W0, m)
     got = stream_w(mock)
-    # The same initial conditions went in.
+    # The same release times went in (the positions are checked by `d` below).
     np.testing.assert_array_equal(
         np.asarray(mock["lead"].release_time.value),
         np.asarray(mock0["lead"].release_time.value),
@@ -259,8 +259,35 @@ def test_matches_gala_progenitor(dfname: str, progname: str) -> None:
 # ============================================================================
 
 
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+def test_progenitor_follows_its_orbit(dtype: str) -> None:
+    """The progenitor the particles see sits on the progenitor's orbit.
+
+    Checked at every release time, with the path called on all of them at
+    once. With float32 release times the knot spacing must come from the
+    whole span: ``tk[1] - tk[0]`` is off by up to half an ulp of |ts[0]|,
+    which over 2**14 knots put the progenitor up to 62 pc off its orbit here.
+    """
+    ts = u.Q(jnp.linspace(-3000.0, 0.0, 200, dtype=dtype), "Myr")
+    integ = adaptive(1e-12)
+    gen = gd.MockStreamGenerator(
+        gd.ChenStreamDF(), HOST,
+        progenitor_potential=PROG_POTS["kepler"](u.Q(1e5, "Msun")),
+        progenitor_integrator=integ,
+    )  # fmt: skip
+    pot = gen._stream_potential(PROG_W0, ts)
+    got = np.asarray(pot["progenitor"].translation(ts, ustrip="kpc"))
+    orbit = gd.evaluate_orbit(HOST, PROG_W0, ts, integrator=integ)
+    want = np.asarray(orbit.w(units=USYS))[:, :3]
+    err = np.linalg.norm(got - want, axis=1)
+    # float32: the release times themselves are only good to ~1e-4 Myr.
+    assert err.max() <= (1e-3 if dtype == "float32" else 1e-8), err.max()
+
+
 def test_zero_mass_limit() -> None:
     """A vanishing progenitor mass gives the stream without a progenitor.
+
+    And a real one changes it, so the progenitor isn't silently ignored.
 
     Fixed-step Leapfrog, so both runs take the same steps. With an adaptive
     solver the 1e-10 Msun force, tiny as it is, can change the step
@@ -279,6 +306,12 @@ def test_zero_mass_limit() -> None:
         gd.MockStreamGenerator(df, HOST, **kw).run(key, ts, PROG_W0, m)[0]
     )
     np.testing.assert_allclose(w_tiny[:, :3], w_none[:, :3], rtol=0, atol=1e-10)
+
+    real = gp.KeplerPotential(m_tot=m, units=USYS)
+    gen_real = gd.MockStreamGenerator(df, HOST, progenitor_potential=real, **kw)
+    w_real = stream_w(gen_real.run(key, ts, PROG_W0, m)[0])
+    d = np.linalg.norm(w_real[:, :3] - w_none[:, :3], axis=1)
+    assert np.median(d) > 0.01, np.median(d)
 
 
 @pytest.mark.parametrize("m", [1e5, 1e8], ids=["gc", "dwarf"])

@@ -92,7 +92,7 @@ class MassSolver(AbstractSolver):
         **step_kwargs: Any,  # e.g. solver_state, made_jump
     ) -> SolveState:
         """Step the state."""
-        t1_ = u.ustrip(AllowValue, self.units["time"], t1)
+        t1_ = u.ustrip(AllowValue, dm_dt.units["time"], t1)
         step_kwargs.setdefault("made_jump", False)
         return self._step_impl_scalar(dm_dt, state, t1_, args, step_kwargs)
 
@@ -133,9 +133,9 @@ def init(
     args: PyTree,
     /,
 ) -> SolveState:
-    Mc0_ = u.ustrip(AllowValue, self.units["mass"], Mc0)
-    t0_ = u.ustrip(AllowValue, self.units["time"], t0)
-    state: SolveState = self._init_impl(field, t0_, Mc0_, args, self.units)
+    Mc0_ = u.ustrip(AllowValue, field.units["mass"], Mc0)
+    t0_ = u.ustrip(AllowValue, field.units["time"], t0)
+    state: SolveState = self._init_impl(field, t0_, Mc0_, args, field.units)
     return state
 
 
@@ -153,7 +153,7 @@ def run(
     /,
     **solver_kw: Any,
 ) -> SolveState:
-    t1_ = u.ustrip(AllowValue, self.units["time"], t1)
+    t1_ = u.ustrip(AllowValue, field.units["time"], t1)
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
@@ -165,7 +165,7 @@ def run(
         y=soln.ys,
         solver_state=soln.solver_state,
         success=soln.result,
-        units=self.units,
+        units=field.units,
     )
 
 
@@ -188,13 +188,15 @@ def solve(
     saveat: Any = default_saveat,
     **solver_kw: Any,
 ) -> dfx.Solution:
-    # Setup
-    units = self.units
+    # Setup. `t0`, `t1`, `M0` and a Quantity `dt0` are read in the field's units,
+    # as the shared field dispatch does. `self.units` only sets the units a
+    # bare function is wrapped in.
     field_ = (
         field
         if isinstance(field, AbstractMassRateField)
-        else CustomMassRateField(field, units=units)
+        else CustomMassRateField(field, units=self.units)
     )
+    units = field_.units
 
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)

@@ -40,3 +40,20 @@ def test_sample_reads_mass_history_in_field_units():
     U = jr.uniform(key, shape=(5,))
     want = jnp.sort(-10.0 * jnp.log1p(-U * (1 - jnp.exp(-1.0))))
     assert jnp.allclose(got.ustrip("Myr"), want, atol=1e-2)
+
+
+def test_sample_accepts_a_custom_field():
+    """A `CustomMassRateField` holding a Python function can be sampled."""
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
+    t0, t1 = u.Q(0.0, "Myr"), u.Q(10.0, "Myr")
+    m_of_t = gdc.MassSolver().solve(
+        field, u.Q(1e4, "Msun"), t0, t1, dense=True, vectorize_interpolation=True
+    )
+    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t, units="galactic")
+
+    key = jr.PRNGKey(0)
+    got = sampler.sample(key, t0, t1, n_stars=5, mass_params={})
+
+    U = jr.uniform(key, shape=(5,))
+    want = jnp.sort(-10.0 * jnp.log1p(-U * (1 - jnp.exp(-1.0))))
+    assert jnp.allclose(got.ustrip("Myr"), want, atol=1e-2)

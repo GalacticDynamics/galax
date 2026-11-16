@@ -6,14 +6,11 @@ This is private API.
 
 __all__ = ["ReleaseTimeSampler"]
 
-import functools as ft
-
 from jaxtyping import Array, Float, PRNGKeyArray
 from typing import Any
 
 import diffrax as dfx
 import equinox as eqx
-import jax
 import jax.random as jr
 
 import quaxed.numpy as jnp
@@ -88,7 +85,9 @@ class ReleaseTimeSampler(eqx.Module):
             msg = "Mass history must be dense."
             raise ValueError(msg)
 
-    @ft.partial(jax.jit, static_argnames=("n_stars",))
+    # `filter_jit` so a field holding a Python function (e.g. a
+    # `CustomMassRateField`) can be passed; `n_stars` is an int, so static.
+    @eqx.filter_jit
     def sample(
         self,
         key: PRNGKeyArray,

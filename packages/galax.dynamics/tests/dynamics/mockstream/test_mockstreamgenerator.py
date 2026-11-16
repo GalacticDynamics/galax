@@ -9,6 +9,7 @@ import jax.random as jr
 import jax.tree as jtu
 import numpy as np
 import pytest
+from scipy.stats import ks_2samp
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -218,13 +219,14 @@ def test_integrate_to_solves_each_particle_on_its_own():
 
 
 @pytest.mark.filterwarnings("ignore:Currently only")
-def test_chen_arms_drawn_independently() -> None:
-    """Leading and trailing particles are separate draws from Chen+24 Eq. 4.
+@pytest.mark.parametrize("df_cls", [gd.ChenStreamDF, gd.FardalStreamDF])
+def test_arms_drawn_independently(df_cls: type[gd.AbstractStreamDF]) -> None:
+    """Leading and trailing particles are separate draws from the DF.
 
     In the progenitor's frame the leading arm is the trailing DF rotated by 180
     deg about L, so undoing that rotation gives two samples of the same DF. They
-    must agree in distribution but not be the same draw (the authors' code,
-    gala and galpy all draw each arm on its own).
+    must agree in distribution but not be the same draw (the Chen+24 authors'
+    code, gala and galpy all draw each arm on its own).
     """
     pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
     w0 = gc.PhaseSpaceCoordinate(
@@ -232,14 +234,13 @@ def test_chen_arms_drawn_independently() -> None:
     )
     n = 4000
     prog = gd.evaluate_orbit(pot, w0, u.Q(jnp.linspace(-3000.0, 0.0, n), "Myr"))
-    mock = gd.ChenStreamDF().sample(jr.key(0), pot, prog, u.Q(1e5, "Msun"))
+    mock = df_cls().sample(jr.key(0), pot, prog, u.Q(1e5, "Msun"))
 
     pw = np.asarray(prog.w(units=pot.units))
     x, v = pw[:, :3], pw[:, 3:]
     xh = x / np.linalg.norm(x, axis=1, keepdims=True)
     zh = np.cross(x, v)
     zh /= np.linalg.norm(zh, axis=1, keepdims=True)
-    yh = np.cross(zh, xh)
     rt = np.asarray(
         u.ustrip(
             "kpc", gd.tidal_radius(pot, prog.q, prog.p, mass=u.Q(1e5, "Msun"), t=prog.t)
@@ -247,21 +248,20 @@ def test_chen_arms_drawn_independently() -> None:
     )
 
     def offsets(arm: str, sign: float) -> np.ndarray:
-        """Position offset in units of r_t, rotated back for the lead."""
-        d = np.asarray(mock[arm].w(units=pot.units))[:, :3] - x
-        a = np.stack(
-            [sign * (d * xh).sum(1), sign * (d * yh).sum(1), (d * zh).sum(1)], 1
+        """|offset|, x and z of the position offset in units of r_t.
+
+        x is rotated back for the lead (z is unchanged by the rotation).
+        """
+        d = (np.asarray(mock[arm].w(units=pot.units))[:, :3] - x) / rt[:, None]
+        return np.column_stack(
+            [np.linalg.norm(d, axis=1), sign * (d * xh).sum(1), (d * zh).sum(1)]
         )
-        a /= rt[:, None]
-        return np.column_stack([np.linalg.norm(a, axis=1), a])
 
     trail, lead = offsets("trail", 1.0), offsets("lead", -1.0)
-    # Same DF: r/r_t has the paper's mean 1.6 and sd 0.35 in both arms.
-    for s in (trail, lead):
-        assert abs(s[:, 0].mean() - 1.6) < 5 * 0.35 / np.sqrt(n)
-        assert abs(s[:, 0].std() - 0.35) < 0.02
-    # Separate draws: one shared draw would give correlation 1. With n = 4000
-    # independent draws |corr| ~ 0.016. (In units of r_t: raw offsets share
-    # r_t, which varies along the orbit, and correlate through it.)
-    corr = [np.corrcoef(trail[:, i], lead[:, i])[0, 1] for i in range(4)]
-    assert np.max(np.abs(corr)) < 0.1, corr
+    for i in range(3):
+        # Same DF.
+        assert ks_2samp(trail[:, i], lead[:, i]).pvalue > 1e-3
+        # Separate draws: one shared draw gives correlation 1; with n = 4000
+        # independent draws |corr| ~ 0.016. (In units of r_t: the raw offsets
+        # of both arms scale with r_t, which varies along the orbit.)
+        assert abs(np.corrcoef(trail[:, i], lead[:, i])[0, 1]) < 0.1

@@ -76,19 +76,20 @@ class FardalStreamDF(AbstractStreamDF):
         phi_vec = v - jnp.sum(v * r_hat, axis=-1, keepdims=True) * r_hat
         phi_hat = cx.vecs.normalize_vector(phi_vec)
 
-        # k vals
-        shape = r_tidal.shape
+        # k vals, a separate draw for each arm (index 0 trailing, 1 leading), as
+        # in gala and the agama code of Chen+24.
+        shape = (2, *r_tidal.shape)
         kr_samp = kr_bar + jr.normal(key1, shape) * sigma_kr
         kvphi_samp = kr_samp * (kvphi_bar + jr.normal(key2, shape) * sigma_kvphi)
         kz_samp = kz_bar + jr.normal(key3, shape) * sigma_kz
         kvz_samp = kvz_bar + jr.normal(key4, shape) * sigma_kvz
 
         # Trailing arm
-        x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)
-        v_trail = v + v_circ * (kvphi_samp * phi_hat + kvz_samp * z_hat)
+        x_trail = x + r_tidal * (kr_samp[0] * r_hat + kz_samp[0] * z_hat)
+        v_trail = v + v_circ * (kvphi_samp[0] * phi_hat + kvz_samp[0] * z_hat)
 
         # Leading arm
-        x_lead = x - r_tidal * (kr_samp * r_hat - kz_samp * z_hat)
-        v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
+        x_lead = x - r_tidal * (kr_samp[1] * r_hat - kz_samp[1] * z_hat)
+        v_lead = v - v_circ * (kvphi_samp[1] * phi_hat - kvz_samp[1] * z_hat)
 
         return x_lead, v_lead, x_trail, v_trail

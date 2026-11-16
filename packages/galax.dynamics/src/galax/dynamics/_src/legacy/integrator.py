@@ -221,7 +221,7 @@ class Integrator(eqx.Module):
         # Ensure `dense=True` won't raise an error.
         diffeq_kw = dict(self.diffeq_kw)
         if dense and diffeq_kw.get("max_steps") is None:
-            diffeq_kw.pop("max_steps")
+            diffeq_kw.pop("max_steps", None)
 
         # Perform the integration
         save_at = save_t1_only if saveat is None else saveat

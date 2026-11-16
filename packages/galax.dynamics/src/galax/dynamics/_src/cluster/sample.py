@@ -85,9 +85,6 @@ class ReleaseTimeSampler(eqx.Module):
             msg = "Mass history must be dense."
             raise ValueError(msg)
 
-    # `filter_jit` so a field holding a Python function (e.g. a
-    # `CustomMassRateField`) can be passed; `n_stars` is an int, so static.
-    @eqx.filter_jit
     def sample(
         self,
         key: PRNGKeyArray,
@@ -118,6 +115,22 @@ class ReleaseTimeSampler(eqx.Module):
             Sorted sampled release times from `t0` and `t1`.
 
         """
+        # `int` so a numpy integer stays static under `filter_jit`.
+        return self._sample(key, t0, t1, n_stars=int(n_stars), mass_params=mass_params)
+
+    # `filter_jit` so a field holding a Python function (e.g. a
+    # `CustomMassRateField`) can be passed. A Python `int` `n_stars` is static.
+    @eqx.filter_jit
+    def _sample(
+        self,
+        key: PRNGKeyArray,
+        /,
+        t0: u.AbstractQuantity,
+        t1: u.AbstractQuantity,
+        *,
+        n_stars: int,
+        mass_params: dict[str, Any],
+    ) -> Float[Array, "{n_stars}"]:
         # TODO: get the times from the dense interpolation. But have to figure
         # out the infs. Then don't need to make this ts array
         ts = jnp.linspace(t0, t1, 2**13)  # TODO: select number

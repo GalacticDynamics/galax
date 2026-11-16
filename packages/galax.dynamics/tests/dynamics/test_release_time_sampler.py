@@ -3,6 +3,7 @@
 import equinox as eqx
 import jax.numpy as jnp
 import jax.random as jr
+import numpy as np
 
 import unxt as u
 
@@ -57,3 +58,16 @@ def test_sample_accepts_a_custom_field():
     U = jr.uniform(key, shape=(5,))
     want = jnp.sort(-10.0 * jnp.log1p(-U * (1 - jnp.exp(-1.0))))
     assert jnp.allclose(got.ustrip("Myr"), want, atol=1e-2)
+
+
+def test_sample_accepts_a_numpy_int_n_stars():
+    """A numpy integer ``n_stars`` still sets a static output shape."""
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
+    t0, t1 = u.Q(0.0, "Myr"), u.Q(10.0, "Myr")
+    m_of_t = gdc.MassSolver().solve(
+        field, u.Q(1e4, "Msun"), t0, t1, dense=True, vectorize_interpolation=True
+    )
+    sampler = gdc.ReleaseTimeSampler(dm_dt=field, m_of_t=m_of_t, units="galactic")
+
+    got = sampler.sample(jr.PRNGKey(0), t0, t1, n_stars=np.int64(5), mass_params={})
+    assert got.shape == (5,)

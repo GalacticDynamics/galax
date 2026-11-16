@@ -426,7 +426,7 @@ class OrbitSolver(AbstractSolver):
           ``dense=True``.
         - "vectorize_interpolation" (bool): If `True`, the interpolation is
           vectorized using
-          `galax.dynamics.integrate.VectorizedDenseInterpolation`.
+          `diffraxtra.VectorizedDenseInterpolation`.
 
         The output shape aligns with `diffrax.diffeqsolve`: (*batch, [time],
         *shape), where [time] is >= 1. The `unbatch_time` keyword argument can
@@ -648,7 +648,7 @@ class OrbitSolver(AbstractSolver):
         All these examples can be interpolated as dense solutions. If the time
         or position are batched, then the `diffrax.DenseInterpolation` needs to
         be vectorized into a
-        `galax.dynamics.integrate.VectorizedDenseInterpolation`. This can be
+        `diffraxtra.VectorizedDenseInterpolation`. This can be
         done by passing ``vectorize_interpolation=True``. To emphasize the
         differences, let's do this on a batched solve.
 

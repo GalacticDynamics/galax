@@ -1,4 +1,4 @@
-"""Experimental dynamics."""
+"""Experimental orbit integration."""
 
 __all__: list[str] = ["integrate_orbit"]
 
@@ -17,12 +17,12 @@ from plum import dispatch
 import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 import galax.potential as gp
-from galax.orbits import AbstractOrbitField
+from galax.orbits._src.field_base import AbstractOrbitField
+from galax.orbits._src.field_hamiltonian import HamiltonianField
 
-BQParr: TypeAlias = tuple[Real[gdt.Qarr, "B"], Real[gdt.Parr, "B"]]
+BQParr: TypeAlias = tuple[Real[gt.Qarr, "B"], Real[gt.Parr, "B"]]
 
 default_solver = dfxtra.DiffEqSolver(
     solver=dfx.Dopri8(scan_kind="bounded"),
@@ -153,7 +153,8 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     >>> import jax.numpy as jnp
     >>> import unxt as u
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
+    >>> import galax.orbits._src.experimental as gox
 
     >>> pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     >>> x0 = jnp.array([15.0, 0.0, 0.0])  # [kpc]
@@ -165,7 +166,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 
     ## Using a potential:
 
-    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit = gox.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[], t1=f64[], ts=f64[100],
       ys=(f64[100,3], f64[100,3]), interpolation=None,
@@ -184,15 +185,15 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 
     Or the field can be passed directly:
 
-    >>> field = gd.HamiltonianField(pot)
-    >>> orbit = gd.experimental.integrate_orbit(field, xv0, t0=0, t1=t1, saveat=saveat)
+    >>> field = go.HamiltonianField(pot)
+    >>> orbit = gox.integrate_orbit(field, xv0, t0=0, t1=t1, saveat=saveat)
 
     ## Dense integration:
 
     Instead of saving at specific times, the orbit can be integrated and
     interpolated at between t0 and t1:
 
-    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=t1, dense=True)
+    >>> orbit = gox.integrate_orbit(pot, xv0, t0=0, t1=t1, dense=True)
     >>> orbit
     Solution( t0=f64[], t1=f64[], ts=None, ys=None,
               interpolation=DenseInterpolation( ... ), ... )
@@ -204,7 +205,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     evaluated with scalar arguments. To be able to evaluate with a vector of
     times, use ``dense_vectorize=True``:
 
-    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=t1,
+    >>> orbit = gox.integrate_orbit(pot, xv0, t0=0, t1=t1,
     ...     dense=True, dense_vectorize=True)
     >>> orbit
     Solution( t0=f64[], t1=f64[], ts=None, ys=None,
@@ -222,7 +223,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     >>> v0 = jnp.array([[0.0, 0.225, 0.0], [0.0, 0.226, 0.0]]) # [kpc/Myr]
     >>> xv0 = (x0, v0)
 
-    >>> orbit = gd.experimental.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
+    >>> orbit = gox.integrate_orbit(pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
       ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
@@ -250,9 +251,9 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     Loop strategies can be used to control the integration. For example, to
     automatically determine the best loop strategy:
 
-    >>> import galax.dynamics.loop_strategies as lstrat
+    >>> import jaxmore.loop_strategies as lstrat
 
-    >>> orbit = gd.experimental.integrate_orbit(lstrat.Determine,
+    >>> orbit = gox.integrate_orbit(lstrat.Determine,
     ...     pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
@@ -262,14 +263,14 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     On a CPU this will use the `Scan` loop strategy, while on a GPU it will use
     the `VMap` loop strategy. To force a specific loop strategy:
 
-    >>> orbit = gd.experimental.integrate_orbit(lstrat.Scan,
+    >>> orbit = gox.integrate_orbit(lstrat.Scan,
     ...     pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
       ys=(f64[2,100,3], f64[2,100,3]), interpolation=None,
       ... )
 
-    >>> orbit = gd.experimental.integrate_orbit(lstrat.VMap,
+    >>> orbit = gox.integrate_orbit(lstrat.VMap,
     ...     pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[2], t1=f64[2], ts=f64[2,100],
@@ -281,7 +282,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     the other loop strategies (including ``Determine``) and results in a
     different output shape. For example:
 
-    >>> orbit = gd.experimental.integrate_orbit(lstrat.NoLoop,
+    >>> orbit = gox.integrate_orbit(lstrat.NoLoop,
     ...     pot, xv0, t0=0, t1=10, saveat=saveat)
     >>> orbit
     Solution( t0=f64[], t1=f64[], ts=f64[100],
@@ -301,7 +302,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
     (
         type[lstrat.AbstractLoopStrategy],
         gp.AbstractPotential | AbstractOrbitField,
-        gdt.QParr,
+        gt.QParr,
         gt.LikeSz0 | None,
         gt.LikeSz0 | None,
     ),
@@ -321,7 +322,7 @@ def integrate_orbit(*args: Any, **kwargs: Any) -> Any:
 def integrate_orbit(
     loop_strategy: type[lstrat.AbstractLoopStrategy],  # noqa: ARG001
     pot: gp.AbstractPotential | AbstractOrbitField,
-    qp0: gdt.QParr,
+    qp0: gt.QParr,
     /,
     t0: gt.LikeSz0 | None = None,
     t1: gt.LikeSz0 | None = None,
@@ -376,9 +377,6 @@ def integrate_orbit(
         evaluation of the solution.
 
     """
-    # Note: this is needed to prevent a circular import
-    from galax.orbits import HamiltonianField
-
     field = pot if isinstance(pot, AbstractOrbitField) else HamiltonianField(pot)
 
     t0, t1, saver = parse_t0_t1_saveat(t0, t1, saveat, dense=dense)
@@ -481,7 +479,7 @@ def integrate_orbit(
     actually faster, at the expense of only being able to solve for a single
     batch axis, but at the gain of being able to batch over the `saveat`. If you
     want to speed compare against raw `diffrax.diffeqsolve`, you can use the
-    `galax.dynamics.loop_strategies.NoLoop` loop strategy.
+    `jaxmore.loop_strategies.NoLoop` loop strategy.
 
     """
 
@@ -555,7 +553,7 @@ def integrate_orbit(
     actually faster, at the expense of only being able to solve for a single
     batch axis, but at the gain of being able to batch over the `saveat`. If you
     want to speed compare against raw `diffrax.diffeqsolve`, you can use the
-    `galax.dynamics.loop_strategies.NoLoop` loop strategy.
+    `jaxmore.loop_strategies.NoLoop` loop strategy.
 
     """
     integrator = lambda qp0, saveat: integrate_orbit(

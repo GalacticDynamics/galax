@@ -23,7 +23,8 @@ from diffrax import (
 )
 from equinox.internal import ω  # noqa: PLC2403
 
-from galax.orbits import AbstractOrbitField, HamiltonianField
+from galax.orbits._src.field_base import AbstractOrbitField
+from galax.orbits._src.field_hamiltonian import HamiltonianField
 
 # diffrax doesn't publicly export these; they're type hints only (no runtime
 # behavior depends on them), so redeclare as `Any` rather than importing
@@ -46,9 +47,9 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
 
     This is a 2nd order symplectic integration method. This integrator does not support
     adaptive step sizing: it provides no error estimate, so pair it with
-    `diffrax.ConstantStepSize` (e.g. via ``gd.OrbitSolver(Leapfrog(),
+    `diffrax.ConstantStepSize` (e.g. via ``go.OrbitSolver(Leapfrog(),
     stepsize_controller=dfx.ConstantStepSize())``) rather than
-    `galax.dynamics.OrbitSolver`'s default adaptive `diffrax.PIDController`, which will
+    `galax.orbits.OrbitSolver`'s default adaptive `diffrax.PIDController`, which will
     raise a `RuntimeError` for a solver without error estimates. This is either known as
     kick-drift-kick leapfrog or velocity Verlet.
 

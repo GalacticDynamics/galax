@@ -23,7 +23,7 @@ import galax.dynamics._src.custom_types as gdt
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .df import AbstractKinematicDF, Fardal2015DF
-from .integrate import integrate_orbit
+from galax.orbits._src.experimental import integrate_orbit
 
 SzTime3: TypeAlias = Real[Array, "time 3"]
 SzN3: TypeAlias = Real[Array, "N 3"]

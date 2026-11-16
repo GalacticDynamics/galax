@@ -40,3 +40,12 @@ def test_plot_dispatch_after_move():
     orbit = go.compute_orbit(pot, w0, u.Q(jnp.linspace(0, 100, 5), "Myr"))
     assert isinstance(orbit, gd.Orbit)
     assert orbit.plot() is not None
+
+
+def test_experimental_identity():
+    import galax.dynamics._src.experimental as gdx
+    import galax.orbits._src.experimental as gox
+
+    assert gdx.Leapfrog is gox.Leapfrog
+    assert gdx.integrate_orbit is gox.integrate_orbit
+    assert gdx.SymplecticSolverT is gox.SymplecticSolverT

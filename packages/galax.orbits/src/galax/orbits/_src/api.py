@@ -90,7 +90,7 @@ def compute_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.coordinates.PhaseSpacePosition`. `evaluate_orbit` will then
+        :class:`~galax.coordinates.PhaseSpacePosition`. `compute_orbit` will then
         assume ``w0`` is defined at `t`[0].
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
@@ -107,7 +107,8 @@ def compute_orbit(
     ``dt0`` works forward and backward:
 
     >>> import diffrax as dfx
-    >>> solver = go.OrbitSolver(dfx.SemiImplicitEuler(),
+    >>> from galax.orbits._src import experimental
+    >>> solver = go.OrbitSolver(experimental.Leapfrog(),
     ...                         stepsize_controller=dfx.ConstantStepSize())
     >>> ts = u.Q(jnp.linspace(0, -1, 4), "Gyr")
     >>> orbit = go.compute_orbit(potential, w0, ts, solver=solver,

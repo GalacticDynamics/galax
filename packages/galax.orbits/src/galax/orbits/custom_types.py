@@ -62,4 +62,5 @@ BtAarr: TypeAlias = BtSz3
 # QP, PA
 
 BBtQParr: TypeAlias = tuple[BBtQarr, BBtParr]
+QParr: TypeAlias = tuple[Qarr, Parr]
 BtPAarr: TypeAlias = tuple[BtSz3, BtAarr]

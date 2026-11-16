@@ -303,9 +303,9 @@ def terms(
 ) -> tuple[dfx.ODETerm, dfx.ODETerm]:
     r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
 
-    See also `galax.dynamics.experimental.Leapfrog`, another symplectic solver,
-    for which the analogous dispatch is registered in
-    `galax.dynamics._src.experimental.leapfrog` (to avoid this core module
+    See also `galax.orbits._src.experimental.Leapfrog`, another symplectic
+    solver, for which the analogous dispatch is registered in
+    `galax.orbits._src.experimental.leapfrog` (to avoid this core module
     importing the experimental package).
 
     Examples

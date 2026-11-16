@@ -16,6 +16,7 @@ from galax.orbits.custom_types import (
     BtPAarr as BtPAarr,
     Parr as Parr,
     Qarr as Qarr,
+    QParr as QParr,
 )
 
 # ---------------------------
@@ -44,7 +45,7 @@ Aarr: TypeAlias = gt.Sz3
 # ---------------------------
 # QP
 
-QParr: TypeAlias = tuple[Qarr, Parr]
+
 BtQParr: TypeAlias = tuple[BtQarr, BtParr]
 
 QP: TypeAlias = tuple[Q, P]

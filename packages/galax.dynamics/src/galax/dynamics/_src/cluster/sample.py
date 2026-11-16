@@ -76,10 +76,10 @@ class ReleaseTimeSampler(eqx.Module):
     #: The mass field to use for the release time sampling.
     dm_dt: AbstractMassRateField
 
-    #: Solution m(t) given dm_dt
+    #: Solution m(t) given dm_dt. Its times and masses are in ``dm_dt.units``.
     m_of_t: dfx.Solution
 
-    #: The unit system
+    #: The unit system. Not used in sampling: times are read in ``dm_dt.units``.
     units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
 
     def __check_init__(self) -> None:
@@ -122,9 +122,10 @@ class ReleaseTimeSampler(eqx.Module):
         # TODO: get the times from the dense interpolation. But have to figure
         # out the infs. Then don't need to make this ts array
         ts = jnp.linspace(t0, t1, 2**13)  # TODO: select number
-        tsv = ts.ustrip(self.units["time"])
+        # `m_of_t` was solved from `dm_dt`, so it is in the field's units.
+        tsv = ts.ustrip(self.dm_dt.units["time"])
         m_of_t = self.m_of_t.evaluate(tsv)
-        escape_rate = -self.dm_dt(ts, m_of_t, mass_params)  # type: ignore[arg-type]
+        escape_rate = -self.dm_dt(tsv, m_of_t, mass_params)  # type: ignore[arg-type]
         # TODO: check that escape_rate is positive
 
         # Normalize to form a probability distribution

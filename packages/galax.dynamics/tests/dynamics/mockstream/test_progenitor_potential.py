@@ -377,9 +377,10 @@ def test_batch_mixed_t_age_progenitor() -> None:
 
     Batching changes the progenitor solve at the 1e-12 level, and a particle
     that passes close to a 1e7 Msun point mass can amplify that by orders of
-    magnitude (1e-10 of the scale for one particle with the current draws). So
-    the median is held to 1e-12 of the scale and the worst value to 1e-6;
-    mixed-up lanes would be off by order 1.
+    magnitude (7e-10 of the scale for one particle with the current draws and
+    diffrax 0.7.2; the medians are below 3e-15). So the median is held to 1e-12
+    of the scale and the worst value to 1e-6; mixed-up lanes would be off by
+    order 1.
     """
     t_ages = jnp.asarray([3000.0, 4500.0, 7000.0])
     masses = jnp.asarray([1e5, 1e6, 1e7])

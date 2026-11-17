@@ -247,7 +247,7 @@ def test_arms_drawn_independently(df_cls: type[gd.AbstractStreamDF]) -> None:
         )
     )
 
-    def offsets(arm: str, sign: float) -> np.ndarray:
+    def offsets(arm: str, sign: float, /) -> np.ndarray:
         """|offset|, x and z of the position offset in units of r_t.
 
         x is rotated back for the lead (z is unchanged by the rotation).

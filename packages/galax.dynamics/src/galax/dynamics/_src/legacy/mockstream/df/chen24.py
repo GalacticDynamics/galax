@@ -85,7 +85,7 @@ class ChenStreamDF(AbstractStreamDF):
 
         r_tidal = tidal_radius(potential, x, v, mass=prog_mass, t=t)
 
-        def offsets(key: PRNGKeyArray) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3]:
+        def offsets(key: PRNGKeyArray, /) -> tuple[gt.BBtQuSz3, gt.BBtQuSz3]:
             """Position and velocity offsets (along x_new, y_new, z_new)."""
             # Bill Chen: method="cholesky" doesn't work here!
             posvel = jr.multivariate_normal(

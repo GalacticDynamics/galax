@@ -1532,7 +1532,7 @@ requires-dist = [
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
-    { name = "diffrax", specifier = ">=0.7" },
+    { name = "diffrax", specifier = ">=0.7.1" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },

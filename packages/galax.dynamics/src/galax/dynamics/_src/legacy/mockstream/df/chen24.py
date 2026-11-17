@@ -97,11 +97,9 @@ class ChenStreamDF(AbstractStreamDF):
             v_esc = jnp.sqrt(2 * potential.constants["G"] * prog_mass / Dr)
             Dv = posvel[:, 3] * v_esc
 
-            # convert degrees to radians
-            phi = posvel[:, 1] * 0.017453292519943295
-            theta = posvel[:, 2] * 0.017453292519943295
-            alpha = posvel[:, 4] * 0.017453292519943295
-            beta = posvel[:, 5] * 0.017453292519943295
+            # Eq. 4 gives the angles in degrees.
+            phi, theta = jnp.deg2rad(posvel[:, 1]), jnp.deg2rad(posvel[:, 2])
+            alpha, beta = jnp.deg2rad(posvel[:, 4]), jnp.deg2rad(posvel[:, 5])
 
             ctheta, stheta = jnp.cos(theta), jnp.sin(theta)
             cphi, sphi = jnp.cos(phi), jnp.sin(phi)

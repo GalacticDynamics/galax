@@ -203,8 +203,10 @@ def test_fixed_step_dt0_quantity(method):
         return solver.run(field, state, -100.0, None, dt0=dt0, max_steps=101).y
 
     want, got = ys(1.0), ys(u.Q(1000, "kyr"))
-    assert jnp.array_equal(got[0], want[0])
-    assert jnp.array_equal(got[1], want[1])
+    # Same steps; diffrax 0.7.1 and later round a Python float `dt0` and a traced
+    # one differently, ~1e-15 apart. A wrong unit is off by orders of magnitude.
+    assert jnp.allclose(got[0], want[0], rtol=0, atol=1e-12)
+    assert jnp.allclose(got[1], want[1], rtol=0, atol=1e-12)
 
 
 def test_evaluate_orbit_fixed_step_back_then_forward():
@@ -401,6 +403,37 @@ def test_leapfrog_one_force_evaluation_per_step():
     assert len(n_evals) == 11  # one at the start, then one per step
 
 
+class _ConstantStep(dfx.AbstractAdaptiveStepSizeController):
+    """A constant step size that `ClipStepSizeController` accepts.
+
+    diffrax 0.7.1 and later only wrap adaptive controllers in
+    `ClipStepSizeController`, and `Leapfrog` has no error estimate to drive
+    one. This steps by `dt0` and ignores tolerances.
+    """
+
+    rtol: float = 0.0
+    atol: float = 0.0
+    norm: object = None
+
+    def wrap(self, direction):
+        return self
+
+    def init(self, terms, t0, t1, y0, dt0, args, func, error_order):
+        return t0 + dt0, dt0
+
+    def adapt_step_size(
+        self, t0, t1, y0, y1_candidate, args, y_error, error_order, controller_state
+    ):
+        return (
+            True,
+            t1,
+            t1 + controller_state,
+            False,
+            controller_state,
+            dfx.RESULTS.successful,
+        )
+
+
 def _smooth(t, q, args):
     return -q + 0.3 * jnp.sin(2 * t)
 
@@ -418,9 +451,7 @@ def _jumpy(t, q, args):  # a jump at 0.55, plus smooth time dependence
             _jumpy,
             1.0,
             0.1,
-            dfx.ClipStepSizeController(
-                dfx.ConstantStepSize(), jump_ts=jnp.array([0.55])
-            ),
+            dfx.ClipStepSizeController(_ConstantStep(), jump_ts=jnp.array([0.55])),
         ),
     ],
     ids=["forward", "backward", "jump"],
@@ -454,7 +485,7 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
             0.1,
             (1.0, -0.5),
             stepsize_controller=dfx.ClipStepSizeController(
-                dfx.ConstantStepSize(), jump_ts=jnp.atleast_1d(t_jump)
+                _ConstantStep(), jump_ts=jnp.atleast_1d(t_jump)
             ),
             max_steps=20,
         ).ys

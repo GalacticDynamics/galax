@@ -648,7 +648,7 @@ wheels = [
 
 [[package]]
 name = "diffrax"
-version = "0.7.0"
+version = "0.7.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -659,9 +659,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "wadler-lindig" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/9e/d6081a1daf7a7b70f53ddac637bd2e6cd6fa91042ffd7b204741c0ce6d44/diffrax-0.7.0.tar.gz", hash = "sha256:f3bcc578cd92a9ca86fc6f5a54c1de76c1ba62f74de69b56002624bf205316f1", size = 151595, upload-time = "2025-03-14T03:52:22.422Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5a/ea/a22853377a840d70d1d174d43183f12990c66eecf34ba7e76eec781249d0/diffrax-0.7.2.tar.gz", hash = "sha256:9adc70fe90dba83f7dd839845839b2531a3dd736a3944fe1aa26598507cfb48e", size = 155159, upload-time = "2026-02-18T01:14:04.964Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/aa/1d/236424e689f62d7fe58f8b10f08c63a49c68efba087eabdd09198a9bbf38/diffrax-0.7.0-py3-none-any.whl", hash = "sha256:aa9645c40552f11a2d32042ef6b9fcd53c1f0f6bdbe32d37cb788669ca9910be", size = 193163, upload-time = "2025-03-14T03:52:20.943Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/48/c42f657f3d6b4d9d9674c9bc48e763d024511ea4cc1d6e0c68c7b4380c43/diffrax-0.7.2-py3-none-any.whl", hash = "sha256:1beee2f991cd049962fe3c89da28f933753aa66d80bef857533276c9f23301ed", size = 199673, upload-time = "2026-02-18T01:14:03.38Z" },
 ]
 
 [[package]]
@@ -954,7 +954,7 @@ requires-dist = [
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
-    { name = "diffrax", specifier = ">=0.7" },
+    { name = "diffrax", specifier = ">=0.7.1" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "galax-actionangle", editable = "packages/galax.actionangle" },
@@ -1215,7 +1215,7 @@ requires-dist = [
     { name = "boundinstance", specifier = ">=0.1" },
     { name = "coordinax", specifier = ">=0.24.3,<0.25" },
     { name = "dataclassish", specifier = ">=0.8.0" },
-    { name = "diffrax", specifier = ">=0.7" },
+    { name = "diffrax", specifier = ">=0.7.1" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
@@ -1275,7 +1275,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "diffrax", specifier = ">=0.7" },
+    { name = "diffrax", specifier = ">=0.7.1" },
     { name = "diffraxtra", specifier = ">=1.5.2" },
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "jax", specifier = ">=0.7.2" },
@@ -2266,7 +2266,7 @@ wheels = [
 
 [[package]]
 name = "optimistix"
-version = "0.0.11"
+version = "0.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
@@ -2275,9 +2275,9 @@ dependencies = [
     { name = "lineax" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/35/10/0d2318a80016a42e2dbcae0be1bea3f51fce0ff5bd919afe532e1e03f0ed/optimistix-0.0.11.tar.gz", hash = "sha256:cfce0de98e7e9fdbcc2ce6d49a9f82cd3166fd0eee29c0c7a1983f8aefd37757", size = 66648, upload-time = "2025-10-17T20:53:28.148Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/0b/3bdc0e698cb0d264e5dca0b5bb171342a950a43fa6e046d8c57189298422/optimistix-0.1.0.tar.gz", hash = "sha256:f05c9104748e87e1dc10a0b4a2be94e427f98c3eab0b1d41ea24a593d76be03d", size = 70164, upload-time = "2026-02-16T13:35:43.991Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ac/08/085ca409275952524e907156d9091a76b97d2c81a1099b2cb48a08c5ca3c/optimistix-0.0.11-py3-none-any.whl", hash = "sha256:acb4fb23b598db03e376900fcb61aee8dd511de41411e849661c0ffe9e4cd1c6", size = 97384, upload-time = "2025-10-17T20:53:26.798Z" },
+    { url = "https://files.pythonhosted.org/packages/63/53/6a81a6ebb1739f19c32002139719d4ee021a349d5bdbe066910feed327a1/optimistix-0.1.0-py3-none-any.whl", hash = "sha256:c8edda7bf7fe48839c93fcd72bce750c950ed9f7033158303150b7ab395add81", size = 101740, upload-time = "2026-02-16T13:35:42.971Z" },
 ]
 
 [[package]]

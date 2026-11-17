@@ -29,7 +29,7 @@ dependencies = [
   "boundinstance>=0.1",
   "coordinax>=0.24.3,<0.25",
   "dataclassish>=0.8.0",
-  "diffrax>=0.7",
+  "diffrax>=0.7.1",
   "diffraxtra>=1.5.2",
   "equinox>=0.13.8",
   "galax.coordinates",

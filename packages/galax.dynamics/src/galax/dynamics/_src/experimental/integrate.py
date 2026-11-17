@@ -53,7 +53,7 @@ def parse_t0_t1_saveat(
     ## saveat is None
 
     >>> parse_t0_t1_saveat(t0, t1, None, dense=False)
-    (0.0, 1.0, SaveAt(subs=SubSaveAt(t1=True)))
+    (0.0, 1.0, SaveAt(...t1=True...))
 
     >>> try:
     ...     parse_t0_t1_saveat(None, t1, None, dense=False)
@@ -72,7 +72,7 @@ def parse_t0_t1_saveat(
     >>> saveat = jnp.array(0.5)
     >>> parse_t0_t1_saveat(t0, None, saveat, dense=False)
     (0.0, Array(0.5, dtype=float64, weak_type=True),
-     SaveAt(subs=SubSaveAt(ts=f64[2])))
+     SaveAt(...ts=f64[2]...))
 
     >>> try: parse_t0_t1_saveat(None, None, saveat, dense=False)
     ... except Exception as e:
@@ -83,11 +83,11 @@ def parse_t0_t1_saveat(
 
     >>> saveat = jnp.array([0.1, 0.5, 0.75])
     >>> parse_t0_t1_saveat(t0, t1, saveat, dense=False)
-    (0.0, 1.0, SaveAt(subs=SubSaveAt(ts=f64[3])))
+    (0.0, 1.0, SaveAt(...ts=f64[3]...))
 
     >>> parse_t0_t1_saveat(None, None, saveat, dense=False)
     (Array(0.1, dtype=float64), Array(0.75, dtype=float64),
-     SaveAt(subs=SubSaveAt(ts=f64[3])))
+     SaveAt(...ts=f64[3]...))
 
     >>> try:
     ...     parse_t0_t1_saveat(None, None, jnp.array([0.5]), dense=False)

@@ -4,7 +4,6 @@ __all__ = ["ChenStreamDF"]
 
 
 import functools as ft
-import warnings
 
 from jaxtyping import PRNGKeyArray
 from typing import final
@@ -47,16 +46,17 @@ class ChenStreamDF(AbstractStreamDF):
     A class for representing the Chen+2024 distribution function for
     generating stellar streams based on Chen et al. 2024
     https://ui.adsabs.harvard.edu/abs/2024arXiv240801496C/abstract
-    """
 
-    def __init__(self) -> None:
-        super().__init__()
-        warnings.warn(
-            'Currently only the "no progenitor" version '
-            "of the Chen+24 model is supported!",
-            RuntimeWarning,
-            stacklevel=1,
-        )
+    The paper's default model integrates the particles in the host potential
+    plus the progenitor's: pass ``progenitor_potential`` to
+    `~galax.dynamics.MockStreamGenerator`, e.g.
+    ``PlummerPotential(m_tot=prog_mass, r_s=u.Q(4, "pc"), units=...)`` as in
+    the authors' notebooks (github.com/ybillchen/particle_spray). The paper
+    uses a point mass and finds that a scale radius of 0-4 pc doesn't
+    noticeably change the streams. Without a progenitor potential the stream
+    is the paper's "no progenitor" variant, and
+    `~galax.dynamics.MockStreamGenerator.run` warns.
+    """
 
     @ft.partial(jax.jit, inline=True)
     def _sample(

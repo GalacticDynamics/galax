@@ -58,8 +58,8 @@ class Integrator(eqx.Module):
         relative and absolute tolerances of 1e-7.
     diffeq_kw : Mapping[str, Any], optional
         Keyword arguments to pass to :func:`diffrax.diffeqsolve`. Default is
-        ``{"max_steps": None, "event": None}``. The ``"max_steps"`` key is
-        removed if ``dense=True`` in the :meth`Integrator.__call__` method.
+        ``{"max_steps": None}``. With ``dense=True`` a ``"max_steps"`` of `None`
+        (or none given) is dropped, so the solver's own ``max_steps`` applies.
 
     Examples
     --------
@@ -221,7 +221,7 @@ class Integrator(eqx.Module):
         # Ensure `dense=True` won't raise an error.
         diffeq_kw = dict(self.diffeq_kw)
         if dense and diffeq_kw.get("max_steps") is None:
-            diffeq_kw.pop("max_steps")
+            diffeq_kw.pop("max_steps", None)
 
         # Perform the integration
         save_at = save_t1_only if saveat is None else saveat

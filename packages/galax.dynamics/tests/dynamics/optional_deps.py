@@ -9,11 +9,18 @@ __all__ = ["OptDeps"]
 from packaging.version import Version
 
 from optional_dependencies import OptionalDependencyEnum
-from optional_dependencies.utils import NOT_INSTALLED, is_installed
+from optional_dependencies.utils import (
+    NOT_INSTALLED,
+    chain_checks,
+    get_version,
+    is_installed,
+)
 
 
 class OptDeps(OptionalDependencyEnum):  # type: ignore[misc]
     """Libraries the `galax.dynamics` tests compare against."""
+
+    GALA = chain_checks(get_version("gala"), is_installed("gala.dynamics"))
 
     # agama is built by hand and put on `PYTHONPATH` (see docs/testing.rst), so
     # it has no distribution metadata for `auto()` to find. Probe importability

@@ -107,7 +107,7 @@ class MockStreamGenerator(eqx.Module):
         """
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
-        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, "Myr")  # TODO: not bump in the final time.
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -148,7 +148,7 @@ class MockStreamGenerator(eqx.Module):
 
         Better for GPU usage.
         """
-        t_f = ts[-1] + u.Q(1e-3, ts.unit)  # TODO: not bump in the final time.
+        t_f = ts[-1] + u.Q(1e-3, "Myr")  # TODO: not bump in the final time.
 
         @ft.partial(jax.jit, inline=True)
         def one_pt_intg(

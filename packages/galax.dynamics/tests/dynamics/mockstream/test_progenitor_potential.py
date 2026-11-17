@@ -74,15 +74,15 @@ def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
     """``progenitor_potential=None`` gives what galax gave before it existed.
 
     The reference is from galax main at 019696b3, the last commit before
-    ``progenitor_potential`` existed, run with ``JAX_ENABLE_X64=True`` and
-    diffrax 0.7.2, with the default adaptive solver and with fixed-step
-    Leapfrog. diffrax 0.7.2 moves the Leapfrog streams by about 2e-8 of their
-    scale relative to 0.7.0, so the reference has to be regenerated when the
-    diffrax pin changes how Leapfrog steps. XLA's float results depend on
-    the platform and the jax version, so where those match the reference's
-    both are compared bitwise. Elsewhere the last-bit differences can change
-    the adaptive solver's step choices, so only Leapfrog is compared, to 1e-12
-    of the position and velocity scales.
+    ``progenitor_potential`` existed, with the stream DFs of #1050 (one draw per
+    arm), run with ``JAX_ENABLE_X64=True`` and diffrax 0.7.2, with the default
+    adaptive solver and with fixed-step Leapfrog. diffrax 0.7.2 moves the
+    Leapfrog streams by about 2e-8 of their scale relative to 0.7.0, so the
+    reference has to be regenerated when the diffrax pin changes how Leapfrog
+    steps. XLA's float results depend on the platform and the jax version, so
+    where those match the reference's both are compared bitwise. Elsewhere the
+    last-bit differences can change the adaptive solver's step choices, so only
+    Leapfrog is compared, to 1e-12 of the position and velocity scales.
     """
     ref = np.load(DATA / "no_progenitor_reference.npz")
     same_build = (
@@ -373,7 +373,14 @@ def test_progenitor_close_passage_finite(m: float) -> None:
 
 
 def test_batch_mixed_t_age_progenitor() -> None:
-    """``jit(vmap)`` over t_age and the progenitor mass equals separate calls."""
+    """``jit(vmap)`` over t_age and the progenitor mass equals separate calls.
+
+    Batching changes the progenitor solve at the 1e-12 level, and a particle
+    that passes close to a 1e7 Msun point mass can amplify that by orders of
+    magnitude (1e-10 of the scale for one particle with the current draws). So
+    the median is held to 1e-12 of the scale and the worst value to 1e-6;
+    mixed-up lanes would be off by order 1.
+    """
     t_ages = jnp.asarray([3000.0, 4500.0, 7000.0])
     masses = jnp.asarray([1e5, 1e6, 1e7])
     lf = leapfrog(1.0, 7000.0)
@@ -398,11 +405,10 @@ def test_batch_mixed_t_age_progenitor() -> None:
     for i in range(len(t_ages)):
         single = jax.jit(one)(t_ages[i], masses[i])
         for b, s in zip(batch, single, strict=True):
-            # With diffrax 0.7.2 the batched and separate runs differ by about
-            # 2e-12 of the scale after 7000 Leapfrog steps; the lanes
-            # themselves differ at order one.
+            d = np.abs(np.asarray(b[i]) - np.asarray(s))
             scale = float(jnp.max(jnp.abs(s)))
-            np.testing.assert_allclose(b[i], s, rtol=0, atol=1e-10 * scale)
+            assert np.median(d) <= 1e-12 * scale, (i, np.median(d) / scale)
+            assert d.max() <= 1e-6 * scale, (i, d.max() / scale)
     # The lanes are different streams.
     assert float(jnp.max(jnp.abs(batch[0][0] - batch[0][2]))) > 1.0
 

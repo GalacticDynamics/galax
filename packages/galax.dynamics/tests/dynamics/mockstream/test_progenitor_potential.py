@@ -73,7 +73,7 @@ def stream_w(mock: gd.MockStream, /) -> np.ndarray:
 def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
     """``progenitor_potential=None`` gives what galax gave before it existed.
 
-    The reference is from galax 6f6e5681 (the parent commit), with the default
+    The reference is from galax main at 6f6e5681, with the default
     adaptive solver and with fixed-step Leapfrog. XLA's float results depend on
     the platform and the jax version, so where those match the reference's
     both are compared bitwise. Elsewhere the last-bit differences can change

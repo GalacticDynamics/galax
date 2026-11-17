@@ -92,7 +92,11 @@ class MockStreamGenerator(eqx.Module):
 
     The particles see the progenitor's orbit as a cubic Hermite interpolant of
     its position and velocity on ``max(20 len(ts), 2**14)`` uniformly spaced
-    times.
+    times. That orbit is one dense solve with ``progenitor_integrator``, and a
+    dense solve can't be unbounded: a ``"max_steps"`` of `None` in its
+    ``diffeq_kw`` is dropped, so the solver's own ``max_steps`` (``2**16`` by
+    default) caps it. A fixed-step integrator that needs more steps should set
+    an integer ``"max_steps"``.
     """
 
     progenitor_integrator: Integrator = eqx.field(

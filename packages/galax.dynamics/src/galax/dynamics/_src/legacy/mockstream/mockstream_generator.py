@@ -49,7 +49,7 @@ class _HermitePath(eqx.Module):
     x: gt.SzN  # (n, 3)
     v: gt.SzN  # (n, 3)
 
-    def __call__(self, t: gt.BBtSz0) -> gt.BBtSz3:
+    def __call__(self, t: gt.BBtSz0, /) -> gt.BBtSz3:
         s = (t - self.t0) / self.dt
         i = jnp.clip(jnp.floor(s).astype(int), 0, self.x.shape[0] - 2)
         a = (s - i)[..., None]
@@ -122,7 +122,7 @@ class MockStreamGenerator(eqx.Module):
         )
 
     def _stream_potential(
-        self, w0: gc.PhaseSpaceCoordinate, ts: gt.QuSzTime
+        self, w0: gc.PhaseSpaceCoordinate, ts: gt.QuSzTime, /
     ) -> AbstractPotential:
         """Return the potential the stream particles move in."""
         if self.progenitor_potential is None:
@@ -164,6 +164,7 @@ class MockStreamGenerator(eqx.Module):
         t0: gt.QuSz0,
         t1: gt.QuSz0,
         potential: AbstractPotential | None = None,
+        /,
     ) -> tuple[gt.Sz6, gt.Sz6]:
         """Integrate a leading and a trailing particle ``(2, 6)`` from t0 to t1.
 
@@ -195,6 +196,7 @@ class MockStreamGenerator(eqx.Module):
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
         potential: AbstractPotential,
+        /,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by scanning over the release model/integration.
 
@@ -241,6 +243,7 @@ class MockStreamGenerator(eqx.Module):
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
         potential: AbstractPotential,
+        /,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by vmapping over the release model/integration.
 

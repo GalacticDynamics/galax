@@ -37,7 +37,7 @@ PROG_W0 = gc.PhaseSpaceCoordinate(
 )
 
 
-def adaptive(tol: float) -> gd.integrate.Integrator:
+def adaptive(tol: float, /) -> gd.integrate.Integrator:
     return gd.integrate.Integrator(
         gd.OrbitSolver(
             solver=dfx.Dopri8(scan_kind="bounded"),
@@ -47,7 +47,7 @@ def adaptive(tol: float) -> gd.integrate.Integrator:
     )
 
 
-def leapfrog(dt: float, t_max: float) -> gd.integrate.Integrator:
+def leapfrog(dt: float, t_max: float, /) -> gd.integrate.Integrator:
     n = int(t_max / dt) + 16
     solver = gd.OrbitSolver(
         solver=gd.experimental.Leapfrog(),
@@ -57,7 +57,7 @@ def leapfrog(dt: float, t_max: float) -> gd.integrate.Integrator:
     return gd.integrate.Integrator(solver, diffeq_kw={"dt0": dt, "max_steps": n})
 
 
-def stream_w(mock: gd.MockStream) -> np.ndarray:
+def stream_w(mock: gd.MockStream, /) -> np.ndarray:
     """(2 n, 6): lead rows then trail rows, in the host units."""
     return np.concatenate(
         [np.asarray(mock[k].w(units=USYS)) for k in ("lead", "trail")]
@@ -129,6 +129,8 @@ def gala_stream(
     ts: np.ndarray,
     w0: np.ndarray,
     t_f: float,
+    /,
+    *,
     tol: float = 1e-10,
 ) -> np.ndarray:
     """Gala's mockstream integration of the particles ``w0`` (lead, trail per ts[i]).
@@ -168,7 +170,7 @@ def gala_stream(
     return np.concatenate([raw[:, 0], raw[:, 1]])
 
 
-def to_gala(pot: gp.AbstractPotential) -> object:
+def to_gala(pot: gp.AbstractPotential, /) -> object:
     return gp.io.convert_potential(gp.io.GalaLibrary, pot)
 
 
@@ -374,7 +376,7 @@ def test_batch_mixed_t_age_progenitor() -> None:
     w_today = jnp.asarray(PROG_W0.w(units=USYS))
     key = jax.random.key(11)
 
-    def one(t_age: jax.Array, m: jax.Array) -> tuple[jax.Array, jax.Array]:
+    def one(t_age: jax.Array, m: jax.Array, /) -> tuple[jax.Array, jax.Array]:
         gen = gd.MockStreamGenerator(
             gd.ChenStreamDF(), HOST,
             progenitor_potential=gp.KeplerPotential(m_tot=u.Q(m, "Msun"), units=USYS),

@@ -21,10 +21,10 @@ classifiers = [
 # `galax.actionangle` in the import graph. Not `galax` -- depending on
 # the root would recreate the very cycle this PR dissolves.
 #
-# `numpy` is imported at module scope by `_src/orbit/base.py` (and, in
-# `galax.fields`, by its solver) but is declared nowhere in the repository root,
-# so this floor is DERIVED, not copied: 2.0 is what JAX 0.8 and later require,
-# and gives the Array API names (`np.concat`, ...). Tracked repo-wide in #920.
+# `numpy` was imported at module scope by `_src/orbit/base.py`, which now lives
+# in `galax.orbits` (and declares its own floor). This portion no longer imports
+# it directly; the floor stays so the move doesn't change dependencies. 2.0 is
+# what JAX 0.8 and later require. Tracked repo-wide in #920.
 dependencies = [
   "boundinstance>=0.1",
   "coordinax>=0.24.3,<0.25",

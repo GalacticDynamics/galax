@@ -114,8 +114,8 @@ class Fardal2015DF(AbstractKinematicDF):
     >>> v = jnp.array([0.0, 220.0, 0.0])
     >>> Msat = 1e5
     >>> df.sample(key, pot, t, x, v, Msat)
-    (Array([1.49962403e+01, 0.00000000e+00, 2.49694925e-04], dtype=float64),
-     Array([0.00000000e+00, 2.20022081e+02, 6.34205795e-03], dtype=float64),
+    (Array([1.49977501e+01, 0.00000000e+00, 7.49832945e-04], dtype=float64),
+     Array([ 0.00000000e+00,  2.19966471e+02, -4.78647352e-04], dtype=float64),
      Array([1.50037597e+01, 0.00000000e+00, 2.49694925e-04], dtype=float64),
      Array([0.00000000e+00, 2.19977919e+02, 6.34205795e-03], dtype=float64))
 
@@ -157,8 +157,9 @@ class Fardal2015DF(AbstractKinematicDF):
         phi_vec = v - jnp.sum(v * r_hat) * r_hat
         phi_hat = cx.vecs.normalize_vector(phi_vec)
 
-        # k vals
-        shape = r_tidal.shape  # type: ignore[attr-defined]
+        # k vals, a separate draw for each arm (index 0 trailing, 1 leading), as
+        # in gala and the agama code of Chen+24.
+        shape = (2, *r_tidal.shape)  # type: ignore[attr-defined]
         kr_samp = self.kr_bar + jr.normal(key1, shape) * self.sigma_kr
         kvphi_samp = kr_samp * (
             self.kvphi_bar + jr.normal(key2, shape) * self.sigma_kvphi
@@ -167,11 +168,11 @@ class Fardal2015DF(AbstractKinematicDF):
         kvz_samp = self.kvz_bar + jr.normal(key4, shape) * self.sigma_kvz
 
         # Leading arm
-        x_lead = x - r_tidal * (kr_samp * r_hat - kz_samp * z_hat)
-        v_lead = v - v_circ * (kvphi_samp * phi_hat - kvz_samp * z_hat)
+        x_lead = x - r_tidal * (kr_samp[1] * r_hat - kz_samp[1] * z_hat)
+        v_lead = v - v_circ * (kvphi_samp[1] * phi_hat - kvz_samp[1] * z_hat)
 
         # Trailing arm
-        x_trail = x + r_tidal * (kr_samp * r_hat + kz_samp * z_hat)
-        v_trail = v + v_circ * (kvphi_samp * phi_hat + kvz_samp * z_hat)
+        x_trail = x + r_tidal * (kr_samp[0] * r_hat + kz_samp[0] * z_hat)
+        v_trail = v + v_circ * (kvphi_samp[0] * phi_hat + kvz_samp[0] * z_hat)
 
         return x_lead, v_lead, x_trail, v_trail

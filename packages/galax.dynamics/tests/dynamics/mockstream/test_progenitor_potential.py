@@ -73,8 +73,12 @@ def stream_w(mock: gd.MockStream, /) -> np.ndarray:
 def test_no_progenitor_unchanged(dfname: str, vmapped: bool) -> None:
     """``progenitor_potential=None`` gives what galax gave before it existed.
 
-    The reference is from galax main at 6f6e5681, with the default
-    adaptive solver and with fixed-step Leapfrog. XLA's float results depend on
+    The reference is from galax main at 019696b3, the last commit before
+    ``progenitor_potential`` existed, run with ``JAX_ENABLE_X64=True`` and
+    diffrax 0.7.2, with the default adaptive solver and with fixed-step
+    Leapfrog. diffrax 0.7.2 moves the Leapfrog streams by about 2e-8 of their
+    scale relative to 0.7.0, so the reference has to be regenerated when the
+    diffrax pin changes how Leapfrog steps. XLA's float results depend on
     the platform and the jax version, so where those match the reference's
     both are compared bitwise. Elsewhere the last-bit differences can change
     the adaptive solver's step choices, so only Leapfrog is compared, to 1e-12
@@ -394,8 +398,11 @@ def test_batch_mixed_t_age_progenitor() -> None:
     for i in range(len(t_ages)):
         single = jax.jit(one)(t_ages[i], masses[i])
         for b, s in zip(batch, single, strict=True):
+            # With diffrax 0.7.2 the batched and separate runs differ by about
+            # 2e-12 of the scale after 7000 Leapfrog steps; the lanes
+            # themselves differ at order one.
             scale = float(jnp.max(jnp.abs(s)))
-            np.testing.assert_allclose(b[i], s, rtol=0, atol=1e-12 * scale)
+            np.testing.assert_allclose(b[i], s, rtol=0, atol=1e-10 * scale)
     # The lanes are different streams.
     assert float(jnp.max(jnp.abs(batch[0][0] - batch[0][2]))) > 1.0
 

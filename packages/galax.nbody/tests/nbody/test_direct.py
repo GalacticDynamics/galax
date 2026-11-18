@@ -154,13 +154,13 @@ def test_check_grads_small() -> None:
     s, t = massive(5)
     b = DirectSum(chunk_size=2)
     check_grads(
-        lambda q: b.accelerations(Sources(q, s.m, s.h), t, G=G),
+        lambda q: b.accelerations(Sources(jnp.asarray(q), s.m, s.h), t, G=G),
         (s.q,),
         order=1,
         modes=("rev",),
     )
     check_grads(
-        lambda m: b.accelerations(Sources(s.q, m, s.h), t, G=G),
+        lambda m: b.accelerations(Sources(s.q, jnp.asarray(m), s.h), t, G=G),
         (s.m,),
         order=1,
         modes=("rev",),

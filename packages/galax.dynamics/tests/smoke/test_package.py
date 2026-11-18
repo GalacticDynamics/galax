@@ -10,6 +10,7 @@ def test_all() -> None:
         "cluster",
         "fields",
         "mockstream",
+        "nbody",
         "orbit",
         "plot",
         "examples",

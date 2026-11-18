@@ -1,26 +1,39 @@
 """Field for N-Body dynamics."""
 
-__all__ = ["NBodyField"]
+__all__ = ["NBodyField", "nbody_acceleration"]
 
-from jaxtyping import Array, Float, Real
+from jaxtyping import Array, Bool, Float, Real
 from typing import Any, final
 
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 from plum import dispatch
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.orbits.custom_types as gt
 import galax.potential as gp
+from .backend import AbstractForceBackend, Sources, Targets
+from .direct import DirectSum
+from .system import System
 from galax.orbits import AbstractOrbitField
+
+_NULL = gp.NullPotential(units="galactic")
+_DIRECT = DirectSum()
 
 
 @final
 class NBodyField(AbstractOrbitField):
     r"""Dynamics field for N-Body EoM.
+
+    The first ``n_massive`` particles are sources; the rest are massless
+    tracers that feel the sources but exert nothing. Inactive particles
+    (``active`` False) exert nothing and get zero acceleration. Softening is
+    given either as one ``eps`` for all particles or per particle as
+    ``softening``. ``masses`` and ``softening`` are stored as arrays in the
+    external potential's units.
 
     .. warning::
 
@@ -58,16 +71,57 @@ class NBodyField(AbstractOrbitField):
 
     """
 
-    #: masses of each particle.
-    masses: Real[u.Quantity["mass"], "N"] | Real[Array, "N"]
+    masses: Float[Array, " N"]
+    softening: Float[Array, " N"]
+    active: Bool[Array, " N"]
+    n_massive: int = eqx.field(static=True)
+    external_potential: gp.AbstractPotential = _NULL
+    backend: AbstractForceBackend = _DIRECT
 
-    #: softening length.
-    eps: Float[u.Quantity["length"], ""] | Float[Array, ""]
+    def __init__(
+        self,
+        masses: Any,
+        eps: Any = None,
+        external_potential: gp.AbstractPotential = _NULL,
+        *,
+        softening: Any = None,
+        active: Any = None,
+        n_massive: int | None = None,
+        backend: AbstractForceBackend = _DIRECT,
+    ) -> None:
+        if (eps is None) == (softening is None):
+            msg = "pass exactly one of eps and softening"
+            raise ValueError(msg)
+        units = external_potential.units
+        m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
+        h = u.ustrip(AllowValue, units["length"], softening if eps is None else eps)
+        n = m.shape[0]
+        self.masses = m
+        self.softening = jnp.broadcast_to(jnp.asarray(h, dtype=float), (n,))
+        self.active = (
+            jnp.ones(n, dtype=bool) if active is None else jnp.asarray(active, bool)
+        )
+        self.n_massive = n if n_massive is None else n_massive
+        self.external_potential = external_potential
+        self.backend = backend
 
-    #: Potential.
-    external_potential: gp.AbstractPotential = eqx.field(
-        default=gp.NullPotential(units="galactic")
-    )
+    @classmethod
+    def from_system(
+        cls,
+        system: System,
+        external_potential: gp.AbstractPotential,
+        backend: AbstractForceBackend = _DIRECT,
+    ) -> "NBodyField":
+        """Build a field from ``system``, converting it to the potential's units."""
+        ps, us = system.particles, system.units
+        return cls(
+            u.Q(ps.m, us["mass"]),
+            external_potential=external_potential,
+            softening=u.Q(ps.h, us["length"]),
+            active=ps.active,
+            n_massive=system.n_massive,
+            backend=backend,
+        )
 
     @property  # type: ignore[misc]
     def units(self) -> u.AbstractUnitSystem:
@@ -80,11 +134,38 @@ class NBodyField(AbstractOrbitField):
         _result = self.external_potential.constants["G"].ustrip(unit)
         return _result  # type: ignore[no-any-return]
 
+    def acceleration(self, t: Any, q: Float[Array, "N 3"]) -> Float[Array, "N 3"]:
+        """Return the accelerations (N, 3) at positions ``q`` and time ``t``."""
+        return nbody_acceleration(self, t, q)
+
     @dispatch.abstract  # type: ignore[override]
     def __call__(
         self, t: Any, qp: tuple[Any, Any], args: tuple[Any, ...], /
     ) -> tuple[Any, Any]:
         raise NotImplementedError  # pragma: no cover
+
+
+def nbody_acceleration(
+    field: NBodyField, t: Any, q: Float[Array, "N 3"]
+) -> Float[Array, "N 3"]:
+    """Return the accelerations (N, 3) of all particles in ``field``.
+
+    This is the backend's pairwise term from the active massive particles plus
+    the external term, zeroed for inactive particles. ``G`` is folded into the
+    source masses so the backend never closes over a traced value.
+    """
+    nm = field.n_massive
+    idx = jnp.arange(q.shape[0])
+    sources = Sources(
+        q=q[:nm],
+        m=(field._G * field.masses * field.active)[:nm],  # noqa: SLF001
+        h=field.softening[:nm],
+    )
+    targets = Targets(q=q, h=field.softening, self_index=jnp.where(idx < nm, idx, -1))
+    backend = field.backend
+    a = backend.accelerations(backend.prepare(sources), targets, G=1.0)
+    a = a - jnp.asarray(gp.gradient(field.external_potential, q, t))
+    return jnp.where(field.active[:, None], a, 0.0)
 
 
 @NBodyField.__call__.dispatch
@@ -97,37 +178,8 @@ def __call__(
     args: Any,  # noqa: ARG001
     /,
 ) -> tuple[Real[Array, "N 3"], Real[Array, "N 3"]]:
-    # Break apart the input.
     units = self.units
     x, v = xv
     x = u.ustrip(AllowValue, units["length"], x)
     v = u.ustrip(AllowValue, units["speed"], v)
-
-    # Compute the difference vectors ri - rj between all pairs of points
-    diffs = x[:, None, :] - x[None, :, :]  # (N, N, 3)
-
-    # Compute softened squared distances.
-    eps = u.ustrip(AllowValue, units["length"], self.eps)
-    soft_d2s = jnp.sum(diffs**2, axis=-1)[:, :, None] + eps**2  # (N, N, 1)
-    soft_d3s = soft_d2s * jnp.sqrt(soft_d2s)  # (N, N, 1)
-
-    # Compute pairwise forces.
-    ms = u.ustrip(AllowValue, units["mass"], self.masses)  # (N,)
-    m2s = ms[:, None, None] * ms[None, :, None]  # (N, N, 1)
-    forces = self._G * m2s / soft_d3s * diffs  # (N, N, 3)
-
-    # Remove self-interaction forces
-    # TODO: is this necessary since `diffs` has the 0s?
-    mask = 1 - jnp.eye(len(x))[:, :, None]  # Shape (N, N, 1)
-    forces = forces * mask
-
-    # Sum forces -> acceleration.
-    a_self = jnp.sum(forces, axis=0) / ms[:, None]  # (N, 3)
-
-    # Compute acceleration due to external potential.
-    a_external = self.external_potential._gradient(x, t)  # noqa: SLF001
-
-    # Total acceleration.
-    a_tot = a_self - a_external
-
-    return v, a_tot
+    return v, self.acceleration(t, x)

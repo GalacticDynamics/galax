@@ -12,7 +12,7 @@ def test_force_is_minus_grad_potential() -> None:
     """The pair acceleration -K x equals minus the gradient of the potential."""
     k = PlummerKernel()
     x = jnp.array([0.3, -0.2, 0.5])
-    h = 0.1
+    h = jnp.asarray(0.1)
 
     def phi(x):
         return k.potential(jnp.sum(x**2), h)

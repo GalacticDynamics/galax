@@ -7,3 +7,8 @@ import galax.nbody as gn
 def test_nbody_field_identity():
     assert gd.NBodyField is gn.NBodyField
     assert gd.fields.NBodyField is gn.NBodyField
+
+
+def test_dynamics_nbody_module_reexports_same_objects():
+    for name in gn.__all__:
+        assert getattr(gd.nbody, name) is getattr(gn, name)

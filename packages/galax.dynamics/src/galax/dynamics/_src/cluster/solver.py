@@ -41,7 +41,7 @@ class MassSolver(AbstractSolver):
     >>> saveat = jnp.linspace(t0, t1, 10)
     >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
     >>> mass_soln.ys
-    Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
+    Array([1000000. , 56101.91734983, inf, inf, ...], dtype=float64)
 
     """
 
@@ -54,7 +54,10 @@ class MassSolver(AbstractSolver):
     #: How to change the step size as the integration progresses.
     #: See diffrax's list of stepsize controllers.
     stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = dfx.PIDController(
-        rtol=1e-6, atol=1e-6
+        # A small `atol` (in the field's mass unit) so a tiny cluster, e.g.
+        # 1e-6 Msun, doesn't overshoot below 0.
+        rtol=1e-6,
+        atol=1e-12,
     )
 
     #: How to differentiate in `diffeqsolve`.
@@ -179,9 +182,24 @@ def run(
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
+    if "dense" in solver_kw:
+        msg = (
+            "`run` returns only the final state. For the mass history use "
+            "`solve(..., dense=True)`."
+        )
+        raise TypeError(msg)
     solver_kw.setdefault("dt0", None)
     args = _event_args(args, field.units, state.y)
-    soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
+    # Save the solver state at the end, so `step` can continue from it.
+    soln = self(
+        field,
+        t0=state.t,
+        t1=t1_,
+        y0=state.y,
+        args=args,
+        saveat=dfx.SaveAt(t1=True, solver_state=True),
+        **solver_kw,
+    )
 
     return SolveState(
         t=soln.ts[-1],  # the event time, if the event stopped the solve

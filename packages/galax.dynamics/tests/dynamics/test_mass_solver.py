@@ -296,3 +296,61 @@ def test_default_root_finder_ignores_a_threshold_that_overflows():
         )
 
     assert jnp.allclose(soln.ts, 100.0)
+
+
+def test_default_controller_handles_a_tiny_mass():
+    """A 1e-6 Msun cluster decaying by 10x every 50 Myr stays positive.
+
+    With an absolute step tolerance of 1e-6 Msun the solve overshot below 0,
+    and the default event's root-find then failed.
+    """
+    rate = float(-np.log(10) / 50)
+    field = gdc.CustomMassRateField(lambda _t, M, _args: rate * M, units="galactic")
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(1e-6, "Msun"), u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
+    )
+
+    assert jnp.allclose(soln.ts, 100.0)
+    assert jnp.allclose(soln.ys, 1e-8, rtol=1e-4)
+
+
+def test_step_after_run():
+    """`run` keeps the solver state, so `step` can continue from it."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(1.0, "Myr"), None)
+    state = solver.step(field, state, u.Q(1.1, "Myr"), None)
+
+    assert jnp.allclose(state.t, 1.1)
+    assert jnp.allclose(state.y, 1e4 * np.exp(-0.11))
+
+
+def test_run_explains_that_dense_needs_solve():
+    """`run` returns only the final state; `dense` belongs to `solve`."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+
+    with pytest.raises(TypeError, match=r"solve\(.*dense=True"):
+        solver.run(field, state, u.Q(1e3, "Myr"), None, dense=True)
+
+
+def test_default_event_explains_non_dict_args():
+    """The default event says it needs dict args, not just a KeyError/TypeError."""
+    field = gdc.CustomMassRateField(lambda _t, M, args: -args[0] * M, units="galactic")
+
+    with pytest.raises(TypeError, match="dict"):
+        gdc.MassSolver().solve(
+            field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1.0, "Myr"), args=(0.1,)
+        )
+
+
+def test_event_accepts_integer_masses():
+    """Called directly, the event works with integer masses and mass scale."""
+    event = gdc.MassBelowThreshold(u.Q(5, "Msun"))
+    args = {"units": u.unitsystems.galactic, "mass_scale": jnp.int32(10)}
+
+    assert jnp.allclose(event(0.0, jnp.int32(10), args), 0.5)

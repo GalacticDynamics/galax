@@ -4,6 +4,7 @@ __all__ = ["MassBelowThreshold"]
 
 import functools as ft
 
+from collections.abc import Mapping
 from jaxtyping import Array
 from typing import Any
 
@@ -54,7 +55,7 @@ class MassBelowThreshold(eqx.Module):
         self: "MassBelowThreshold",
         t: Any,  # noqa: ARG002
         y: Array | u.AbstractQuantity,
-        args: dict[str, Any],
+        args: Any,
         **__: Any,
     ) -> Array:
         """Evaluate the event condition.
@@ -89,9 +90,16 @@ class MassBelowThreshold(eqx.Module):
         >>> saveat = jnp.linspace(t0, t1, 10)
         >>> mass_soln = mass_solver.solve(mass_field, Mc0, t0, t1, saveat=saveat)
         >>> mass_soln.ys
-        Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
+        Array([1000000. , 56101.91734983, inf, inf, ...], dtype=float64)
 
         """
+        if not isinstance(args, Mapping):
+            msg = (
+                "MassBelowThreshold needs dict `args` holding the mass units "
+                f"(MassSolver adds them), got {type(args).__name__}. Use a custom "
+                "event for non-dict `args`."
+            )
+            raise TypeError(msg)
         mu = args["units"]["mass"]
         threshold = self.threshold.ustrip(mu)
         _result = u.ustrip(AllowValue, mu, y) - threshold
@@ -104,7 +112,9 @@ class MassBelowThreshold(eqx.Module):
             # A threshold that overflows in the field's unit (e.g. float32 kg)
             # is capped, so the scale stays finite and the event just never
             # fires, as before.
-            finite = jnp.minimum(jnp.abs(threshold), jnp.finfo(_result.dtype).max)
+            # `result_type(..., float)` so integer masses work too.
+            fmax = jnp.finfo(jnp.result_type(_result, float)).max
+            finite = jnp.minimum(jnp.abs(threshold), fmax)
             scale = jnp.maximum(scale, finite)
             _result = _result / jnp.where(scale > 0, scale, 1)
         return _result  # type: ignore[no-any-return]

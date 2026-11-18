@@ -10,6 +10,7 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
 from ._variational_helpers import LinearDragField, make_nbody_field, make_w0
 from galax.dynamics._src.orbit.variational import compute_variational, tangent_terms
@@ -40,9 +41,7 @@ def test_tangent_odeterm_matches_jacobian():
     assert jnp.allclose(jnp.concat([dxd, dvd]), jac, rtol=1e-12)
 
 
-@pytest.mark.parametrize(
-    "solver", [gd.experimental.Leapfrog(), dfx.SemiImplicitEuler()]
-)
+@pytest.mark.parametrize("solver", [gf.Leapfrog(), dfx.SemiImplicitEuler()])
 def test_tangent_split_terms_match_jacobian(solver):
     """The augmented drift and kick terms return their Jacobians times dW."""
     f, g = FIELD.terms(solver)
@@ -146,9 +145,7 @@ def test_orbit_matches_compute_orbit():
     assert jnp.allclose(u.ustrip("Myr", orbit.t), TS)
 
 
-@pytest.mark.parametrize(
-    "method", [gd.experimental.Leapfrog(), dfx.SemiImplicitEuler()]
-)
+@pytest.mark.parametrize("method", [gf.Leapfrog(), dfx.SemiImplicitEuler()])
 def test_symplectic_tangent_map_is_exact(method):
     solver = gd.OrbitSolver(method, stepsize_controller=dfx.ConstantStepSize())
     _, D = compute_variational(POT, _w0(XV0), u.Q(TS, "Myr"), solver=solver, dt0=0.5)
@@ -225,9 +222,7 @@ def test_batched_and_jitted():
     assert jnp.allclose(D[1], stm(xv[1]), rtol=1e-12)
 
 
-LEAPFROG = gd.OrbitSolver(
-    gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-)
+LEAPFROG = gd.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
 
 
 def test_constant_step_backward_integration():
@@ -250,7 +245,7 @@ def test_constant_step_backward_integration():
 
 def test_constant_step_mixed_directions():
     """Stage one runs forward and stage two backward; both use |dt0|."""
-    method = gd.experimental.Leapfrog()
+    method = gf.Leapfrog()
     _, D = compute_variational(
         POT, _w0(XV0), u.Q([500.0, 250.0], "Myr"), solver=LEAPFROG, dt0=0.5
     )

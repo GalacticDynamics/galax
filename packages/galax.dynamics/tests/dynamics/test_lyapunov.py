@@ -9,6 +9,7 @@ import pytest
 import unxt as u
 
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
 from ._variational_helpers import LinearDragField, make_nbody_field, make_w0
 from galax.dynamics._src.orbit.lyapunov import compute_lyapunov
@@ -77,9 +78,7 @@ def test_batched_initial_conditions():
 
 
 def test_constant_step_backward():
-    solver = gd.OrbitSolver(
-        gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = gd.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     _, lam = compute_lyapunov(
         POT,
         make_w0(XV0, t=500.0),
@@ -143,9 +142,7 @@ def test_single_interval_is_allowed():
 
 
 def test_dt0_accepts_a_quantity():
-    solver = gd.OrbitSolver(
-        gd.experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = gd.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     kw = {"n_renorm": 2, "k": 2, "solver": solver}
     _, lam = compute_lyapunov(POT, make_w0(XV0), u.Q(100, "Myr"), dt0=0.5, **kw)
     _, lam_q = compute_lyapunov(

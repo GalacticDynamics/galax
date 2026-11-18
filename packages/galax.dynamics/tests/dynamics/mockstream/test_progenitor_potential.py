@@ -22,6 +22,7 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
 from ..optional_deps import OptDeps
 
@@ -50,7 +51,7 @@ def adaptive(tol: float, /) -> gd.integrate.Integrator:
 def leapfrog(dt: float, t_max: float, /) -> gd.integrate.Integrator:
     n = int(t_max / dt) + 16
     solver = gd.OrbitSolver(
-        solver=gd.experimental.Leapfrog(),
+        solver=gf.Leapfrog(),
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=n,
     )

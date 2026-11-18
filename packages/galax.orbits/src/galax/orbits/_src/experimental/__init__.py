@@ -1,6 +1,12 @@
 """Experimental orbit integration."""
 
-__all__ = ["Leapfrog", "SymplecticSolverT", "integrate_orbit"]
+__all__ = ["SymplecticSolverT", "integrate_orbit"]
 
+from typing import TypeAlias
+
+import diffrax as dfx
+
+import galax.fields as gf
 from .integrate import integrate_orbit
-from .leapfrog import Leapfrog, SymplecticSolverT
+
+SymplecticSolverT: TypeAlias = gf.Leapfrog | dfx.SemiImplicitEuler

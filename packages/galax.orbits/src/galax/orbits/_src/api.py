@@ -107,8 +107,8 @@ def compute_orbit(
     ``dt0`` works forward and backward:
 
     >>> import diffrax as dfx
-    >>> from galax.orbits._src import experimental
-    >>> solver = go.OrbitSolver(experimental.Leapfrog(),
+    >>> import galax.fields as gf
+    >>> solver = go.OrbitSolver(gf.Leapfrog(),
     ...                         stepsize_controller=dfx.ConstantStepSize())
     >>> ts = u.Q(jnp.linspace(0, -1, 4), "Gyr")
     >>> orbit = go.compute_orbit(potential, w0, ts, solver=solver,

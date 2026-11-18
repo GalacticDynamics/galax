@@ -26,7 +26,7 @@ with install_import_hook("galax.orbits"):
     from ._src import compute, register_dfx  # noqa: F401
     from ._src.plot_helper import ProxyAbstractOrbit
 
-    # Register the Leapfrog `HamiltonianField.terms` dispatch
+    # Register the experimental `integrate_orbit` dispatches
     # isort: split
     from ._src import experimental  # noqa: F401
 

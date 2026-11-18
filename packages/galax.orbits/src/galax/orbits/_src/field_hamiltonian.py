@@ -11,6 +11,7 @@ import jax
 
 import unxt as u
 
+import galax.fields as gf
 import galax.orbits.custom_types as gt
 import galax.potential as gp
 from .field_base import AbstractOrbitField
@@ -298,15 +299,13 @@ class HamiltonianField(AbstractOrbitField):
 @AbstractOrbitField.terms.dispatch
 def terms(
     self: HamiltonianField,
-    _: dfx.SemiImplicitEuler,
+    _: dfx.SemiImplicitEuler | gf.Leapfrog,
     /,
 ) -> tuple[dfx.ODETerm, dfx.ODETerm]:
-    r"""Return the AbstractTerm terms for the SemiImplicitEuler solver.
+    r"""Return the terms for the symplectic solvers.
 
-    See also `galax.orbits._src.experimental.Leapfrog`, another symplectic
-    solver, for which the analogous dispatch is registered in
-    `galax.orbits._src.experimental.leapfrog` (to avoid this core module
-    importing the experimental package).
+    `diffrax.SemiImplicitEuler` and `galax.fields.Leapfrog` both take the
+    position and velocity derivatives as two separate terms.
 
     Examples
     --------

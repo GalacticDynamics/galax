@@ -104,7 +104,8 @@ at the end of each step :math:`\det M = 1` to rounding error. Here every
 output time is a multiple of ``dt0``, so every one lands on a step:
 
     >>> import diffrax as dfx
-    >>> solver = gd.OrbitSolver(gd.experimental.Leapfrog(),
+    >>> import galax.fields as gf
+    >>> solver = gd.OrbitSolver(gf.Leapfrog(),
     ...                         stepsize_controller=dfx.ConstantStepSize())
     >>> _, M = gd.orbit.compute_variational(pot, w0, ts, solver=solver, dt0=0.5)
     >>> bool(jnp.allclose(jnp.linalg.det(M), 1.0, atol=1e-10))

@@ -21,6 +21,9 @@ def test_all() -> None:
         "StopGrad",
         "NoGrad",
         "total_energy",
+        "evolve",
+        "NBodyResult",
+        "check_timestep",
     }
     for name in gn.__all__:
         assert hasattr(gn, name)

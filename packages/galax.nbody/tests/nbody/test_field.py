@@ -3,6 +3,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 
 import unxt as u
 
@@ -96,9 +97,7 @@ def test_inactive_particles_neither_pull_nor_feel() -> None:
 
 def test_all_tracers_feel_only_external() -> None:
     pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
-    field = gn.NBodyField(
-        jnp.zeros(4) + 1e9, eps=0.01, external_potential=pot, n_massive=0
-    )
+    field = gn.NBodyField(jnp.zeros(4), eps=0.01, external_potential=pot, n_massive=0)
     a = field.acceleration(0.0, Q4 + 1.0)
     np.testing.assert_allclose(
         a, -gp.gradient(pot, Q4 + 1.0, jnp.array(0.0)), rtol=1e-12
@@ -192,3 +191,32 @@ def test_stopgrad_on_mass_keeps_gradient_wrt_G() -> None:
     np.testing.assert_allclose(dG, value, rtol=1e-12)
     plain = gn.NBodyField(masses, 0.01, gp.NullPotential(units=us))
     np.testing.assert_allclose(value, jnp.sum(plain.acceleration(0.0, q)), rtol=1e-12)
+
+
+@pytest.mark.parametrize("n_massive", [-1, 3])
+def test_n_massive_out_of_range_raises(n_massive: int) -> None:
+    with pytest.raises(ValueError, match="n_massive"):
+        gn.NBodyField(
+            masses=jnp.zeros(2),
+            eps=0.0,
+            external_potential=gp.NullPotential(units="galactic"),
+            n_massive=n_massive,
+        )
+
+
+def test_nonzero_mass_on_tracer_row_raises() -> None:
+    pot = gp.NullPotential(units="galactic")
+    with pytest.raises(ValueError, match="massless tracers"):
+        gn.NBodyField(jnp.array([1.0, 1.0, 1.0]), 0.0, pot, n_massive=2)
+    # Zero masses on the tracer rows are fine.
+    gn.NBodyField(jnp.array([1.0, 1.0, 0.0]), 0.0, pot, n_massive=2)
+
+
+def test_tracer_mass_check_is_skipped_under_tracing() -> None:
+    pot = gp.NullPotential(units="galactic")
+
+    @jax.jit
+    def build(m):
+        return gn.NBodyField(m, 0.0, pot, n_massive=1).masses
+
+    np.testing.assert_array_equal(build(jnp.array([1.0, 1.0])), [1.0, 1.0])

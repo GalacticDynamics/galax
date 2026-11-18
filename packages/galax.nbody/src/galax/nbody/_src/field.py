@@ -29,12 +29,17 @@ _SAFE = 1e10
 class NBodyField(AbstractOrbitField):
     r"""Dynamics field for N-Body EoM.
 
-    The first ``n_massive`` particles are sources; the rest are massless
-    tracers that feel the sources but exert nothing. Inactive particles
-    (``active`` False) exert nothing and get zero acceleration. Softening is
-    given either as one ``eps`` for all particles or per particle as
-    ``softening``. ``masses`` and ``softening`` are stored as arrays in the
-    external potential's units.
+    The first ``n_massive`` particles are sources. The rest are massless
+    tracers that feel the sources but exert nothing. Masses after the first
+    ``n_massive`` rows are ignored; those rows are massless tracers. Inactive
+    particles (``active`` False) exert nothing and get zero acceleration, but
+    their velocity passes through unchanged, so they keep drifting. Softening
+    is given either as one ``eps`` for all particles or per particle as
+    ``softening``.
+
+    ``masses`` and ``softening`` are now stored as plain arrays in the external
+    potential's units, no longer as Quantities. The scalar ``eps`` keyword
+    still works and is stored as the per-particle ``softening``.
 
     .. warning::
 
@@ -102,7 +107,17 @@ class NBodyField(AbstractOrbitField):
         self.active = (
             jnp.ones(n, dtype=bool) if active is None else jnp.asarray(active, bool)
         )
-        self.n_massive = n if n_massive is None else n_massive
+        n_massive = n if n_massive is None else n_massive
+        if not 0 <= n_massive <= n:
+            msg = f"n_massive must be in [0, {n}], got {n_massive}"
+            raise ValueError(msg)
+        if not isinstance(m, jax.core.Tracer) and bool(jnp.any(m[n_massive:] != 0)):
+            msg = (
+                f"masses after the first n_massive={n_massive} rows must be zero; "
+                "those rows are massless tracers"
+            )
+            raise ValueError(msg)
+        self.n_massive = n_massive
         self.external_potential = external_potential
         self.backend = backend
 
@@ -136,7 +151,10 @@ class NBodyField(AbstractOrbitField):
         return _result  # type: ignore[no-any-return]
 
     def acceleration(self, t: Any, q: Float[Array, "N 3"]) -> Float[Array, "N 3"]:
-        """Return the accelerations (N, 3) at positions ``q`` and time ``t``."""
+        """Return the accelerations (N, 3) at positions ``q`` and time ``t``.
+
+        Inactive rows get zero acceleration.
+        """
         return nbody_acceleration(self, t, q)
 
     @dispatch.abstract  # type: ignore[override]
@@ -152,7 +170,8 @@ def nbody_acceleration(
     """Return the accelerations (N, 3) of all particles in ``field``.
 
     This is the backend's pairwise term from the active massive particles plus
-    the external term, zeroed for inactive particles.
+    the external term, zeroed for inactive particles. In ``__call__`` the
+    velocity of an inactive row passes through unchanged, so it keeps drifting.
     """
     nm = field.n_massive
     idx = jnp.arange(q.shape[0])

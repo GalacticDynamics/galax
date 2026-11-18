@@ -23,6 +23,8 @@ from .events import MassBelowThreshold
 from galax.fields import AbstractSolver, SolveState
 from galax.fields.utils import parse_saveat
 
+_DEFAULT_CONTROLLER = dfx.PIDController(rtol=1e-6, atol=1e-6)
+
 
 class MassSolver(AbstractSolver):
     """Solver for mass history.
@@ -55,9 +57,7 @@ class MassSolver(AbstractSolver):
     #: See diffrax's list of stepsize controllers.
     #: With this default, `atol` is scaled down for a starting mass below 1
     #: (in the field's mass unit), so a tiny cluster doesn't overshoot below 0.
-    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = dfx.PIDController(
-        rtol=1e-6, atol=1e-6
-    )
+    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = _DEFAULT_CONTROLLER
 
     #: How to differentiate in `diffeqsolve`.
     #: See `diffrax` for options.
@@ -163,9 +163,6 @@ def _event_args(args: PyTree, units: u.AbstractUnitSystem, y0: Any) -> PyTree:
     return args
 
 
-_DEFAULT_CONTROLLER = dfx.PIDController(rtol=1e-6, atol=1e-6)
-
-
 def _for_mass(solver: "MassSolver", y0: Any) -> "MassSolver":
     """Scale the default controller's ``atol`` down for a starting mass below 1.
 
@@ -174,16 +171,13 @@ def _for_mass(solver: "MassSolver", y0: Any) -> "MassSolver":
     controller is used as given.
     """
     ctrl = solver.stepsize_controller
-    if not isinstance(ctrl, dfx.PIDController) or not eqx.tree_equal(
-        ctrl, _DEFAULT_CONTROLLER
-    ):
+    if not eqx.tree_equal(ctrl, _DEFAULT_CONTROLLER):
         return solver
     m = jnp.max(jnp.abs(y0))
     scale = jnp.where(m > 0, jnp.minimum(m, 1), 1)
-    out: MassSolver = eqx.tree_at(
+    return eqx.tree_at(  # type: ignore[no-any-return]
         lambda s: s.stepsize_controller.atol, solver, ctrl.atol * scale
     )
-    return out
 
 
 # ===================================================================
@@ -221,8 +215,7 @@ def run(
     # there, so `step` can continue from it: diffrax's saved state is from
     # the end of the last step, past the event.
     out = self._init_one(field, soln.ts[-1], soln.ys[-1], args, field.units)
-    final: SolveState = eqx.tree_at(lambda s: s.success, out, soln.result)
-    return final
+    return eqx.tree_at(lambda s: s.success, out, soln.result)  # type: ignore[no-any-return]
 
 
 # ===================================================================

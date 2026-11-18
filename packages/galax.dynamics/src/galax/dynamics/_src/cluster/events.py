@@ -112,7 +112,6 @@ class MassBelowThreshold(eqx.Module):
             # A threshold that overflows in the field's unit (e.g. float32 kg)
             # is capped, so the scale stays finite and the event just never
             # fires, as before.
-            # `result_type(..., float)` so integer masses work too.
             fmax = jnp.finfo(jnp.result_type(_result, float)).max
             finite = jnp.minimum(jnp.abs(threshold), fmax)
             scale = jnp.maximum(scale, finite)

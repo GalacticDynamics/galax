@@ -200,8 +200,8 @@ Orbits
 ======
 
 An orbit is the same kind of integration. The orbit field
-:class:`galax.dynamics.HamiltonianField` takes a potential and has the state
-``(q, p)``. It lives in :mod:`galax.dynamics` for now, and
+:class:`galax.orbits.HamiltonianField` takes a potential and has the state
+``(q, p)``. It lives in :mod:`galax.orbits`, and
 :func:`~galax.fields.integrate_field` takes it like any other field. This is an
 orbit in a Kepler potential:
 

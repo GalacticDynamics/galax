@@ -46,7 +46,8 @@ def _within(name: str, packages: tuple[str, ...], /) -> bool:
 
 
 @pytest.mark.parametrize(
-    "portion", ["coordinates", "potential", "fields", "dynamics", "actionangle"]
+    "portion",
+    ["coordinates", "potential", "fields", "orbits", "dynamics", "actionangle"],
 )
 def test_portion_imports_alone(portion: str) -> None:
     """Each portion imports on its own, with no sibling imported first."""
@@ -54,14 +55,15 @@ def test_portion_imports_alone(portion: str) -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-# `fields` and `coordinates` are both at the bottom and import no other galax
-# portion. `potential` sits above `coordinates`, `dynamics` above all three, and
-# `actionangle` above `dynamics`. A portion may import the ones below it, never
-# the ones above.
+# `fields` and `coordinates` are at the bottom and import no other galax
+# portion. `potential` sits above `coordinates`, and `orbits` above `fields`,
+# `coordinates` and `potential`. `dynamics` is above `orbits`, and `actionangle`
+# above `dynamics`. A portion may import the ones below it, never the ones above.
 ABOVE = {
-    "coordinates": ["potential", "fields", "dynamics", "actionangle"],
-    "potential": ["fields", "dynamics", "actionangle"],
-    "fields": ["coordinates", "potential", "dynamics", "actionangle"],
+    "coordinates": ["potential", "fields", "orbits", "dynamics", "actionangle"],
+    "potential": ["fields", "orbits", "dynamics", "actionangle"],
+    "fields": ["coordinates", "potential", "orbits", "dynamics", "actionangle"],
+    "orbits": ["dynamics", "actionangle"],
     "dynamics": ["actionangle"],
 }
 

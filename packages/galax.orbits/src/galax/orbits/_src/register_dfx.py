@@ -41,11 +41,11 @@ def from_(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
-    >>> solver = gd.OrbitSolver()  # defaults to Dopri8
+    >>> field = go.HamiltonianField(pot)
+    >>> solver = go.OrbitSolver()  # defaults to Dopri8
     >>> w0 = gc.PhaseSpaceCoordinate(
     ...     q=u.Q([[8, 0, 9], [9, 0, 3]], "kpc"),
     ...     p=u.Q([0, 220, 0], "km/s"),
@@ -105,7 +105,7 @@ def from_(
     frame: cx.frames.AbstractReferenceFrame,  # not dispatched on, but required
     unbatch_time: bool = True,
 ) -> Orbit:
-    r"""Create a `galax.dynamics.Orbit` from a `diffrax.Solution`.
+    r"""Create a `galax.orbits.Orbit` from a `diffrax.Solution`.
 
     Examples
     --------
@@ -114,12 +114,12 @@ def from_(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
-    >>> solver = gd.OrbitSolver()
+    >>> solver = go.OrbitSolver()
     >>> t1 = u.Q(1, "Gyr")
     >>> saveat=u.Q(jnp.linspace(0.2, 1, 71), "Gyr")
 
@@ -132,7 +132,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((71, 3), (71, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
+    >>> orbit = go.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D: (x, y, z) [kpc]
@@ -156,7 +156,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((71, 2, 3), (71, 2, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
+    >>> orbit = go.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D: (x, y, z) [kpc]
@@ -186,7 +186,7 @@ def from_(
     >>> (soln.ts.shape, jax.tree.map(lambda x: x.shape, soln.ys))
     ((71,), ((2, 71, 3), (2, 71, 3)))
 
-    >>> orbit = gd.Orbit.from_(soln, frame=w0.frame, units=pot.units)
+    >>> orbit = go.Orbit.from_(soln, frame=w0.frame, units=pot.units)
     >>> print(orbit[..., :3])
     Orbit(
         q=<CartesianPos3D: (x, y, z) [kpc]

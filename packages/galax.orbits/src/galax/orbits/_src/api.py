@@ -12,8 +12,8 @@ from typing import Any
 from plum import dispatch
 
 import galax.potential as gp
+from .field_base import AbstractOrbitField
 from .orbit import Orbit
-from galax.dynamics._src.orbit.field_base import AbstractOrbitField
 
 
 @dispatch.abstract
@@ -28,7 +28,7 @@ def compute_orbit(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     We can then create a point-mass potential, with galactic units:
 
@@ -38,7 +38,7 @@ def compute_orbit(
     ...                              p=u.Q([0, 200, 0], "km/s"),
     ...                              t=u.Q(-100, "Myr"))
     >>> ts = u.Q(jnp.linspace(0, 1, 4), "Gyr")
-    >>> orbit = gd.compute_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...),
            t=Q([...], 'Myr'), frame=SimulationFrame(), interpolant=None )
@@ -50,14 +50,14 @@ def compute_orbit(
     Changing the number of times is easy:
 
     >>> ts = u.Q(jnp.linspace(0, 1, 10), "Gyr")
-    >>> orbit = gd.compute_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=None )
 
     Or evaluating at a single time:
 
-    >>> orbit = gd.compute_orbit(potential, w0, u.Q(0.5, "Gyr"))
+    >>> orbit = go.compute_orbit(potential, w0, u.Q(0.5, "Gyr"))
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q(500., 'Myr'),
            frame=SimulationFrame(), interpolant=None )
@@ -67,12 +67,12 @@ def compute_orbit(
     >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([[10, 0, 0], [10., 0, 0]], "kpc"),
     ...                              p=u.Q([[0, 200, 0], [0, 220, 0]], "km/s"),
     ...                              t=u.Q([-100, -150], "Myr"))
-    >>> orbit = gd.compute_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=None )
 
-    :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
+    :class:`~galax.coordinates.PhaseSpacePosition` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
@@ -80,7 +80,7 @@ def compute_orbit(
     ...                              p=u.Q([0, 200, 0], "km/s"),
     ...                              t=u.Q(0, "Myr"))
     >>> ts = u.Q(jnp.linspace(0.3, 1, 8), "Gyr")
-    >>> orbit = gd.compute_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 
@@ -90,13 +90,13 @@ def compute_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.dynamics.PhaseSpacePosition`. `evaluate_orbit` will then
+        :class:`~galax.coordinates.PhaseSpacePosition`. `compute_orbit` will then
         assume ``w0`` is defined at `t`[0].
 
     >>> w0 = gc.PhaseSpacePosition(q=u.Q([10, 0, 0], "kpc"),
     ...                            p=u.Q([0, 200, 0], "km/s"))
     >>> ts = u.Q(jnp.linspace(0, 1, 4), "Gyr")
-    >>> orbit = gd.compute_orbit(potential, w0, ts)
+    >>> orbit = go.compute_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([...], 'Myr'),
            frame=SimulationFrame(), interpolant=None )
@@ -107,11 +107,11 @@ def compute_orbit(
     ``dt0`` works forward and backward:
 
     >>> import diffrax as dfx
-    >>> from galax.dynamics import experimental
-    >>> solver = gd.OrbitSolver(experimental.Leapfrog(),
+    >>> from galax.orbits._src import experimental
+    >>> solver = go.OrbitSolver(experimental.Leapfrog(),
     ...                         stepsize_controller=dfx.ConstantStepSize())
     >>> ts = u.Q(jnp.linspace(0, -1, 4), "Gyr")
-    >>> orbit = gd.compute_orbit(potential, w0, ts, solver=solver,
+    >>> orbit = go.compute_orbit(potential, w0, ts, solver=solver,
     ...                          dt0=u.Q(1, "Myr"))
     >>> orbit.t
     Q([    0.        ,  -333.33333333,  -666.66666667, -1000.        ], 'Myr')

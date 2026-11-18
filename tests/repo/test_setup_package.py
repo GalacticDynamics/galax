@@ -10,7 +10,7 @@ from typing import Any, NoReturn
 
 import pytest
 
-PORTIONS = ["coordinates", "potential", "fields", "dynamics", "actionangle"]
+PORTIONS = ["coordinates", "potential", "fields", "orbits", "dynamics", "actionangle"]
 
 
 def fake_entry_point(missing: str) -> Any:

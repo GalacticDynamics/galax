@@ -7,6 +7,7 @@
 #   5. `galax.dynamics` installs on its own, pulling the portions below it
 #   6. `galax.actionangle` installs on its own, without dynamics
 #   7. `galax.fields` installs on its own, without dynamics
+#   8. `galax.orbits` installs with fields, coordinates and potential, without dynamics
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -133,6 +134,13 @@ if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/fields/' >/dev/null; t
   echo "the root galax wheel contains galax/fields/ files"; exit 1
 fi
 
+echo "== the root wheel ships no galax/orbits/ =="
+# `galax.orbits` owns that leaf. A root wheel carrying it would let two
+# distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/orbits/' >/dev/null; then
+  echo "the root galax wheel contains galax/orbits/ files"; exit 1
+fi
+
 echo "== shape 1: bare \`pip install galax\` =="
 # Install the freshly built root wheel *by path*, so a published PyPI version
 # cannot satisfy it; --find-links resolves its inter-distribution pins from the
@@ -148,12 +156,13 @@ import astropy.units as apyu
 import numpy as np
 
 # The core portions must all import on a bare install; `galax.actionangle`,
-# `galax.coordinates`, `galax.dynamics` and `galax.fields` are imported for
-# that alone.
+# `galax.coordinates`, `galax.dynamics`, `galax.fields` and `galax.orbits` are
+# imported for that alone.
 import galax.actionangle
 import galax.coordinates
 import galax.dynamics
 import galax.fields
+import galax.orbits
 import galax.potential as gp
 
 # astropy interop is a REQUIRED dependency, so it must register with no extras.
@@ -262,8 +271,8 @@ print("potential-only install OK")
 PY
 
 echo "== shape 5: \`galax.dynamics\` alone =="
-# This portion must install standalone, pulling the two portions below it
-# and nothing from the interop layer. This is the only shape that exercises the
+# This portion must install standalone, pulling the four portions below it
+# (coordinates, potential, fields and orbits) and nothing from the interop layer. This shape (with shape 8) exercises the
 # solver stack, so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this
 # portion's metadata fails here rather than at a user's.
 uv run --isolated --no-project \
@@ -279,8 +288,8 @@ import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
 
-# Integrate a real orbit: importing proves nothing, and this is the only shape
-# that touches the solver stack at all.
+# Integrate a real orbit: importing proves nothing, and this shape (with shape 8)
+# touches the solver stack.
 pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
 w0 = gc.PhaseSpaceCoordinate(
     q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
@@ -348,6 +357,43 @@ for absent in (
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("fields-only install OK")
+PY
+
+echo "== shape 8: \`galax.orbits\` alone =="
+# Pulls fields, coordinates and potential, which it declares, and neither
+# `galax.dynamics` nor `galax.actionangle`. Importing `galax.orbits` registers the
+# `Leapfrog` dispatch, so integrating with it checks that too.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_orbits-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import diffrax as dfx
+import unxt as u
+
+import galax.coordinates as gc
+import galax.orbits as go
+import galax.potential as gp
+from galax.orbits._src.experimental import Leapfrog
+
+pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+w0 = gc.PhaseSpaceCoordinate(
+    q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
+)
+ts = u.Q([0.0, 100.0], "Myr")
+orbit = go.compute_orbit(pot, w0, ts)
+assert orbit.q.shape == (2,), orbit.q.shape
+
+solver = go.OrbitSolver(Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
+orbit = go.compute_orbit(pot, w0, ts, solver=solver, dt0=u.Q(1, "Myr"))
+assert orbit.q.shape == (2,), orbit.q.shape
+
+for absent in ("galax.dynamics", "galax.actionangle", "galax.interop", "gala",
+               "galpy", "matplotlib"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("orbits-only install OK")
 PY
 
 echo "all install shapes OK"

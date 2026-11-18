@@ -113,6 +113,15 @@ def test_fields_is_required_not_an_extra() -> None:
     assert "galax-fields" in _required_names()
 
 
+def test_orbits_is_required_not_an_extra() -> None:
+    """`pip install galax` must still bring the orbits portion.
+
+    `galax.dynamics` builds on it, so demoting it to an extra would leave
+    `import galax.dynamics` failing on a default install.
+    """
+    assert "galax-orbits" in _required_names()
+
+
 def test_no_distribution_depends_on_the_root() -> None:
     """Phase 2's end state, and the one claim nothing else checks.
 
@@ -132,6 +141,7 @@ def test_no_distribution_depends_on_the_root() -> None:
         "galax.potential",
         "galax.dynamics",
         "galax.fields",
+        "galax.orbits",
         "galax.interop.astropy",
         "galax.interop.gala",
         "galax.interop.galpy",

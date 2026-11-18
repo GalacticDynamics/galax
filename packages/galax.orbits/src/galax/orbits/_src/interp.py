@@ -25,7 +25,7 @@ from diffraxtra._src.interp import (  # TODO: make this public API in diffraxtra
 from unxt.quantity import AllowValue, Quantity as FastQ
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 
 
 @ft.partial(jax.jit)

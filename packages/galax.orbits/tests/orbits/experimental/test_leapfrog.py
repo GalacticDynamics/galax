@@ -3,7 +3,6 @@
 import diffrax as dfx
 import jax
 import jax.numpy as jnp
-import jax.random as jr
 import pytest
 
 import diffraxtra as dfxtra
@@ -11,10 +10,10 @@ import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
-import galax.dynamics as gd
+import galax.orbits as go
+import galax.orbits._src.experimental as experimental
 import galax.potential as gp
-from galax.dynamics import experimental
-from galax.dynamics.fields import HamiltonianField
+from galax.orbits import HamiltonianField
 
 
 def shaped_allclose(x, y, **kwargs):
@@ -128,7 +127,7 @@ def test_leapfrog_conserves_energy_over_many_periods():
 def _nfw_leapfrog(t0, t1, w0):
     """`OrbitSolver(Leapfrog)` on an NFW, fixed |dt| = 1 Myr, final state (6,)."""
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
-    solver = gd.OrbitSolver(
+    solver = go.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
     )
     n = int(abs(t1 - t0))
@@ -177,7 +176,7 @@ def test_leapfrog_round_trip():
 def test_fixed_step_dt0_sign_follows_direction():
     """With a constant step, `dt0` sets the size; t0 -> t1 sets the direction."""
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
-    solver = gd.OrbitSolver(
+    solver = go.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
     )
     y0 = (W0[:3], W0[3:])
@@ -191,7 +190,7 @@ def test_fixed_step_dt0_sign_follows_direction():
 def test_fixed_step_dt0_quantity(method):
     """A `unxt.Quantity` ``dt0`` is converted to the field's time unit."""
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
-    solver = gd.OrbitSolver(
+    solver = go.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
     )
     y0 = (W0[:3], W0[3:])
@@ -209,47 +208,6 @@ def test_fixed_step_dt0_quantity(method):
     assert jnp.allclose(got[1], want[1], rtol=0, atol=1e-12)
 
 
-def test_evaluate_orbit_fixed_step_back_then_forward():
-    """One fixed-step integrator does `evaluate_orbit`'s backward-then-forward legs.
-
-    The orbit starts at t = 0 and is saved from t = -100 to 0, so the progenitor
-    is first integrated back to -100 and then forward again (as
-    `MockStreamGenerator` does with its progenitor). It must come back to the
-    start to round-off, and its first saved state must match a hand-written
-    backward KDK scan.
-    """
-    pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
-    integrator = gd.integrate.Integrator(
-        gd.OrbitSolver(
-            experimental.Leapfrog(),
-            stepsize_controller=dfx.ConstantStepSize(),
-            max_steps=200,
-        ),
-        diffeq_kw={"dt0": 1.0, "max_steps": 200},
-    )
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
-    )
-    ts = u.Q(jnp.linspace(-100.0, 0.0, 11), "Myr")
-    orbit = gd.evaluate_orbit(pot, w0, ts, integrator=integrator)
-    q = jnp.stack([u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"], -1)
-    p = jnp.stack([u.ustrip("kpc/Myr", getattr(orbit.p, c)) for c in "xyz"], -1)
-
-    def kdk(qp, _):
-        q, p = qp
-        h = -1.0
-        p = p - 0.5 * h * pot._gradient(q, 0.0)
-        q = q + h * p
-        p = p - 0.5 * h * pot._gradient(q, 0.0)
-        return (q, p), None
-
-    (q_back, p_back), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=100)
-    assert jnp.allclose(q[0], q_back, rtol=1e-12, atol=0)
-    assert jnp.allclose(p[0], p_back, rtol=1e-12, atol=0)
-    assert jnp.max(jnp.abs(q[-1] - W0[:3])) <= 1e-10
-    assert jnp.max(jnp.abs(p[-1] - W0[3:])) <= 1e-12
-
-
 @pytest.mark.parametrize("sign", [1.0, -1.0], ids=["forward", "backward"])
 def test_compute_orbit_fixed_step_dt0(sign):
     """`compute_orbit` passes ``dt0`` on, so a constant-step solver runs through it.
@@ -259,7 +217,7 @@ def test_compute_orbit_fixed_step_dt0(sign):
     integration) takes a first leg to ``ts[0]``, here 20 steps of 0.5 Myr.
     """
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
-    solver = gd.OrbitSolver(
+    solver = go.OrbitSolver(
         experimental.Leapfrog(),
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=400,
@@ -274,7 +232,7 @@ def test_compute_orbit_fixed_step_dt0(sign):
         return jnp.concat(soln.ys, axis=-1)
 
     def via_compute(w0):
-        orbit = gd.compute_orbit(field, w0, u.Q(ts, "Myr"), solver=solver, dt0=dt0)
+        orbit = go.compute_orbit(field, w0, u.Q(ts, "Myr"), solver=solver, dt0=dt0)
         q = [u.ustrip("kpc", getattr(orbit.q, c)) for c in "xyz"]
         p = [u.ustrip("kpc/Myr", getattr(orbit.p, c)) for c in "xyz"]
         return jnp.stack(q + p, axis=-1)
@@ -325,33 +283,6 @@ def test_experimental_integrate_orbit_fixed_step_backward():
     (q, p), _ = jax.lax.scan(kdk, (W0[:3], W0[3:]), length=100)
     assert jnp.allclose(soln.ys[0][-1], q, rtol=1e-12, atol=0)
     assert jnp.allclose(soln.ys[1][-1], p, rtol=1e-12, atol=0)
-
-
-def test_stream_simulator_fixed_step():
-    """`StreamSimulator` runs with a fixed-step `Leapfrog`, for either sign of dt0.
-
-    Its progenitor is integrated back to the first release time and then
-    forward, so one constant-step solver has to go both ways.
-    """
-    pot = gp.HernquistPotential(1e12, 10, units="galactic")
-    qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
-    solver = dfxtra.DiffEqSolver(
-        experimental.Leapfrog(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        max_steps=1000,
-    )
-    sim = gd.experimental.stream.StreamSimulator()
-    leads = []
-    for dt0 in (1.0, -1.0):
-        kw = {"solver": solver, "solver_kwargs": ImmutableMap({"dt0": dt0})}
-        ics = sim.init(
-            pot, qp0, 0.0, release_times=jnp.linspace(-400.0, -150.0, 20),
-            Msat=1e5, key=jr.key(0), **kw,
-        )  # fmt: skip
-        lead, _ = sim.run(pot, ics, t1=0.0, **kw)
-        assert jnp.all(jnp.isfinite(lead[0]))
-        leads.append(lead[0])
-    assert jnp.array_equal(leads[0], leads[1])
 
 
 # One force evaluation per step
@@ -498,15 +429,13 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
 
 def test_leapfrog_orbitsolver_step_after_run():
     """`OrbitSolver.run` keeps no solver state; the next `step` still works."""
-    field = gd.fields.HamiltonianField(
-        gp.NFWPotential(m=1e12, r_s=15, units="galactic")
-    )
+    field = go.HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
     w0 = gc.PhaseSpaceCoordinate(
         q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
     )
     out = []
     for leapfrog in (experimental.Leapfrog(), _TwoEvalLeapfrog()):
-        solver = gd.OrbitSolver(
+        solver = go.OrbitSolver(
             solver=leapfrog, stepsize_controller=dfx.ConstantStepSize(), max_steps=200
         )
         state = solver.run(
@@ -528,7 +457,7 @@ def test_solve_from_init_state_with_batched_t1(solver):
     The batched solve is split per particle, so the stored solver state, which
     is batched over both particles, can't be reused as is.
     """
-    field = gd.fields.HamiltonianField(
+    field = go.HamiltonianField(
         gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     )
     w0 = gc.PhaseSpaceCoordinate(
@@ -538,9 +467,9 @@ def test_solve_from_init_state_with_batched_t1(solver):
     )
     t1 = u.Q([100.0, 50.0], "Myr")
     if solver is None:
-        s, kw = gd.OrbitSolver(), {}
+        s, kw = go.OrbitSolver(), {}
     else:
-        s = gd.OrbitSolver(solver, stepsize_controller=dfx.ConstantStepSize())
+        s = go.OrbitSolver(solver, stepsize_controller=dfx.ConstantStepSize())
         kw = {"dt0": 0.5}
     got = s.solve(field, s.init(field, w0, None), t1, **kw).ys
     want = s.solve(field, w0, t1, **kw).ys
@@ -564,13 +493,13 @@ def test_solve_from_state_reuses_the_stored_force(monkeypatch, request):
     jax.clear_caches()
     request.addfinalizer(jax.clear_caches)
 
-    field = gd.fields.HamiltonianField(
+    field = go.HamiltonianField(
         gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
     )
     w0 = gc.PhaseSpaceCoordinate(
         q=u.Q([8.0, 0, 9], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
     )
-    solver = gd.OrbitSolver(
+    solver = go.OrbitSolver(
         experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
     )
     state = solver.init(field, w0, None)

@@ -18,9 +18,9 @@ from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 import galax.potential as gp
+from .field_hamiltonian import HamiltonianField
 from .orbit import Orbit
-from galax.dynamics._src.orbit.field_hamiltonian import HamiltonianField
-from galax.dynamics._src.orbit.solver import OrbitSolver
+from .solver import OrbitSolver
 
 default_solver = OrbitSolver()
 

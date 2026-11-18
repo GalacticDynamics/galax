@@ -32,8 +32,8 @@ def p() -> u.Quantity:
 def w(request, q, p) -> gc.AbstractPhaseSpaceObject:
     """Return the same state as a `PhaseSpaceCoordinate` and as an `Orbit`.
 
-    `Orbit` is a `galax.dynamics` type implementing the coordinates contract, so
-    the function must accept both.
+    `Orbit` is a `galax.orbits` type (re-exported by `galax.dynamics`)
+    implementing the coordinates contract, so the function must accept both.
     """
     t = u.Q([0.0, 0.0], "Myr")
     if request.param == "coordinate":

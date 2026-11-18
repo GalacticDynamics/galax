@@ -16,15 +16,15 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
   "Typing :: Typed",
 ]
-# Three galax dependencies, all downward: this portion sits above
-# `galax.coordinates`, `galax.potential` and `galax.fields`, and below
+# Four galax dependencies, all downward: this portion sits above
+# `galax.coordinates`, `galax.potential`, `galax.fields` and `galax.orbits`, and below
 # `galax.actionangle` in the import graph. Not `galax` -- depending on
 # the root would recreate the very cycle this PR dissolves.
 #
-# `numpy` is imported at module scope by `_src/orbit/base.py` (and, in
-# `galax.fields`, by its solver) but is declared nowhere in the repository root,
-# so this floor is DERIVED, not copied: 2.0 is what JAX 0.8 and later require,
-# and gives the Array API names (`np.concat`, ...). Tracked repo-wide in #920.
+# `numpy` was imported at module scope by `_src/orbit/base.py`, which now lives
+# in `galax.orbits` (and declares its own floor). This portion no longer imports
+# it directly; the floor stays so the move doesn't change dependencies. 2.0 is
+# what JAX 0.8 and later require. Tracked repo-wide in #920.
 dependencies = [
   "boundinstance>=0.1",
   "coordinax>=0.24.3,<0.25",
@@ -34,6 +34,7 @@ dependencies = [
   "equinox>=0.13.8",
   "galax.coordinates",
   "galax.fields",
+  "galax.orbits",
   "galax.potential",
   "interpax>=0.3.11",
   "jax>=0.7.2",
@@ -65,6 +66,7 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 [tool.uv.sources]
 "galax.coordinates" = { workspace = true }
 "galax.fields" = { workspace = true }
+"galax.orbits" = { workspace = true }
 "galax.potential" = { workspace = true }
 
 [build-system]

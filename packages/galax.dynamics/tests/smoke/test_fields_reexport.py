@@ -27,7 +27,7 @@ def test_fields_module_abstract_field():
 
 
 @pytest.mark.parametrize("name", ORBIT_FIELDS)
-def test_orbit_fields_live_in_dynamics(name):
+def test_orbit_fields_reexported_by_dynamics(name):
     obj = getattr(gdo, name)
     assert getattr(gd, name) is obj
     assert getattr(gd.fields, name) is obj

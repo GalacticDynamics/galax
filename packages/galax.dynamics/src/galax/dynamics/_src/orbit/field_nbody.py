@@ -15,7 +15,7 @@ from unxt.quantity import AllowValue
 
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from .field_base import AbstractOrbitField
+from galax.orbits import AbstractOrbitField
 
 
 @final

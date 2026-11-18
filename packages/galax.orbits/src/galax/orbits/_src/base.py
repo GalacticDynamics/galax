@@ -15,7 +15,7 @@ import coordinax as cx
 import quaxed.numpy as jnp
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 from .plot_helper import PlotOrbitDescriptor
 from galax.coordinates.utils import batched_shape, getitem, vector_batched_shape
 
@@ -90,7 +90,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
@@ -98,7 +98,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: tuple[Any, ...], /) -> 
     ...     p=u.Q([0., 230, 0.], "km/s"),
     ...     t=u.Q(0, "Myr"))
     >>> ts = u.Q(jnp.linspace(0, 1, 10), "Gyr")
-    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+    >>> orbit = go.compute_orbit(pot, w0, ts)
 
     >>> orbit[()] is orbit
     True
@@ -123,7 +123,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
@@ -131,7 +131,7 @@ def _psc_getitem_time_index(orbit: AbstractOrbit, index: slice, /) -> Any:
     ...     p=u.Q([0., 230, 0.], "km/s"),
     ...     t=u.Q(0, "Myr"))
     >>> ts = u.Q(jnp.linspace(0, 1, 11), "Gyr")
-    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+    >>> orbit = go.compute_orbit(pot, w0, ts)
 
     >>> orbit[0:2]
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([  0., 100.], 'Myr'),
@@ -156,10 +156,10 @@ def _psc_getitem_time_index(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot=gp.KeplerPotential(m_tot=1e12, units="galactic")
-    >>> orbit = gd.Orbit(
+    >>> orbit = go.Orbit(
     ...     q=u.Q([[0, 1, 2]], "kpc"), p=u.Q([[4, 5, 6]], "km/s"),
     ...     t=u.Q(0, "Gyr"),
     ...     frame=gc.frames.simulation_frame)
@@ -200,7 +200,7 @@ def getitem(self: AbstractOrbit, index: int, /) -> gc.PhaseSpaceCoordinate:
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     >>> pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
     >>> w0 = gc.PhaseSpaceCoordinate(
@@ -208,7 +208,7 @@ def getitem(self: AbstractOrbit, index: int, /) -> gc.PhaseSpaceCoordinate:
     ...     p=u.Q([0., 230, 0.], "km/s"),
     ...     t=u.Q(0, "Myr"))
     >>> ts = u.Q([0., 1.], "Gyr")
-    >>> orbit = gd.evaluate_orbit(pot, w0, ts)
+    >>> orbit = go.compute_orbit(pot, w0, ts)
 
     >>> orbit[0]
     PhaseSpaceCoordinate(

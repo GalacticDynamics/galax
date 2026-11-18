@@ -7,6 +7,7 @@ import textwrap
 import jax
 import jax.numpy as jnp
 import numpy as np
+import pytest
 from jax.test_util import check_grads
 
 from galax.nbody._src.backend import Sources, Targets
@@ -167,6 +168,7 @@ def test_check_grads_small() -> None:
     )
 
 
+@pytest.mark.slow
 def test_runtime_typechecked_grad_policies() -> None:
     """Every gradient policy runs with beartype checking the modules."""
     code = textwrap.dedent("""

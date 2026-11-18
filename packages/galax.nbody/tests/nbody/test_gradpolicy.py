@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import pytest
 
 from galax.nbody._src.backend import Sources, Targets
+from galax.nbody._src.direct import DirectSum
 from galax.nbody._src.gradpolicy import Autodiff, NoGrad, StopGrad, as_grad_policy
 
 
@@ -79,3 +80,17 @@ def test_nograd_forward_inside_checkpoint_under_jit() -> None:
     pol = NoGrad()
     out = jax.jit(jax.checkpoint(lambda s, t: pol.apply(fn, s, t)))(s, t)
     assert jnp.allclose(out, fn(s, t))
+
+
+def test_nograd_with_traced_G_raises_unexpected_tracer() -> None:
+    """NoGrad's custom_jvp closes over G, so differentiating in G raises."""
+    b = DirectSum(grad="none")
+    tt = Targets(q=jnp.ones((1, 3)), h=jnp.zeros(1), self_index=jnp.array([-1]))
+
+    def f(G):
+        return b.accelerations(b.prepare(s), tt, G=G).sum()
+
+    with pytest.raises(jax.errors.UnexpectedTracerError):
+        jax.grad(f)(1.0)
+    with pytest.raises(jax.errors.UnexpectedTracerError):
+        jax.jvp(f, (1.0,), (1.0,))

@@ -28,9 +28,11 @@ class AbstractForceBackend(eqx.Module):
         """Return the prepared form of ``sources``."""
 
     @abc.abstractmethod
-    def accelerations(self, prepared: Any, targets: Targets, *, G: float) -> Array:
+    def accelerations(
+        self, prepared: Any, targets: Targets, *, G: float | Array
+    ) -> Array:
         """Return the accelerations (Nt, 3) at ``targets``."""
 
     @abc.abstractmethod
-    def potential(self, prepared: Any, targets: Targets, *, G: float) -> Array:
+    def potential(self, prepared: Any, targets: Targets, *, G: float | Array) -> Array:
         """Return the potentials (Nt,) at ``targets``."""

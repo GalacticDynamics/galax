@@ -38,8 +38,8 @@ class AbstractGradPolicy(eqx.Module):
         ``fn`` must get every traced array through ``sources`` and ``targets``.
         Anything it closes over, such as ``G`` or the kernel, must be a concrete
         Python or static value. ``NoGrad`` wraps ``fn`` in a ``jax.custom_jvp``,
-        which can't carry gradients through closed-over tracers: they are lost,
-        or JAX raises ``UnexpectedTracerError`` (as on JAX 0.8).
+        which can't carry gradients through closed-over tracers, so
+        differentiating with respect to one raises ``UnexpectedTracerError``.
         """
 
 
@@ -49,11 +49,10 @@ class Autodiff(AbstractGradPolicy):
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.nbody._src.backend import Sources, Targets
-    >>> from galax.nbody._src.gradpolicy import Autodiff
-    >>> s = Sources(q=jnp.zeros((1, 3)), m=jnp.ones(1), h=jnp.zeros(1))
-    >>> t = Targets(q=jnp.ones((1, 3)), h=jnp.zeros(1), self_index=jnp.array([-1]))
-    >>> float(Autodiff().apply(lambda s, t: t.q.sum() * s.m.sum(), s, t))
+    >>> import galax.nbody as gn
+    >>> s = gn.Sources(q=jnp.zeros((1, 3)), m=jnp.ones(1), h=jnp.zeros(1))
+    >>> t = gn.Targets(q=jnp.ones((1, 3)), h=jnp.zeros(1), self_index=jnp.array([-1]))
+    >>> float(gn.Autodiff().apply(lambda s, t: t.q.sum() * s.m.sum(), s, t))
     3.0
 
     """

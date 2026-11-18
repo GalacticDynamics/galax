@@ -39,7 +39,7 @@ def direct_sum_accelerations(
     targets: Targets,
     *,
     kernel: AbstractSofteningKernel,
-    G: float,
+    G: float | Array,
     chunk_size: int,
 ) -> Array:
     """Return the accelerations (Nt, 3) of ``targets`` from ``sources``.
@@ -50,13 +50,12 @@ def direct_sum_accelerations(
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.nbody._src.backend import Sources, Targets
+    >>> import galax.nbody as gn
     >>> from galax.nbody._src.direct import direct_sum_accelerations
-    >>> from galax.nbody._src.kernels import PlummerKernel
     >>> q = jnp.array([[0.0, 0, 0], [2, 0, 0]])
-    >>> s = Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
-    >>> t = Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
-    >>> direct_sum_accelerations(s, t, kernel=PlummerKernel(), G=1.0, chunk_size=1)
+    >>> s = gn.Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
+    >>> t = gn.Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
+    >>> direct_sum_accelerations(s, t, kernel=gn.PlummerKernel(), G=1.0, chunk_size=1)
     Array([[ 0.25,  0.  ,  0.  ],
            [-0.25,  0.  ,  0.  ]], dtype=float64)
 
@@ -86,7 +85,7 @@ def direct_sum_potential(
     targets: Targets,
     *,
     kernel: AbstractSofteningKernel,
-    G: float,
+    G: float | Array,
     chunk_size: int,
 ) -> Array:
     """Return the potentials (Nt,) of ``targets`` from ``sources``.
@@ -96,13 +95,12 @@ def direct_sum_potential(
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.nbody._src.backend import Sources, Targets
+    >>> import galax.nbody as gn
     >>> from galax.nbody._src.direct import direct_sum_potential
-    >>> from galax.nbody._src.kernels import PlummerKernel
     >>> q = jnp.array([[0.0, 0, 0], [2, 0, 0]])
-    >>> s = Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
-    >>> t = Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
-    >>> direct_sum_potential(s, t, kernel=PlummerKernel(), G=1.0, chunk_size=1)
+    >>> s = gn.Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
+    >>> t = gn.Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
+    >>> direct_sum_potential(s, t, kernel=gn.PlummerKernel(), G=1.0, chunk_size=1)
     Array([-0.5, -0.5], dtype=float64)
 
     """
@@ -130,17 +128,17 @@ class DirectSum(AbstractForceBackend):
     """Exact O(Nt * Ns) pairwise sum, chunked over targets.
 
     ``kernel`` and ``G`` are closed over by the function handed to the gradient
-    policy, so they must not be traced arrays.
+    policy. Under ``Autodiff`` a traced ``G`` differentiates correctly. Under
+    ``NoGrad``, differentiating with respect to a traced ``G`` or kernel fails.
 
     Examples
     --------
     >>> import jax.numpy as jnp
-    >>> from galax.nbody._src.backend import Sources, Targets
-    >>> from galax.nbody._src.direct import DirectSum
+    >>> import galax.nbody as gn
     >>> q = jnp.array([[0.0, 0, 0], [2, 0, 0]])
-    >>> s = Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
-    >>> t = Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
-    >>> b = DirectSum(grad="none")
+    >>> s = gn.Sources(q=q, m=jnp.ones(2), h=jnp.zeros(2))
+    >>> t = gn.Targets(q=s.q, h=s.h, self_index=jnp.arange(2))
+    >>> b = gn.DirectSum(grad="none")
     >>> b.potential(b.prepare(s), t, G=1.0)
     Array([-0.5, -0.5], dtype=float64)
 
@@ -153,7 +151,9 @@ class DirectSum(AbstractForceBackend):
         """Return ``sources`` unchanged."""
         return sources
 
-    def accelerations(self, prepared: Sources, targets: Targets, *, G: float) -> Array:
+    def accelerations(
+        self, prepared: Sources, targets: Targets, *, G: float | Array
+    ) -> Array:
         """Return the accelerations (Nt, 3) at ``targets``."""
         fn = ft.partial(
             direct_sum_accelerations,
@@ -163,7 +163,9 @@ class DirectSum(AbstractForceBackend):
         )
         return self.grad.apply(fn, prepared, targets)
 
-    def potential(self, prepared: Sources, targets: Targets, *, G: float) -> Array:
+    def potential(
+        self, prepared: Sources, targets: Targets, *, G: float | Array
+    ) -> Array:
         """Return the potentials (Nt,) at ``targets``."""
         fn = ft.partial(
             direct_sum_potential, kernel=self.kernel, G=G, chunk_size=self.chunk_size

@@ -87,10 +87,10 @@ class MassBelowThreshold(eqx.Module):
         Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
 
         """
-        # Compare in the threshold's unit, not the field's: a root finder's
-        # absolute tolerance on this value can't be met for a mass in, e.g., kg.
-        M = u.Q.from_(
-            u.ustrip(AllowValue, args["units"]["mass"], y), args["units"]["mass"]
-        )
-        _result = M.ustrip(self.threshold.unit) - self.threshold.value
+        # Compare in Msun, whatever the units of the field and threshold: the
+        # root finder's absolute tolerance on this value can't be met for a
+        # mass in, e.g., kg (~1e34).
+        mu = args["units"]["mass"]
+        M = u.Q.from_(u.ustrip(AllowValue, mu, y), mu)
+        _result = M.ustrip("Msun") - self.threshold.ustrip("Msun")
         return _result  # type: ignore[no-any-return]

@@ -173,3 +173,18 @@ def test_run_passes_non_dict_args_through():
 
     assert jnp.allclose(state.y, 1e4 * 0.99**10)
     assert jnp.allclose(soln.ys, 1e4 * 0.99**10)
+
+
+def test_default_root_finder_handles_a_threshold_in_kg():
+    """A threshold in kg stops the solve where the same threshold in Msun does."""
+    threshold = u.Q(5e3, "Msun").uconvert("kg")
+    event = dfx.Event(
+        gdc.MassBelowThreshold(threshold),
+        root_finder=gdc.MassSolver().event.root_finder,
+    )
+    solver = gdc.MassSolver(event=event)
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    soln = solver.solve(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"))
+
+    assert jnp.allclose(soln.ts, 250.0)

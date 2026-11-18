@@ -26,6 +26,21 @@ from galax.orbits import AbstractOrbitField
 _NULL = gp.NullPotential(units="galactic")
 _DIRECT = DirectSum()
 _SAFE = 1e10
+_MASS_MSG = "masses must be finite and non-negative"
+_SOFT_MSG = "softening must be finite and non-negative"
+
+
+def _tracer_msg(n_massive: int) -> str:
+    return (
+        f"masses after the first n_massive={n_massive} rows must be zero; "
+        "those rows are massless tracers"
+    )
+
+
+def _input_oks(m: Array, h: Array, n_massive: int) -> tuple[Array, Array, Array]:
+    """Return the per-row masks for valid masses, tracer masses and softening."""
+    # `>= 0` is False for NaN; `isfinite` also rejects +-inf.
+    return jnp.isfinite(m) & (m >= 0), m[n_massive:] == 0, jnp.isfinite(h) & (h >= 0)
 
 
 def _check(x: Array, ok: Array, msg: str) -> Array:
@@ -49,8 +64,10 @@ class NBodyField(AbstractOrbitField):
     The first ``n_massive`` particles are sources. The rest are massless
     tracers that feel the sources but exert nothing. Masses after the first
     ``n_massive`` rows must be zero. Concrete inputs are checked when the
-    field is built. Traced inputs are checked at run time with
-    `equinox.error_if`, which raises `equinox.EquinoxRuntimeError`. Inactive
+    field is built and raise `ValueError`. Traced inputs are checked at run
+    time with `equinox.error_if`, each time the acceleration is computed. That
+    check raises `equinox.EquinoxRuntimeError`, or `jax.errors.JaxRuntimeError`
+    under `jax.jit`. Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
     is given either as one ``eps`` for all particles or per particle as
@@ -144,19 +161,14 @@ class NBodyField(AbstractOrbitField):
             if not 0 <= n_massive <= n:
                 msg = f"n_massive must be in [0, {n}], got {n_massive}"
                 raise ValueError(msg)
-            # `>= 0` is False for NaN; `isfinite` also rejects +-inf.
-            m_ok = jnp.isfinite(m) & (m >= 0)
-            tracer_ok, h_ok = m[n_massive:] == 0, jnp.isfinite(h) & (h >= 0)
+            m_ok, tracer_ok, h_ok = _input_oks(m, h, n_massive)
         # `eqx.error_if` must stage outside `ensure_compile_time_eval`, or it
-        # reports the wrong message.
-        m = _check(m, m_ok, "masses must be finite and non-negative")
-        m = _check(
-            m,
-            tracer_ok,
-            f"masses after the first n_massive={n_massive} rows must be zero; "
-            "those rows are massless tracers",
-        )
-        h = _check(h, h_ok, "softening must be finite and non-negative")
+        # reports the wrong message. These traced checks only fire if the
+        # array reaches an output; `nbody_acceleration` checks again on its
+        # result so a force call always keeps them.
+        m = _check(m, m_ok, _MASS_MSG)
+        m = _check(m, tracer_ok, _tracer_msg(n_massive))
+        h = _check(h, h_ok, _SOFT_MSG)
         self.masses = m
         self.softening = h
         self.active = a
@@ -231,6 +243,10 @@ def nbody_acceleration(
     This is the backend's pairwise term from the active massive particles plus
     the external term, zeroed for inactive particles. In ``__call__`` the
     velocity of an inactive row passes through unchanged, so it keeps drifting.
+
+    Traced masses and softening are checked here on the result, so the checks
+    run whenever the acceleration is used, even when the inputs themselves
+    never reach it (for example with ``n_massive=0``).
     """
     nm = field.n_massive
     idx = jnp.arange(q.shape[0])
@@ -249,7 +265,11 @@ def nbody_acceleration(
     # NoGrad's custom_jvp never closes over a traced G.
     a = field._G * backend.accelerations(backend.prepare(sources), targets, G=1.0)  # noqa: SLF001
     a = a - jnp.asarray(gp.gradient(field.external_potential, q, t))
-    return jnp.where(field.active[:, None], a, 0.0)
+    a = jnp.where(field.active[:, None], a, 0.0)
+    m_ok, tracer_ok, h_ok = _input_oks(field.masses, field.softening, nm)
+    a = _check(a, m_ok, _MASS_MSG)
+    a = _check(a, tracer_ok, _tracer_msg(nm))
+    return _check(a, h_ok, _SOFT_MSG)
 
 
 @NBodyField.__call__.dispatch

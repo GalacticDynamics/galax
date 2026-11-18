@@ -457,3 +457,28 @@ def test_traced_infinite_inputs_raise_at_run_time() -> None:
         jax.jit(build)(jnp.array([1.0, jnp.inf]), h)
     with pytest.raises(_RUNTIME_ERROR, match="softening"):
         jax.jit(build)(ok, jnp.asarray(jnp.inf))
+
+
+@pytest.mark.parametrize(
+    ("m", "h", "match"),
+    [
+        ([jnp.nan, 0.0, 0.0], 0.1, "masses"),
+        ([0.0, 5.0, 0.0], 0.1, "massless tracers"),
+        ([0.0, 0.0, 0.0], -1.0, "softening"),
+    ],
+    ids=["nan-mass", "tracer-mass", "negative-softening"],
+)
+def test_traced_inputs_checked_with_no_massive_rows(m, h, match) -> None:
+    """Traced inputs are checked under jit when no row is massive.
+
+    With n_massive=0 the inputs never reach the output, and jit used to drop
+    the checks.
+    """
+    acc = jax.jit(
+        lambda m, h: gn.NBodyField(m, h, _GAL, n_massive=0).acceleration(
+            0.0, jnp.eye(3)
+        )
+    )
+    with pytest.raises(_RUNTIME_ERROR, match=match):
+        acc(jnp.asarray(m), jnp.asarray(h))
+    assert acc(jnp.zeros(3), jnp.asarray(0.1)).shape == (3, 3)

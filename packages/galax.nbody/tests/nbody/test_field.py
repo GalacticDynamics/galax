@@ -482,3 +482,12 @@ def test_traced_inputs_checked_with_no_massive_rows(m, h, match) -> None:
     with pytest.raises(_RUNTIME_ERROR, match=match):
         acc(jnp.asarray(m), jnp.asarray(h))
     assert acc(jnp.zeros(3), jnp.asarray(0.1)).shape == (3, 3)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"eps": 0.1, "softening": jnp.array([0.1, 0.1])}]
+)
+def test_exactly_one_of_eps_and_softening(kwargs: dict) -> None:
+    """Passing neither or both of ``eps`` and ``softening`` raises."""
+    with pytest.raises(ValueError, match="exactly one of eps and softening"):
+        gn.NBodyField(jnp.array([1.0, 1.0]), **kwargs)

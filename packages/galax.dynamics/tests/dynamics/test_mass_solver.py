@@ -354,3 +354,38 @@ def test_event_accepts_integer_masses():
     args = {"units": u.unitsystems.galactic, "mass_scale": jnp.int32(10)}
 
     assert jnp.allclose(event(0.0, jnp.int32(10), args), 0.5)
+
+
+def test_step_after_an_event_uses_the_state_at_the_event():
+    """After the event stops `run`, `step` continues from the event time.
+
+    diffrax saves the solver state at the end of the last step, past the event,
+    which made the next `step` wrong by ~1e-4 for FSAL solvers.
+    """
+    event = dfx.Event(
+        gdc.MassBelowThreshold(u.Q(5e3, "Msun")),
+        root_finder=gdc.MassSolver().event.root_finder,
+    )
+    solver = gdc.MassSolver(event=event)
+    field = gdc.CustomMassRateField(lambda _t, M, _args: -0.1 * M, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(10.0, "Myr"), None)
+    stepped = solver.step(field, state, state.t + 0.1, None)
+
+    assert jnp.allclose(state.y, 5e3)
+    assert jnp.allclose(stepped.y, 5e3 * np.exp(-0.01), rtol=1e-8)
+
+
+def test_default_event_with_a_steep_mass_loss_law():
+    """dM/dt ∝ -M**0.9 still stops at dissolution with the default solver."""
+    c = 1e4**0.1 / (0.1 * 100)  # dissolves at 100 Myr
+    field = gdc.CustomMassRateField(
+        lambda _t, M, _args: -c * jnp.abs(M) ** 0.9, units="galactic"
+    )
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(150.0, "Myr")
+    )
+
+    assert 90.0 < float(soln.ts[0]) <= 100.0

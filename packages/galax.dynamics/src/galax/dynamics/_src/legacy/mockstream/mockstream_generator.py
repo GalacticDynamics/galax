@@ -169,11 +169,14 @@ class MockStreamGenerator(eqx.Module):
         t1: gt.QuSz0,
         potential: AbstractPotential | None = None,
         /,
+        *,
+        sequential: bool = False,
     ) -> tuple[gt.Sz6, gt.Sz6]:
         """Integrate a leading and a trailing particle ``(2, 6)`` from t0 to t1.
 
         Each gets its own solve, so an adaptive solver picks its steps per particle.
-        ``potential`` defaults to the host, ``self.potential``.
+        ``potential`` defaults to the host, ``self.potential``. ``sequential``
+        runs the two solves one after the other instead of vmapped as a pair.
         """
         pot = self.potential if potential is None else potential
         # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
@@ -188,6 +191,8 @@ class MockStreamGenerator(eqx.Module):
             w1: gt.Sz6 = out.w(units=self.units)[-1]
             return w1
 
+        if sequential:
+            return final_state(w0[0]), final_state(w0[1])
         w = jax.vmap(final_state)(w0)
         return w[0], w[1]
 
@@ -209,6 +214,12 @@ class MockStreamGenerator(eqx.Module):
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
         t_f = ts[-1] + u.Q(1e-3, "Myr")  # TODO: not bump in the final time.
+        # With the progenitor's potential, each adaptive step of the vmapped
+        # pair costs several times what a step of one particle does (on CPU,
+        # 3-10x less CPU time one after the other). In the host alone the pair
+        # is cheaper. `_run_vmap` keeps the pair: there it would double the
+        # loop iterations of the batched solve.
+        sequential = self.progenitor_potential is not None
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -224,7 +235,11 @@ class MockStreamGenerator(eqx.Module):
             """
             i, w0_l_i, w0_t_i = carry
             w_l, w_t = self._integrate_to(
-                jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f, potential
+                jnp.vstack([w0_l_i, w0_t_i]),
+                ts[i],
+                t_f,
+                potential,
+                sequential=sequential,
             )
             # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])

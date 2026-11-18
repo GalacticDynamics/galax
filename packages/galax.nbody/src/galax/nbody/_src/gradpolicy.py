@@ -8,16 +8,14 @@ import operator
 
 from collections.abc import Callable
 from jaxtyping import Array
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 import equinox as eqx
 import jax
 
-if TYPE_CHECKING:
-    # backend.py imports this module, so import these only for type checking.
-    from .backend import Sources, Targets
+from .particles import Sources, Targets
 
-_T = TypeVar("_T", "Sources", "Targets")
+_T = TypeVar("_T", Sources, Targets)
 _FIELDS = frozenset({"q", "m", "h"})
 _NOGRAD_MSG = (
     "This force backend has gradient policy NoGrad, so it can't be "
@@ -31,9 +29,9 @@ class AbstractGradPolicy(eqx.Module):
     @abc.abstractmethod
     def apply(
         self,
-        fn: Callable[["Sources", "Targets"], Array],
-        sources: "Sources",
-        targets: "Targets",
+        fn: Callable[[Sources, Targets], Array],
+        sources: Sources,
+        targets: Targets,
     ) -> Array:
         """Evaluate ``fn(sources, targets)`` under this policy.
 
@@ -62,9 +60,9 @@ class Autodiff(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[["Sources", "Targets"], Array],
-        sources: "Sources",
-        targets: "Targets",
+        fn: Callable[[Sources, Targets], Array],
+        sources: Sources,
+        targets: Targets,
     ) -> Array:
         return fn(sources, targets)
 
@@ -87,9 +85,9 @@ class StopGrad(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[["Sources", "Targets"], Array],
-        sources: "Sources",
-        targets: "Targets",
+        fn: Callable[[Sources, Targets], Array],
+        sources: Sources,
+        targets: Targets,
     ) -> Array:
         def stop(obj: _T) -> _T:
             for name in self.wrt & {f.name for f in dataclasses.fields(obj)}:
@@ -105,12 +103,12 @@ class NoGrad(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[["Sources", "Targets"], Array],
-        sources: "Sources",
-        targets: "Targets",
+        fn: Callable[[Sources, Targets], Array],
+        sources: Sources,
+        targets: Targets,
     ) -> Array:
         @jax.custom_jvp
-        def run(s: "Sources", t: "Targets") -> Array:
+        def run(s: Sources, t: Targets) -> Array:
             return fn(s, t)
 
         @run.defjvp

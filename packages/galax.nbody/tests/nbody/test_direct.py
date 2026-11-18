@@ -1,5 +1,9 @@
 """Tests for the direct-sum force backend."""
 
+import subprocess
+import sys
+import textwrap
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -161,3 +165,26 @@ def test_check_grads_small() -> None:
         order=1,
         modes=("rev",),
     )
+
+
+def test_runtime_typechecked_grad_policies() -> None:
+    """Every gradient policy runs with beartype checking the modules."""
+    code = textwrap.dedent("""
+        import jax
+        jax.config.update("jax_enable_x64", True)
+        import jax.numpy as jnp
+        from jaxtyping import install_import_hook
+        with install_import_hook("galax.nbody._src", "beartype.beartype"):
+            from galax.nbody._src.backend import Sources, Targets
+            from galax.nbody._src.direct import DirectSum
+        s = Sources(q=jnp.eye(3), m=jnp.ones(3), h=jnp.full(3, 0.1))
+        t = Targets(q=s.q, h=s.h, self_index=jnp.arange(3))
+        for g in ("autodiff", "stop", "none"):
+            b = DirectSum(grad=g)
+            b.accelerations(s, t, G=1.0)
+            b.potential(s, t, G=1.0)
+    """)
+    proc = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert proc.returncode == 0, proc.stderr[-3000:]

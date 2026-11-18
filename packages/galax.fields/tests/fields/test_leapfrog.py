@@ -41,3 +41,9 @@ def test_backward_round_trip() -> None:
     atol = 1e3 * float(jnp.finfo(sol.ys[0].dtype).eps)  # float32 or float64
     assert float(sol.ys[0][-1]) == pytest.approx(1.0, abs=atol)
     assert float(sol.ys[1][-1]) == pytest.approx(0.0, abs=atol)
+
+
+def test_func() -> None:
+    """`func` returns the time derivative ``(dq/dt, dp/dt) = (p, -q)``."""
+    qdot, pdot = gf.Leapfrog().func(TERMS, 0.0, (jnp.array(2.0), jnp.array(3.0)), None)
+    assert (float(qdot), float(pdot)) == (3.0, -2.0)

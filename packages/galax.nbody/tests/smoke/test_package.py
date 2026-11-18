@@ -20,6 +20,7 @@ def test_all() -> None:
         "Autodiff",
         "StopGrad",
         "NoGrad",
+        "total_energy",
     }
     for name in gn.__all__:
         assert hasattr(gn, name)

@@ -1,6 +1,7 @@
 """Tests for `galax.dynamics.cluster.MassSolver`."""
 
 import diffrax as dfx
+import jax
 import jax.numpy as jnp
 import pytest
 
@@ -207,3 +208,38 @@ def test_default_event_accepts_empty_args(args):
     )
 
     assert jnp.allclose(soln.ts, 500.0)
+
+
+def test_run_reports_the_event_time():
+    """After the event stops the solve, the state's time is the event time."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(1e3, "Myr"), None)
+
+    assert jnp.allclose(state.t, 500.0)
+
+
+@pytest.mark.parametrize("M0", [1e-3, 1e4, 1e12, 1e15], ids=lambda m: f"{m:g}")
+def test_default_event_at_any_mass_scale(M0):
+    """The default root-find works whatever the cluster's mass."""
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -M0 / 500, units="galactic")
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(M0, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr")
+    )
+
+    assert jnp.allclose(soln.ts, 500.0)
+
+
+def test_default_event_in_float32():
+    """The default root-find also works with 32-bit floats."""
+    with jax.enable_x64(False):  # noqa: FBT003
+        field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+        soln = gdc.MassSolver().solve(
+            field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr")
+        )
+
+    assert soln.ts.dtype == jnp.float32
+    assert jnp.allclose(soln.ts, 500.0, rtol=1e-4)

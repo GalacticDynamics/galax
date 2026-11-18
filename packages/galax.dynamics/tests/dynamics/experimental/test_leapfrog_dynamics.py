@@ -11,8 +11,8 @@ from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
-from galax.orbits._src import experimental
 
 W0 = jnp.array([15.0, 0.0, 10.0, 0.0, 0.17, -0.05])
 
@@ -29,7 +29,7 @@ def test_evaluate_orbit_fixed_step_back_then_forward():
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     integrator = gd.integrate.Integrator(
         gd.OrbitSolver(
-            experimental.Leapfrog(),
+            gf.Leapfrog(),
             stepsize_controller=dfx.ConstantStepSize(),
             max_steps=200,
         ),
@@ -67,7 +67,7 @@ def test_stream_simulator_fixed_step():
     pot = gp.HernquistPotential(1e12, 10, units="galactic")
     qp0 = (jnp.array([15.0, 0.0, 0.0]), jnp.array([0.0, 0.225, 0.0]))
     solver = dfxtra.DiffEqSolver(
-        experimental.Leapfrog(),
+        gf.Leapfrog(),
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=1000,
     )

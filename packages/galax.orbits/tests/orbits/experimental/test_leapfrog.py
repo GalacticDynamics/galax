@@ -10,6 +10,7 @@ import unxt as u
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
+import galax.fields as gf
 import galax.orbits as go
 import galax.orbits._src.experimental as experimental
 import galax.potential as gp
@@ -20,7 +21,7 @@ def shaped_allclose(x, y, **kwargs):
     return jnp.shape(x) == jnp.shape(y) and jnp.allclose(x, y, **kwargs)
 
 
-@pytest.mark.parametrize("solver", [experimental.Leapfrog()])
+@pytest.mark.parametrize("solver", [gf.Leapfrog()])
 def test_symplectic_solvers(solver):
     dq_dt = dfx.ODETerm(lambda t, p, args: p)
     dp_dt = dfx.ODETerm(lambda t, q, args: -q)
@@ -54,9 +55,7 @@ def test_leapfrog_time_dependent_force():
     y0 = (1.0, -0.5)
     dt0 = 0.01
 
-    sol = dfx.diffeqsolve(
-        (dq_dt, dp_dt), experimental.Leapfrog(), 0, 1, dt0, y0, max_steps=1000
-    )
+    sol = dfx.diffeqsolve((dq_dt, dp_dt), gf.Leapfrog(), 0, 1, dt0, y0, max_steps=1000)
 
     term_combined = dfx.ODETerm(lambda t, y, args: (y[1], -y[0] + 0.3 * jnp.sin(2 * t)))
     ref = dfx.diffeqsolve(
@@ -96,7 +95,7 @@ def test_leapfrog_conserves_energy_over_many_periods():
 
     sol = dfx.diffeqsolve(
         (dq_dt, dp_dt),
-        experimental.Leapfrog(),
+        gf.Leapfrog(),
         0,
         t1,
         dt0,
@@ -127,9 +126,7 @@ def test_leapfrog_conserves_energy_over_many_periods():
 def _nfw_leapfrog(t0, t1, w0):
     """`OrbitSolver(Leapfrog)` on an NFW, fixed |dt| = 1 Myr, final state (6,)."""
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
-    solver = go.OrbitSolver(
-        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     n = int(abs(t1 - t0))
     soln = solver.solve(
         HamiltonianField(pot),
@@ -176,9 +173,7 @@ def test_leapfrog_round_trip():
 def test_fixed_step_dt0_sign_follows_direction():
     """With a constant step, `dt0` sets the size; t0 -> t1 sets the direction."""
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
-    solver = go.OrbitSolver(
-        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     y0 = (W0[:3], W0[3:])
     want = solver.solve(field, y0, 0.0, -100.0, dt0=-1.0, max_steps=101)
     got = solver.solve(field, y0, 0.0, -100.0, dt0=1.0, max_steps=101)
@@ -190,9 +185,7 @@ def test_fixed_step_dt0_sign_follows_direction():
 def test_fixed_step_dt0_quantity(method):
     """A `unxt.Quantity` ``dt0`` is converted to the field's time unit."""
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
-    solver = go.OrbitSolver(
-        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     y0 = (W0[:3], W0[3:])
 
     def ys(dt0):
@@ -218,7 +211,7 @@ def test_compute_orbit_fixed_step_dt0(sign):
     """
     field = HamiltonianField(gp.NFWPotential(m=1e12, r_s=15, units="galactic"))
     solver = go.OrbitSolver(
-        experimental.Leapfrog(),
+        gf.Leapfrog(),
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=400,
     )
@@ -259,7 +252,7 @@ def test_experimental_integrate_orbit_fixed_step_backward():
     """
     pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
     solver = dfxtra.DiffEqSolver(
-        experimental.Leapfrog(),
+        gf.Leapfrog(),
         stepsize_controller=dfx.ConstantStepSize(),
         max_steps=100,
     )
@@ -288,7 +281,7 @@ def test_experimental_integrate_orbit_fixed_step_backward():
 # One force evaluation per step
 
 
-class _TwoEvalLeapfrog(experimental.Leapfrog):
+class _TwoEvalLeapfrog(gf.Leapfrog):
     """Reference: the same KDK step, evaluating the force twice per step."""
 
     def init(self, terms, t0, t1, y0, args):
@@ -322,7 +315,7 @@ def test_leapfrog_one_force_evaluation_per_step():
 
     dfx.diffeqsolve(
         (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force)),
-        experimental.Leapfrog(),
+        gf.Leapfrog(),
         0.0,
         1.0,
         0.1,
@@ -391,9 +384,7 @@ def test_leapfrog_reused_force_matches_two_evaluations(force, t1, dt0, controlle
     """Reusing the force changes nothing, forward, backward, or after a jump."""
     terms = (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force))
     kw = {"stepsize_controller": controller, "max_steps": 200}
-    got = dfx.diffeqsolve(
-        terms, experimental.Leapfrog(), 0.0, t1, dt0, (1.0, -0.5), **kw
-    )
+    got = dfx.diffeqsolve(terms, gf.Leapfrog(), 0.0, t1, dt0, (1.0, -0.5), **kw)
     ref = dfx.diffeqsolve(terms, _TwoEvalLeapfrog(), 0.0, t1, dt0, (1.0, -0.5), **kw)
     assert jnp.allclose(got.ys[0], ref.ys[0], rtol=1e-13, atol=0)
     assert jnp.allclose(got.ys[1], ref.ys[1], rtol=1e-13, atol=0)
@@ -410,7 +401,7 @@ def test_leapfrog_one_force_evaluation_per_step_under_vmap():
     def solve(t_jump):
         return dfx.diffeqsolve(
             (dfx.ODETerm(lambda t, p, args: p), dfx.ODETerm(force)),
-            experimental.Leapfrog(),
+            gf.Leapfrog(),
             0.0,
             1.0,
             0.1,
@@ -434,7 +425,7 @@ def test_leapfrog_orbitsolver_step_after_run():
         q=u.Q(W0[:3], "kpc"), p=u.Q(W0[3:], "kpc/Myr"), t=u.Q(0.0, "Myr")
     )
     out = []
-    for leapfrog in (experimental.Leapfrog(), _TwoEvalLeapfrog()):
+    for leapfrog in (gf.Leapfrog(), _TwoEvalLeapfrog()):
         solver = go.OrbitSolver(
             solver=leapfrog, stepsize_controller=dfx.ConstantStepSize(), max_steps=200
         )
@@ -448,7 +439,7 @@ def test_leapfrog_orbitsolver_step_after_run():
 
 @pytest.mark.parametrize(
     "solver",
-    [experimental.Leapfrog(), None],
+    [gf.Leapfrog(), None],
     ids=["leapfrog", "default"],
 )
 def test_solve_from_init_state_with_batched_t1(solver):
@@ -499,9 +490,7 @@ def test_solve_from_state_reuses_the_stored_force(monkeypatch, request):
     w0 = gc.PhaseSpaceCoordinate(
         q=u.Q([8.0, 0, 9], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
     )
-    solver = go.OrbitSolver(
-        experimental.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()
-    )
+    solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     state = solver.init(field, w0, None)
     jax.effects_barrier()
     n_evals.clear()

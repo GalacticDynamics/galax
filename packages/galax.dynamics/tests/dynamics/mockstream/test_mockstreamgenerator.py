@@ -19,6 +19,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.dynamics.custom_types as gt
+import galax.fields as gf
 import galax.potential as gp
 
 
@@ -143,7 +144,7 @@ class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
         """
         integrator = gd.integrate.Integrator(
             gd.OrbitSolver(
-                gd.experimental.Leapfrog(),
+                gf.Leapfrog(),
                 stepsize_controller=dfx.ConstantStepSize(),
                 max_steps=5000,
             ),

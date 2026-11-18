@@ -362,7 +362,8 @@ PY
 echo "== shape 8: \`galax.orbits\` alone =="
 # Pulls fields, coordinates and potential, which it declares, and neither
 # `galax.dynamics` nor `galax.actionangle`. Importing `galax.orbits` registers the
-# `Leapfrog` dispatch, so integrating with it checks that too.
+# `HamiltonianField.terms` dispatch for `galax.fields.Leapfrog`, so integrating
+# with it checks that too.
 uv run --isolated --no-project \
   --find-links "$WHEELS" \
   --with "$(echo "$WHEELS"/galax_orbits-*.whl)" \
@@ -373,9 +374,9 @@ import diffrax as dfx
 import unxt as u
 
 import galax.coordinates as gc
+import galax.fields as gf
 import galax.orbits as go
 import galax.potential as gp
-from galax.orbits._src.experimental import Leapfrog
 
 pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
 w0 = gc.PhaseSpaceCoordinate(
@@ -385,7 +386,7 @@ ts = u.Q([0.0, 100.0], "Myr")
 orbit = go.compute_orbit(pot, w0, ts)
 assert orbit.q.shape == (2,), orbit.q.shape
 
-solver = go.OrbitSolver(Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
+solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
 orbit = go.compute_orbit(pot, w0, ts, solver=solver, dt0=u.Q(1, "Myr"))
 assert orbit.q.shape == (2,), orbit.q.shape
 

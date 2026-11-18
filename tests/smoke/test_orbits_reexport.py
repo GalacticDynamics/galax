@@ -46,7 +46,7 @@ def test_experimental_identity():
     import galax.dynamics._src.experimental as gdx
     import galax.orbits._src.experimental as gox
 
-    assert gdx.Leapfrog is gox.Leapfrog
+    assert not hasattr(gdx, "Leapfrog")  # use galax.fields.Leapfrog
     assert gdx.integrate_orbit is gox.integrate_orbit
     assert gdx.SymplecticSolverT is gox.SymplecticSolverT
 
@@ -54,7 +54,6 @@ def test_experimental_identity():
 def test_experimental_submodules():
     import galax.dynamics as gd
     import galax.orbits._src.experimental.integrate as goi
-    import galax.orbits._src.experimental.leapfrog as gol
 
     assert gd.experimental.integrate is goi
-    assert gd.experimental.leapfrog is gol
+    assert not hasattr(gd.experimental, "leapfrog")

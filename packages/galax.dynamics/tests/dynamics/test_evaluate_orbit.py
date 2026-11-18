@@ -25,6 +25,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.dynamics.custom_types as gt
+import galax.fields as gf
 import galax.potential as gp
 
 # One per kind that reaches the solver differently, not one per potential.
@@ -96,7 +97,7 @@ def test_dense_without_max_steps_in_diffeq_kw() -> None:
 
     integ = gd.integrate.Integrator(
         gd.OrbitSolver(
-            solver=gd.experimental.Leapfrog(),
+            solver=gf.Leapfrog(),
             stepsize_controller=dfx.ConstantStepSize(),
         ),
         diffeq_kw={"dt0": 1.0},

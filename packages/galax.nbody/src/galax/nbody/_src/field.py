@@ -59,8 +59,9 @@ class NBodyField(AbstractOrbitField):
     ``masses`` and ``softening`` are stored as plain arrays in the external
     potential's units. The ``eps`` keyword sets one softening for every
     particle. Swapping ``external_potential`` with `equinox.tree_at` keeps
-    those numbers and so reinterprets them in the new units. To change units,
-    build a new field or use `dataclasses.replace`, which re-runs ``__init__``.
+    those numbers and so reinterprets them in the new units. `dataclasses.replace`
+    does the same, because it passes the stored plain arrays back in unchanged.
+    To change units, build a new field from Quantities.
 
     .. warning::
 

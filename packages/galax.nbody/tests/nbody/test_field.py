@@ -1,5 +1,7 @@
 """Tests for `galax.nbody.NBodyField`."""
 
+import dataclasses
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -406,3 +408,17 @@ def test_active_shape_must_match_masses(active, jit) -> None:
 
     with pytest.raises(ValueError, match="active"):
         jax.jit(build)() if jit else build()
+
+
+def test_replace_reinterprets_stored_numbers_in_new_units() -> None:
+    # Documented in the class docstring: replace keeps the stored numbers.
+    field = gn.NBodyField(
+        masses=jnp.array([1.0, 0.0]),
+        eps=u.Q(1e-4, "AU"),
+        external_potential=gp.NullPotential(units="solarsystem"),
+        n_massive=1,
+    )
+    moved = dataclasses.replace(
+        field, external_potential=gp.NullPotential(units="galactic")
+    )
+    np.testing.assert_array_equal(moved.softening, field.softening)

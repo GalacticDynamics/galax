@@ -3,6 +3,7 @@
 __all__ = ["DirectSum", "direct_sum_accelerations", "direct_sum_potential"]
 
 import functools as ft
+import operator
 
 from collections.abc import Callable
 from jaxtyping import Array
@@ -124,6 +125,20 @@ def direct_sum_potential(
     return out
 
 
+def _as_chunk_size(c: object) -> int:
+    """Return ``c`` as a positive `int`; reject bools, floats and values <= 0."""
+    msg = f"chunk_size must be a positive int, got {c!r}"
+    if isinstance(c, bool):
+        raise ValueError(msg)  # noqa: TRY004
+    try:
+        n = operator.index(c)  # type: ignore[arg-type]
+    except TypeError:
+        raise ValueError(msg) from None
+    if n <= 0:
+        raise ValueError(msg)
+    return n
+
+
 class DirectSum(AbstractForceBackend):
     """Exact O(Nt * Ns) pairwise sum, chunked over targets.
 
@@ -145,13 +160,7 @@ class DirectSum(AbstractForceBackend):
     """
 
     kernel: AbstractSofteningKernel = PlummerKernel()
-    chunk_size: int = eqx.field(default=1024, static=True)
-
-    def __check_init__(self) -> None:
-        c: object = self.chunk_size  # `object`: callers may pass anything
-        if isinstance(c, bool) or not isinstance(c, int) or c <= 0:
-            msg = f"chunk_size must be a positive int, got {c!r}"
-            raise ValueError(msg)
+    chunk_size: int = eqx.field(default=1024, static=True, converter=_as_chunk_size)
 
     def prepare(self, sources: Sources) -> Sources:
         """Return ``sources`` unchanged."""

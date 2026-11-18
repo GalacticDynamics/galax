@@ -198,3 +198,10 @@ def test_chunk_size_must_be_positive_int(chunk_size) -> None:
     # Under runtime type checking a float fails the annotation first.
     with pytest.raises((ValueError, TypeError), match="chunk_size"):
         DirectSum(chunk_size=chunk_size)
+
+
+def test_chunk_size_accepts_numpy_ints() -> None:
+    assert DirectSum(chunk_size=np.int64(8)).chunk_size == 8
+    for bad in (8.0, 0, -1):
+        with pytest.raises((ValueError, TypeError), match="chunk_size"):
+            DirectSum(chunk_size=bad)

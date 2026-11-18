@@ -6,7 +6,7 @@ import abc
 import dataclasses
 import operator
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from jaxtyping import Array
 from typing import Any, TypeVar
 
@@ -66,13 +66,22 @@ class Autodiff(AbstractGradPolicy):
         return fn(sources, targets)
 
 
+def _to_frozenset(wrt: Iterable[str]) -> frozenset[str]:
+    if isinstance(wrt, str):
+        msg = f"wrt must be a set of names, not the string {wrt!r}; use wrt={{'m'}}"
+        raise ValueError(msg)  # noqa: TRY004
+    return frozenset(wrt)
+
+
 class StopGrad(AbstractGradPolicy):
     """Stop gradients through the named fields (``q``, ``m``, ``h``).
 
     The fields are those of both sources and targets that have them.
     """
 
-    wrt: frozenset[str] = eqx.field(default=_FIELDS, static=True)
+    wrt: frozenset[str] = eqx.field(
+        default=_FIELDS, static=True, converter=_to_frozenset
+    )
 
     def __check_init__(self) -> None:
         bad = set(self.wrt) - _FIELDS

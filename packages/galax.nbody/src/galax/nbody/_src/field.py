@@ -8,6 +8,7 @@ from typing import Any, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+import numpy as np
 from plum import dispatch
 
 import unxt as u
@@ -31,15 +32,16 @@ class NBodyField(AbstractOrbitField):
 
     The first ``n_massive`` particles are sources. The rest are massless
     tracers that feel the sources but exert nothing. Masses after the first
-    ``n_massive`` rows are ignored; those rows are massless tracers. Inactive
+    ``n_massive`` rows must be zero. This is checked when the masses are
+    concrete values; under tracing those masses are ignored. Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
     is given either as one ``eps`` for all particles or per particle as
     ``softening``.
 
-    ``masses`` and ``softening`` are now stored as plain arrays in the external
-    potential's units, no longer as Quantities. The scalar ``eps`` keyword
-    still works and is stored as the per-particle ``softening``.
+    ``masses`` and ``softening`` are stored as plain arrays in the external
+    potential's units. The ``eps`` keyword sets one softening for every
+    particle.
 
     .. warning::
 
@@ -111,7 +113,9 @@ class NBodyField(AbstractOrbitField):
         if not 0 <= n_massive <= n:
             msg = f"n_massive must be in [0, {n}], got {n_massive}"
             raise ValueError(msg)
-        if not isinstance(m, jax.core.Tracer) and bool(jnp.any(m[n_massive:] != 0)):
+        # Check in numpy so no ops are staged when concrete masses are closed
+        # over by a jitted function.
+        if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m)[n_massive:]):
             msg = (
                 f"masses after the first n_massive={n_massive} rows must be zero; "
                 "those rows are massless tracers"

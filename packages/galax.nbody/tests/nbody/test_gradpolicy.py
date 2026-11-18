@@ -94,3 +94,15 @@ def test_nograd_with_traced_G_raises_unexpected_tracer() -> None:
         jax.grad(f)(1.0)
     with pytest.raises(jax.errors.UnexpectedTracerError):
         jax.jvp(f, (1.0,), (1.0,))
+
+
+def test_stopgrad_wrt_converts_iterable_to_frozenset() -> None:
+    pol = StopGrad(wrt=["m"])
+    assert pol.wrt == frozenset({"m"})
+    pol.apply(fn, s, t)
+
+
+@pytest.mark.parametrize("wrt", ["m", "qm"])
+def test_stopgrad_wrt_rejects_bare_str(wrt: str) -> None:
+    with pytest.raises(ValueError, match=r"wrt=\{'m'\}"):
+        StopGrad(wrt=wrt)

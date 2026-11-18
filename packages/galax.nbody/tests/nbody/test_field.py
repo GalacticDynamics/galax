@@ -220,3 +220,33 @@ def test_tracer_mass_check_is_skipped_under_tracing() -> None:
         return gn.NBodyField(m, 0.0, pot, n_massive=1).masses
 
     np.testing.assert_array_equal(build(jnp.array([1.0, 1.0])), [1.0, 1.0])
+
+
+@pytest.mark.parametrize(
+    "masses",
+    [jnp.array([1.0, 2.0, 0.0]), u.Q([1.0, 2.0, 0.0], "Msun")],
+    ids=["array", "quantity"],
+)
+@pytest.mark.parametrize("n_massive", [None, 2])
+def test_closed_over_masses_build_under_jit(masses, n_massive) -> None:
+    """Concrete masses closed over by a jitted function don't stage the check."""
+    pot = gp.NullPotential(units="galactic")
+    q = jnp.eye(3)
+
+    @jax.jit
+    def acc(q):
+        return gn.NBodyField(masses, 0.01, pot, n_massive=n_massive).acceleration(
+            0.0, q
+        )
+
+    expected = gn.NBodyField(masses, 0.01, pot, n_massive=n_massive).acceleration(
+        0.0, q
+    )
+    np.testing.assert_allclose(acc(q), expected, rtol=1e-12)
+
+
+def test_closed_over_tracer_mass_still_raises_under_jit() -> None:
+    pot = gp.NullPotential(units="galactic")
+    masses = jnp.array([1.0, 1.0, 1.0])
+    with pytest.raises(ValueError, match="massless tracers"):
+        jax.jit(lambda q: gn.NBodyField(masses, 0.01, pot, n_massive=2).masses + q)(1.0)

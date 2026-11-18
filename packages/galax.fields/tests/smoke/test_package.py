@@ -10,6 +10,7 @@ def test_all() -> None:
         "AbstractField",
         "AbstractSolver",
         "CustomField",
+        "Leapfrog",
         "SolveState",
         "integrate_field",
         "parse_time_specification",

@@ -65,7 +65,12 @@ def test_rejects_duplicate_names_and_bad_shapes() -> None:
     with pytest.raises(ValueError, match="negative"):
         gn.System.from_components(neg, units="galactic")
 
-    for bad in ({"m": jnp.nan, "h": 0.0}, {"m": 1.0, "h": jnp.nan}):
+    for bad in (
+        {"m": jnp.nan, "h": 0.0},
+        {"m": 1.0, "h": jnp.nan},
+        {"m": jnp.inf, "h": 0.0},
+        {"m": 1.0, "h": jnp.inf},
+    ):
         nan = gn.Component(name="x", q=q, p=q, **bad)
         with pytest.raises(ValueError, match="negative"):
             gn.System.from_components(nan, units="galactic")
@@ -121,5 +126,5 @@ def test_rejects_zero_d_q_and_negative_h() -> None:
 
     q = jnp.zeros((2, 3))
     neg_h = gn.Component(name="x", q=q, p=q, m=1.0, h=-0.1)
-    with pytest.raises(ValueError, match="negative h"):
+    with pytest.raises(ValueError, match="negative or non-finite h"):
         gn.System.from_components(neg_h, units="galactic")

@@ -137,22 +137,26 @@ class NBodyField(AbstractOrbitField):
             if a.shape != (n,):
                 msg = f"active must have shape ({n},), got {a.shape}"
                 raise ValueError(msg)
+            if isinstance(n_massive, bool):
+                msg = f"n_massive must be an int, not a bool, got {n_massive!r}"
+                raise TypeError(msg)
             n_massive = n if n_massive is None else operator.index(n_massive)
             if not 0 <= n_massive <= n:
                 msg = f"n_massive must be in [0, {n}], got {n_massive}"
                 raise ValueError(msg)
-            # `>= 0` is False for NaN, so NaN fails too.
-            m_ok, tracer_ok, h_ok = m >= 0, m[n_massive:] == 0, h >= 0
+            # `>= 0` is False for NaN; `isfinite` also rejects +-inf.
+            m_ok = jnp.isfinite(m) & (m >= 0)
+            tracer_ok, h_ok = m[n_massive:] == 0, jnp.isfinite(h) & (h >= 0)
         # `eqx.error_if` must stage outside `ensure_compile_time_eval`, or it
         # reports the wrong message.
-        m = _check(m, m_ok, "masses must be non-negative and not NaN")
+        m = _check(m, m_ok, "masses must be finite and non-negative")
         m = _check(
             m,
             tracer_ok,
             f"masses after the first n_massive={n_massive} rows must be zero; "
             "those rows are massless tracers",
         )
-        h = _check(h, h_ok, "softening must be non-negative and not NaN")
+        h = _check(h, h_ok, "softening must be finite and non-negative")
         self.masses = m
         self.softening = h
         self.active = a
@@ -167,8 +171,21 @@ class NBodyField(AbstractOrbitField):
         external_potential: gp.AbstractPotential,
         backend: AbstractForceBackend = _DIRECT,
     ) -> "NBodyField":
-        """Build a field from ``system``, converting it to the potential's units."""
+        """Build a field from ``system``.
+
+        ``system.units`` must equal ``external_potential.units``. The system's
+        positions and velocities are plain arrays, and the field reads plain
+        arrays in its own units, so a mismatch would silently misread them.
+        Raises `ValueError` if the units differ.
+        """
         ps, us = system.particles, system.units
+        if us != external_potential.units:
+            msg = (
+                f"system units {us} differ from the potential's units "
+                f"{external_potential.units}; build the System in the "
+                "potential's units"
+            )
+            raise ValueError(msg)
         return cls(
             u.Q(ps.m, us["mass"]),
             external_potential=external_potential,
@@ -192,9 +209,10 @@ class NBodyField(AbstractOrbitField):
     def acceleration(self, t: Any, q: Float[Array, "N 3"]) -> Float[Array, "N 3"]:
         """Return the accelerations (N, 3) at positions ``q`` and time ``t``.
 
-        ``t`` and ``q`` are plain arrays in the field's units. A Quantity
-        ``t`` isn't accepted here; ``__call__`` handles units. Inactive rows
-        get zero acceleration.
+        ``t`` and ``q`` are plain arrays in the field's units. ``__call__``
+        strips units from the positions and velocities, but it takes ``t`` as a
+        plain number, so a Quantity ``t`` is rejected there as well. Inactive
+        rows get zero acceleration.
         """
         return nbody_acceleration(self, t, q)
 

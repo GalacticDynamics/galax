@@ -128,8 +128,7 @@ def test_from_system_matches_direct_construction() -> None:
         h=0.0,
         massive=False,
     )
-    # Build the system in different units from the potential.
-    sys = gn.System.from_components(tracers, stars, units="solarsystem")
+    sys = gn.System.from_components(tracers, stars, units="galactic")
     field = gn.NBodyField.from_system(sys, pot)
     direct = gn.NBodyField(
         jnp.array([1e9, 1e9, 0, 0]),
@@ -422,3 +421,39 @@ def test_replace_reinterprets_stored_numbers_in_new_units() -> None:
         field, external_potential=gp.NullPotential(units="galactic")
     )
     np.testing.assert_array_equal(moved.softening, field.softening)
+
+
+def test_from_system_rejects_mismatched_units() -> None:
+    c = gn.Component(name="c", q=jnp.zeros((2, 3)), p=jnp.zeros((2, 3)), m=1.0, h=0.0)
+    sys = gn.System.from_components(c, units="galactic")
+    with pytest.raises(ValueError, match="potential's units"):
+        gn.NBodyField.from_system(sys, gp.NullPotential(units="solarsystem"))
+    gn.NBodyField.from_system(sys, gp.NullPotential(units="galactic"))
+
+
+@pytest.mark.parametrize("n_massive", [True, False])
+def test_bool_n_massive_rejected(n_massive) -> None:
+    with pytest.raises(TypeError, match="n_massive"):
+        gn.NBodyField(np.ones(2), 0.1, _GAL, n_massive=n_massive)
+
+
+@pytest.mark.parametrize("bad", [np.inf, -np.inf])
+def test_infinite_masses_and_softening_raise(bad) -> None:
+    with pytest.raises(ValueError, match="masses"):
+        gn.NBodyField(np.array([1.0, bad]), 0.1, _GAL)
+    with pytest.raises(ValueError, match="softening"):
+        gn.NBodyField(np.ones(2), np.array([0.1, bad]), _GAL)
+    with pytest.raises(ValueError, match="masses"):
+        jax.jit(lambda: gn.NBodyField(np.array([1.0, bad]), 0.1, _GAL).masses)()
+
+
+def test_traced_infinite_inputs_raise_at_run_time() -> None:
+    def build(m, h):
+        field = gn.NBodyField(m, h, _GAL)
+        return field.masses, field.softening
+
+    ok, h = jnp.ones(2), jnp.asarray(0.1)
+    with pytest.raises(_RUNTIME_ERROR, match="masses"):
+        jax.jit(build)(jnp.array([1.0, jnp.inf]), h)
+    with pytest.raises(_RUNTIME_ERROR, match="softening"):
+        jax.jit(build)(ok, jnp.asarray(jnp.inf))

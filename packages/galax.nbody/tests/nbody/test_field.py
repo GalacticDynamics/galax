@@ -1,5 +1,6 @@
 """Tests for `galax.nbody.NBodyField`."""
 
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -9,6 +10,10 @@ import unxt as u
 
 import galax.nbody as gn
 import galax.potential as gp
+
+# What `eqx.error_if` raises: `EquinoxRuntimeError` when equinox can rewrite
+# the error, otherwise the `JaxRuntimeError` from the failed callback.
+_RUNTIME_ERROR = (eqx.EquinoxRuntimeError, jax.errors.JaxRuntimeError)
 
 
 def test_pairwise_accelerations_conserve_momentum() -> None:
@@ -212,14 +217,28 @@ def test_nonzero_mass_on_tracer_row_raises() -> None:
     gn.NBodyField(jnp.array([1.0, 1.0, 0.0]), 0.0, pot, n_massive=2)
 
 
-def test_tracer_mass_check_is_skipped_under_tracing() -> None:
+def test_traced_tracer_mass_raises_at_run_time() -> None:
     pot = gp.NullPotential(units="galactic")
 
     @jax.jit
     def build(m):
         return gn.NBodyField(m, 0.0, pot, n_massive=1).masses
 
-    np.testing.assert_array_equal(build(jnp.array([1.0, 1.0])), [1.0, 1.0])
+    with pytest.raises(_RUNTIME_ERROR, match="massless tracers"):
+        build(jnp.array([1.0, 1.0]))
+    np.testing.assert_array_equal(build(jnp.array([1.0, 0.0])), [1.0, 0.0])
+
+
+def test_mass_built_in_jit_is_checked() -> None:
+    """A mass array made inside the jitted function used to drop silently."""
+    pot = gp.NullPotential(units="galactic")
+    acc = jax.jit(
+        lambda q: gn.NBodyField(
+            jnp.array([1.0, 1, 1]), 0.01, pot, n_massive=2
+        ).acceleration(0.0, q)
+    )
+    with pytest.raises(_RUNTIME_ERROR, match="massless tracers"):
+        acc(jnp.eye(3))
 
 
 @pytest.mark.parametrize(
@@ -314,16 +333,69 @@ def test_closed_over_negative_softening_raises_under_jit(eps) -> None:
         jax.jit(lambda: gn.NBodyField(np.ones(2), eps=eps).masses)()
 
 
-def test_traced_masses_skip_checks() -> None:
-    def build(m):
-        return gn.NBodyField(m, 0.1, _GAL, n_massive=1).masses
+def test_traced_bad_inputs_raise_at_run_time() -> None:
+    # Each check rides on the array it guards, so return both. An unused
+    # array's check is dead code and jit drops it.
+    def build(m, h):
+        field = gn.NBodyField(m, h, _GAL, n_massive=1)
+        return field.masses, field.softening
 
-    # Invalid values pass through when traced, since they can't be checked.
-    m = jnp.array([-1.0, 1.0])
-    np.testing.assert_array_equal(jax.jit(build)(m), m)
-    np.testing.assert_array_equal(jax.vmap(build)(jnp.stack([m, m])), [m, m])
-    jaxpr = jax.make_jaxpr(build)(jnp.array([1.0, 0.0]))
-    assert not jaxpr.eqns
+    ok, h = jnp.array([1.0, 0.0]), jnp.asarray(0.1)
+    cases = [
+        (jnp.array([-1.0, 0.0]), h, "masses"),
+        (jnp.array([jnp.nan, 0.0]), h, "masses"),
+        (ok, jnp.asarray(-0.1), "softening"),
+        (ok, jnp.asarray(jnp.nan), "softening"),
+        (jnp.array([1.0, 1.0]), h, "massless tracers"),
+    ]
+    for m, hh, match in cases:
+        with pytest.raises(_RUNTIME_ERROR, match=match):
+            jax.jit(build)(m, hh)
+        with pytest.raises(_RUNTIME_ERROR, match=match):
+            jax.vmap(build)(jnp.stack([ok, m]), jnp.stack([h, hh]))
+    np.testing.assert_array_equal(jax.jit(build)(ok, h)[0], ok)
+
+
+def test_runtime_checks_keep_transforms_working() -> None:
+    q = jnp.array([[0.0, 0, 0], [1, 0, 0], [0, 2, 0]])
+
+    def total(m, h):
+        field = gn.NBodyField(m, h, _GAL, n_massive=2)
+        return jnp.sum(field.acceleration(0.0, q) ** 2)
+
+    m, h = jnp.array([1.0, 2.0, 0.0]), jnp.asarray(0.1)
+    expected = total(np.asarray(m), 0.1)
+    np.testing.assert_allclose(jax.jit(total)(m, h), expected, rtol=1e-12)
+    np.testing.assert_allclose(
+        jax.vmap(total, (0, None))(jnp.stack([m, m]), h), [expected] * 2, rtol=1e-12
+    )
+    g = jax.grad(total)(m, h)
+    np.testing.assert_allclose(jax.jacfwd(total)(m, h), g, rtol=1e-10)
+    np.testing.assert_allclose(jax.grad(total, 1)(m, h), jax.jacfwd(total, 1)(m, h))
+
+    field = gn.NBodyField(m, h, _GAL, n_massive=2)
+    acc = eqx.filter_jit(lambda f, q: f.acceleration(0.0, q))
+    np.testing.assert_allclose(acc(field, q), field.acceleration(0.0, q))
+    moved = eqx.tree_at(lambda f: f.masses, field, 2 * field.masses)
+    np.testing.assert_allclose(moved.masses, 2 * m)
+
+
+@pytest.mark.parametrize("bad", [np.nan, -1.0])
+def test_nan_or_negative_masses_or_softening_raise(bad) -> None:
+    with pytest.raises(ValueError, match="masses"):
+        gn.NBodyField(np.array([1.0, bad]), 0.01, _GAL)
+    with pytest.raises(ValueError, match="softening"):
+        gn.NBodyField(np.ones(2), bad, _GAL)
+    with pytest.raises(ValueError, match="masses"):
+        jax.jit(lambda: gn.NBodyField(np.array([1.0, bad]), 0.01, _GAL).masses)()
+
+
+def test_call_accepts_int_positions() -> None:
+    field = gn.NBodyField(jnp.array([1.0, 1.0]), 0.1, _GAL)
+    q = jnp.array([[0, 0, 0], [1, 0, 0]])
+    v, a = field(0.0, (q, q), None)
+    assert v.dtype == a.dtype == jnp.float64
+    np.testing.assert_allclose(a, field.acceleration(0.0, q.astype(float)))
 
 
 @pytest.mark.parametrize("active", [[True], [True, False, True], np.ones((2, 1))])

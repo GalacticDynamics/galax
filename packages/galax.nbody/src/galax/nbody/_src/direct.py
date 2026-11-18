@@ -147,6 +147,12 @@ class DirectSum(AbstractForceBackend):
     kernel: AbstractSofteningKernel = PlummerKernel()
     chunk_size: int = eqx.field(default=1024, static=True)
 
+    def __check_init__(self) -> None:
+        c: object = self.chunk_size  # `object`: callers may pass anything
+        if isinstance(c, bool) or not isinstance(c, int) or c <= 0:
+            msg = f"chunk_size must be a positive int, got {c!r}"
+            raise ValueError(msg)
+
     def prepare(self, sources: Sources) -> Sources:
         """Return ``sources`` unchanged."""
         return sources

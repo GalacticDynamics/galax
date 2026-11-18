@@ -191,3 +191,10 @@ def test_runtime_typechecked_grad_policies() -> None:
         [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
     assert proc.returncode == 0, proc.stderr[-3000:]
+
+
+@pytest.mark.parametrize("chunk_size", [0, -1, 1.5, True])
+def test_chunk_size_must_be_positive_int(chunk_size) -> None:
+    # Under runtime type checking a float fails the annotation first.
+    with pytest.raises((ValueError, TypeError), match="chunk_size"):
+        DirectSum(chunk_size=chunk_size)

@@ -65,6 +65,11 @@ def test_rejects_duplicate_names_and_bad_shapes() -> None:
     with pytest.raises(ValueError, match="negative"):
         gn.System.from_components(neg, units="galactic")
 
+    for bad in ({"m": jnp.nan, "h": 0.0}, {"m": 1.0, "h": jnp.nan}):
+        nan = gn.Component(name="x", q=q, p=q, **bad)
+        with pytest.raises(ValueError, match="negative"):
+            gn.System.from_components(nan, units="galactic")
+
     massless = gn.Component(name="x", q=q, p=q, m=1.0, h=0.0, massive=False)
     with pytest.raises(ValueError, match="massless"):
         gn.System.from_components(massless, units="galactic")

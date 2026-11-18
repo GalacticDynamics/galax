@@ -28,14 +28,29 @@ _DIRECT = DirectSum()
 _SAFE = 1e10
 
 
+def _check(x: Array, ok: Array, msg: str) -> Array:
+    """Return ``x``, raising if any of ``ok`` is False.
+
+    A concrete ``ok`` raises `ValueError` now. A traced one is checked at run
+    time by `equinox.error_if`.
+    """
+    if isinstance(ok, jax.core.Tracer):
+        out: Array = eqx.error_if(x, ~jnp.all(ok), msg)
+        return out
+    if not np.all(np.asarray(ok)):
+        raise ValueError(msg)
+    return x
+
+
 @final
 class NBodyField(AbstractOrbitField):
     r"""Dynamics field for N-Body EoM.
 
     The first ``n_massive`` particles are sources. The rest are massless
     tracers that feel the sources but exert nothing. Masses after the first
-    ``n_massive`` rows must be zero. This is checked when the masses are
-    concrete values; under tracing those masses are ignored. Inactive
+    ``n_massive`` rows must be zero. Concrete inputs are checked when the
+    field is built. Traced inputs are checked at run time with
+    `equinox.error_if`, which raises `equinox.EquinoxRuntimeError`. Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
     is given either as one ``eps`` for all particles or per particle as
@@ -43,7 +58,9 @@ class NBodyField(AbstractOrbitField):
 
     ``masses`` and ``softening`` are stored as plain arrays in the external
     potential's units. The ``eps`` keyword sets one softening for every
-    particle.
+    particle. Swapping ``external_potential`` with `equinox.tree_at` keeps
+    those numbers and so reinterprets them in the new units. To change units,
+    build a new field or use `dataclasses.replace`, which re-runs ``__init__``.
 
     .. warning::
 
@@ -103,9 +120,9 @@ class NBodyField(AbstractOrbitField):
             msg = "pass exactly one of eps and softening"
             raise ValueError(msg)
         units = external_potential.units
-        # Concrete inputs stay concrete here even inside a jit trace, so the
-        # numpy checks below see their values. Traced inputs stay traced and
-        # skip the checks, which stage no ops.
+        # Concrete inputs stay concrete here even inside a jit trace, so
+        # `_check` sees their values and raises now. Traced inputs stay traced
+        # and get the same checks at run time through `eqx.error_if`.
         with jax.ensure_compile_time_eval():
             m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
             h = softening if eps is None else eps
@@ -116,28 +133,28 @@ class NBodyField(AbstractOrbitField):
             n = m.shape[0]
             h = jnp.broadcast_to(h, (n,))
             a = jnp.ones(n, bool) if active is None else jnp.asarray(active, bool)
-        if a.shape != (n,):
-            msg = f"active must have shape ({n},), got {a.shape}"
-            raise ValueError(msg)
-        if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m) < 0):
-            msg = "masses must be non-negative"
-            raise ValueError(msg)
-        if not isinstance(h, jax.core.Tracer) and np.any(np.asarray(h) < 0):
-            msg = "softening must be non-negative"
-            raise ValueError(msg)
+            if a.shape != (n,):
+                msg = f"active must have shape ({n},), got {a.shape}"
+                raise ValueError(msg)
+            n_massive = n if n_massive is None else operator.index(n_massive)
+            if not 0 <= n_massive <= n:
+                msg = f"n_massive must be in [0, {n}], got {n_massive}"
+                raise ValueError(msg)
+            # `>= 0` is False for NaN, so NaN fails too.
+            m_ok, tracer_ok, h_ok = m >= 0, m[n_massive:] == 0, h >= 0
+        # `eqx.error_if` must stage outside `ensure_compile_time_eval`, or it
+        # reports the wrong message.
+        m = _check(m, m_ok, "masses must be non-negative and not NaN")
+        m = _check(
+            m,
+            tracer_ok,
+            f"masses after the first n_massive={n_massive} rows must be zero; "
+            "those rows are massless tracers",
+        )
+        h = _check(h, h_ok, "softening must be non-negative and not NaN")
         self.masses = m
         self.softening = h
         self.active = a
-        n_massive = n if n_massive is None else operator.index(n_massive)
-        if not 0 <= n_massive <= n:
-            msg = f"n_massive must be in [0, {n}], got {n_massive}"
-            raise ValueError(msg)
-        if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m)[n_massive:]):
-            msg = (
-                f"masses after the first n_massive={n_massive} rows must be zero; "
-                "those rows are massless tracers"
-            )
-            raise ValueError(msg)
         self.n_massive = n_massive
         self.external_potential = external_potential
         self.backend = backend
@@ -228,6 +245,6 @@ def __call__(
 ) -> tuple[Real[Array, "N 3"], Real[Array, "N 3"]]:
     units = self.units
     x, v = xv
-    x = u.ustrip(AllowValue, units["length"], x)
-    v = u.ustrip(AllowValue, units["speed"], v)
+    x = jnp.asarray(u.ustrip(AllowValue, units["length"], x), dtype=float)
+    v = jnp.asarray(u.ustrip(AllowValue, units["speed"], v), dtype=float)
     return v, self.acceleration(t, x)

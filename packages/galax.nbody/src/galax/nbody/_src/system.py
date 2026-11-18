@@ -114,10 +114,10 @@ def system_from_components(components: Sequence[Component], *, units: Any) -> Sy
         if m.shape not in ((), (n,)) or h.shape not in ((), (n,)):
             msg = f"{c.name!r}: m, h shapes {m.shape}, {h.shape}; need () or ({n},)"
             raise ValueError(msg)
-        if np.any(np.asarray(m) < 0):
+        if not np.all(np.asarray(m) >= 0):
             msg = f"component {c.name!r} has negative mass"
             raise ValueError(msg)
-        if np.any(np.asarray(h) < 0):
+        if not np.all(np.asarray(h) >= 0):
             msg = f"component {c.name!r} has negative h"
             raise ValueError(msg)
         if not c.massive and np.any(np.asarray(m) != 0):

@@ -13,10 +13,13 @@ __all__ = [
     "plummer_potential",
 ]
 
+import abc
+
 from jaxtyping import Array
 
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 
 
 def plummer_force_factor(r2: Array, h: Array) -> Array:
@@ -58,19 +61,19 @@ def max_softening(h_i: Array, h_j: Array) -> Array:
     0.3
 
     """
-    return jax.numpy.maximum(h_i, h_j)
+    return jnp.maximum(h_i, h_j)
 
 
 class AbstractSofteningKernel(eqx.Module):
     """Base class for softening kernels."""
 
+    @abc.abstractmethod
     def force_factor(self, r2: Array, h: Array) -> Array:
         """Return the factor that multiplies ``x_j - x_i``."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def potential(self, r2: Array, h: Array) -> Array:
         """Return the potential per unit ``G m``."""
-        raise NotImplementedError
 
     def combine(self, h_i: Array, h_j: Array) -> Array:
         """Return the pair softening length, by default the larger one."""

@@ -3,18 +3,21 @@
 __all__ = ["AbstractGradPolicy", "Autodiff", "NoGrad", "StopGrad", "as_grad_policy"]
 
 import abc
+import dataclasses
 import operator
 
 from collections.abc import Callable
 from jaxtyping import Array
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import equinox as eqx
 import jax
 
-from .backend import Sources, Targets
+if TYPE_CHECKING:
+    # backend.py imports this module, so import these only for type checking.
+    from .backend import Sources, Targets
 
-_T = TypeVar("_T", Sources, Targets)
+_T = TypeVar("_T", "Sources", "Targets")
 _FIELDS = frozenset({"q", "m", "h"})
 _NOGRAD_MSG = (
     "This force backend has gradient policy NoGrad, so it can't be "
@@ -28,11 +31,18 @@ class AbstractGradPolicy(eqx.Module):
     @abc.abstractmethod
     def apply(
         self,
-        fn: Callable[[Sources, Targets], Array],
-        sources: Sources,
-        targets: Targets,
+        fn: Callable[["Sources", "Targets"], Array],
+        sources: "Sources",
+        targets: "Targets",
     ) -> Array:
-        """Evaluate ``fn(sources, targets)`` under this policy."""
+        """Evaluate ``fn(sources, targets)`` under this policy.
+
+        ``fn`` must get every traced array through ``sources`` and ``targets``.
+        Anything it closes over, such as ``G`` or the kernel, must be a concrete
+        Python or static value. ``NoGrad`` wraps ``fn`` in a ``jax.custom_jvp``,
+        which can't carry gradients through closed-over tracers: they are lost,
+        or JAX raises ``UnexpectedTracerError`` (as on JAX 0.8).
+        """
 
 
 class Autodiff(AbstractGradPolicy):
@@ -52,9 +62,9 @@ class Autodiff(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[[Sources, Targets], Array],
-        sources: Sources,
-        targets: Targets,
+        fn: Callable[["Sources", "Targets"], Array],
+        sources: "Sources",
+        targets: "Targets",
     ) -> Array:
         return fn(sources, targets)
 
@@ -77,12 +87,12 @@ class StopGrad(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[[Sources, Targets], Array],
-        sources: Sources,
-        targets: Targets,
+        fn: Callable[["Sources", "Targets"], Array],
+        sources: "Sources",
+        targets: "Targets",
     ) -> Array:
         def stop(obj: _T) -> _T:
-            for name in self.wrt & set(obj.__dataclass_fields__):
+            for name in self.wrt & {f.name for f in dataclasses.fields(obj)}:
                 value = jax.lax.stop_gradient(getattr(obj, name))
                 obj = eqx.tree_at(operator.attrgetter(name), obj, value)
             return obj
@@ -95,12 +105,12 @@ class NoGrad(AbstractGradPolicy):
 
     def apply(
         self,
-        fn: Callable[[Sources, Targets], Array],
-        sources: Sources,
-        targets: Targets,
+        fn: Callable[["Sources", "Targets"], Array],
+        sources: "Sources",
+        targets: "Targets",
     ) -> Array:
         @jax.custom_jvp
-        def run(s: Sources, t: Targets) -> Array:
+        def run(s: "Sources", t: "Targets") -> Array:
             return fn(s, t)
 
         @run.defjvp

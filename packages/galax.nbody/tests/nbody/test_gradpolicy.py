@@ -61,3 +61,21 @@ def test_as_grad_policy_aliases() -> None:
     assert as_grad_policy(p) is p
     with pytest.raises(ValueError, match="autodiff"):
         as_grad_policy("exact")
+
+
+def test_nograd_raises_under_vjp_and_jvp() -> None:
+    pol = NoGrad()
+
+    def f(m):
+        return pol.apply(fn, eqx.tree_at(lambda x: x.m, s, m), t)
+
+    with pytest.raises(NotImplementedError, match="NoGrad"):
+        jax.vjp(f, s.m)
+    with pytest.raises(NotImplementedError, match="NoGrad"):
+        jax.jvp(f, (s.m,), (jnp.ones_like(s.m),))
+
+
+def test_nograd_forward_inside_checkpoint_under_jit() -> None:
+    pol = NoGrad()
+    out = jax.jit(jax.checkpoint(lambda s, t: pol.apply(fn, s, t)))(s, t)
+    assert jnp.allclose(out, fn(s, t))

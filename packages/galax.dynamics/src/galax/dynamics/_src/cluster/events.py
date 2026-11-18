@@ -89,11 +89,14 @@ class MassBelowThreshold(eqx.Module):
 
         """
         mu = args["units"]["mass"]
-        _result = u.ustrip(AllowValue, mu, y) - self.threshold.ustrip(mu)
+        threshold = self.threshold.ustrip(mu)
+        _result = u.ustrip(AllowValue, mu, y) - threshold
         # `MassSolver` passes the starting mass as ``args["mass_scale"]``. The
         # root finder's tolerance on this value is absolute, so dividing by
-        # the mass scale makes it relative, whatever the units or the mass.
+        # the larger of that and the threshold makes it relative, whatever the
+        # units or the mass.
         scale = args.get("mass_scale")
         if scale is not None:
+            scale = jnp.maximum(scale, jnp.abs(threshold))
             _result = _result / jnp.where(scale > 0, scale, 1)
         return _result  # type: ignore[no-any-return]

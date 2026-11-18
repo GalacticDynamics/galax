@@ -3,6 +3,7 @@
 import diffrax as dfx
 import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 import unxt as u
@@ -257,3 +258,24 @@ def test_run_can_be_chained():
 
     state = solver.run(field, state, u.Q(1e3, "Myr"), None)
     assert jnp.allclose(state.t, 500.0)
+
+
+@pytest.mark.parametrize(
+    ("x64", "M0", "threshold"),
+    [(True, 1e-6, 1e6), (False, 1e-2, 1.0)],
+    ids=["float64", "float32"],
+)
+def test_default_root_finder_with_a_threshold_far_above_the_start(x64, M0, threshold):
+    """A growing mass crosses a threshold far above where it started."""
+    rate = float(np.log(threshold / M0) / 50)  # crosses at 50 Myr
+    with jax.enable_x64(x64):
+        event = dfx.Event(
+            gdc.MassBelowThreshold(u.Q(threshold, "Msun")),
+            root_finder=gdc.MassSolver().event.root_finder,
+        )
+        field = gdc.CustomMassRateField(lambda _t, M, _args: rate * M, units="galactic")
+        soln = gdc.MassSolver(event=event).solve(
+            field, u.Q(M0, "Msun"), u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
+        )
+
+    assert jnp.allclose(soln.ts, 50.0, rtol=1e-3)

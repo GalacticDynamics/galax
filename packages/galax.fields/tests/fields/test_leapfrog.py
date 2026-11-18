@@ -38,5 +38,6 @@ def test_backward_round_trip() -> None:
     """Integrating forward then backward returns to the start."""
     y1 = _solve(10.0, 0.01)
     sol = dfx.diffeqsolve(TERMS, gf.Leapfrog(), t0=10.0, t1=0.0, dt0=-0.01, y0=y1)
-    assert float(sol.ys[0][-1]) == pytest.approx(1.0, abs=1e-10)
-    assert float(sol.ys[1][-1]) == pytest.approx(0.0, abs=1e-10)
+    atol = 1e3 * float(jnp.finfo(sol.ys[0].dtype).eps)  # float32 or float64
+    assert float(sol.ys[0][-1]) == pytest.approx(1.0, abs=atol)
+    assert float(sol.ys[1][-1]) == pytest.approx(0.0, abs=atol)

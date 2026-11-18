@@ -1,7 +1,8 @@
 # ruff: noqa: ARG002
 """Leapfrog (velocity Verlet) solver for diffrax.
 
-diffrax has no second-order symplectic solver. patrick-kidger/diffrax#303 adds
+diffrax has no second-order symplectic solver (`diffrax.LeapfrogMidpoint` is a
+second-order multistep method, not a symplectic one). patrick-kidger/diffrax#303 adds
 one (Störmer-Verlet) but has stalled, so galax implements it here.
 """
 
@@ -133,10 +134,10 @@ class Leapfrog(AbstractSolver):  # type: ignore[misc]
         cf, cg = f.contr(t0, t1), g.contr(t0, t1)
         half_cg = (0.5 * cg**ω).ω
 
-        v_half = (p0**ω + g.prod(a0, half_cg) ** ω).ω
-        q1 = (q0**ω + f.vf_prod(t0, v_half, args, cf) ** ω).ω
+        p_half = (p0**ω + g.prod(a0, half_cg) ** ω).ω
+        q1 = (q0**ω + f.vf_prod(t0, p_half, args, cf) ** ω).ω
         a1 = g.vf(t1, q1, args)
-        p1 = (v_half**ω + g.prod(a1, half_cg) ** ω).ω
+        p1 = (p_half**ω + g.prod(a1, half_cg) ** ω).ω
 
         y1 = (q1, p1)
         dense_info = {"y0": y0, "y1": y1}

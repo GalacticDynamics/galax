@@ -143,7 +143,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.14"]
-        runs-on: [ubuntu-latest, macos-latest, windows-latest]
+        # ubuntu-24.04, not ubuntu-latest: since ubuntu-latest moved to 26.04
+        # (Nov 2026) the full-suite jobs lose their runner ("hosted runner lost
+        # communication") in ~8% of runs, against ~3% on 24.04. Revisit once
+        # 26.04 is stable. See also the worker count in "Test package".
+        runs-on: [ubuntu-24.04, macos-latest, windows-latest]
         # macOS runners bill at 10x the Linux rate (and run ~3x slower
         # wall-clock for this JAX-heavy suite even with the same xdist
         # settings -- 3 workers vs Linux's 4, but each core is also slower);
@@ -187,11 +191,28 @@ jobs:
       # nothing and costs a hand-edit per portion. Forgetting that edit drops a
       # portion's doctests from every leg of this matrix and fails nothing,
       # which is the silence this repo keeps paying for.
+      - name: Log memory in the background
+        if: runner.os == 'Linux'
+        run: nohup vmstat -t -S M 15 > "$RUNNER_TEMP/vmstat.log" 2>&1 &
+
+      # Linux runs 2 workers, not 4: with 4 the Ubuntu runner dies ("hosted
+      # runner lost communication") in some runs: ~8% on 26.04, and it still
+      # happens on 24.04.
+      # The memory log shows how close a run gets.
       - name: Test package
+        env:
+          XDIST_N: ${{ runner.os == 'Linux' && '2' || 'logical' }}
+        shell: bash # so $XDIST_N expands on Windows too
         run: >-
           uv run pytest packages docs tests/repo tests/unit tests/integration
           -ra --cov --cov-report=xml --cov-report=term --durations=20
-          --arraydiff -m"not slow" -n logical --dist=loadfile
+          --arraydiff -m"not slow" -n "$XDIST_N" --dist=loadfile
+
+      - name: Show memory log
+        if: always() && runner.os == 'Linux'
+        run: |
+          cat "$RUNNER_TEMP/vmstat.log" || true
+          sudo dmesg | grep -iE "oom|killed process" || true
 
       - name: Upload coverage report
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -206,7 +227,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.13"]
-        runs-on: [ubuntu-latest]
+        # ubuntu-24.04: see the comment in `checks`.
+        runs-on: [ubuntu-24.04]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -223,12 +245,23 @@ jobs:
       - name: Install the project
         run: uv sync --extra all --group test-all
 
+      - name: Log memory in the background
+        if: runner.os == 'Linux'
+        run: nohup vmstat -t -S M 15 > "$RUNNER_TEMP/vmstat.log" 2>&1 &
+
+      # 2 workers: see `checks`.
       - name: Test package
         run: >-
           uv run pytest packages docs tests/repo tests/unit tests/integration
           -ra --durations=20 --cov --cov-report=xml --cov-report=term
           --arraydiff -m"not slow" --mpl --mpl-hash-library=hashes.json
-          --mpl-deterministic -n logical --dist=loadfile
+          --mpl-deterministic -n 2 --dist=loadfile
+
+      - name: Show memory log
+        if: always() && runner.os == 'Linux'
+        run: |
+          cat "$RUNNER_TEMP/vmstat.log" || true
+          sudo dmesg | grep -iE "oom|killed process" || true
 
       - name: Upload coverage report
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1

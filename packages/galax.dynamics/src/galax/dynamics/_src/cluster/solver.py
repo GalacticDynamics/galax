@@ -23,6 +23,8 @@ from .events import MassBelowThreshold
 from galax.fields import AbstractSolver, SolveState
 from galax.fields.utils import parse_saveat
 
+_DEFAULT_CONTROLLER = dfx.PIDController(rtol=1e-6, atol=1e-6)
+
 
 class MassSolver(AbstractSolver):
     """Solver for mass history.
@@ -53,9 +55,9 @@ class MassSolver(AbstractSolver):
 
     #: How to change the step size as the integration progresses.
     #: See diffrax's list of stepsize controllers.
-    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = dfx.PIDController(
-        rtol=1e-6, atol=1e-6
-    )
+    #: With this default, `atol` is scaled down for a starting mass below 1
+    #: (in the field's mass unit), so a tiny cluster doesn't overshoot below 0.
+    stepsize_controller: dfx.AbstractStepSizeController[Any, Any] = _DEFAULT_CONTROLLER
 
     #: How to differentiate in `diffeqsolve`.
     #: See `diffrax` for options.
@@ -161,6 +163,23 @@ def _event_args(args: PyTree, units: u.AbstractUnitSystem, y0: Any) -> PyTree:
     return args
 
 
+def _for_mass(solver: "MassSolver", y0: Any) -> "MassSolver":
+    """Scale the default controller's ``atol`` down for a starting mass below 1.
+
+    ``atol`` is in the field's mass unit, so 1e-6 lets a cluster of ~1e-6
+    overshoot below 0. From a mass of 1 up nothing changes. A custom
+    controller is used as given.
+    """
+    ctrl = solver.stepsize_controller
+    if not eqx.tree_equal(ctrl, _DEFAULT_CONTROLLER):
+        return solver
+    m = jnp.max(jnp.abs(y0))
+    scale = jnp.where(m > 0, jnp.minimum(m, 1), 1)
+    return eqx.tree_at(  # type: ignore[no-any-return]
+        lambda s: s.stepsize_controller.atol, solver, ctrl.atol * scale
+    )
+
+
 # ===================================================================
 # Run Dispatches
 
@@ -179,17 +198,24 @@ def run(
     solver_kw = eqx.error_if(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
+    if "dense" in solver_kw:
+        msg = (
+            "`run` returns only the final state. For the mass history use "
+            "`solve(..., dense=True)`."
+        )
+        raise TypeError(msg)
     solver_kw.setdefault("dt0", None)
     args = _event_args(args, field.units, state.y)
-    soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
-
-    return SolveState(
-        t=soln.ts[-1],  # the event time, if the event stopped the solve
-        y=soln.ys[-1],  # a scalar, like `init`'s, so `run` can be called again
-        solver_state=soln.solver_state,
-        success=soln.result,
-        units=field.units,
+    soln = _for_mass(self, state.y)(
+        field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw
     )
+
+    # The event time, if the event stopped the solve, and a scalar mass, like
+    # `init`'s, so `run` can be called again. The solver state is rebuilt
+    # there, so `step` can continue from it: diffrax's saved state is from
+    # the end of the last step, past the event.
+    out = self._init_one(field, soln.ts[-1], soln.ys[-1], args, field.units)
+    return eqx.tree_at(lambda s: s.success, out, soln.result)  # type: ignore[no-any-return]
 
 
 # ===================================================================
@@ -226,7 +252,7 @@ def solve(
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
     y0 = u.ustrip(AllowValue, units["mass"], M0)
     args = _event_args(solver_kw.pop("args", None), units, y0)
-    soln = self(
+    soln = _for_mass(self, y0)(
         field_,
         t0=u.ustrip(AllowValue, units["time"], t0),
         t1=u.ustrip(AllowValue, units["time"], t1),

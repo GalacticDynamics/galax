@@ -70,6 +70,9 @@ class MassSolver(AbstractSolver):
     #: so you can override the `max_steps` argument when calling `DiffEqSolver`
     max_steps: int | None = eqx.field(default=2**12, static=True)
 
+    #: The units a bare function passed to `solve` is wrapped in, as a
+    #: `CustomMassRateField`. A mass field already carries its own units, and
+    #: times, masses and a Quantity ``dt0`` are read in those.
     units: u.AbstractUnitSystem = eqx.field(
         default=u.unitsystems.galactic, converter=u.unitsystem, static=True
     )
@@ -158,6 +161,8 @@ def run(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
     solver_kw.setdefault("dt0", None)
+    # The event reads the mass in ``args["units"]``: give it the field's units.
+    args = {**(args or {}), "units": field.units}
     soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
 
     return SolveState(
@@ -201,8 +206,9 @@ def solve(
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
-    args = solver_kw.pop("args", {})
-    args.setdefault("units", units)  # TODO: should this error if not right?
+    # The event reads the mass in ``args["units"]``. The mass is solved in the
+    # field's units, so those win over any the caller passed.
+    args = {**(solver_kw.pop("args", None) or {}), "units": units}
     soln = self(
         field_,
         t0=u.ustrip(AllowValue, units["time"], t0),

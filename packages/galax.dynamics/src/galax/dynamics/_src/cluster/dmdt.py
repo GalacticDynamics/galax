@@ -325,11 +325,12 @@ class Baumgardt1998MassLossRate(AbstractMassRateField):
         orbit = args["orbit"]
         orbit = cast("Orbit", eqx.error_if(orbit, orbit is None, "need orbit"))
         pot = args["potential"]
-        usys = pot.units
+        usys = self.units  # bare `t` and `M` are in the field's units
+        tq = FastQ.from_(t, usys["time"])
         Mq = FastQ.from_(M, usys["mass"])
 
         # Compute
-        r_t = tidal_radius(self.tidal_radius_flag, pot, orbit(t), mass=Mq)
+        r_t = tidal_radius(self.tidal_radius_flag, pot, orbit(tq), mass=Mq)
         r_t = r_t.uconvert("pc")  # type: ignore[attr-defined]
         t_relax = relaxation_time(  # type: ignore[attr-defined]
             self.relaxation_time_flag,

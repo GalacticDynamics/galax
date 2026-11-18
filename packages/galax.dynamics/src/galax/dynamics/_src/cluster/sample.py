@@ -6,14 +6,11 @@ This is private API.
 
 __all__ = ["ReleaseTimeSampler"]
 
-import functools as ft
-
 from jaxtyping import Array, Float, PRNGKeyArray
 from typing import Any
 
 import diffrax as dfx
 import equinox as eqx
-import jax
 import jax.random as jr
 
 import quaxed.numpy as jnp
@@ -62,8 +59,7 @@ class ReleaseTimeSampler(eqx.Module):
     >>> mass_history.evaluate(0.5)  # [Msun]
     Array(9999.46950028, dtype=float64)
 
-    >>> sampler = gdc.ReleaseTimeSampler(dm_dt=dMdt_fn, m_of_t=mass_history,
-    ...                                  units=pot.units)
+    >>> sampler = gdc.ReleaseTimeSampler(dm_dt=dMdt_fn, m_of_t=mass_history)
 
     >>> key = jr.PRNGKey(0)
     >>> n_stars = 5
@@ -76,11 +72,8 @@ class ReleaseTimeSampler(eqx.Module):
     #: The mass field to use for the release time sampling.
     dm_dt: AbstractMassRateField
 
-    #: Solution m(t) given dm_dt
+    #: Solution m(t) given dm_dt. Its times and masses are in ``dm_dt.units``.
     m_of_t: dfx.Solution
-
-    #: The unit system
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
 
     def __check_init__(self) -> None:
         # TODO: enable discrete times sampler
@@ -88,7 +81,6 @@ class ReleaseTimeSampler(eqx.Module):
             msg = "Mass history must be dense."
             raise ValueError(msg)
 
-    @ft.partial(jax.jit, static_argnames=("n_stars",))
     def sample(
         self,
         key: PRNGKeyArray,
@@ -119,12 +111,35 @@ class ReleaseTimeSampler(eqx.Module):
             Sorted sampled release times from `t0` and `t1`.
 
         """
+        # `filter_jit` would trace a numpy integer, so make it a Python int
+        # (static). A whole-number float such as 5.0 is accepted, as before.
+        n = int(n_stars)
+        if n != n_stars:
+            msg = f"n_stars must be a whole number, got {n_stars!r}"
+            raise TypeError(msg)
+        n_stars = n
+        return self._sample(key, t0, t1, n_stars=n_stars, mass_params=mass_params)
+
+    # `filter_jit` so a field holding a Python function (e.g. a
+    # `CustomMassRateField`) can be passed. A Python `int` `n_stars` is static.
+    @eqx.filter_jit
+    def _sample(
+        self,
+        key: PRNGKeyArray,
+        /,
+        t0: u.AbstractQuantity,
+        t1: u.AbstractQuantity,
+        *,
+        n_stars: int,
+        mass_params: dict[str, Any],
+    ) -> Float[Array, "{n_stars}"]:
         # TODO: get the times from the dense interpolation. But have to figure
         # out the infs. Then don't need to make this ts array
         ts = jnp.linspace(t0, t1, 2**13)  # TODO: select number
-        tsv = ts.ustrip(self.units["time"])
+        # `m_of_t` was solved from `dm_dt`, so it is in the field's units.
+        tsv = ts.ustrip(self.dm_dt.units["time"])
         m_of_t = self.m_of_t.evaluate(tsv)
-        escape_rate = -self.dm_dt(ts, m_of_t, mass_params)  # type: ignore[arg-type]
+        escape_rate = -self.dm_dt(tsv, m_of_t, mass_params)  # type: ignore[arg-type]
         # TODO: check that escape_rate is positive
 
         # Normalize to form a probability distribution

@@ -185,7 +185,7 @@ def run(
 
     return SolveState(
         t=soln.ts[-1],  # the event time, if the event stopped the solve
-        y=soln.ys,
+        y=soln.ys[-1],  # a scalar, like `init`'s, so `run` can be called again
         solver_state=soln.solver_state,
         success=soln.result,
         units=field.units,

@@ -243,3 +243,17 @@ def test_default_event_in_float32():
 
     assert soln.ts.dtype == jnp.float32
     assert jnp.allclose(soln.ts, 500.0, rtol=1e-4)
+
+
+def test_run_can_be_chained():
+    """`run` returns a state that can be run again."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(200.0, "Myr"), None)
+    assert state.y.shape == ()
+    assert jnp.allclose(state.y, 6e3)
+
+    state = solver.run(field, state, u.Q(1e3, "Myr"), None)
+    assert jnp.allclose(state.t, 500.0)

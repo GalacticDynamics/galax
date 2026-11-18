@@ -12,3 +12,7 @@ def test_nbody_field_identity():
 def test_dynamics_nbody_module_reexports_same_objects():
     for name in gn.__all__:
         assert getattr(gd.nbody, name) is getattr(gn, name)
+
+
+def test_nbody_all_lists_match():
+    assert set(gd.nbody.__all__) == set(gn.__all__)

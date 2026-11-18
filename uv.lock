@@ -1509,7 +1509,6 @@ dependencies = [
     { name = "jaxtyping" },
     { name = "numpy" },
     { name = "plum" },
-    { name = "quaxed" },
     { name = "unxt" },
 ]
 
@@ -1534,7 +1533,6 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.0" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 

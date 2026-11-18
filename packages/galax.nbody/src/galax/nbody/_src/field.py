@@ -2,6 +2,8 @@
 
 __all__ = ["NBodyField", "nbody_acceleration"]
 
+import operator
+
 from jaxtyping import Array, Bool, Float, Real
 from typing import Any, final
 
@@ -103,13 +105,23 @@ class NBodyField(AbstractOrbitField):
         units = external_potential.units
         m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
         h = u.ustrip(AllowValue, units["length"], softening if eps is None else eps)
+        if m.ndim != 1:
+            msg = f"masses must be 1-D, got shape {m.shape}"
+            raise ValueError(msg)
         n = m.shape[0]
+        # Check in numpy so no ops are staged under jit.
+        if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m) < 0):
+            msg = "masses must be non-negative"
+            raise ValueError(msg)
+        if not isinstance(h, jax.core.Tracer) and np.any(np.asarray(h) < 0):
+            msg = "softening must be non-negative"
+            raise ValueError(msg)
         self.masses = m
         self.softening = jnp.broadcast_to(jnp.asarray(h, dtype=float), (n,))
         self.active = (
             jnp.ones(n, dtype=bool) if active is None else jnp.asarray(active, bool)
         )
-        n_massive = n if n_massive is None else n_massive
+        n_massive = n if n_massive is None else operator.index(n_massive)
         if not 0 <= n_massive <= n:
             msg = f"n_massive must be in [0, {n}], got {n_massive}"
             raise ValueError(msg)

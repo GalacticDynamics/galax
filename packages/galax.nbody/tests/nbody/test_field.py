@@ -250,3 +250,24 @@ def test_closed_over_tracer_mass_still_raises_under_jit() -> None:
     masses = jnp.array([1.0, 1.0, 1.0])
     with pytest.raises(ValueError, match="massless tracers"):
         jax.jit(lambda q: gn.NBodyField(masses, 0.01, pot, n_massive=2).masses + q)(1.0)
+
+
+@pytest.mark.parametrize("masses", [jnp.ones((3, 1)), jnp.asarray(1.0)])
+def test_masses_must_be_1d(masses) -> None:
+    with pytest.raises(ValueError, match="1-D"):
+        gn.NBodyField(masses, 0.01, gp.NullPotential(units="galactic"))
+
+
+def test_negative_masses_or_softening_raise() -> None:
+    pot = gp.NullPotential(units="galactic")
+    with pytest.raises(ValueError, match="masses"):
+        gn.NBodyField(jnp.array([1.0, -1.0]), 0.01, pot)
+    with pytest.raises(ValueError, match="softening"):
+        gn.NBodyField(jnp.ones(2), -0.01, pot)
+
+
+def test_n_massive_must_be_int() -> None:
+    with pytest.raises(TypeError):
+        gn.NBodyField(
+            jnp.ones(2), 0.0, gp.NullPotential(units="galactic"), n_massive=2.0
+        )

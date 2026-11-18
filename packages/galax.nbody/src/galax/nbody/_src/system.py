@@ -106,16 +106,19 @@ def system_from_components(components: Sequence[Component], *, units: Any) -> Sy
     for c in components:
         q = _strip(c.q, usys["length"])
         p = _strip(c.p, usys["speed"])
-        n = q.shape[0]
         if q.ndim != 2 or q.shape[1] != 3 or p.shape != q.shape:
             msg = f"{c.name!r}: q, p shapes {q.shape}, {p.shape}; need (N, 3) both"
             raise ValueError(msg)
+        n = q.shape[0]
         m, h = _strip(c.m, usys["mass"]), _strip(c.h, usys["length"])
         if m.shape not in ((), (n,)) or h.shape not in ((), (n,)):
             msg = f"{c.name!r}: m, h shapes {m.shape}, {h.shape}; need () or ({n},)"
             raise ValueError(msg)
         if np.any(np.asarray(m) < 0):
             msg = f"component {c.name!r} has negative mass"
+            raise ValueError(msg)
+        if np.any(np.asarray(h) < 0):
+            msg = f"component {c.name!r} has negative h"
             raise ValueError(msg)
         if not c.massive and np.any(np.asarray(m) != 0):
             msg = f"component {c.name!r} is massless but has nonzero m"

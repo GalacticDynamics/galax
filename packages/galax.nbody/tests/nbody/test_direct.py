@@ -171,6 +171,7 @@ def test_check_grads_small() -> None:
 @pytest.mark.slow
 def test_runtime_typechecked_grad_policies() -> None:
     """Every gradient policy runs with beartype checking the modules."""
+    pytest.importorskip("beartype")
     code = textwrap.dedent("""
         import jax
         jax.config.update("jax_enable_x64", True)

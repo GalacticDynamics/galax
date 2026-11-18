@@ -105,3 +105,16 @@ def test_system_serialises_round_trip(tmp_path) -> None:
         np.testing.assert_array_equal(x, y)
     assert loaded.names == sys.names
     assert loaded.n_massive == sys.n_massive
+
+
+def test_rejects_zero_d_q_and_negative_h() -> None:
+    zero_d = gn.Component(
+        name="x", q=jnp.asarray(0.0), p=jnp.asarray(0.0), m=1.0, h=0.0
+    )
+    with pytest.raises(ValueError, match="shapes"):
+        gn.System.from_components(zero_d, units="galactic")
+
+    q = jnp.zeros((2, 3))
+    neg_h = gn.Component(name="x", q=q, p=q, m=1.0, h=-0.1)
+    with pytest.raises(ValueError, match="negative h"):
+        gn.System.from_components(neg_h, units="galactic")

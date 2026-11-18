@@ -4,6 +4,7 @@ __all__ = ["MassSolver"]
 
 from dataclasses import KW_ONLY
 
+from collections.abc import Mapping
 from jaxtyping import PyTree
 from typing import Any, override
 
@@ -142,6 +143,18 @@ def init(
     return state
 
 
+def _with_units(args: PyTree, units: u.AbstractUnitSystem) -> PyTree:
+    """Give the default event the field's units in ``args["units"]``.
+
+    The mass is solved in the field's units, so those win over any the caller
+    passed. The caller's dict is not changed. Non-dict ``args`` (for a custom
+    event) are passed through as they are.
+    """
+    if args is None or isinstance(args, Mapping):
+        return {**(args or {}), "units": units}
+    return args
+
+
 # ===================================================================
 # Run Dispatches
 
@@ -161,8 +174,7 @@ def run(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
     solver_kw.setdefault("dt0", None)
-    # The event reads the mass in ``args["units"]``: give it the field's units.
-    args = {**(args or {}), "units": field.units}
+    args = _with_units(args, field.units)
     soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
 
     return SolveState(
@@ -206,9 +218,7 @@ def solve(
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
-    # The event reads the mass in ``args["units"]``. The mass is solved in the
-    # field's units, so those win over any the caller passed.
-    args = {**(solver_kw.pop("args", None) or {}), "units": units}
+    args = _with_units(solver_kw.pop("args", None), units)
     soln = self(
         field_,
         t0=u.ustrip(AllowValue, units["time"], t0),

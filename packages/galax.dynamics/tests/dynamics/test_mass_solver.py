@@ -1,7 +1,9 @@
 """Tests for `galax.dynamics.cluster.MassSolver`."""
 
 import diffrax as dfx
+import jax
 import jax.numpy as jnp
+import numpy as np
 import pytest
 
 import unxt as u
@@ -207,3 +209,90 @@ def test_default_event_accepts_empty_args(args):
     )
 
     assert jnp.allclose(soln.ts, 500.0)
+
+
+def test_run_reports_the_event_time():
+    """After the event stops the solve, the state's time is the event time."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(1e3, "Myr"), None)
+
+    assert jnp.allclose(state.t, 500.0)
+
+
+@pytest.mark.parametrize("M0", [1e-3, 1e4, 1e12, 1e15], ids=lambda m: f"{m:g}")
+def test_default_event_at_any_mass_scale(M0):
+    """The default root-find works whatever the cluster's mass."""
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -M0 / 500, units="galactic")
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(M0, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr")
+    )
+
+    assert jnp.allclose(soln.ts, 500.0)
+
+
+def test_default_event_in_float32():
+    """The default root-find also works with 32-bit floats."""
+    with jax.enable_x64(False):  # noqa: FBT003
+        field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+        soln = gdc.MassSolver().solve(
+            field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr")
+        )
+
+    assert soln.ts.dtype == jnp.float32
+    assert jnp.allclose(soln.ts, 500.0, rtol=1e-4)
+
+
+def test_run_can_be_chained():
+    """`run` returns a state that can be run again."""
+    solver = gdc.MassSolver()
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    state = solver.init(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), None)
+    state = solver.run(field, state, u.Q(200.0, "Myr"), None)
+    assert state.y.shape == ()
+    assert jnp.allclose(state.y, 6e3)
+
+    state = solver.run(field, state, u.Q(1e3, "Myr"), None)
+    assert jnp.allclose(state.t, 500.0)
+
+
+@pytest.mark.parametrize(
+    ("x64", "M0", "threshold"),
+    [(True, 1e-6, 1e6), (False, 1e-2, 1.0)],
+    ids=["float64", "float32"],
+)
+def test_default_root_finder_with_a_threshold_far_above_the_start(x64, M0, threshold):
+    """A growing mass crosses a threshold far above where it started."""
+    rate = float(np.log(threshold / M0) / 50)  # crosses at 50 Myr
+    with jax.enable_x64(x64):
+        event = dfx.Event(
+            gdc.MassBelowThreshold(u.Q(threshold, "Msun")),
+            root_finder=gdc.MassSolver().event.root_finder,
+        )
+        field = gdc.CustomMassRateField(lambda _t, M, _args: rate * M, units="galactic")
+        soln = gdc.MassSolver(event=event).solve(
+            field, u.Q(M0, "Msun"), u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
+        )
+
+    assert jnp.allclose(soln.ts, 50.0, rtol=1e-3)
+
+
+def test_default_root_finder_ignores_a_threshold_that_overflows():
+    """A threshold too big for float32 in kg doesn't break the solve."""
+    with jax.enable_x64(False):  # noqa: FBT003
+        event = dfx.Event(
+            gdc.MassBelowThreshold(u.Q(1e10, "Msun")),
+            root_finder=gdc.MassSolver().event.root_finder,
+        )
+        field = gdc.CustomMassRateField(
+            lambda _t, M, _args: 0 * M, units=u.unitsystem("kpc", "Myr", "kg", "rad")
+        )
+        soln = gdc.MassSolver(event=event).solve(
+            field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
+        )
+
+    assert jnp.allclose(soln.ts, 100.0)

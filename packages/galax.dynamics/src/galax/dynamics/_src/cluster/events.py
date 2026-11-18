@@ -9,6 +9,7 @@ from typing import Any
 
 import equinox as eqx
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -67,6 +68,10 @@ class MassBelowThreshold(eqx.Module):
         args : dict[str, Any]
             Additional arguments. Must contain:
             - "units": `unxt.AbstractUnitSystem`
+            May contain:
+            - "mass_scale": the starting mass in ``units``. If given, the value
+              is divided by the larger of it and the threshold. `MassSolver`
+              passes it.
 
         Examples
         --------
@@ -87,12 +92,19 @@ class MassBelowThreshold(eqx.Module):
         Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
 
         """
-        # Compare in Msun, whatever the units of the field and threshold: the
-        # root finder's absolute tolerance on this value can't be met for a
-        # mass in, e.g., kg (~1e34).
-        # ponytail: an absolute Msun scale, so a root-find with the default
-        # 1e-5 tolerance fails above ~1e10 Msun; scale by the mass if needed.
         mu = args["units"]["mass"]
-        M = u.Q.from_(u.ustrip(AllowValue, mu, y), mu)
-        _result = M.ustrip("Msun") - self.threshold.ustrip("Msun")
+        threshold = self.threshold.ustrip(mu)
+        _result = u.ustrip(AllowValue, mu, y) - threshold
+        # `MassSolver` passes the starting mass as ``args["mass_scale"]``. The
+        # root finder's tolerance on this value is absolute, so dividing by
+        # the larger of that and the threshold makes it relative, whatever the
+        # units or the mass.
+        scale = args.get("mass_scale")
+        if scale is not None:
+            # A threshold that overflows in the field's unit (e.g. float32 kg)
+            # is capped, so the scale stays finite and the event just never
+            # fires, as before.
+            finite = jnp.minimum(jnp.abs(threshold), jnp.finfo(_result.dtype).max)
+            scale = jnp.maximum(scale, finite)
+            _result = _result / jnp.where(scale > 0, scale, 1)
         return _result  # type: ignore[no-any-return]

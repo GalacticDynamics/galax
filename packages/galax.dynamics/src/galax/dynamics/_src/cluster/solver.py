@@ -13,6 +13,7 @@ import equinox as eqx
 import optimistix as optx
 from plum import dispatch
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -143,18 +144,20 @@ def init(
     return state
 
 
-def _with_units(args: PyTree, units: u.AbstractUnitSystem) -> PyTree:
-    """Give the default event the field's units in ``args["units"]``.
+def _event_args(args: PyTree, units: u.AbstractUnitSystem, y0: Any) -> PyTree:
+    """Give the default event the field's units and a mass scale in ``args``.
 
     The mass is solved in the field's units, so those win over any the caller
-    passed. The caller's dict is not changed. ``None`` and an empty tuple or
-    list count as no args. Other ``args`` (for a custom event) are passed
-    through as they are.
+    passed. ``mass_scale`` is the starting mass in those units; the event
+    divides by the larger of it and the threshold, so the root finder's
+    absolute tolerance acts as a relative one. The caller's dict is not
+    changed. ``None`` and an empty tuple or list count as no args. Other
+    ``args`` (for a custom event) are passed through as they are.
     """
     if args is None or (isinstance(args, tuple | list) and len(args) == 0):
         args = {}
     if isinstance(args, Mapping):
-        return {**args, "units": units}
+        return {**args, "units": units, "mass_scale": jnp.max(jnp.abs(y0))}
     return args
 
 
@@ -177,12 +180,12 @@ def run(
         solver_kw, "saveat" in solver_kw, "`saveat` is not allowed in run"
     )
     solver_kw.setdefault("dt0", None)
-    args = _with_units(args, field.units)
+    args = _event_args(args, field.units, state.y)
     soln = self(field, t0=state.t, t1=t1_, y0=state.y, args=args, **solver_kw)
 
     return SolveState(
-        t=t1_,
-        y=soln.ys,
+        t=soln.ts[-1],  # the event time, if the event stopped the solve
+        y=soln.ys[-1],  # a scalar, like `init`'s, so `run` can be called again
         solver_state=soln.solver_state,
         success=soln.result,
         units=field.units,
@@ -221,12 +224,13 @@ def solve(
     # Solve the differential equation
     solver_kw.setdefault("dt0", None)
     saveat = parse_saveat(units, saveat, dense=solver_kw.pop("dense", None))
-    args = _with_units(solver_kw.pop("args", None), units)
+    y0 = u.ustrip(AllowValue, units["mass"], M0)
+    args = _event_args(solver_kw.pop("args", None), units, y0)
     soln = self(
         field_,
         t0=u.ustrip(AllowValue, units["time"], t0),
         t1=u.ustrip(AllowValue, units["time"], t1),
-        y0=u.ustrip(AllowValue, units["mass"], M0),
+        y0=y0,
         event=self.event,
         args=args,
         saveat=saveat,

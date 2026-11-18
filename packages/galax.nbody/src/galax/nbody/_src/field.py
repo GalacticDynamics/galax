@@ -103,13 +103,22 @@ class NBodyField(AbstractOrbitField):
             msg = "pass exactly one of eps and softening"
             raise ValueError(msg)
         units = external_potential.units
-        m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
-        h = u.ustrip(AllowValue, units["length"], softening if eps is None else eps)
-        if m.ndim != 1:
-            msg = f"masses must be 1-D, got shape {m.shape}"
+        # Concrete inputs stay concrete here even inside a jit trace, so the
+        # numpy checks below see their values. Traced inputs stay traced and
+        # skip the checks, which stage no ops.
+        with jax.ensure_compile_time_eval():
+            m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
+            h = softening if eps is None else eps
+            h = jnp.asarray(u.ustrip(AllowValue, units["length"], h), dtype=float)
+            if m.ndim != 1:
+                msg = f"masses must be 1-D, got shape {m.shape}"
+                raise ValueError(msg)
+            n = m.shape[0]
+            h = jnp.broadcast_to(h, (n,))
+            a = jnp.ones(n, bool) if active is None else jnp.asarray(active, bool)
+        if a.shape != (n,):
+            msg = f"active must have shape ({n},), got {a.shape}"
             raise ValueError(msg)
-        n = m.shape[0]
-        # Check in numpy so no ops are staged under jit.
         if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m) < 0):
             msg = "masses must be non-negative"
             raise ValueError(msg)
@@ -117,16 +126,12 @@ class NBodyField(AbstractOrbitField):
             msg = "softening must be non-negative"
             raise ValueError(msg)
         self.masses = m
-        self.softening = jnp.broadcast_to(jnp.asarray(h, dtype=float), (n,))
-        self.active = (
-            jnp.ones(n, dtype=bool) if active is None else jnp.asarray(active, bool)
-        )
+        self.softening = h
+        self.active = a
         n_massive = n if n_massive is None else operator.index(n_massive)
         if not 0 <= n_massive <= n:
             msg = f"n_massive must be in [0, {n}], got {n_massive}"
             raise ValueError(msg)
-        # Check in numpy so no ops are staged when concrete masses are closed
-        # over by a jitted function.
         if not isinstance(m, jax.core.Tracer) and np.any(np.asarray(m)[n_massive:]):
             msg = (
                 f"masses after the first n_massive={n_massive} rows must be zero; "
@@ -169,7 +174,9 @@ class NBodyField(AbstractOrbitField):
     def acceleration(self, t: Any, q: Float[Array, "N 3"]) -> Float[Array, "N 3"]:
         """Return the accelerations (N, 3) at positions ``q`` and time ``t``.
 
-        Inactive rows get zero acceleration.
+        ``t`` and ``q`` are plain arrays in the field's units. A Quantity
+        ``t`` isn't accepted here; ``__call__`` handles units. Inactive rows
+        get zero acceleration.
         """
         return nbody_acceleration(self, t, q)
 

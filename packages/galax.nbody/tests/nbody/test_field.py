@@ -271,3 +271,66 @@ def test_n_massive_must_be_int() -> None:
         gn.NBodyField(
             jnp.ones(2), 0.0, gp.NullPotential(units="galactic"), n_massive=2.0
         )
+
+
+# Input forms for closed-over construction under jit. Each pair is a valid and
+# an invalid (negative) version, plus the potential that sets the units.
+_SOLAR = gp.NullPotential(units="solarsystem")
+_GAL = gp.NullPotential(units="galactic")
+_FORMS = {
+    "numpy": (lambda x: np.array(x, dtype=float), _GAL),
+    "list": (lambda x: [float(v) for v in x], _GAL),
+    "int-jnp": (lambda x: jnp.array(x, dtype=int), _GAL),
+    "float32": (lambda x: np.array(x, dtype=np.float32), _GAL),
+    "int-quantity": (lambda x: u.Q(list(x), "Msun"), _SOLAR),
+    "converted-quantity": (lambda x: u.Q(np.array(x, dtype=float), "kg"), _GAL),
+}
+
+
+@pytest.mark.parametrize("form", list(_FORMS))
+def test_closed_over_invalid_masses_raise_under_jit(form) -> None:
+    make, pot = _FORMS[form]
+    negative, on_tracer = make([-1, 1]), make([1, 1, 1])
+    with pytest.raises(ValueError, match="non-negative"):
+        jax.jit(lambda: gn.NBodyField(negative, 0.1, pot).masses)()
+    with pytest.raises(ValueError, match="massless tracers"):
+        jax.jit(lambda: gn.NBodyField(on_tracer, 0.1, pot, n_massive=2).masses)()
+
+
+@pytest.mark.parametrize("form", list(_FORMS))
+def test_closed_over_valid_masses_match_eager_under_jit(form) -> None:
+    make, pot = _FORMS[form]
+    m = make([1, 2, 0])
+    eager = gn.NBodyField(m, 0.1, pot, n_massive=2).masses
+    jitted = jax.jit(lambda: gn.NBodyField(m, 0.1, pot, n_massive=2).masses)()
+    np.testing.assert_allclose(jitted, eager, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "eps", [-0.1, np.array(-0.1), [0.1, -0.1], u.Q(-1.0, "pc")], ids=str
+)
+def test_closed_over_negative_softening_raises_under_jit(eps) -> None:
+    with pytest.raises(ValueError, match="softening"):
+        jax.jit(lambda: gn.NBodyField(np.ones(2), eps=eps).masses)()
+
+
+def test_traced_masses_skip_checks() -> None:
+    def build(m):
+        return gn.NBodyField(m, 0.1, _GAL, n_massive=1).masses
+
+    # Invalid values pass through when traced, since they can't be checked.
+    m = jnp.array([-1.0, 1.0])
+    np.testing.assert_array_equal(jax.jit(build)(m), m)
+    np.testing.assert_array_equal(jax.vmap(build)(jnp.stack([m, m])), [m, m])
+    jaxpr = jax.make_jaxpr(build)(jnp.array([1.0, 0.0]))
+    assert not jaxpr.eqns
+
+
+@pytest.mark.parametrize("active", [[True], [True, False, True], np.ones((2, 1))])
+@pytest.mark.parametrize("jit", [False, True])
+def test_active_shape_must_match_masses(active, jit) -> None:
+    def build():
+        return gn.NBodyField(np.ones(2), 0.1, _GAL, active=active).active
+
+    with pytest.raises(ValueError, match="active"):
+        jax.jit(build)() if jit else build()

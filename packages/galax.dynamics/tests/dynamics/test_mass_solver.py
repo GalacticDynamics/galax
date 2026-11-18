@@ -176,14 +176,21 @@ def test_run_passes_non_dict_args_through():
 
 
 def test_default_root_finder_handles_a_threshold_in_kg():
-    """A threshold in kg stops the solve where the same threshold in Msun does."""
+    """A nonzero threshold in kg stops a field in kg at the right time.
+
+    The cluster loses 20 Msun / Myr from 1e4 Msun, so it reaches 5e3 Msun at
+    250 Myr.
+    """
     threshold = u.Q(5e3, "Msun").uconvert("kg")
     event = dfx.Event(
         gdc.MassBelowThreshold(threshold),
         root_finder=gdc.MassSolver().event.root_finder,
     )
     solver = gdc.MassSolver(event=event)
-    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+    rate = u.Q(-20.0, "Msun/Myr").ustrip("kg/Myr")
+    field = gdc.CustomMassRateField(
+        lambda _t, _M, _args: rate, units=u.unitsystem("kpc", "Myr", "kg", "rad")
+    )
 
     soln = solver.solve(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"))
 

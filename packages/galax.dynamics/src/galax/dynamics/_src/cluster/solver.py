@@ -149,10 +149,10 @@ def _event_args(args: PyTree, units: u.AbstractUnitSystem, y0: Any) -> PyTree:
 
     The mass is solved in the field's units, so those win over any the caller
     passed. ``mass_scale`` is the starting mass in those units; the event
-    divides by it so the root finder's absolute tolerance acts as a relative
-    one. The caller's dict is not changed. ``None`` and an empty tuple or list
-    count as no args. Other ``args`` (for a custom event) are passed through as
-    they are.
+    divides by the larger of it and the threshold, so the root finder's
+    absolute tolerance acts as a relative one. The caller's dict is not
+    changed. ``None`` and an empty tuple or list count as no args. Other
+    ``args`` (for a custom event) are passed through as they are.
     """
     if args is None or (isinstance(args, tuple | list) and len(args) == 0):
         args = {}

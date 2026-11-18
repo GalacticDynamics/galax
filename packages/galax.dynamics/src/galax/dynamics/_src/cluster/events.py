@@ -68,6 +68,10 @@ class MassBelowThreshold(eqx.Module):
         args : dict[str, Any]
             Additional arguments. Must contain:
             - "units": `unxt.AbstractUnitSystem`
+            May contain:
+            - "mass_scale": the starting mass in ``units``. If given, the value
+              is divided by the larger of it and the threshold. `MassSolver`
+              passes it.
 
         Examples
         --------
@@ -97,6 +101,10 @@ class MassBelowThreshold(eqx.Module):
         # units or the mass.
         scale = args.get("mass_scale")
         if scale is not None:
-            scale = jnp.maximum(scale, jnp.abs(threshold))
+            # A threshold that overflows in the field's unit (e.g. float32 kg)
+            # is capped, so the scale stays finite and the event just never
+            # fires, as before.
+            finite = jnp.minimum(jnp.abs(threshold), jnp.finfo(_result.dtype).max)
+            scale = jnp.maximum(scale, finite)
             _result = _result / jnp.where(scale > 0, scale, 1)
         return _result  # type: ignore[no-any-return]

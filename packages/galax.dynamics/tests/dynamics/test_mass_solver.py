@@ -279,3 +279,20 @@ def test_default_root_finder_with_a_threshold_far_above_the_start(x64, M0, thres
         )
 
     assert jnp.allclose(soln.ts, 50.0, rtol=1e-3)
+
+
+def test_default_root_finder_ignores_a_threshold_that_overflows():
+    """A threshold too big for float32 in kg doesn't break the solve."""
+    with jax.enable_x64(False):  # noqa: FBT003
+        event = dfx.Event(
+            gdc.MassBelowThreshold(u.Q(1e10, "Msun")),
+            root_finder=gdc.MassSolver().event.root_finder,
+        )
+        field = gdc.CustomMassRateField(
+            lambda _t, M, _args: 0 * M, units=u.unitsystem("kpc", "Myr", "kg", "rad")
+        )
+        soln = gdc.MassSolver(event=event).solve(
+            field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
+        )
+
+    assert jnp.allclose(soln.ts, 100.0)

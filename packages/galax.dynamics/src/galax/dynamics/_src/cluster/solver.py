@@ -147,11 +147,14 @@ def _with_units(args: PyTree, units: u.AbstractUnitSystem) -> PyTree:
     """Give the default event the field's units in ``args["units"]``.
 
     The mass is solved in the field's units, so those win over any the caller
-    passed. The caller's dict is not changed. Non-dict ``args`` (for a custom
-    event) are passed through as they are.
+    passed. The caller's dict is not changed. ``None`` and an empty tuple or
+    list count as no args. Other ``args`` (for a custom event) are passed
+    through as they are.
     """
-    if args is None or isinstance(args, Mapping):
-        return {**(args or {}), "units": units}
+    if args is None or (isinstance(args, tuple | list) and len(args) == 0):
+        args = {}
+    if isinstance(args, Mapping):
+        return {**args, "units": units}
     return args
 
 

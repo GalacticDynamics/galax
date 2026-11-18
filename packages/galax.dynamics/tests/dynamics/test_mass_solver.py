@@ -195,3 +195,15 @@ def test_default_root_finder_handles_a_threshold_in_kg():
     soln = solver.solve(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"))
 
     assert jnp.allclose(soln.ts, 250.0)
+
+
+@pytest.mark.parametrize("args", [None, {}, (), []], ids=repr)
+def test_default_event_accepts_empty_args(args):
+    """No args, in any of these spellings, still get the field's units."""
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"), args=args
+    )
+
+    assert jnp.allclose(soln.ts, 500.0)

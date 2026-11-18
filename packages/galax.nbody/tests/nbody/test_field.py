@@ -152,3 +152,43 @@ def test_stopgrad_backend_still_differentiates_external() -> None:
     ext = jax.grad(lambda q: jnp.sum(-gp.gradient(pot, q, jnp.array(0.0))))(Q4 + 1.0)
     assert bool(jnp.any(g != 0))
     np.testing.assert_allclose(g, ext, rtol=1e-12)
+
+
+def test_inactive_rows_singular_or_nan_stay_safe() -> None:
+    """Inactive rows at the origin or at NaN poison neither values nor grads."""
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    masses = jnp.array([1e9, 2e9, 3e9, 4e9])
+    active = jnp.array([True, False, True, False])
+    field = gn.NBodyField(masses, 0.01, pot, active=active)
+    q = (Q4 + 1.0).at[1].set(0.0).at[3].set(jnp.nan)
+    keep = jnp.array([0, 2])
+    sub = gn.NBodyField(masses[keep], 0.01, pot)
+
+    a = field.acceleration(0.0, q)
+    assert bool(jnp.all(jnp.isfinite(a)))
+    np.testing.assert_array_equal(a[1], 0.0)
+    np.testing.assert_array_equal(a[3], 0.0)
+    np.testing.assert_allclose(a[keep], sub.acceleration(0.0, q[keep]), rtol=1e-12)
+
+    g = jax.grad(lambda q: jnp.sum(field.acceleration(0.0, q)))(q)
+    assert bool(jnp.all(jnp.isfinite(g)))
+
+
+def test_stopgrad_on_mass_keeps_gradient_wrt_G() -> None:
+    """G multiplies outside the gradient policy, so StopGrad(m) keeps dG."""
+    us = u.unitsystem("galactic")
+    G0 = gp.NullPotential(units=us).constants["G"]
+    masses, q = jnp.array([1e9, 2e9, 3e9, 4e9]), Q4
+    backend = gn.DirectSum(grad=gn.StopGrad(wrt=frozenset({"m"})))
+
+    def total(scale):
+        pot = gp.NullPotential(units=us, constants={"G": G0 * scale})
+        field = gn.NBodyField(masses, 0.01, pot, backend=backend)
+        return jnp.sum(field.acceleration(0.0, q))
+
+    # The pairwise acceleration is linear in G, so d total / d scale = total.
+    value, dG = jax.value_and_grad(total)(1.0)
+    assert value != 0
+    np.testing.assert_allclose(dG, value, rtol=1e-12)
+    plain = gn.NBodyField(masses, 0.01, gp.NullPotential(units=us))
+    np.testing.assert_allclose(value, jnp.sum(plain.acceleration(0.0, q)), rtol=1e-12)

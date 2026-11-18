@@ -22,6 +22,7 @@ from galax.orbits import AbstractOrbitField
 
 _NULL = gp.NullPotential(units="galactic")
 _DIRECT = DirectSum()
+_SAFE = 1e10
 
 
 @final
@@ -151,19 +152,24 @@ def nbody_acceleration(
     """Return the accelerations (N, 3) of all particles in ``field``.
 
     This is the backend's pairwise term from the active massive particles plus
-    the external term, zeroed for inactive particles. ``G`` is folded into the
-    source masses so the backend never closes over a traced value.
+    the external term, zeroed for inactive particles.
     """
     nm = field.n_massive
     idx = jnp.arange(q.shape[0])
+    # Inactive rows are moved to distinct far-away points so neither their
+    # forward values nor their gradients can poison the active rows.
+    # ponytail: an active particle exactly at an inactive row's safe point with
+    # h=0 still NaNs; mask pair weights in the backend if that matters.
+    safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
+    q = jnp.where(field.active[:, None], q, safe)
     sources = Sources(
-        q=q[:nm],
-        m=(field._G * field.masses * field.active)[:nm],  # noqa: SLF001
-        h=field.softening[:nm],
+        q=q[:nm], m=(field.masses * field.active)[:nm], h=field.softening[:nm]
     )
     targets = Targets(q=q, h=field.softening, self_index=jnp.where(idx < nm, idx, -1))
     backend = field.backend
-    a = backend.accelerations(backend.prepare(sources), targets, G=1.0)
+    # G multiplies outside the gradient policy, so StopGrad on m keeps dG and
+    # NoGrad's custom_jvp never closes over a traced G.
+    a = field._G * backend.accelerations(backend.prepare(sources), targets, G=1.0)  # noqa: SLF001
     a = a - jnp.asarray(gp.gradient(field.external_potential, q, t))
     return jnp.where(field.active[:, None], a, 0.0)
 

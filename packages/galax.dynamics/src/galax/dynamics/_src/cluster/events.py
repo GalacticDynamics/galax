@@ -87,6 +87,12 @@ class MassBelowThreshold(eqx.Module):
         Array([1000000. , 56101.9173497, inf, inf, ...], dtype=float64)
 
         """
+        # Compare in Msun, whatever the units of the field and threshold: the
+        # root finder's absolute tolerance on this value can't be met for a
+        # mass in, e.g., kg (~1e34).
+        # ponytail: an absolute Msun scale, so a root-find with the default
+        # 1e-5 tolerance fails above ~1e10 Msun; scale by the mass if needed.
         mu = args["units"]["mass"]
-        _result = u.ustrip(AllowValue, mu, y) - self.threshold.ustrip(mu)
+        M = u.Q.from_(u.ustrip(AllowValue, mu, y), mu)
+        _result = M.ustrip("Msun") - self.threshold.ustrip("Msun")
         return _result  # type: ignore[no-any-return]

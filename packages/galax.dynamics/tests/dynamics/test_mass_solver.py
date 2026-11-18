@@ -139,3 +139,71 @@ def test_run_and_solve_accept_args_none():
 
     assert jnp.allclose(state.y, 1e4 * 0.99**10)
     assert jnp.allclose(soln.ys, 1e4 * 0.99**10)
+
+
+def test_default_event_finds_the_root_for_a_field_in_kg():
+    """The default event stops a field in kg where it stops one in Msun.
+
+    The cluster loses 20 Msun / Myr from 1e4 Msun, so it is empty at 500 Myr.
+    In kg the mass is ~1e34, which the root finder's absolute tolerance on the
+    event value could not reach.
+    """
+    solver = gdc.MassSolver()
+    rate = u.Q(-20.0, "Msun/Myr").ustrip("kg/Myr")
+    field = gdc.CustomMassRateField(
+        lambda _t, _M, _args: rate, units=u.unitsystem("kpc", "Myr", "kg", "rad")
+    )
+
+    soln = solver.solve(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"))
+
+    assert jnp.allclose(soln.ts, 500.0)
+
+
+def test_run_passes_non_dict_args_through():
+    """A field (and custom event) may take non-dict ``args``, e.g. a tuple."""
+    solver = gdc.MassSolver(
+        dfx.Euler(), stepsize_controller=dfx.ConstantStepSize(), event=None
+    )
+    field = gdc.CustomMassRateField(lambda _t, M, args: -args[0] * M, units="galactic")
+    M0, t0, t1 = u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1.0, "Myr")
+
+    state = solver.init(field, M0, t0, (0.1,))
+    state = solver.run(field, state, t1, (0.1,), dt0=u.Q(0.1, "Myr"))
+    soln = solver.solve(field, M0, t0, t1, dt0=u.Q(0.1, "Myr"), args=(0.1,))
+
+    assert jnp.allclose(state.y, 1e4 * 0.99**10)
+    assert jnp.allclose(soln.ys, 1e4 * 0.99**10)
+
+
+def test_default_root_finder_handles_a_threshold_in_kg():
+    """A nonzero threshold in kg stops a field in kg at the right time.
+
+    The cluster loses 20 Msun / Myr from 1e4 Msun, so it reaches 5e3 Msun at
+    250 Myr.
+    """
+    threshold = u.Q(5e3, "Msun").uconvert("kg")
+    event = dfx.Event(
+        gdc.MassBelowThreshold(threshold),
+        root_finder=gdc.MassSolver().event.root_finder,
+    )
+    solver = gdc.MassSolver(event=event)
+    rate = u.Q(-20.0, "Msun/Myr").ustrip("kg/Myr")
+    field = gdc.CustomMassRateField(
+        lambda _t, _M, _args: rate, units=u.unitsystem("kpc", "Myr", "kg", "rad")
+    )
+
+    soln = solver.solve(field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"))
+
+    assert jnp.allclose(soln.ts, 250.0)
+
+
+@pytest.mark.parametrize("args", [None, {}, (), []], ids=repr)
+def test_default_event_accepts_empty_args(args):
+    """No args, in any of these spellings, still get the field's units."""
+    field = gdc.CustomMassRateField(lambda _t, _M, _args: -20.0, units="galactic")
+
+    soln = gdc.MassSolver().solve(
+        field, u.Q(1e4, "Msun"), u.Q(0.0, "Myr"), u.Q(1e3, "Myr"), args=args
+    )
+
+    assert jnp.allclose(soln.ts, 500.0)

@@ -35,20 +35,28 @@ def _pair_terms(
     to NaN. Masking inside the row keeps the NaN out of the gradients of every
     other row: a zero cotangent times a NaN is still NaN.
 
+    The softening and the self index go through one optimization barrier with
+    the positions. Without it XLA treats the pair softening and the self mask
+    as loop invariants of an outer time loop when the field is a runtime
+    argument, and keeps a (chunk, Ns) copy of each across every step.
+
     ponytail: a target at zero distance from a source with zero pair softening
     still gives NaN gradients for the sources. That includes a particle placed
     exactly on the far-away point `NBodyField` parks an inactive row or a bad
     tracer at. Masking those pairs costs about 60% of the forward pass at
     N=4096; add it if exact coincidences matter.
     """
+    x_i, h_i, self_index_i, q_s, h_s = jax.lax.optimization_barrier(  # type: ignore[no-untyped-call]
+        (x_i, h_i, self_index_i, sources.q, sources.h)
+    )
     ok = jnp.all(jnp.isfinite(x_i))
-    d = sources.q - jnp.where(ok, x_i, 0.0)
+    d = q_s - jnp.where(ok, x_i, 0.0)
     r2 = jnp.sum(d * d, -1)
     # A bad row's substitute position could sit on a source, so all its pairs
     # are skipped like the self pair.
     skip = (jnp.arange(r2.shape[0]) == self_index_i) | ~ok
     r2s = jnp.where(skip, 1.0, r2)
-    w = jnp.where(skip, 0.0, pair_fn(r2s, combine(h_i, sources.h)))
+    w = jnp.where(skip, 0.0, pair_fn(r2s, combine(h_i, h_s)))
     return d, w, ok
 
 

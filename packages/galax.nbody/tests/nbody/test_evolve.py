@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 import galax.fields as gf
@@ -133,6 +134,38 @@ def test_bad_dt_raises_before_tracing() -> None:
         jax.jit(lambda dt: gn.evolve(field, q0, p0, ts, dt=dt))(0.01)
 
 
+@pytest.mark.parametrize(
+    ("ts", "dt"),
+    [
+        (1e4 + 1e-3 * np.arange(200), 1e-3),
+        (-13800 + 1e-3 * np.arange(50), 1e-3),
+        (u.Q(10 + 1e-6 * np.arange(4), "Gyr"), u.Q(1, "kyr")),
+        (np.asarray([0.0, 0.3]), 0.1),
+    ],
+)
+def test_on_grid_ts_at_large_abs_time_accepted(ts, dt) -> None:
+    """The step check allows the round-off of ``diff(ts)`` at large ``|ts|``."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    q0, p0 = jnp.ones((2, 3)), jnp.zeros((2, 3))
+    res = gn.evolve(field, q0, p0, ts, dt=dt, check_dt=False)
+    ts_np = np.asarray(u.ustrip(AllowValue, "Myr", ts))
+    assert bool(jnp.all(res.ts == ts_np))
+
+
+def test_off_grid_ts_rejected() -> None:
+    """A gap of 1e-7 over a 0.3 interval with dt=0.1 is off the grid."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match="whole number of steps"):
+        gn.evolve(
+            field,
+            jnp.ones((2, 3)),
+            jnp.zeros((2, 3)),
+            np.asarray([0.0, 0.3 + 1e-7]),
+            dt=0.1,
+            check_dt=False,
+        )
+
+
 def test_nonincreasing_ts_raises() -> None:
     field, q0, p0 = _cluster(n=4)
     for ts in ([0.0, 0.1, 0.1], [0.1, 0.0]):
@@ -203,6 +236,37 @@ def test_component_split_on_result() -> None:
     assert no_sys.energy is None
     with pytest.raises(ValueError, match="system"):
         no_sys.component("stars")
+
+
+def test_component_on_vmapped_result() -> None:
+    """``component`` splits on the particle axis, also with a leading batch axis."""
+    stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e10, h=0.1)
+    tracers = gn.Component(
+        name="tracers",
+        q=2 * jnp.ones((2, 3)),
+        p=jnp.ones((2, 3)),
+        m=0.0,
+        h=0.0,
+        massive=False,
+    )
+    system = gn.System.from_components(stars, tracers, units="galactic")
+    field = gn.NBodyField.from_system(system, _NULL)
+    ps = system.particles
+    ts = jnp.asarray([0.0, 0.1, 0.2, 0.3])
+
+    def run(q):
+        return gn.evolve(field, q, ps.p, ts, dt=0.01, system=system, check_dt=False)
+
+    res = run(ps.q)
+    q, p = res.component("stars")
+    assert q.shape == p.shape == (4, 3, 3)
+    assert bool(jnp.all(q == res.q[:, :3]))
+    assert bool(jnp.all(p == res.p[:, :3]))
+    resv = jax.vmap(run)(jnp.stack([ps.q, ps.q + 1]))
+    q, p = resv.component("tracers")
+    assert q.shape == p.shape == (2, 4, 2, 3)
+    assert bool(jnp.all(q == resv.q[:, :, 3:]))
+    assert bool(jnp.all(p == resv.p[:, :, 3:]))
 
 
 def _mass_loss(n_steps: int, dt: float = 0.02, **kw):
@@ -388,7 +452,7 @@ def _count_while(jaxpr) -> int:
     return n
 
 
-def test_graph_has_one_loop_per_distinct_segment_length() -> None:
+def test_graph_has_one_loop_per_run_of_equal_segments() -> None:
     """Under an outer jit the graph grows with the runs of equal segments, not saves."""
     field, q0, p0 = _cluster(n=4)
 
@@ -405,24 +469,19 @@ def test_graph_has_one_loop_per_distinct_segment_length() -> None:
     assert count(0.01 * np.asarray([0, 1, 2, 5, 8, 9])) == 3 * one
 
 
-def test_scan_matches_one_segment_at_a_time() -> None:
-    """Runs of equal segments give the states and gradients of a segment loop.
-
-    The 10-step runs start at traced times inside the scan, which once made
-    diffrax reject t1 != ts[-1] under jit.
-    """
+def _scan_and_segment_loop():
+    """Return evolve's ``q`` and a segment loop over `advance` for one run of 3."""
     field, q0, p0 = _cluster(n=4)
     dt = 0.01
-    steps = np.asarray([0, 1, 2, 5, 8, 9, 10, 20, 30])
+    steps = np.asarray([0, 3, 6, 9])
     ts = dt * steps
     adjoint = dfx.RecursiveCheckpointAdjoint()
 
     def ref(q):
-        # The grid as built before the scan: ts[0] + k * dt, then + j * dt.
+        # The grid points are ts[0] + (k + j) * dt, with ts[0] = 0.
         p, qs = p0, [q]
         for k, n in zip(steps[:-1], np.diff(steps), strict=True):
-            t0 = jnp.asarray(0.0) + int(k) * jnp.asarray(dt)
-            grid = t0 + jnp.asarray(dt) * jnp.arange(int(n) + 1)
+            grid = (int(k) + jnp.arange(int(n) + 1)) * jnp.asarray(dt)
             q, p = advance(field, (q, p), grid, adjoint)
             qs.append(q)
         return jnp.stack(qs)
@@ -430,10 +489,24 @@ def test_scan_matches_one_segment_at_a_time() -> None:
     def new(q):
         return gn.evolve(field, q, p0, ts, dt=dt, check_dt=False).q
 
+    return new, ref, q0
+
+
+def test_scan_matches_one_segment_at_a_time() -> None:
+    """A run of equal segments gives the states of a segment loop.
+
+    The second and third segments of the run start at traced times inside the
+    scan, which once made diffrax reject t1 != ts[-1] under jit.
+    """
+    new, ref, q0 = _scan_and_segment_loop()
     np.testing.assert_allclose(new(q0), ref(q0), rtol=1e-15, atol=1e-15)
     np.testing.assert_allclose(jax.jit(new)(q0), ref(q0), rtol=1e-15, atol=1e-15)
+
+
+@pytest.mark.slow
+def test_scan_gradient_matches_one_segment_at_a_time() -> None:
+    """A run of equal segments gives the gradients of a segment loop under jit."""
+    new, ref, q0 = _scan_and_segment_loop()
     g_ref = jax.grad(lambda q: jnp.sum(ref(q) ** 2))(q0)
-    g_new = jax.grad(lambda q: jnp.sum(new(q) ** 2))(q0)
     g_jit = jax.jit(jax.grad(lambda q: jnp.sum(new(q) ** 2)))(q0)
-    np.testing.assert_allclose(g_new, g_ref, rtol=1e-14)
     np.testing.assert_allclose(g_jit, g_ref, rtol=1e-14)

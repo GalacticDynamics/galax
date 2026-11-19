@@ -43,16 +43,17 @@ class NBodyResult(eqx.Module):
     system: System | None = None
 
     def component(self, name: str) -> tuple[Array, Array]:
-        """Return the (S, n, 3) positions and velocities of component ``name``.
+        """Return the (..., S, n, 3) positions and velocities of component ``name``.
 
+        The split is on the particle axis, the second to last, so a result
+        with leading batch axes, for example from `jax.vmap`, works too.
         Raises `ValueError` if the result has no ``system``.
         """
         if self.system is None:
             msg = "this result has no system; pass system= to evolve"
             raise ValueError(msg)
-        q = self.system.split(jnp.swapaxes(self.q, 0, 1))[name]
-        p = self.system.split(jnp.swapaxes(self.p, 0, 1))[name]
-        return jnp.swapaxes(q, 0, 1), jnp.swapaxes(p, 0, 1)
+        a, b = dict(zip(self.system.names, self.system.slices, strict=True))[name]
+        return self.q[..., a:b, :], self.p[..., a:b, :]
 
 
 def check_timestep(
@@ -145,11 +146,13 @@ def _integrate(
     Each run of equal segments is one `jax.lax.scan`, so the graph holds one
     `advance` per run, not one per save.
     """
-    # The grid is ts[0] + steps * dt, never a sum of segment lengths. It is
-    # built here in numpy. Built from a traced start time inside the scan,
-    # XLA fused t1 and the `StepTo` grid separately, one with an fma and one
-    # without, and diffrax rejected the mismatch under jit.
-    starts = t_start + np.concat([[0], np.cumsum(n_steps)[:-1]]) * dt
+    # Each grid point is ts[0] + k * dt with an integer step count k, so it is
+    # rounded once and is never a sum of segment lengths. The grids are built
+    # here in numpy. Built from a traced start time inside the scan, XLA fused
+    # t1 and the `StepTo` grid separately, one with an fma and one without,
+    # and diffrax rejected the mismatch under jit. `advance` takes t0 and t1
+    # from the same grid array.
+    offsets = np.concat([[0], np.cumsum(n_steps)[:-1]])
     qs, ps = [y[0][None]], [y[1][None]]
     # ponytail: each segment re-initialises the leapfrog, one extra force
     # evaluation per save interval; carry `solver_state` with made_jump=False
@@ -157,7 +160,7 @@ def _integrate(
     start = 0
     for n, run in itertools.groupby(n_steps.tolist()):
         stop = start + len(list(run))
-        grids = starts[start:stop, None] + dt * np.arange(n + 1)
+        grids = t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt
 
         def step(
             y: tuple[Array, Array], step_ts: Array
@@ -255,7 +258,11 @@ def evolve(
         raise ValueError(msg)
     ratio = np.diff(ts_np) / dt_np
     n_steps = np.rint(ratio).astype(int)
-    if np.any(np.abs(ratio - n_steps) > _REL_TOL * ratio):
+    # The round-off in diff(ts) grows with |ts|, not with the interval, so the
+    # tolerance in steps scales with the larger of the two. The grid is rebuilt
+    # from ts[0] and the integer step counts, so this round-off never enters it.
+    tol = _REL_TOL * np.maximum(ratio, np.max(np.abs(ts_np)) / dt_np)
+    if np.any(np.abs(ratio - n_steps) > tol):
         msg = f"each interval of ts must be a whole number of steps dt={dt_np}"
         raise ValueError(msg)
 

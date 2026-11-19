@@ -35,3 +35,37 @@ def test_tracers_add_no_self_energy() -> None:
     assert jnp.allclose(
         gn.total_energy(three, 0.0, q3, p3), gn.total_energy(two, 0.0, q, p)
     )
+
+
+def test_energy_with_kepler_external_potential() -> None:
+    """E = sum 1/2 m v^2 - G m1 m2 / sqrt(r^2 + h^2) - sum G M m / |q|."""
+    M, m1, m2, h = 1e11, 2.0, 3.0, 0.1
+    pot = gp.KeplerPotential(m_tot=M, units="galactic")
+    field = gn.NBodyField(
+        masses=u.Q([m1, m2], "Msun"), eps=u.Q(h, "kpc"), external_potential=pot
+    )
+    q = jnp.asarray([[3.0, 0, 0], [0.0, 4, 0]])
+    p = jnp.asarray([[0.0, 1, 0], [0.5, 0, 0]])
+    G = field._G
+    kinetic = 0.5 * m1 * 1.0 + 0.5 * m2 * 0.25
+    self_pot = -G * m1 * m2 / jnp.sqrt(5.0**2 + h**2)
+    ext = -G * M * (m1 / 3.0 + m2 / 4.0)
+    expect = kinetic + self_pot + ext
+    assert jnp.allclose(gn.total_energy(field, 0.0, q, p), expect, rtol=1e-12)
+
+
+def test_inactive_nonfinite_rows_are_ignored() -> None:
+    """NaN or inf positions and velocities on an inactive row leave E finite."""
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    kw = {"eps": u.Q(0.1, "kpc"), "external_potential": pot}
+    two = gn.NBodyField(masses=u.Q([2.0, 3.0], "Msun"), **kw)
+    three = gn.NBodyField(
+        masses=u.Q([2.0, 3.0, 4.0], "Msun"), active=[True, True, False], **kw
+    )
+    q = jnp.asarray([[3.0, 0, 0], [0.0, 4, 0]])
+    p = jnp.asarray([[0.0, 1, 0], [0.5, 0, 0]])
+    expect = gn.total_energy(two, 0.0, q, p)
+    for bad in (jnp.nan, jnp.inf):
+        q3 = jnp.concat([q, jnp.full((1, 3), bad)])
+        p3 = jnp.concat([p, jnp.full((1, 3), bad)])
+        assert jnp.allclose(gn.total_energy(three, 0.0, q3, p3), expect)

@@ -140,6 +140,16 @@ def test_nonincreasing_ts_raises() -> None:
             gn.evolve(field, q0, p0, jnp.asarray(ts), dt=0.01)
 
 
+def test_nonfinite_ts_or_dt_raises() -> None:
+    field, q0, p0 = _cluster(n=4)
+    for ts in ([0.0, jnp.nan], [0.0, jnp.inf], [jnp.nan, 0.1]):
+        with pytest.raises(ValueError, match="finite"):
+            gn.evolve(field, q0, p0, jnp.asarray(ts), dt=0.01)
+    for dt in (jnp.nan, jnp.inf):
+        with pytest.raises(ValueError, match="finite"):
+            gn.evolve(field, q0, p0, jnp.asarray([0.0, 0.1]), dt=dt)
+
+
 def test_timestep_guard_warns() -> None:
     """A dt 10x above dt_max warns, or raises when strict."""
     pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
@@ -154,8 +164,12 @@ def test_timestep_guard_warns() -> None:
     with pytest.raises(ValueError, match="dt"):
         gn.check_timestep(field, q0, 0.0, 10 * dt_max, strict=True)
     ts = jnp.asarray([0.0, 10 * 10 * dt_max])
-    with pytest.warns(UserWarning, match="dt"):
+    with pytest.warns(UserWarning, match="dt") as rec:
         gn.evolve(field, q0, jnp.zeros_like(q0), ts, dt=10 * dt_max)
+    assert rec[0].filename == __file__
+    with pytest.warns(UserWarning, match="dt") as rec:
+        gn.check_timestep(field, q0, 0.0, 10 * dt_max)
+    assert rec[0].filename == __file__
 
 
 def test_component_split_on_result() -> None:
@@ -191,23 +205,46 @@ def test_component_split_on_result() -> None:
         no_sys.component("stars")
 
 
-def test_trajectory_gradient_matches_fd() -> None:
-    """d(sum |q(T)|^2)/d(mass scale) by jax.grad matches central FD, under jit."""
+def _mass_loss(n_steps: int, dt: float = 0.02, **kw):
+    """Return ``s -> sum |q(T)|^2`` for an 8-body cluster with masses scaled by s."""
     _, q0, p0 = _cluster(n=8, seed=1, m=1e11)
-    dt = 0.02
-    ts = jnp.asarray([0.0, 75 * dt])  # about one crossing time
+    ts = jnp.asarray([0.0, n_steps * dt])
 
     def loss(s):
         field = gn.NBodyField(
             masses=s * jnp.full(8, 1e11), eps=0.1, external_potential=_NULL
         )
-        res = gn.evolve(field, q0, p0, ts, dt=dt, check_dt=False)
+        res = gn.evolve(field, q0, p0, ts, dt=dt, check_dt=False, **kw)
         return jnp.sum(res.q[-1] ** 2)
 
+    return loss
+
+
+# 75 steps of 0.02 are about one crossing time.
+@pytest.mark.parametrize("n_steps", [38, 75, 150], ids=["0.5tc", "1tc", "2tc"])
+def test_trajectory_gradient_matches_fd(n_steps: int) -> None:
+    """d(sum |q(T)|^2)/d(mass scale) by jax.grad matches central FD, under jit."""
+    loss = _mass_loss(n_steps)
     grad = jax.jit(jax.grad(loss))(1.0)
     eps = 1e-6  # the loss is steep enough that 1e-4 leaves 3e-5 FD error
     fd = (jax.jit(loss)(1.0 + eps) - jax.jit(loss)(1.0 - eps)) / (2 * eps)
     np.testing.assert_allclose(grad, fd, rtol=1e-5)
+
+
+def test_vmap_grad_matches_per_sample_grad() -> None:
+    loss = _mass_loss(38)
+    s = jnp.asarray([0.8, 1.0, 1.2])
+    batched = jax.jit(jax.vmap(jax.grad(loss)))(s)
+    one = jnp.stack([jax.jit(jax.grad(loss))(x) for x in s])
+    np.testing.assert_allclose(batched, one, rtol=1e-12)
+
+
+def test_jacfwd_with_forward_mode_adjoint() -> None:
+    """jax.jacfwd works with ForwardMode and matches jax.grad."""
+    loss = _mass_loss(38, adjoint=dfx.ForwardMode())
+    fwd = jax.jit(jax.jacfwd(loss))(1.0)
+    rev = jax.jit(jax.grad(_mass_loss(38)))(1.0)
+    np.testing.assert_allclose(fwd, rev, rtol=1e-10)
 
 
 def test_vmap_over_initial_conditions() -> None:
@@ -269,3 +306,27 @@ def test_forward_memory_is_chunk_bounded_with_field_argument() -> None:
     assert t_acc < 16 * chunk * n * 8
     # The time loop must not add a (chunk, N) array, not even a boolean one.
     assert t_fwd - t_acc < chunk * n
+
+
+def test_energy_memory_is_one_evaluation() -> None:
+    """The energy at S saves needs about the temp memory of one evaluation."""
+    n, s = 1024, 20
+    rng = np.random.default_rng(0)
+    field = gn.NBodyField(masses=np.full(n, 1.0 / n), eps=0.1, external_potential=_NULL)
+    q = jnp.asarray(rng.normal(size=(n, 3)))
+    ts = jnp.arange(s, dtype=float)
+
+    def temp(f, *args):
+        return jax.jit(f).lower(*args).compile().memory_analysis().temp_size_in_bytes
+
+    def run(q, *, energy):
+        res = gn.evolve(field, q, q, ts, dt=1.0, check_dt=False, energy=energy)
+        return res.q, res.energy
+
+    # The integration alone takes about 4x one evaluation, so compare the
+    # memory the energy adds, not the total.
+    added = temp(lambda q: run(q, energy=True), q) - temp(
+        lambda q: run(q, energy=False), q
+    )
+    one = temp(lambda q: gn.total_energy(field, 0.0, q, q), q)
+    assert added < 4 * one

@@ -9,6 +9,11 @@ median µs per step over 5 repeats after one warm-up, for the forward run and
 for ``jax.grad`` of ``sum(q_final**2)`` with respect to ``q0``, and the XLA
 temp memory of each compiled function.
 
+Both paths are compiled with the field's arrays as runtime arguments, as in
+`evolve`. If the scan closed over the field instead, XLA would fold the
+masses and softening into its kernel as constants and the comparison would
+not be fair.
+
 Exits 1 if the forward diffrax overhead is over 1 µs per step at N = 32
 single. Run on a quiet machine, by hand (not part of CI):
 
@@ -28,6 +33,7 @@ import numpy as np
 jax.config.update("jax_enable_x64", True)  # noqa: FBT003
 
 import diffrax as dfx  # noqa: E402
+import equinox as eqx  # noqa: E402
 import jax.numpy as jnp  # noqa: E402
 
 import unxt as u  # noqa: E402
@@ -67,39 +73,45 @@ def scan_leapfrog(
 
 
 def make_paths(
-    field: gn.NBodyField, n_steps: int, n_sys: int | None
+    static: Any, n_steps: int, n_sys: int | None
 ) -> dict[str, tuple[Callable, Callable]]:
-    """Return the forward and gradient functions of each path, by name."""
+    """Return the forward and gradient functions of each path, by name.
+
+    Each takes ``(arrays, q, p)``, where ``arrays`` and ``static`` are the two
+    halves of the field from `equinox.partition`.
+    """
     t0, dt = jnp.asarray(0.0), jnp.asarray(DT)
     adjoint = dfx.RecursiveCheckpointAdjoint()
 
-    def diffrax_fwd(q: Array, p: Array) -> tuple[Array, Array]:
+    def diffrax_fwd(arrays: Any, q: Array, p: Array) -> tuple[Array, Array]:
+        field = eqx.combine(arrays, static)
         return advance(field, (q, p), t0, n_steps, dt, adjoint)
 
-    def scan_fwd(q: Array, p: Array) -> tuple[Array, Array]:
+    def scan_fwd(arrays: Any, q: Array, p: Array) -> tuple[Array, Array]:
+        field = eqx.combine(arrays, static)
         return scan_leapfrog(field, q, p, t0, n_steps, dt)
 
     paths = {}
     for name, fwd in (("scan", scan_fwd), ("diffrax", diffrax_fwd)):
         if n_sys is not None:
-            fwd = jax.vmap(fwd)  # noqa: PLW2901
+            fwd = jax.vmap(fwd, in_axes=(None, 0, 0))  # noqa: PLW2901
 
-        def loss(q: Array, p: Array, fwd: Callable = fwd) -> Array:
-            return jnp.sum(fwd(q, p)[0] ** 2)
+        def loss(arrays: Any, q: Array, p: Array, fwd: Callable = fwd) -> Array:
+            return jnp.sum(fwd(arrays, q, p)[0] ** 2)
 
-        paths[name] = (fwd, jax.grad(loss))
+        paths[name] = (fwd, jax.grad(loss, argnums=1))
     return paths
 
 
-def compile_and_time(f: Callable, q: Array, p: Array) -> tuple[float, int]:
+def compile_and_time(f: Callable, *args: Any) -> tuple[float, int]:
     """Return the median seconds per call over ``REPEATS`` and the temp bytes."""
-    compiled = jax.jit(f).lower(q, p).compile()
+    compiled = jax.jit(f).lower(*args).compile()
     temp = compiled.memory_analysis().temp_size_in_bytes
-    jax.block_until_ready(compiled(q, p))  # warm-up
+    jax.block_until_ready(compiled(*args))  # warm-up
     times = []
     for _ in range(REPEATS):
         start = time.perf_counter()
-        jax.block_until_ready(compiled(q, p))
+        jax.block_until_ready(compiled(*args))
         times.append(time.perf_counter() - start)
     return statistics.median(times), temp
 
@@ -124,11 +136,13 @@ def main() -> int:
             external_potential=gp.NullPotential(units="galactic"),
         )
         q0, p0 = initial_conditions(n, n_sys)
-        paths = make_paths(field, n_steps, n_sys)
+        arrays, static = eqx.partition(field, eqx.is_array)
+        paths = make_paths(static, n_steps, n_sys)
+        args = (arrays, q0, p0)
 
         # Same work: both paths must agree to round-off.
-        (qs, ps), (qd, pd) = (jax.jit(paths[k][0])(q0, p0) for k in ("scan", "diffrax"))
-        gs, gd = (jax.jit(paths[k][1])(q0, p0) for k in ("scan", "diffrax"))
+        (qs, ps), (qd, pd) = (jax.jit(paths[k][0])(*args) for k in ("scan", "diffrax"))
+        gs, gd = (jax.jit(paths[k][1])(*args) for k in ("scan", "diffrax"))
         for a, b, what in ((qs, qd, "q"), (ps, pd, "p"), (gs, gd, "grad")):
             if not np.allclose(a, b, rtol=1e-10, atol=1e-12):
                 err = float(jnp.max(jnp.abs(a - b)))
@@ -138,7 +152,7 @@ def main() -> int:
         res = {}
         for path, (fwd, grad) in paths.items():
             for kind, f in (("fwd", fwd), ("grad", grad)):
-                sec, temp = compile_and_time(f, q0, p0)
+                sec, temp = compile_and_time(f, *args)
                 res[path, kind] = (sec / n_steps * 1e6, temp)
         for kind in ("fwd", "grad"):
             (us_s, mem_s), (us_d, mem_d) = res["scan", kind], res["diffrax", kind]

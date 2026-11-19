@@ -222,11 +222,11 @@ def _grid_steps(ts: np.ndarray, dt: float) -> np.ndarray:
     ``|ts[k]|`` and ``|n[k] * dt|``, which bounds the rounding in building the
     grid point and in building ``ts`` from ``ts[0]``. ``n`` must be strictly
     increasing, so each interval is at least one step. Raises `ValueError` if
-    ``dt`` is under 10 float spacings of the largest ``|ts|``, where grid
+    ``dt`` is under 100 float spacings of the largest ``|ts|``, where grid
     points cannot be told apart reliably, or if ``ts`` is off the grid.
     """
     t_max = np.max(np.abs(ts))
-    if dt < 10 * np.spacing(t_max):
+    if dt < 100 * np.spacing(t_max):
         msg = (
             f"dt={dt} is too small for the magnitude of ts (|t| up to {t_max}) "
             "in float64: whole steps cannot be told apart at that resolution"
@@ -313,7 +313,7 @@ def evolve(
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
-    increasing, a time is off the grid, or ``dt`` is under 10 float spacings
+    increasing, a time is off the grid, or ``dt`` is under 100 float spacings
     of the largest ``|ts|``, too small to tell the step times apart.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]

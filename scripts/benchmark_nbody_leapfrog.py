@@ -7,6 +7,9 @@ with `galax.fields.Leapfrog`, and a reference `jax.lax.scan` that carries
 ``(q, p, a)``. For each case the script checks the two agree, then reports µs
 per step for the forward run and for ``jax.grad`` of ``sum(q_final**2)`` with
 respect to ``q0``, and the XLA temp memory of each compiled function.
+The gradient rows compare plain reverse mode through the scan, which stores
+every step, with diffrax's checkpointed adjoint, so their time and memory
+differ by design.
 
 Timing is interleaved. After one warm-up call of each path, the script calls
 scan and diffrax alternately for 21 rounds (7 at N = 1000), so both paths see

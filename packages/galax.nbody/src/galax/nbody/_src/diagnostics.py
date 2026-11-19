@@ -22,8 +22,8 @@ def total_energy(
     ``p`` are plain arrays in the field's units. Massless tracers and inactive
     particles contribute nothing.
 
-    The energy is conserved only with no bodies and a static external
-    potential.
+    The energy is conserved only with a static external potential, and
+    leapfrog keeps it constant only to O(dt^2).
     """
     nm = field.n_massive
     m = field.masses * field.active
@@ -34,6 +34,9 @@ def total_energy(
         backend.prepare(sources), targets, G=1.0
     )
     phi_ext = jnp.asarray(gp.potential(field.external_potential, q, t))
+    # Inactive rows may hold NaN or inf, and 0 * NaN is NaN, so mask them.
+    p = jnp.where(field.active[:, None], p, 0.0)
     kinetic = 0.5 * jnp.sum(m * jnp.sum(p**2, axis=-1))
     self_pot = 0.5 * jnp.sum(m[:nm] * phi_self[:nm])
-    return kinetic + self_pot + jnp.sum(m * phi_ext)
+    ext = jnp.where(field.active, m * phi_ext, 0.0)
+    return kinetic + self_pot + jnp.sum(ext)

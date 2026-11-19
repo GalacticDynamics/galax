@@ -63,6 +63,7 @@ def check_timestep(
     eta: float = 0.025,
     eta_rho: float = 0.1,
     strict: bool = False,
+    stacklevel: int = 2,
 ) -> float:
     r"""Return the largest safe time step ``dt_max``, warning if ``dt`` exceeds it.
 
@@ -74,7 +75,9 @@ def check_timestep(
     ``dt_max`` is infinite.
 
     If ``dt > dt_max`` this warns with `UserWarning`, or raises `ValueError`
-    when ``strict``. It needs concrete values, so call it outside ``jit``.
+    when ``strict``. ``stacklevel`` is passed to `warnings.warn`; the default
+    points the warning at the caller. It needs concrete values, so call it
+    outside ``jit``.
     """
     units = field.units
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q), dtype=float)
@@ -91,7 +94,7 @@ def check_timestep(
         msg = f"dt={dt} is above the safe time step dt_max={dt_max}"
         if strict:
             raise ValueError(msg)
-        warnings.warn(msg, UserWarning, stacklevel=2)
+        warnings.warn(msg, UserWarning, stacklevel=stacklevel)
     return dt_max
 
 
@@ -172,15 +175,30 @@ def evolve(
     total energy at each save time. ``system`` is stored on the result so
     `NBodyResult.component` can split it.
 
-    Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced,
-    ``dt <= 0``, ``ts`` is not strictly increasing, or an interval is not a
-    whole number of steps.
+    With the default `diffrax.RecursiveCheckpointAdjoint`, reverse mode
+    (`jax.grad`) works, but forward mode (`jax.jvp`, `jax.jacfwd`) needs
+    ``adjoint=diffrax.ForwardMode()``, which also suits derivatives with
+    respect to a few parameters. The checkpoint adjoint stores about
+    ``sqrt(2 n)`` states for a segment of ``n`` steps, and
+    ``RecursiveCheckpointAdjoint(checkpoints=...)`` sets that number.
+
+    `evolve` runs forward in time only, so ``ts`` must increase. Flipping the
+    velocities and running forward is the same as running backward only when
+    the external potential is static. With a time-dependent potential it
+    gives the wrong forces.
+
+    Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
+    not finite, ``dt <= 0``, ``ts`` is not strictly increasing, or an interval
+    is not a whole number of steps.
     """
     units = field.units
     ts_np = np.atleast_1d(_concrete(ts, units["time"], "ts"))
     dt_np = _concrete(dt, units["time"], "dt")
     if ts_np.ndim != 1:
         msg = f"ts must be 1-D, got shape {ts_np.shape}"
+        raise ValueError(msg)
+    if not (np.all(np.isfinite(ts_np)) and np.all(np.isfinite(dt_np))):
+        msg = f"ts and dt must be finite, got ts={ts_np} and dt={dt_np}"
         raise ValueError(msg)
     if dt_np.ndim != 0 or not dt_np > 0:
         msg = f"dt must be a positive scalar, got {dt_np}"
@@ -197,7 +215,8 @@ def evolve(
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q0), dtype=float)
     p = jnp.asarray(u.ustrip(AllowValue, units["speed"], p0), dtype=float)
     if check_dt and not _is_traced((field, q)):
-        check_timestep(field, q, ts_np[0], dt_np)
+        # stacklevel 3 points the warning at the caller of `evolve`.
+        check_timestep(field, q, ts_np[0], dt_np, stacklevel=3)
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint
 
     t_start, dt_arr = jnp.asarray(ts_np[0]), jnp.asarray(dt_np)
@@ -218,5 +237,7 @@ def evolve(
     q_out, p_out = jnp.stack(qs), jnp.stack(ps)
     e = None
     if energy:
-        e = jax.vmap(lambda t, q, p: total_energy(field, t, q, p))(t_out, q_out, p_out)
+        # `lax.map`, not `vmap`: batching would widen the backend's chunked
+        # map by S and multiply its temp memory by S.
+        e = jax.lax.map(lambda a: total_energy(field, *a), (t_out, q_out, p_out))
     return NBodyResult(ts=t_out, q=q_out, p=p_out, energy=e, units=units, system=system)

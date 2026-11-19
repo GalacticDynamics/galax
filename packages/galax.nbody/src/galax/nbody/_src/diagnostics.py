@@ -9,6 +9,7 @@ import jax.numpy as jnp
 
 import galax.potential as gp
 from .field import NBodyField, _sources_targets
+from .particles import Targets
 
 
 def total_energy(
@@ -26,19 +27,25 @@ def total_energy(
     leapfrog keeps it constant only to O(dt^2).
     """
     nm = field.n_massive
-    m = field.masses * field.active
+    # Tracers are massless, so only the massive rows enter. They are dropped
+    # before any arithmetic, so a NaN or inf tracer cannot reach the value or
+    # its gradient (0 * NaN is NaN in both).
     q, sources, targets = _sources_targets(field, q)
+    targets = Targets(
+        q=targets.q[:nm], h=targets.h[:nm], self_index=targets.self_index[:nm]
+    )
+    active = field.active[:nm]
+    m = sources.m  # massive masses, zero where inactive
     backend = field.backend
     # G multiplies outside the backend, as in `nbody_acceleration`.
     phi_self = field._G * backend.potential(  # noqa: SLF001
         backend.prepare(sources), targets, G=1.0
     )
-    phi_ext = jnp.asarray(gp.potential(field.external_potential, q, t))
-    # Inactive rows and tracers may hold NaN or inf, and 0 * NaN is NaN, so
-    # mask them.
-    keep = field.active & (jnp.arange(m.shape[0]) < nm)
-    p = jnp.where(keep[:, None], p, 0.0)
+    # `_sources_targets` already moved inactive rows to safe points.
+    phi_ext = jnp.asarray(gp.potential(field.external_potential, q[:nm], t))
+    # Inactive rows may hold NaN or inf velocities, so mask them first.
+    p = jnp.where(active[:, None], p[:nm], 0.0)
     kinetic = 0.5 * jnp.sum(m * jnp.sum(p**2, axis=-1))
-    self_pot = 0.5 * jnp.sum(m[:nm] * phi_self[:nm])
-    ext = jnp.where(keep, m * phi_ext, 0.0)
+    self_pot = 0.5 * jnp.sum(m * phi_self)
+    ext = m * phi_ext
     return kinetic + self_pot + jnp.sum(ext)

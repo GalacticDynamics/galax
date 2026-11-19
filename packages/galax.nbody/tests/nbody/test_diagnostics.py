@@ -1,5 +1,6 @@
 """Tests for `galax.nbody.total_energy`."""
 
+import jax
 import jax.numpy as jnp
 
 import unxt as u
@@ -86,3 +87,20 @@ def test_total_energy_ignores_non_finite_tracer() -> None:
     bad_q = q.at[2].set(jnp.inf)
     bad_p = p.at[2].set(jnp.nan)
     assert gn.total_energy(field, 0.0, bad_q, bad_p) == e
+
+
+def test_total_energy_gradient_ignores_non_finite_tracer() -> None:
+    """A NaN tracer, or one on an unsoftened source, leaves gradients finite."""
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    q = jnp.asarray([[8.0, 0.0, 0.0], [-8.0, 0.0, 0.0], [8.0, 0.0, 0.0]])
+    p = jnp.asarray([[0.0, 0.2, 0.0], [0.0, -0.2, 0.0], [0.0, 0.0, 0.0]])
+
+    def energy(m, q, eps):
+        field = gn.NBodyField(masses=m, eps=eps, external_potential=pot, n_massive=2)
+        return gn.total_energy(field, 0.0, q, p)
+
+    m = jnp.asarray([1e9, 1e9, 0.0])
+    for qq, eps in [(q.at[2].set(jnp.nan), 0.1), (q, 0.0)]:
+        gm, gq = jax.grad(energy, argnums=(0, 1))(m, qq, eps)
+        assert bool(jnp.all(jnp.isfinite(gm[:2])))
+        assert bool(jnp.all(jnp.isfinite(gq[:2])))

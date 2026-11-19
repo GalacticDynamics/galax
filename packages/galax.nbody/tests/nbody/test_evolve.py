@@ -3,6 +3,7 @@
 import diffrax as dfx
 import equinox as eqx
 import jax
+import jax.extend.core
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -127,10 +128,9 @@ def test_bad_dt_raises_before_tracing() -> None:
         gn.evolve(field, q0, p0, jnp.asarray([0.0, 0.025]), dt=0.01)
     with pytest.raises(ValueError, match="dt"):
         gn.evolve(field, q0, p0, jnp.asarray([0.0, 0.1]), dt=-0.01)
-    with pytest.raises(ValueError, match="traced"):
-        jax.jit(lambda dt: gn.evolve(field, q0, p0, jnp.asarray([0.0, 0.1]), dt=dt))(
-            0.01
-        )
+    ts = np.asarray([0.0, 0.1])  # concrete, so the dt check is the one that fires
+    with pytest.raises(ValueError, match="dt must be concrete"):
+        jax.jit(lambda dt: gn.evolve(field, q0, p0, ts, dt=dt))(0.01)
 
 
 def test_nonincreasing_ts_raises() -> None:
@@ -293,7 +293,7 @@ def test_forward_memory_is_chunk_bounded_with_field_argument() -> None:
 
     def fwd(d, q, p):
         f, adjoint = eqx.combine(d, static), dfx.RecursiveCheckpointAdjoint()
-        return advance(f, (q, p), jnp.asarray(0.0), 3, jnp.asarray(1e-3), adjoint)
+        return advance(f, (q, p), 1e-3 * jnp.arange(4.0), adjoint)
 
     def acc(d, q):
         return eqx.combine(d, static).acceleration(0.0, q)
@@ -330,3 +330,110 @@ def test_energy_memory_is_one_evaluation() -> None:
     )
     one = temp(lambda q: gn.total_energy(field, 0.0, q, q), q)
     assert added < 4 * one
+
+
+def test_empty_ts_raises() -> None:
+    field, q0, p0 = _cluster(n=4)
+    with pytest.raises(ValueError, match="at least one time"):
+        gn.evolve(field, q0, p0, np.asarray([]), dt=0.01)
+
+
+def test_jit_with_closed_over_field_and_state_checks_dt() -> None:
+    """Under jit the dt check runs on a concrete, closed-over field and state."""
+    field, q0, p0 = _cluster(n=4)
+    ts = np.asarray([0.0, 0.05, 0.1])
+    ref = gn.evolve(field, q0, p0, ts, dt=0.01).q
+    np.testing.assert_allclose(
+        jax.jit(lambda p: gn.evolve(field, q0, p, ts, dt=0.01).q)(p0), ref, rtol=1e-14
+    )
+    np.testing.assert_allclose(
+        jax.jit(lambda: gn.evolve(field, q0, p0, ts, dt=0.01).q)(), ref, rtol=1e-14
+    )
+
+    def loss(p):
+        return jnp.sum(gn.evolve(field, q0, p, ts, dt=0.01).q[-1] ** 2)
+
+    np.testing.assert_allclose(jax.jit(jax.grad(loss))(p0), jax.grad(loss)(p0))
+
+    pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+    nfw = gn.NBodyField(
+        masses=field.masses, softening=field.softening, external_potential=pot
+    )
+    big = 10 * gn.check_timestep(nfw, q0, 0.0, 0.0)
+    with pytest.warns(UserWarning, match="dt"):
+        jax.jit(lambda: gn.evolve(nfw, q0, p0, np.asarray([0.0, 10 * big]), dt=big).q)()
+
+
+def test_jit_with_concrete_quantity_ts_in_other_units() -> None:
+    """Concrete Quantity ts and dt in kyr are converted, not treated as traced."""
+    field, q0, p0 = _cluster(n=4)
+    ts = u.Q(np.asarray([0.0, 100.0]), "kyr")
+    dt = u.Q(10.0, "kyr")
+    out = jax.jit(lambda q: gn.evolve(field, q, p0, ts, dt=dt).q)(q0)
+    ref = gn.evolve(field, q0, p0, np.asarray([0.0, 0.1]), dt=0.01).q
+    np.testing.assert_allclose(out, ref, rtol=1e-12)
+
+
+def _count_while(jaxpr) -> int:
+    """Count ``while`` primitives in ``jaxpr`` and all its sub-jaxprs."""
+    n = 0
+    for eqn in jaxpr.eqns:
+        n += eqn.primitive.name == "while"
+        for v in eqn.params.values():
+            for sub in v if isinstance(v, tuple | list) else (v,):
+                if isinstance(sub, jax.extend.core.ClosedJaxpr):
+                    n += _count_while(sub.jaxpr)
+                elif isinstance(sub, jax.extend.core.Jaxpr):
+                    n += _count_while(sub)
+    return n
+
+
+def test_graph_has_one_loop_per_distinct_segment_length() -> None:
+    """Under an outer jit the graph grows with the runs of equal segments, not saves."""
+    field, q0, p0 = _cluster(n=4)
+
+    def count(ts):
+        def f(q):
+            return gn.evolve(field, q, p0, ts, dt=0.01, check_dt=False).q
+
+        return _count_while(jax.make_jaxpr(f)(q0).jaxpr)
+
+    one = count(0.01 * np.arange(2))
+    assert one > 0
+    assert count(0.01 * np.arange(5)) == count(0.01 * np.arange(50)) == one
+    # Runs of 1, 3 and 1 steps: one loop per run of equal segments.
+    assert count(0.01 * np.asarray([0, 1, 2, 5, 8, 9])) == 3 * one
+
+
+def test_scan_matches_one_segment_at_a_time() -> None:
+    """Runs of equal segments give the states and gradients of a segment loop.
+
+    The 10-step runs start at traced times inside the scan, which once made
+    diffrax reject t1 != ts[-1] under jit.
+    """
+    field, q0, p0 = _cluster(n=4)
+    dt = 0.01
+    steps = np.asarray([0, 1, 2, 5, 8, 9, 10, 20, 30])
+    ts = dt * steps
+    adjoint = dfx.RecursiveCheckpointAdjoint()
+
+    def ref(q):
+        # The grid as built before the scan: ts[0] + k * dt, then + j * dt.
+        p, qs = p0, [q]
+        for k, n in zip(steps[:-1], np.diff(steps), strict=True):
+            t0 = jnp.asarray(0.0) + int(k) * jnp.asarray(dt)
+            grid = t0 + jnp.asarray(dt) * jnp.arange(int(n) + 1)
+            q, p = advance(field, (q, p), grid, adjoint)
+            qs.append(q)
+        return jnp.stack(qs)
+
+    def new(q):
+        return gn.evolve(field, q, p0, ts, dt=dt, check_dt=False).q
+
+    np.testing.assert_allclose(new(q0), ref(q0), rtol=1e-15, atol=1e-15)
+    np.testing.assert_allclose(jax.jit(new)(q0), ref(q0), rtol=1e-15, atol=1e-15)
+    g_ref = jax.grad(lambda q: jnp.sum(ref(q) ** 2))(q0)
+    g_new = jax.grad(lambda q: jnp.sum(new(q) ** 2))(q0)
+    g_jit = jax.jit(jax.grad(lambda q: jnp.sum(new(q) ** 2)))(q0)
+    np.testing.assert_allclose(g_new, g_ref, rtol=1e-14)
+    np.testing.assert_allclose(g_jit, g_ref, rtol=1e-14)

@@ -2,6 +2,7 @@
 
 __all__ = ["NBodyResult", "check_timestep", "evolve"]
 
+import itertools
 import warnings
 
 from jaxtyping import Array, Float
@@ -102,20 +103,18 @@ def check_timestep(
 def advance(
     field: NBodyField,
     y: tuple[Array, Array],
-    t0: Array,
-    n_steps: int,
-    dt: Array,
+    step_ts: Float[Array, " n+1"],
     adjoint: dfx.AbstractAdjoint,
 ) -> tuple[Array, Array]:
-    """Return ``(q, p)`` after ``n_steps`` leapfrog steps of size ``dt`` from ``t0``.
+    """Return ``(q, p)`` after leapfrog steps from ``step_ts[0]`` along ``step_ts``.
 
-    ``n_steps`` is static, so this compiles once per distinct value.
+    The number of steps comes from the shape of ``step_ts``, so this compiles
+    once per distinct number of steps.
     """
     terms = (
         dfx.ODETerm(lambda t, p, a: p),  # noqa: ARG005
         dfx.ODETerm(lambda t, q, a: field.acceleration(t, q)),  # noqa: ARG005
     )
-    step_ts = t0 + dt * jnp.arange(n_steps + 1)
     # `StepTo` sets the steps itself and requires `dt0=None`.
     sol = dfx.diffeqsolve(
         terms,
@@ -125,7 +124,7 @@ def advance(
         None,
         y,
         stepsize_controller=dfx.StepTo(ts=step_ts),
-        max_steps=n_steps,
+        max_steps=step_ts.shape[0] - 1,
         saveat=dfx.SaveAt(t1=True),
         adjoint=adjoint,
     )
@@ -133,12 +132,53 @@ def advance(
     return q[0], p[0]
 
 
+def _integrate(
+    field: NBodyField,
+    y: tuple[Array, Array],
+    t_start: float,
+    dt: float,
+    n_steps: np.ndarray,
+    adjoint: dfx.AbstractAdjoint,
+) -> tuple[Array, Array]:
+    """Return the (S, N, 3) ``(q, p)``: ``y``, then the state after each segment.
+
+    Each run of equal segments is one `jax.lax.scan`, so the graph holds one
+    `advance` per run, not one per save.
+    """
+    # The grid is ts[0] + steps * dt, never a sum of segment lengths. It is
+    # built here in numpy. Built from a traced start time inside the scan,
+    # XLA fused t1 and the `StepTo` grid separately, one with an fma and one
+    # without, and diffrax rejected the mismatch under jit.
+    starts = t_start + np.concat([[0], np.cumsum(n_steps)[:-1]]) * dt
+    qs, ps = [y[0][None]], [y[1][None]]
+    # ponytail: each segment re-initialises the leapfrog, one extra force
+    # evaluation per save interval; carry `solver_state` with made_jump=False
+    # if that cost matters.
+    start = 0
+    for n, run in itertools.groupby(n_steps.tolist()):
+        stop = start + len(list(run))
+        grids = starts[start:stop, None] + dt * np.arange(n + 1)
+
+        def step(
+            y: tuple[Array, Array], step_ts: Array
+        ) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
+            y = advance(field, y, step_ts, adjoint)
+            return y, y
+
+        y, (q_run, p_run) = jax.lax.scan(step, y, jnp.asarray(grids))
+        qs.append(q_run)
+        ps.append(p_run)
+        start = stop
+    return jnp.concat(qs), jnp.concat(ps)
+
+
 def _concrete(x: Any, unit: Any, name: str) -> np.ndarray:
-    x = u.ustrip(AllowValue, unit, x)
-    if isinstance(x, jax.core.Tracer):
+    if _is_traced(x):
         msg = f"{name} must be concrete, not traced; pass it from outside jit"
-        raise ValueError(msg)  # noqa: TRY004
-    return np.asarray(x, dtype=float)
+        raise ValueError(msg)
+    # Inside a trace the unit conversion would be staged, even on a constant.
+    with jax.ensure_compile_time_eval():
+        return np.asarray(u.ustrip(AllowValue, unit, x), dtype=float)
 
 
 def _is_traced(tree: Any) -> bool:
@@ -168,10 +208,14 @@ def evolve(
     `jax.grad`.
 
     The steps are leapfrog (`galax.fields.Leapfrog`) at the times
-    ``ts[0] + k * dt``. ``adjoint`` defaults to
+    ``ts[0] + k * dt``. Consecutive save intervals of the same length run as
+    one `jax.lax.scan`, so the integrator compiles once per distinct number of
+    steps, and under an outer `jax.jit` the graph holds one loop per run of
+    equal intervals rather than one per save. ``adjoint`` defaults to
     `diffrax.RecursiveCheckpointAdjoint`. With ``check_dt`` the step is checked
-    once at ``ts[0]`` by `check_timestep`; the check is skipped when the field
-    or the initial state is traced. With ``energy`` the result also holds the
+    once at ``ts[0]`` by `check_timestep`. The check also runs inside an outer
+    `jax.jit` when the field, ``q0`` and ``p0`` are concrete, and is skipped
+    when any of them is traced. With ``energy`` the result also holds the
     total energy at each save time. ``system`` is stored on the result so
     `NBodyResult.component` can split it.
 
@@ -188,14 +232,17 @@ def evolve(
     gives the wrong forces.
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
-    not finite, ``dt <= 0``, ``ts`` is not strictly increasing, or an interval
-    is not a whole number of steps.
+    not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
+    increasing, or an interval is not a whole number of steps.
     """
     units = field.units
     ts_np = np.atleast_1d(_concrete(ts, units["time"], "ts"))
     dt_np = _concrete(dt, units["time"], "dt")
     if ts_np.ndim != 1:
         msg = f"ts must be 1-D, got shape {ts_np.shape}"
+        raise ValueError(msg)
+    if ts_np.size == 0:
+        msg = "ts must contain at least one time"
         raise ValueError(msg)
     if not (np.all(np.isfinite(ts_np)) and np.all(np.isfinite(dt_np))):
         msg = f"ts and dt must be finite, got ts={ts_np} and dt={dt_np}"
@@ -212,29 +259,20 @@ def evolve(
         msg = f"each interval of ts must be a whole number of steps dt={dt_np}"
         raise ValueError(msg)
 
+    if check_dt and not _is_traced((field, q0, p0)):
+        # Inside an outer jit, ops on closed-over constants are still staged,
+        # so the check runs them at trace time to see values.
+        with jax.ensure_compile_time_eval():
+            # stacklevel 3 points the warning at the caller of `evolve`.
+            check_timestep(field, q0, ts_np[0], dt_np, stacklevel=3)
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q0), dtype=float)
     p = jnp.asarray(u.ustrip(AllowValue, units["speed"], p0), dtype=float)
-    if check_dt and not _is_traced((field, q)):
-        # stacklevel 3 points the warning at the caller of `evolve`.
-        check_timestep(field, q, ts_np[0], dt_np, stacklevel=3)
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint
 
-    t_start, dt_arr = jnp.asarray(ts_np[0]), jnp.asarray(dt_np)
-    qs, ps = [q], [p]
-    before = 0
-    # ponytail: each segment re-initialises the leapfrog, one extra force
-    # evaluation per save interval; carry `solver_state` with made_jump=False
-    # if that cost matters.
-    for n in n_steps.tolist():
-        # The grid is ts[0] + steps * dt, never a sum of segment lengths.
-        t0 = t_start + before * dt_arr
-        q, p = advance(field, (q, p), t0, n, dt_arr, adjoint)
-        qs.append(q)
-        ps.append(p)
-        before += n
-
+    q_out, p_out = _integrate(
+        field, (q, p), float(ts_np[0]), float(dt_np), n_steps, adjoint
+    )
     t_out = jnp.asarray(ts_np)
-    q_out, p_out = jnp.stack(qs), jnp.stack(ps)
     e = None
     if energy:
         # `lax.map`, not `vmap`: batching would widen the backend's chunked

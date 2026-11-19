@@ -96,7 +96,7 @@ def make_paths(
 
     def diffrax_fwd(arrays: Any, q: Array, p: Array) -> tuple[Array, Array]:
         field = eqx.combine(arrays, static)
-        return advance(field, (q, p), t0, n_steps, dt, adjoint)
+        return advance(field, (q, p), t0 + dt * jnp.arange(n_steps + 1), adjoint)
 
     def scan_fwd(arrays: Any, q: Array, p: Array) -> tuple[Array, Array]:
         field = eqx.combine(arrays, static)

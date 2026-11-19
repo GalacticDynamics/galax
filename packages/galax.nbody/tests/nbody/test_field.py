@@ -491,3 +491,29 @@ def test_exactly_one_of_eps_and_softening(kwargs: dict) -> None:
     """Passing neither or both of ``eps`` and ``softening`` raises."""
     with pytest.raises(ValueError, match="exactly one of eps and softening"):
         gn.NBodyField(jnp.array([1.0, 1.0]), **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("tracer", "eps"),
+    [
+        (jnp.asarray([jnp.nan, 0.0, 0.0]), 0.1),
+        (jnp.asarray([jnp.inf, 0.0, 0.0]), 0.0),
+    ],
+)
+def test_bad_tracer_keeps_massive_gradients_finite(tracer, eps) -> None:
+    """A bad tracer gets a NaN acceleration but no NaN in the other rows' grads."""
+    pot = gp.NullPotential(units="galactic")
+    q = jnp.asarray([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 5.0, 0.0]])
+
+    def massive_loss(m, q):
+        field = gn.NBodyField(masses=m, eps=eps, external_potential=pot, n_massive=2)
+        return jnp.sum(field.acceleration(0.0, q)[:2] ** 2)
+
+    m = jnp.asarray([1e9, 1e9, 0.0])
+    good = jax.grad(massive_loss, argnums=(0, 1))(m, q)
+    bad_q = q.at[2].set(tracer)
+    field = gn.NBodyField(masses=m, eps=eps, external_potential=pot, n_massive=2)
+    assert bool(jnp.all(jnp.isnan(field.acceleration(0.0, bad_q)[2])))
+    gm, gq = jax.grad(massive_loss, argnums=(0, 1))(m, bad_q)
+    np.testing.assert_allclose(gm[:2], good[0][:2], rtol=1e-12)
+    np.testing.assert_allclose(gq[:2], good[1][:2], rtol=1e-12)

@@ -252,8 +252,6 @@ def nbody_acceleration(
     idx = jnp.arange(q.shape[0])
     # Inactive rows are moved to distinct far-away points so neither their
     # forward values nor their gradients can poison the active rows.
-    # ponytail: an active particle exactly at an inactive row's safe point with
-    # h=0 still NaNs; mask pair weights in the backend if that matters.
     safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
     q = jnp.where(field.active[:, None], q, safe)
     sources = Sources(

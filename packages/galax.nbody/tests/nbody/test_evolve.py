@@ -189,28 +189,71 @@ def test_off_grid_ts_at_large_abs_time_rejected(ts, dt) -> None:
         gn.evolve(field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False)
 
 
+_ULP_1E9 = float(np.spacing(1e9))
+
+
+@pytest.mark.parametrize(
+    ("ts", "dt"),
+    [
+        # dt of 64 and 100 float spacings at 1e9, 2.3 steps apart.
+        (np.asarray([1e9, 1e9 + 2.3 * 64 * _ULP_1E9]), 64 * _ULP_1E9),
+        (np.asarray([1e9, 1e9 + 2.3 * 100 * _ULP_1E9]), 100 * _ULP_1E9),
+        (np.asarray([1e10, 1e10 + 3.43e-5]), 1e-5),
+        # dt of 1000 float spacings is fine, and 2.3 steps is still off the grid.
+        (np.asarray([1e9, 1e9 + 2.3 * 1000 * _ULP_1E9]), 1000 * _ULP_1E9),
+    ],
+)
+def test_off_grid_ts_with_dt_near_float_spacing_rejected(ts, dt) -> None:
+    """A dt near the float spacing of ``ts`` cannot hide an off-grid interval."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match=r"whole number of steps|too small"):
+        gn.evolve(field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False)
+
+
+def test_on_grid_ts_with_dt_of_1000_float_spacings_accepted() -> None:
+    """At 1e9 a dt of 1000 float spacings still accepts on-grid intervals."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    dt = 1000 * _ULP_1E9
+    ts = 1e9 + dt * np.arange(4)
+    res = gn.evolve(
+        field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False
+    )
+    assert bool(jnp.all(res.ts == ts))
+
+
+@pytest.mark.parametrize("check_dt", [True, False])
 @pytest.mark.parametrize("energy", [False, True])
-def test_eager_calls_reuse_the_compilation(caplog, energy: bool) -> None:
-    """A second eager call with the same shapes compiles nothing."""
+def test_eager_calls_reuse_the_compilation(
+    caplog, energy: bool, check_dt: bool
+) -> None:
+    """A second eager call with a new field of the same shapes compiles nothing."""
     # Shapes used by no other test, so the first call must compile.
-    field, q0, p0 = _cluster(n=7 + energy)
+    n = 7 + energy + 2 * check_dt
+    field, q0, p0 = _cluster(n=n)
     ts = 0.01 * np.asarray([0, 1, 2, 5, 8, 9, 13])
 
-    def run(q):
-        r = gn.evolve(field, q, p0, ts, dt=0.01, check_dt=False, energy=energy)
+    def run(field, q):
+        r = gn.evolve(field, q, p0, ts, dt=0.01, check_dt=check_dt, energy=energy)
         return r.q, r.energy
 
     def compiles():
         return [r for r in caplog.records if "Compiling" in r.getMessage()]
 
     with jax.log_compiles(), caplog.at_level(logging.WARNING):
-        jax.block_until_ready(run(q0))
+        jax.block_until_ready(run(field, q0))
     # Positive control: the log capture does see compiles.
     assert compiles()
     caplog.clear()
+    # Different masses and softening, same shapes. Lighter and softer, so
+    # check_timestep does not warn.
+    field2 = gn.NBodyField(
+        masses=u.Q(np.full(n, 5e9), "Msun"),
+        eps=u.Q(0.2, "kpc"),
+        external_potential=_NULL,
+    )
     q1 = (q0 + 1).block_until_ready()
     with jax.log_compiles(), caplog.at_level(logging.WARNING):
-        jax.block_until_ready(run(q1))
+        jax.block_until_ready(run(field2, q1))
     assert not compiles()
 
 

@@ -47,7 +47,8 @@ class NBodyResult(eqx.Module):
 
         The split is on the particle axis, the second to last, so a result
         with leading batch axes, for example from `jax.vmap`, works too.
-        Raises `ValueError` if the result has no ``system``.
+        Raises `ValueError` if the result has no ``system`` and `KeyError` if
+        ``name`` is not one of its components.
         """
         if self.system is None:
             msg = "this result has no system; pass system= to evolve"
@@ -181,13 +182,6 @@ def _integrate(
         stop = start + len(list(run))
         runs.append(t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt)
         start = stop
-    # A dt below the float spacing at t_start rounds grid points together.
-    if any(np.any(np.diff(g, axis=-1) <= 0) for g in runs):
-        msg = (
-            f"dt={dt} is too small for the magnitude of ts (|t| ~ {abs(t_start)})"
-            " in float64: the step grid is not strictly increasing"
-        )
-        raise ValueError(msg)
     qs, ps = [y[0][None]], [y[1][None]]
     # ponytail: each segment re-initialises the leapfrog, one extra force
     # evaluation per save interval; carry `solver_state` with made_jump=False
@@ -309,12 +303,21 @@ def evolve(
         raise ValueError(msg)
     ratio = np.diff(ts_np) / dt_np
     n_steps = np.rint(ratio).astype(int)
-    # The round-off in diff(ts) is a few eps * |t|, so in steps it is about
-    # eps * |t| / dt. The relative term allows for an inexact dt. The grid is
-    # rebuilt from ts[0] and the integer step counts, so this round-off never
-    # enters it.
-    eps = np.finfo(float).eps
-    tol = _REL_TOL * ratio + 16 * eps * (np.abs(ts_np[:-1]) + np.abs(ts_np[1:])) / dt_np
+    # The round-off in diff(ts) is at most about the float spacing of its two
+    # ends, so in steps it is at most abs_tol. When that is a sizeable part of
+    # a step, whole steps cannot be told apart from fractions of one. The
+    # relative term allows for an inexact dt. The grid is rebuilt from ts[0]
+    # and the integer step counts, so this round-off never enters it.
+    abs_tol = 2 * (np.spacing(np.abs(ts_np[:-1])) + np.spacing(np.abs(ts_np[1:])))
+    abs_tol = abs_tol / dt_np
+    if np.any(abs_tol >= 0.1):
+        msg = (
+            f"dt={dt_np} is too small for the magnitude of ts "
+            f"(|t| up to {np.max(np.abs(ts_np))}) in float64: whole steps cannot "
+            "be told apart at that resolution"
+        )
+        raise ValueError(msg)
+    tol = _REL_TOL * ratio + abs_tol
     if np.any(n_steps == 0) or np.any(np.abs(ratio - n_steps) > tol):
         msg = f"each interval of ts must be a whole number of steps dt={dt_np}"
         raise ValueError(msg)

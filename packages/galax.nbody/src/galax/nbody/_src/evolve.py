@@ -83,15 +83,19 @@ def check_timestep(
     particles where that density is zero are skipped. With no limit at all
     ``dt_max`` is infinite.
 
-    If ``dt > dt_max`` this warns with `UserWarning`, or raises `ValueError`
-    when ``strict``. ``stacklevel`` is passed to `warnings.warn`; the default
-    points the warning at the caller. It needs concrete values, so call it
-    outside ``jit``.
+    Raises `ValueError` if ``dt`` is negative or not finite. If
+    ``dt > dt_max``, or ``dt_max`` is NaN, this warns with `UserWarning`, or
+    raises `ValueError` when ``strict``. ``stacklevel`` is passed to
+    `warnings.warn`; the default points the warning at the caller. It needs
+    concrete values, so call it outside ``jit``.
     """
     units = field.units
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q), dtype=float)
     t = u.ustrip(AllowValue, units["time"], t)
     dt = float(u.ustrip(AllowValue, units["time"], dt))
+    if not (np.isfinite(dt) and dt >= 0):
+        msg = f"dt must be finite and not negative, got {dt}"
+        raise ValueError(msg)
     a = jnp.linalg.norm(field.acceleration(t, q), axis=-1)
     h = field.softening
     rho = jnp.asarray(gp.density(field.external_potential, q, t))
@@ -99,7 +103,7 @@ def check_timestep(
     G = field._G  # noqa: SLF001
     tidal = jnp.where(field.active & (rho > 0), eta_rho / jnp.sqrt(G * rho), jnp.inf)
     dt_max = float(jnp.min(jnp.minimum(soft, tidal)))
-    if dt > dt_max:
+    if not dt <= dt_max:  # also catches a NaN dt_max
         msg = f"dt={dt} is above the safe time step dt_max={dt_max}"
         if strict:
             raise ValueError(msg)
@@ -222,11 +226,15 @@ def _grid_steps(ts: np.ndarray, dt: float) -> np.ndarray:
     ``|ts[k]|`` and ``|n[k] * dt|``, which bounds the rounding in building the
     grid point and in building ``ts`` from ``ts[0]``. ``n`` must be strictly
     increasing, so each interval is at least one step. Raises `ValueError` if
-    ``dt`` is under 100 float spacings of the largest ``|ts|``, where grid
-    points cannot be told apart reliably, or if ``ts`` is off the grid.
+    ``dt`` is subnormal, which XLA flushes to zero, if ``ts`` has more than one
+    time and ``dt`` is under 100 float spacings of the largest ``|ts|``, where
+    grid points cannot be told apart reliably, or if ``ts`` is off the grid.
     """
+    if dt < np.finfo(float).tiny:
+        msg = f"dt={dt} is subnormal in float64, which XLA flushes to zero"
+        raise ValueError(msg)
     t_max = np.max(np.abs(ts))
-    if dt < 100 * np.spacing(t_max) or dt < np.finfo(float).tiny:
+    if ts.size > 1 and dt < 100 * np.spacing(t_max):
         msg = (
             f"dt={dt} is too small for the magnitude of ts (|t| up to {t_max}) "
             "in float64: whole steps cannot be told apart at that resolution"
@@ -318,9 +326,10 @@ def evolve(
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
     increasing, the span of ``ts`` overflows float64, a time is off the
-    grid, ``dt`` is under 100 float spacings of the largest ``|ts|`` (too
-    small to tell the step times apart), or ``system`` has a different
-    number of particles than ``q0``.
+    grid, ``dt`` is subnormal, ``ts`` has more than one time and ``dt`` is
+    under 100 float spacings of the largest ``|ts|`` (too small to tell the
+    step times apart), or ``system`` has a different number of particles
+    than ``q0``.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
         msg = (
@@ -349,7 +358,7 @@ def evolve(
     if not np.isfinite(span):
         msg = f"the span of ts, {ts_np[0]} to {ts_np[-1]}, overflows float64"
         raise ValueError(msg)
-    if np.any(np.diff(ts_np) <= 0):
+    if np.any(ts_np[1:] <= ts_np[:-1]):
         msg = "ts must be strictly increasing"
         raise ValueError(msg)
     n_steps = np.diff(_grid_steps(ts_np, float(dt_np)))

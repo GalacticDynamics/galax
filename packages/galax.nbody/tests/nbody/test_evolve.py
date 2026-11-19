@@ -517,8 +517,44 @@ def test_ts_span_overflow_rejected() -> None:
 def test_extreme_ts_rejected(ts, dt) -> None:
     """Grids at the ends of the float64 range raise instead of running."""
     field = gn.NBodyField(masses=jnp.zeros(1), eps=0.0, external_potential=_NULL)
-    with pytest.raises(ValueError, match=r"whole number of steps|too small"):
+    with pytest.raises(ValueError, match=r"whole number of steps|subnormal"):
         gn.evolve(field, jnp.ones((1, 3)), jnp.zeros((1, 3)), ts, dt=dt, check_dt=False)
+
+
+@pytest.mark.parametrize("dt", [float("nan"), float("inf"), -1.0])
+def test_check_timestep_rejects_bad_dt(dt) -> None:
+    """``check_timestep`` raises for a dt that is negative or not finite."""
+    field = gn.NBodyField(masses=jnp.ones(2), eps=0.1, external_potential=_NULL)
+    with pytest.raises(ValueError, match="finite and not negative"):
+        gn.check_timestep(field, jnp.eye(2, 3), 0.0, dt, strict=True)
+
+
+def test_single_save_time_far_from_zero_accepted() -> None:
+    """With one save time there are no steps, so the dt floor does not apply."""
+    field = gn.NBodyField(masses=jnp.zeros(1), eps=0.0, external_potential=_NULL)
+    res = gn.evolve(
+        field,
+        jnp.ones((1, 3)),
+        jnp.zeros((1, 3)),
+        np.asarray([1e20]),
+        dt=1.0,
+        check_dt=False,
+    )
+    assert res.q.shape == (1, 1, 3)
+
+
+def test_non_monotonic_ts_near_float_max_raises_cleanly() -> None:
+    """Non-increasing ``ts`` near the float64 maximum raises without a warning."""
+    field = gn.NBodyField(masses=jnp.zeros(1), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        gn.evolve(
+            field,
+            jnp.ones((1, 3)),
+            jnp.zeros((1, 3)),
+            np.asarray([-1e308, 1e308, 0.0]),
+            dt=1e300,
+            check_dt=False,
+        )
 
 
 def test_system_of_wrong_size_rejected() -> None:

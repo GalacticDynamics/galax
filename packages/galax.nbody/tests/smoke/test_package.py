@@ -17,6 +17,7 @@ def test_all() -> None:
         "System",
         "Particles",
         "DirectSum",
+        "PallasDirectSum",
         "PlummerKernel",
         "NewtonianKernel",
         "DehnenK1Kernel",

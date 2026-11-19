@@ -6,6 +6,7 @@ __all__ = [
     "System",
     "Particles",
     "DirectSum",
+    "PallasDirectSum",
     "PlummerKernel",
     "NewtonianKernel",
     "DehnenK1Kernel",
@@ -38,5 +39,6 @@ from ._src.kernels import (
     PlummerKernel,
     SplineKernel,
 )
+from ._src.pallas_direct import PallasDirectSum
 from ._src.particles import Sources, Targets
 from ._src.system import Component, Particles, System

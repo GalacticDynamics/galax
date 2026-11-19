@@ -45,6 +45,14 @@ class _ProgenitorField(AbstractOrbitField):
     host: AbstractPotential
     progenitor: AbstractPotential
 
+    def __check_init__(self) -> None:
+        # The progenitor's forces are added to the host's as raw arrays. Checked
+        # here, built in each `run`, so a generator changed by `eqx.tree_at` is
+        # checked too.
+        if self.progenitor.units != self.host.units:
+            msg = "progenitor_potential must have the same unit system as potential"
+            raise ValueError(msg)
+
     @property  # type: ignore[misc]
     def units(self) -> u.AbstractUnitSystem:
         return cast("u.AbstractUnitSystem", self.host.units)
@@ -81,11 +89,12 @@ class MockStreamGenerator(eqx.Module):
     (reverse mode) give both integrators an `~galax.dynamics.OrbitSolver` with
     ``adjoint=diffrax.RecursiveCheckpointAdjoint()`` and an integer
     ``"max_steps"`` in ``diffeq_kw``. The default `diffrax.ForwardMode` adjoint
-    solves in a `jax.lax.while_loop` with a traced bound, which reverse mode
-    can't differentiate; in turn the reverse-mode adjoint can't be
-    forward-differentiated. By default it keeps about ``sqrt(2 max_steps)``
-    states per solve and recomputes the steps between them on the backward
-    pass; its ``checkpoints`` argument trades memory for time.
+    solves in a `jax.lax.while_loop`, which reverse mode can't differentiate;
+    in turn the reverse-mode adjoint can't be forward-differentiated. By
+    default it keeps about ``sqrt(2 max_steps)`` states per solve and
+    recomputes the steps between them on the backward pass; its
+    ``checkpoints`` argument trades memory for time. `diffrax.DirectAdjoint`
+    supports both modes, e.g. for `jax.hessian`, at a higher cost.
     """
 
     df: AbstractStreamDF
@@ -122,13 +131,6 @@ class MockStreamGenerator(eqx.Module):
 
     stream_integrator: Integrator = eqx.field(default=default_integrator, static=True)
     """Integrator for the stream."""
-
-    def __check_init__(self) -> None:
-        # The progenitor's forces are added to the host's as raw arrays.
-        pp = self.progenitor_potential
-        if pp is not None and pp.units != self.potential.units:
-            msg = "progenitor_potential must have the same unit system as potential"
-            raise ValueError(msg)
 
     @property
     def units(self) -> u.AbstractUnitSystem:

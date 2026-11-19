@@ -12,6 +12,7 @@ import warnings
 from pathlib import Path
 
 import diffrax as dfx
+import equinox as eqx
 import jax
 import jaxlib
 import numpy as np
@@ -316,15 +317,23 @@ def test_progenitor_copy_follows_its_orbit(
 
 
 def test_progenitor_units_must_match() -> None:
-    """A progenitor potential in other units raises, as a composite one did.
+    """A progenitor potential in other units raises in `run`, as on `main`.
 
     Its forces are added to the host's as raw arrays, so other units would be
-    silently wrong.
+    silently wrong. Also when it is swapped in with `eqx.tree_at`, which skips
+    the generator's own checks.
     """
     pc = u.unitsystem("pc", "Msun", "Myr", "radian")
     pp = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=pc)
-    with pytest.raises(ValueError, match="same unit system"):
-        gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=pp)
+    ok = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=USYS)
+    gen = gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=ok)
+    ts = u.Q(jnp.linspace(-100.0, 0.0, 3), "Myr")
+    for bad in (
+        gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=pp),
+        eqx.tree_at(lambda g: g.progenitor_potential, gen, pp),
+    ):
+        with pytest.raises(ValueError, match="same unit system"):
+            bad.run(jax.random.key(0), ts, PROG_W0, u.Q(1e6, "Msun"))
 
 
 def test_zero_mass_limit() -> None:

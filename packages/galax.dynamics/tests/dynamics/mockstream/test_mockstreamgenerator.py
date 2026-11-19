@@ -305,10 +305,10 @@ def test_run_reverse_mode_gradient(
 ) -> None:
     """`jax.grad` through `run`, with `RecursiveCheckpointAdjoint`.
 
-    The default `ForwardMode` adjoint solves in a `while` loop with a traced
-    bound, which reverse mode can't differentiate. The gradient of the summed
-    positions today, in the host's mass and the progenitor's initial conditions,
-    matches central differences and `jax.jvp` with the default adjoint.
+    The default `ForwardMode` adjoint solves in a `while` loop, which reverse
+    mode can't differentiate. The gradient of the summed positions today, in
+    the host's mass and the progenitor's initial conditions, matches central
+    differences and `jax.jvp` with the default adjoint.
     """
     units = u.unitsystem("galactic")
     ts = u.Q(jnp.linspace(-500.0, 0.0, 10), "Myr")  # 20 particles

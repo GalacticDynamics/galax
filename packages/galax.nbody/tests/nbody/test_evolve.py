@@ -491,6 +491,23 @@ def test_component_split_on_result() -> None:
         no_sys.component("stars")
 
 
+def test_system_of_wrong_size_rejected() -> None:
+    """A ``system`` whose particle count differs from ``q0`` raises."""
+    stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e9, h=0.1)
+    system = gn.System.from_components(stars, units="galactic")
+    field = gn.NBodyField(masses=jnp.full(4, 1e9), eps=0.1, external_potential=_NULL)
+    with pytest.raises(ValueError, match="system has 3 particles but q0 has 4"):
+        gn.evolve(
+            field,
+            jnp.eye(4, 3),
+            jnp.zeros((4, 3)),
+            np.asarray([0.0, 0.1]),
+            dt=0.01,
+            system=system,
+            check_dt=False,
+        )
+
+
 def test_component_on_vmapped_result() -> None:
     """``component`` splits on the particle axis, also with a leading batch axis."""
     stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e10, h=0.1)

@@ -4,10 +4,17 @@
 Both paths take the same kick-drift-kick steps with one call to
 `NBodyField.acceleration` per step: `advance` through `diffrax.diffeqsolve`
 with `galax.fields.Leapfrog`, and a reference `jax.lax.scan` that carries
-``(q, p, a)``. For each case the script checks the two agree, then reports the
-median µs per step over 5 repeats after one warm-up, for the forward run and
-for ``jax.grad`` of ``sum(q_final**2)`` with respect to ``q0``, and the XLA
-temp memory of each compiled function.
+``(q, p, a)``. For each case the script checks the two agree, then reports µs
+per step for the forward run and for ``jax.grad`` of ``sum(q_final**2)`` with
+respect to ``q0``, and the XLA temp memory of each compiled function.
+
+Timing is interleaved. After one warm-up call of each path, the script calls
+scan and diffrax alternately for 21 rounds (7 at N = 1000), so both paths see
+the same machine load. It divides each call's time by the number of steps and
+reports the minimum over the rounds, since load only ever makes a call slower.
+The gate uses the difference of the two minimums. The median is printed as an
+extra column for information. On a machine whose load average swings widely,
+timing one path in a block and then the other made the gate flip between runs.
 
 Both paths are compiled with the field's arrays as runtime arguments, as in
 `evolve`. If the scan closed over the field instead, XLA would fold the
@@ -46,7 +53,8 @@ Array = jax.Array
 
 DT = 1e-3  # Myr
 GATE_US = 1.0
-REPEATS = 5
+ROUNDS = 21
+ROUNDS_LARGE = 7  # for N = 1000, where one call is slow
 # (name, N, number of vmapped systems or None, n_steps)
 CASES = [
     ("N=32 single", 32, None, 2000),
@@ -103,17 +111,30 @@ def make_paths(
     return paths
 
 
-def compile_and_time(f: Callable, *args: Any) -> tuple[float, int]:
-    """Return the median seconds per call over ``REPEATS`` and the temp bytes."""
-    compiled = jax.jit(f).lower(*args).compile()
-    temp = compiled.memory_analysis().temp_size_in_bytes
-    jax.block_until_ready(compiled(*args))  # warm-up
-    times = []
-    for _ in range(REPEATS):
-        start = time.perf_counter()
-        jax.block_until_ready(compiled(*args))
-        times.append(time.perf_counter() - start)
-    return statistics.median(times), temp
+def compile_and_time(
+    fs: dict[str, Callable], rounds: int, *args: Any
+) -> dict[str, tuple[float, float, int]]:
+    """Return ``(min, median, temp bytes)`` per name, seconds per call.
+
+    The functions are called alternately, one call each per round.
+    """
+    compiled = {k: jax.jit(f).lower(*args).compile() for k, f in fs.items()}
+    for c in compiled.values():
+        jax.block_until_ready(c(*args))  # warm-up
+    times: dict[str, list[float]] = {k: [] for k in fs}
+    for _ in range(rounds):
+        for k, c in compiled.items():
+            start = time.perf_counter()
+            jax.block_until_ready(c(*args))
+            times[k].append(time.perf_counter() - start)
+    return {
+        k: (
+            min(t),
+            statistics.median(t),
+            compiled[k].memory_analysis().temp_size_in_bytes,
+        )
+        for k, t in times.items()
+    }
 
 
 def initial_conditions(n: int, n_sys: int | None, seed: int = 0) -> tuple[Array, Array]:
@@ -149,23 +170,28 @@ def main() -> int:
                 print(f"{name}: scan and diffrax {what} differ, max {err:.3g}")
                 return 2
 
-        res = {}
-        for path, (fwd, grad) in paths.items():
-            for kind, f in (("fwd", fwd), ("grad", grad)):
-                sec, temp = compile_and_time(f, *args)
-                res[path, kind] = (sec / n_steps * 1e6, temp)
-        for kind in ("fwd", "grad"):
-            (us_s, mem_s), (us_d, mem_d) = res["scan", kind], res["diffrax", kind]
-            rows.append((name, kind, us_s, us_d, us_d - us_s, mem_s, mem_d))
-        if name == "N=32 single":
-            gate_overhead = res["diffrax", "fwd"][0] - res["scan", "fwd"][0]
+        rounds = ROUNDS_LARGE if n >= 1000 else ROUNDS
+        scale = 1e6 / n_steps
+        for i, kind in enumerate(("fwd", "grad")):
+            r = compile_and_time({k: v[i] for k, v in paths.items()}, rounds, *args)
+            (min_s, med_s, mem_s), (min_d, med_d, mem_d) = r["scan"], r["diffrax"]
+            rows.append(
+                (
+                    *(name, kind, min_s * scale, min_d * scale),
+                    (min_d - min_s) * scale,
+                    *(med_s * scale, med_d * scale, mem_s, mem_d),
+                )
+            )
+            if name == "N=32 single" and kind == "fwd":
+                gate_overhead = (min_d - min_s) * scale
 
-    head = ("case", "pass", "scan us/step", "diffrax us/step", "diff us/step")
-    head += ("scan temp B", "diffrax temp B")
+    head = ("case", "pass", "scan min us/step", "diffrax min us/step", "diff us/step")
+    head += ("scan med us/step", "diffrax med us/step", "scan temp B", "diffrax temp B")
     print("| " + " | ".join(head) + " |")
     print("|" + "---|" * len(head))
-    for case, kind, us_s, us_d, diff, mem_s, mem_d in rows:
-        cells = (case, kind, f"{us_s:.3f}", f"{us_d:.3f}", f"{diff:+.3f}")
+    for case, kind, *us, mem_s, mem_d in rows:
+        cells = (case, kind, *(f"{x:.3f}" for x in us[:2]), f"{us[2]:+.3f}")
+        cells += tuple(f"{x:.3f}" for x in us[3:])
         print("| " + " | ".join((*cells, str(mem_s), str(mem_d))) + " |")
 
     ok = gate_overhead <= GATE_US

@@ -313,9 +313,10 @@ def evolve(
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
-    increasing, a time is off the grid, ``dt`` is under 100 float spacings
-    of the largest ``|ts|``, too small to tell the step times apart, or
-    ``system`` has a different number of particles than ``q0``.
+    increasing, the span of ``ts`` overflows float64, a time is off the
+    grid, ``dt`` is under 100 float spacings of the largest ``|ts|`` (too
+    small to tell the step times apart), or ``system`` has a different
+    number of particles than ``q0``.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
         msg = (
@@ -338,6 +339,11 @@ def evolve(
         raise ValueError(msg)
     if dt_np.ndim != 0 or not dt_np > 0:
         msg = f"dt must be a positive scalar, got {dt_np}"
+        raise ValueError(msg)
+    with np.errstate(over="ignore"):
+        span = ts_np[-1] - ts_np[0]
+    if not np.isfinite(span):
+        msg = f"the span of ts, {ts_np[0]} to {ts_np[-1]}, overflows float64"
         raise ValueError(msg)
     if np.any(np.diff(ts_np) <= 0):
         msg = "ts must be strictly increasing"

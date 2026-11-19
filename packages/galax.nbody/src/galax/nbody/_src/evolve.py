@@ -80,10 +80,12 @@ def check_timestep(
     softening ``h > 0`` it is ``eta * sqrt(2 h / |a|)``, with ``a`` the
     acceleration. For all active particles it is
     ``eta_rho / sqrt(G rho_ext)``, with ``rho_ext`` the external density;
-    particles where that density is zero are skipped. With no limit at all
-    ``dt_max`` is infinite.
+    particles where that density is not positive are skipped. With no limit
+    at all ``dt_max`` is infinite. An active particle with a non-finite
+    position makes ``dt_max`` NaN.
 
-    Raises `ValueError` if ``dt`` is not a finite, non-negative scalar. If
+    Raises `ValueError` if ``dt`` is a number that is not a finite,
+    non-negative scalar, and `TypeError` if it is not a real number. If
     ``dt > dt_max``, or ``dt_max`` is NaN, this warns with `UserWarning`, or
     raises `ValueError` when ``strict``. ``stacklevel`` is passed to
     `warnings.warn`; the default points the warning at the caller. It needs
@@ -103,7 +105,9 @@ def check_timestep(
     soft = jnp.where(field.active & (h > 0), eta * jnp.sqrt(2 * h / a), jnp.inf)
     G = field._G  # noqa: SLF001
     tidal = jnp.where(field.active & (rho > 0), eta_rho / jnp.sqrt(G * rho), jnp.inf)
-    dt_max = float(jnp.min(jnp.minimum(soft, tidal), initial=jnp.inf))
+    bad = field.active & ~jnp.all(jnp.isfinite(q), axis=-1)
+    limit = jnp.where(bad, jnp.nan, jnp.minimum(soft, tidal))
+    dt_max = float(jnp.min(limit, initial=jnp.inf))
     if not dt <= dt_max:  # also catches a NaN dt_max
         msg = (
             f"the safe time step dt_max is NaN (dt={dt}); check q for NaN"
@@ -329,7 +333,8 @@ def evolve(
     or set the environment variable ``JAX_ENABLE_X64=1``.
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
-    not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
+    not finite, ``ts`` is not 1-D or is empty, ``dt`` is not a scalar or is
+    not positive, ``ts`` is not strictly
     increasing, the span of ``ts`` overflows float64, a time is off the
     grid, ``dt`` is subnormal, ``ts`` has more than one time and ``dt`` is
     under 100 float spacings of the largest ``|ts|`` (too small to tell the

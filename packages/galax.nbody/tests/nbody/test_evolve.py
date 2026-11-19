@@ -1,5 +1,7 @@
 """Tests for `galax.nbody.evolve`."""
 
+import logging
+
 import diffrax as dfx
 import equinox as eqx
 import jax
@@ -164,6 +166,38 @@ def test_off_grid_ts_rejected() -> None:
             dt=0.1,
             check_dt=False,
         )
+
+
+@pytest.mark.parametrize(
+    ("ts", "dt"),
+    [
+        # 0.4 dt off the grid, which the old |t|-scaled tolerance accepted.
+        (np.asarray([13000.0, 13000.0 + 1000.4e-5]), 1e-5),
+        (np.asarray([1e4, 1e4 + 1.5e-6]), 1e-6),
+        # Rounds to zero steps.
+        (np.asarray([1e4, 1e4 + 3e-6]), 1e-5),
+    ],
+)
+def test_off_grid_ts_at_large_abs_time_rejected(ts, dt) -> None:
+    """At large ``|ts|`` the step check still rejects intervals off the grid."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match="whole number of steps"):
+        gn.evolve(field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False)
+
+
+def test_eager_calls_reuse_the_compilation(caplog) -> None:
+    """A second eager call with the same shapes compiles nothing."""
+    field, q0, p0 = _cluster(n=4)
+    ts = 0.01 * np.asarray([0, 1, 2, 5, 8, 9])
+
+    def run(q):
+        return gn.evolve(field, q, p0, ts, dt=0.01, check_dt=False).q
+
+    run(q0).block_until_ready()
+    q1 = (q0 + 1).block_until_ready()
+    with jax.log_compiles(), caplog.at_level(logging.WARNING):
+        run(q1).block_until_ready()
+    assert not [r for r in caplog.records if "Compiling" in r.getMessage()]
 
 
 def test_nonincreasing_ts_raises() -> None:

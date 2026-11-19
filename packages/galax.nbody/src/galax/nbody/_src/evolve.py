@@ -133,6 +133,29 @@ def advance(
     return q[0], p[0]
 
 
+@eqx.filter_jit
+def _scan(
+    field: NBodyField,
+    y: tuple[Array, Array],
+    grids: Float[Array, "R n+1"],
+    adjoint: dfx.AbstractAdjoint,
+) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
+    """Run `advance` over each row of ``grids`` in a `jax.lax.scan`.
+
+    It returns the final ``(q, p)`` and the (R, N, 3) states after each row.
+    It is jitted at module level, so eager calls with the same shapes and
+    static structure reuse one compilation.
+    """
+
+    def step(
+        y: tuple[Array, Array], step_ts: Array
+    ) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
+        y = advance(field, y, step_ts, adjoint)
+        return y, y
+
+    return jax.lax.scan(step, y, grids)
+
+
 def _integrate(
     field: NBodyField,
     y: tuple[Array, Array],
@@ -161,14 +184,7 @@ def _integrate(
     for n, run in itertools.groupby(n_steps.tolist()):
         stop = start + len(list(run))
         grids = t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt
-
-        def step(
-            y: tuple[Array, Array], step_ts: Array
-        ) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
-            y = advance(field, y, step_ts, adjoint)
-            return y, y
-
-        y, (q_run, p_run) = jax.lax.scan(step, y, jnp.asarray(grids))
+        y, (q_run, p_run) = _scan(field, y, jnp.asarray(grids), adjoint)
         qs.append(q_run)
         ps.append(p_run)
         start = stop
@@ -258,11 +274,13 @@ def evolve(
         raise ValueError(msg)
     ratio = np.diff(ts_np) / dt_np
     n_steps = np.rint(ratio).astype(int)
-    # The round-off in diff(ts) grows with |ts|, not with the interval, so the
-    # tolerance in steps scales with the larger of the two. The grid is rebuilt
-    # from ts[0] and the integer step counts, so this round-off never enters it.
-    tol = _REL_TOL * np.maximum(ratio, np.max(np.abs(ts_np)) / dt_np)
-    if np.any(np.abs(ratio - n_steps) > tol):
+    # The round-off in diff(ts) is a few eps * |t|, so in steps it is about
+    # eps * |t| / dt. The relative term allows for an inexact dt. The grid is
+    # rebuilt from ts[0] and the integer step counts, so this round-off never
+    # enters it.
+    eps = np.finfo(float).eps
+    tol = _REL_TOL * ratio + 16 * eps * (np.abs(ts_np[:-1]) + np.abs(ts_np[1:])) / dt_np
+    if np.any(n_steps == 0) or np.any(np.abs(ratio - n_steps) > tol):
         msg = f"each interval of ts must be a whole number of steps dt={dt_np}"
         raise ValueError(msg)
 

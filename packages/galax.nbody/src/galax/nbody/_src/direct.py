@@ -41,9 +41,11 @@ def _pair_terms(
     ok = jnp.all(jnp.isfinite(x_i))
     d = sources.q - jnp.where(ok, x_i, 0.0)
     r2 = jnp.sum(d * d, -1)
-    self_pair = jnp.arange(r2.shape[0]) == self_index_i
-    r2s = jnp.where(self_pair, 1.0, r2)
-    w = jnp.where(self_pair, 0.0, pair_fn(r2s, combine(h_i, sources.h)))
+    # A bad row's substitute position could sit on a source, so all its pairs
+    # are skipped like the self pair.
+    skip = (jnp.arange(r2.shape[0]) == self_index_i) | ~ok
+    r2s = jnp.where(skip, 1.0, r2)
+    w = jnp.where(skip, 0.0, pair_fn(r2s, combine(h_i, sources.h)))
     return d, w, ok
 
 

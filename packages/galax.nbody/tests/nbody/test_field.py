@@ -517,3 +517,45 @@ def test_bad_tracer_keeps_massive_gradients_finite(tracer, eps) -> None:
     gm, gq = jax.grad(massive_loss, argnums=(0, 1))(m, bad_q)
     np.testing.assert_allclose(gm[:2], good[0][:2], rtol=1e-12)
     np.testing.assert_allclose(gq[:2], good[1][:2], rtol=1e-12)
+
+
+@pytest.mark.parametrize("pot_kind", ["null", "nfw"])
+@pytest.mark.parametrize("bad", [jnp.nan, jnp.inf])
+def test_non_finite_tracer_sends_no_nan_back(pot_kind, bad) -> None:
+    """A non-finite tracer gives no NaN in any gradient, its own row included.
+
+    A loss that leaves the tracer out gives its row a zero cotangent. If the
+    backward pass turned that into NaN on the tracer's own position, the NaN
+    would travel back through earlier time steps and into every particle.
+    """
+    pot = (
+        gp.NullPotential(units="galactic")
+        if pot_kind == "null"
+        else gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+    )
+    m = jnp.asarray([1e9, 1e9, 0.0])
+    q = jnp.asarray([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [bad, 5.0, 0.0]])
+
+    def acc(m, q):
+        field = gn.NBodyField(masses=m, eps=0.1, external_potential=pot, n_massive=2)
+        return field.acceleration(0.0, q)
+
+    a, vjp = jax.vjp(acc, m, q)
+    assert bool(jnp.all(jnp.isnan(a[2])))
+    assert bool(jnp.all(jnp.isfinite(a[:2])))
+    gm, gq = vjp(jnp.ones_like(a).at[2].set(0.0))
+    assert bool(jnp.all(jnp.isfinite(gm)))
+    assert bool(jnp.all(jnp.isfinite(gq)))
+
+
+def test_nan_massive_particle_poisons_every_row() -> None:
+    """A non-finite massive particle makes every acceleration NaN."""
+    pot = gp.NullPotential(units="galactic")
+    field = gn.NBodyField(
+        masses=jnp.asarray([1e9, 1e9, 0.0]),
+        eps=0.1,
+        external_potential=pot,
+        n_massive=2,
+    )
+    q = jnp.asarray([[jnp.nan, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 5.0, 0.0]])
+    assert bool(jnp.all(jnp.isnan(field.acceleration(0.0, q))))

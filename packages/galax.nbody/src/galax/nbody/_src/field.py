@@ -192,10 +192,11 @@ class NBodyField(AbstractOrbitField):
         """
         ps, us = system.particles, system.units
         if us != external_potential.units:
+            pu = external_potential.units
             msg = (
-                f"system units {us} differ from the potential's units "
-                f"{external_potential.units}; build the System in the "
-                "potential's units"
+                f"system units {[str(us[d]) for d in us.base_dimensions]} differ "
+                f"from the potential's units {[str(pu[d]) for d in pu.base_dimensions]}"
+                "; build the System in the potential's units"
             )
             raise ValueError(msg)
         return cls(
@@ -244,16 +245,26 @@ def nbody_acceleration(
     the external term, zeroed for inactive particles. In ``__call__`` the
     velocity of an inactive row passes through unchanged, so it keeps drifting.
 
+    An active tracer with a non-finite position gets a NaN acceleration. That
+    NaN, and any NaN cotangent later arriving on its row, stays out of the
+    other particles' values and gradients. A non-finite massive particle makes
+    every acceleration NaN, since its force reaches every particle.
+
     Traced masses and softening are checked here on the result, so the checks
     run whenever the acceleration is used, even when the inputs themselves
     never reach it (for example with ``n_massive=0``).
     """
     nm = field.n_massive
     idx = jnp.arange(q.shape[0])
-    # Inactive rows are moved to distinct far-away points so neither their
-    # forward values nor their gradients can poison the active rows.
+    # Inactive rows and non-finite tracers are moved to distinct far-away
+    # points, so the pair sum and the external force are evaluated there.
+    # Neither their forward values nor their gradients (0 * NaN is NaN) can
+    # then reach the other rows, and a NaN cotangent on a non-finite tracer
+    # stops at the final `where` below.
+    finite = jnp.all(jnp.isfinite(q), axis=-1)
+    use = field.active & (finite | (idx < nm))
     safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
-    q = jnp.where(field.active[:, None], q, safe)
+    q = jnp.where(use[:, None], q, safe)
     sources = Sources(
         q=q[:nm], m=(field.masses * field.active)[:nm], h=field.softening[:nm]
     )
@@ -263,7 +274,7 @@ def nbody_acceleration(
     # NoGrad's custom_jvp never closes over a traced G.
     a = field._G * backend.accelerations(backend.prepare(sources), targets, G=1.0)  # noqa: SLF001
     a = a - jnp.asarray(gp.gradient(field.external_potential, q, t))
-    a = jnp.where(field.active[:, None], a, 0.0)
+    a = jnp.where(use[:, None], a, jnp.where(field.active[:, None], jnp.nan, 0.0))
     m_ok, tracer_ok, h_ok = _input_oks(field.masses, field.softening, nm)
     a = _check(a, m_ok, _MASS_MSG)
     a = _check(a, tracer_ok, _tracer_msg(nm))

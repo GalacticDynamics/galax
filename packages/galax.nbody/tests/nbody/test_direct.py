@@ -11,7 +11,11 @@ import pytest
 from jax.test_util import check_grads
 
 from galax.nbody._src.backend import Sources, Targets
-from galax.nbody._src.direct import DirectSum, direct_sum_accelerations
+from galax.nbody._src.direct import (
+    DirectSum,
+    direct_sum_accelerations,
+    direct_sum_potential,
+)
 from galax.nbody._src.kernels import PlummerKernel
 
 G = 1.7
@@ -205,3 +209,21 @@ def test_chunk_size_accepts_numpy_ints() -> None:
     for bad in (8.0, 0, -1):
         with pytest.raises((ValueError, TypeError), match="chunk_size"):
             DirectSum(chunk_size=bad)
+
+
+@pytest.mark.parametrize("fn", [direct_sum_accelerations, direct_sum_potential])
+def test_non_finite_target_leaves_source_at_origin_finite(fn) -> None:
+    """A NaN target's substitute position does not land on an unsoftened source."""
+    src_q = jnp.asarray([[0.0, 0.0, 0.0], [2.0, 1.0, 0.0]])
+
+    def loss(src_q, x):
+        s = Sources(q=src_q, m=jnp.ones(2), h=jnp.zeros(2))
+        t = Targets(q=x, h=jnp.zeros(2), self_index=jnp.asarray([-1, -1]))
+        out = fn(s, t, kernel=PlummerKernel(), G=1.0, chunk_size=1)
+        return jnp.sum(out[0] ** 2)
+
+    good = jnp.asarray([[1.0, 1.0, 0.0], [3.0, 0.0, 0.0]])
+    bad = good.at[1].set(jnp.nan)
+    np.testing.assert_allclose(
+        jax.grad(loss)(src_q, bad), jax.grad(loss)(src_q, good), rtol=1e-13
+    )

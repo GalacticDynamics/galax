@@ -110,7 +110,7 @@ def check_timestep(
     dt_max = float(jnp.min(limit, initial=jnp.inf))
     if not dt <= dt_max:  # also catches a NaN dt_max
         msg = (
-            f"the safe time step dt_max is NaN (dt={dt}); check q for NaN"
+            f"the safe time step dt_max is NaN (dt={dt}); check q for NaN or inf"
             if np.isnan(dt_max)
             else f"dt={dt} is above the safe time step dt_max={dt_max}"
         )
@@ -333,10 +333,10 @@ def evolve(
     or set the environment variable ``JAX_ENABLE_X64=1``.
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
-    not finite, ``ts`` is not 1-D or is empty, ``dt`` is not a scalar or is
-    not positive, ``ts`` is not strictly
-    increasing, the span of ``ts`` overflows float64, a time is off the
-    grid, ``dt`` is subnormal, ``ts`` has more than one time and ``dt`` is
+    not finite, ``ts`` is empty or has more than one dimension (a scalar is
+    one save time), ``dt`` is not a scalar or is not positive, ``ts`` is not
+    strictly increasing, the span of ``ts`` overflows float64, a time is off
+    the grid, ``dt`` is subnormal, ``ts`` has more than one time and ``dt`` is
     under 100 float spacings of the largest ``|ts|`` (too small to tell the
     step times apart), or ``system`` has a different number of particles
     than ``q0``.

@@ -122,13 +122,16 @@ class MockStreamGenerator(eqx.Module):
 
     Each particle is integrated together with its own copy of the progenitor,
     from the progenitor's state at the particle's release time, as gala does.
-    The copy is integrated with ``stream_integrator``, so with a fixed-step
-    stream integrator it drifts from the progenitor's own orbit by that
-    solver's error: up to ~20-40 pc over 3 Gyr with Leapfrog at 1 Myr steps,
-    ~1-2 kpc at 7 Myr. It follows the progenitor to round-off only when
-    ``progenitor_integrator`` is the same fixed-step integrator and ``ts`` is
-    on its step grid; otherwise the stream's median error is ~1.3x that of the
-    previous design, in which the particles saw the progenitor's own orbit.
+    The copy is integrated with ``stream_integrator``. With a fixed-step stream
+    integrator it drifts from the progenitor's own orbit by that solver's
+    global error, which grows quickly on orbits with small pericentres: over
+    3 Gyr with Leapfrog at 1 Myr steps, ~40 pc on a 15-38 kpc NFW orbit and up
+    to ~0.8 kpc on an eccentric Milky Way orbit. The copy follows the
+    progenitor to round-off when ``progenitor_integrator`` is the same
+    fixed-step integrator and every release time is a whole number of steps
+    after the earliest time in ``ts``. Otherwise a fixed-step stream's median
+    error can be up to ~1.3x that of the previous design, in which the
+    particles saw the progenitor's own orbit.
     """
 
     progenitor_integrator: Integrator = eqx.field(

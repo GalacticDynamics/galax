@@ -285,20 +285,20 @@ def test_field_accelerations() -> None:
 
 @pytest.mark.parametrize(
     ("integ", "t_release"),
-    [(adaptive(1e-12), -1234.5), (leapfrog(0.5, 3000.0), -3000.0)],
-    ids=["adaptive-midway", "leapfrog-on-grid"],
+    [(adaptive(1e-12), -1234.5), (leapfrog(0.5, 3000.0), -1234.5)],
+    ids=["adaptive", "leapfrog-on-grid"],
 )
 def test_progenitor_copy_follows_its_orbit(
     integ: gd.integrate.Integrator, t_release: float
 ) -> None:
     """Each particle's copy of the progenitor stays on the progenitor's orbit.
 
-    The copy starts from the progenitor's state at the release time and is
-    integrated with the particle to the final time. The adaptive case releases
-    partway along the orbit. With Leapfrog, released on a step of the
-    progenitor's own grid, only round-off separates them. (Off the grid, or
-    with another progenitor integrator, the copy drifts by Leapfrog's error;
-    see `MockStreamGenerator.progenitor_potential`.)
+    The copy starts from the progenitor's state at the release time, partway
+    along the orbit, and is integrated with the particle to the final time.
+    With Leapfrog the release time is a whole number of steps after the orbit's
+    start, so the copy takes the progenitor's own steps and only round-off
+    separates them. (Off that grid, or with another progenitor integrator, the
+    copy drifts by Leapfrog's error; see `MockStreamGenerator.progenitor_potential`.)
     """
     from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
         _ProgenitorField,

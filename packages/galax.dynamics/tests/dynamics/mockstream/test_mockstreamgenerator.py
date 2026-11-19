@@ -1,5 +1,6 @@
 """Test :mod:`galax.dynamics.mockstream.mockstreamgenerator`."""
 
+import functools as ft
 from abc import ABCMeta, abstractmethod
 
 from jaxtyping import PRNGKeyArray
@@ -363,3 +364,64 @@ def test_arms_drawn_independently(df_cls: type[gd.AbstractStreamDF]) -> None:
         # independent draws |corr| ~ 0.016. (Scaled: the raw offsets of both
         # arms share the scale, which varies along the orbit.)
         assert abs(np.corrcoef(trail[:, i], lead[:, i])[0, 1]) < 0.1, i
+
+
+def _leapfrog(adjoint: dfx.AbstractAdjoint, /) -> gd.integrate.Integrator:
+    """Leapfrog at 1 Myr, bounded at 600 steps."""
+    return gd.integrate.Integrator(
+        gd.OrbitSolver(
+            gf.Leapfrog(),
+            stepsize_controller=dfx.ConstantStepSize(),
+            adjoint=adjoint,
+            max_steps=600,
+        ),
+        diffeq_kw={"dt0": 1.0, "max_steps": 600},
+    )
+
+
+@pytest.mark.filterwarnings('ignore:.*"no progenitor" variant')
+@pytest.mark.parametrize("vmapped", [False, True], ids=["scan", "vmap"])
+@pytest.mark.parametrize("with_progenitor", [False, True], ids=["host", "progenitor"])
+@pytest.mark.parametrize("df", [gd.FardalStreamDF(), gd.ChenStreamDF()], ids=str)
+def test_run_reverse_mode_gradient(
+    df: gd.AbstractStreamDF, with_progenitor: bool, vmapped: bool
+) -> None:
+    """`jax.grad` through `run`, with `RecursiveCheckpointAdjoint`.
+
+    The default `ForwardMode` adjoint solves in a `while` loop with a traced
+    bound, which reverse mode can't differentiate. The gradient of the summed
+    positions today, in the host's mass and the progenitor's initial conditions,
+    matches central differences and `jax.jvp` with the default adjoint.
+    """
+    units = u.unitsystem("galactic")
+    ts = u.Q(jnp.linspace(-500.0, 0.0, 10), "Myr")  # 20 particles
+
+    def loss(x: gt.SzN, integrator: gd.integrate.Integrator) -> gt.Sz0:
+        pot = gp.NFWPotential(m=1e12 * x[0], r_s=15.0, units=units)
+        pp = gp.PlummerPotential(m_tot=1e5, r_s=4e-3, units=units)
+        gen = gd.MockStreamGenerator(
+            df,
+            pot,
+            progenitor_potential=pp if with_progenitor else None,
+            progenitor_integrator=integrator,
+            stream_integrator=integrator,
+        )
+        w0 = gc.PhaseSpaceCoordinate(
+            q=u.Q(x[1:4], "kpc"), p=u.Q(x[4:], "kpc/Myr"), t=ts[0]
+        )
+        mock, _ = gen.run(jr.key(0), ts, w0, u.Q(1e5, "Msun"), vmapped=vmapped)
+        return jnp.sum(mock.q.x.value + mock.q.y.value + mock.q.z.value)
+
+    x = jnp.array([1.0, 20.0, 0.0, 5.0, 0.0, 0.2, 0.02])
+    grad = jax.grad(loss)(x, _leapfrog(dfx.RecursiveCheckpointAdjoint()))
+
+    forward = jax.jit(ft.partial(loss, integrator=_leapfrog(dfx.ForwardMode())))
+    v = jr.normal(jr.key(1), x.shape)
+    _, jvp = jax.jvp(forward, (x,), (v,))
+    np.testing.assert_allclose(jvp, grad @ v, rtol=1e-10)
+
+    h = 1e-5
+    fd = jnp.stack(
+        [(forward(x + h * e) - forward(x - h * e)) / (2 * h) for e in jnp.eye(7)]
+    )
+    np.testing.assert_allclose(grad, fd, rtol=1e-5)

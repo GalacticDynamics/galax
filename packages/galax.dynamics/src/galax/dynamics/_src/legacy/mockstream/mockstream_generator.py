@@ -65,7 +65,18 @@ class _HermitePath(eqx.Module):
 
 @final
 class MockStreamGenerator(eqx.Module):
-    """Generate a mock stellar stream in the specified external potential."""
+    """Generate a mock stellar stream in the specified external potential.
+
+    `jax.jvp` works through `run` with the default integrators. For `jax.grad`
+    (reverse mode) give both integrators an `~galax.dynamics.OrbitSolver` with
+    ``adjoint=diffrax.RecursiveCheckpointAdjoint()`` and an integer
+    ``"max_steps"`` in ``diffeq_kw``. The default `diffrax.ForwardMode` adjoint
+    solves in a `jax.lax.while_loop` with a traced bound, which reverse mode
+    can't differentiate; in turn the reverse-mode adjoint can't be
+    forward-differentiated. By default it keeps about ``sqrt(2 max_steps)``
+    states per solve and recomputes the steps between them on the backward
+    pass; its ``checkpoints`` argument trades memory for time.
+    """
 
     df: AbstractStreamDF
     """Distribution function for generating mock streams.

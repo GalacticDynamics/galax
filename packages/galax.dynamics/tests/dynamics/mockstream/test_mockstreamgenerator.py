@@ -271,6 +271,7 @@ class _SolveSpy(gd.MockStreamGenerator):
         (True, False, None, False),
         (True, True, None, False),
         (False, True, False, False),
+        (False, False, True, True),
         (True, False, True, True),
     ],
     ids=[
@@ -279,6 +280,7 @@ class _SolveSpy(gd.MockStreamGenerator):
         "vmap",
         "vmap-progenitor",
         "scan-progenitor-pair",
+        "scan-sequential",
         "vmap-sequential",
     ],
 )

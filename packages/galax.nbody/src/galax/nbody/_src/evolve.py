@@ -226,16 +226,20 @@ def _grid_steps(ts: np.ndarray, dt: float) -> np.ndarray:
     points cannot be told apart reliably, or if ``ts`` is off the grid.
     """
     t_max = np.max(np.abs(ts))
-    if dt < 100 * np.spacing(t_max):
+    if dt < 100 * np.spacing(t_max) or dt < np.finfo(float).tiny:
         msg = (
             f"dt={dt} is too small for the magnitude of ts (|t| up to {t_max}) "
             "in float64: whole steps cannot be told apart at that resolution"
         )
         raise ValueError(msg)
-    n: np.ndarray = np.rint((ts - ts[0]) / dt).astype(np.int64)
-    ndt = n * dt
-    ulp = np.spacing(np.maximum(np.maximum(np.abs(ts[0]), np.abs(ts)), np.abs(ndt)))
-    if np.any(np.diff(n) <= 0) or np.any(np.abs(ts - (ts[0] + ndt)) > _GRID_ULPS * ulp):
+    # Near the float64 maximum n * dt can overflow to inf, which makes ulp NaN
+    # and fails the check below, so the warning is not needed.
+    with np.errstate(over="ignore", invalid="ignore"):
+        n: np.ndarray = np.rint((ts - ts[0]) / dt).astype(np.int64)
+        ndt = n * dt
+        ulp = np.spacing(np.maximum(np.maximum(np.abs(ts[0]), np.abs(ts)), np.abs(ndt)))
+        on_grid = np.all(np.abs(ts - (ts[0] + ndt)) <= _GRID_ULPS * ulp)
+    if np.any(np.diff(n) <= 0) or not on_grid:
         msg = f"each interval of ts must be a whole number of steps dt={dt}"
         raise ValueError(msg)
     return n

@@ -505,6 +505,22 @@ def test_ts_span_overflow_rejected() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("ts", "dt"),
+    [
+        # 1.7 steps, where the rounded grid point n*dt overflows to inf.
+        (np.asarray([0.0, 1.7e308]), 1e308),
+        # A subnormal dt, which XLA flushes to zero.
+        (np.asarray([0.0, 1e-310, 2e-310]), 1e-310),
+    ],
+)
+def test_extreme_ts_rejected(ts, dt) -> None:
+    """Grids at the ends of the float64 range raise instead of running."""
+    field = gn.NBodyField(masses=jnp.zeros(1), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match=r"whole number of steps|too small"):
+        gn.evolve(field, jnp.ones((1, 3)), jnp.zeros((1, 3)), ts, dt=dt, check_dt=False)
+
+
 def test_system_of_wrong_size_rejected() -> None:
     """A ``system`` whose particle count differs from ``q0`` raises."""
     stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e9, h=0.1)

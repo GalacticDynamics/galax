@@ -20,6 +20,7 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.fields as gf
 import galax.nbody as gn
+import galax.nbody._src.evolve as evolve_module
 import galax.orbits as go
 import galax.potential as gp
 from galax.nbody._src.evolve import advance
@@ -145,6 +146,7 @@ def test_bad_dt_raises_before_tracing() -> None:
     [
         (1e4 + 1e-3 * np.arange(200), 1e-3),
         (-13800 + 1e-3 * np.arange(50), 1e-3),
+        (u.Q(-13.8 + 1e-6 * np.arange(50), "Gyr"), u.Q(1, "kyr")),
         (u.Q(10 + 1e-6 * np.arange(4), "Gyr"), u.Q(1, "kyr")),
         (np.asarray([0.0, 0.3]), 0.1),
     ],
@@ -187,6 +189,112 @@ def test_off_grid_ts_at_large_abs_time_rejected(ts, dt) -> None:
     field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
     with pytest.raises(ValueError, match="whole number of steps"):
         gn.evolve(field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False)
+
+
+def _check_ts(monkeypatch, ts, dt) -> np.ndarray:
+    """Run only the save-time check of `evolve` and return its step counts.
+
+    The integration is replaced by a stub, so huge step counts cost nothing.
+    """
+    seen = []
+
+    def fake_integrate(field, y, t0, dt, n_steps, adjoint):
+        seen.append(np.asarray(n_steps))
+        s = len(n_steps) + 1
+        return jnp.zeros((s, *y[0].shape)), jnp.zeros((s, *y[1].shape))
+
+    monkeypatch.setattr(evolve_module, "_integrate", fake_integrate)
+    field = gn.NBodyField(masses=jnp.zeros(1), eps=0.0, external_potential=_NULL)
+    res = gn.evolve(
+        field, jnp.zeros((1, 3)), jnp.zeros((1, 3)), ts, dt=dt, check_dt=False
+    )
+    assert bool(jnp.all(res.ts == np.asarray(ts)))
+    return seen[0]
+
+
+def test_ts_far_off_grid_over_many_steps_rejected(monkeypatch) -> None:
+    """0.0019 of a step off after 2e6 steps is off the grid."""
+    dt = 1e-3
+    with pytest.raises(ValueError, match="whole number of steps"):
+        _check_ts(monkeypatch, np.asarray([0.0, 2e6 * dt + 0.0019 * dt]), dt)
+
+
+@pytest.mark.parametrize(("t0", "dt"), [(-1e4, 1e-4), (-1e6, 1e-3), (-13800.0, 1e-3)])
+def test_on_grid_ts_from_negative_start_to_zero_accepted(monkeypatch, t0, dt) -> None:
+    """``ts`` built as ``t0 + k * dt`` from a negative start up to 0 is on the grid.
+
+    The times near 0 carry the rounding of ``t0``, not of their own size.
+    """
+    kz = round(-t0 / dt)
+    k = np.r_[0, kz - 6 : kz + 1]
+    np.testing.assert_array_equal(_check_ts(monkeypatch, t0 + k * dt, dt), np.diff(k))
+    if kz < 2e7:  # every step, up to 0
+        n = _check_ts(monkeypatch, t0 + np.arange(kz + 1) * dt, dt)
+        assert n.shape == (kz,)
+        assert np.all(n == 1)
+
+
+def _random_grid(rng):
+    """Return ``(t0, dt, k)``, an on-grid ``ts = t0 + k * dt`` drawn at random.
+
+    ``t0`` spans 0 and +-[1e-3, 1e12], ``dt`` is 100 to 1e6 float spacings of
+    ``|t0|``, and intervals are 1 to 1e9 steps. A third of the cases start
+    negative and run through or up to 0.
+    """
+    mode = rng.integers(3)
+    s = int(rng.integers(2, 7))
+    if mode == 0:
+        t0, dt = 0.0, 10 ** rng.uniform(-6, 3)
+    else:
+        t0 = rng.choice([-1.0, 1.0]) * 10 ** rng.uniform(-3, 12)
+        if mode == 2:
+            t0 = -abs(t0)
+        dt = 10 ** rng.uniform(2, 6) * np.spacing(abs(t0))
+    big = int(10 ** rng.uniform(0, 9))
+    if mode == 2:
+        kz = round(-t0 / dt)
+        small = int(10 ** rng.uniform(0, 3))
+        end = kz + small * int(rng.integers(0, 3))
+        k = np.r_[0, np.arange(end - (s - 2) * small, end + 1, small)]
+        k = np.unique(k[k >= 0])
+    else:
+        k = big * np.arange(s)
+    return t0, dt, k
+
+
+def test_random_on_grid_ts_accepted(monkeypatch) -> None:
+    """On-grid ``ts`` built as ``t0 + k * dt`` or with `np.arange` is accepted."""
+    rng = np.random.default_rng(20261119)
+    for _ in range(300):
+        t0, dt, k = _random_grid(rng)
+        ts = t0 + k * dt
+        if dt < 100 * np.spacing(np.max(np.abs(ts))):
+            continue
+        np.testing.assert_array_equal(_check_ts(monkeypatch, ts, dt), np.diff(k))
+        if len(np.unique(np.diff(k))) == 1:
+            # np.arange adds one rounding of t0 per element, so keep it short.
+            step = (k[1] - k[0]) * dt
+            ts = np.arange(t0, t0 + (len(k) - 0.5) * step, step)
+            n = _check_ts(monkeypatch, ts, dt)
+            assert np.all(n == k[1] - k[0])
+
+
+def test_random_off_grid_ts_rejected(monkeypatch) -> None:
+    """A time moved off the grid by ``max(1e-3 step, 100 float spacings)`` raises."""
+    rng = np.random.default_rng(20261120)
+    tested = 0
+    for _ in range(300):
+        t0, dt, k = _random_grid(rng)
+        ts = t0 + k * dt
+        fmin = max(1e-3, 100 * np.spacing(np.max(np.abs(ts))) / dt)
+        if fmin > 0.4:
+            continue
+        j = int(rng.integers(1, len(ts)))
+        ts[j] += rng.choice([-1.0, 1.0]) * rng.uniform(fmin, 0.5) * dt
+        with pytest.raises(ValueError, match="whole number of steps"):
+            _check_ts(monkeypatch, ts, dt)
+        tested += 1
+    assert tested > 200
 
 
 _ULP_1E9 = float(np.spacing(1e9))

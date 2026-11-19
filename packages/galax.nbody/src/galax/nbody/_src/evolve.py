@@ -82,7 +82,7 @@ def check_timestep(
     ``eta_rho / sqrt(G rho_ext)``, with ``rho_ext`` the external density;
     particles where that density is not positive are skipped. With no limit
     at all ``dt_max`` is infinite. An active particle with a non-finite
-    position makes ``dt_max`` NaN.
+    position, or a softened one with a NaN acceleration, makes ``dt_max`` NaN.
 
     Raises `ValueError` if ``dt`` is a number that is not a finite,
     non-negative scalar, and `TypeError` if it is not a real number. If
@@ -110,7 +110,8 @@ def check_timestep(
     dt_max = float(jnp.min(limit, initial=jnp.inf))
     if not dt <= dt_max:  # also catches a NaN dt_max
         msg = (
-            f"the safe time step dt_max is NaN (dt={dt}); check q for NaN or inf"
+            f"the safe time step dt_max is NaN (dt={dt}); "
+            "a position or acceleration is NaN or inf"
             if np.isnan(dt_max)
             else f"dt={dt} is above the safe time step dt_max={dt_max}"
         )

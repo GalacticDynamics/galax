@@ -34,9 +34,11 @@ def total_energy(
         backend.prepare(sources), targets, G=1.0
     )
     phi_ext = jnp.asarray(gp.potential(field.external_potential, q, t))
-    # Inactive rows may hold NaN or inf, and 0 * NaN is NaN, so mask them.
-    p = jnp.where(field.active[:, None], p, 0.0)
+    # Inactive rows and tracers may hold NaN or inf, and 0 * NaN is NaN, so
+    # mask them.
+    keep = field.active & (jnp.arange(m.shape[0]) < nm)
+    p = jnp.where(keep[:, None], p, 0.0)
     kinetic = 0.5 * jnp.sum(m * jnp.sum(p**2, axis=-1))
     self_pot = 0.5 * jnp.sum(m[:nm] * phi_self[:nm])
-    ext = jnp.where(field.active, m * phi_ext, 0.0)
+    ext = jnp.where(keep, m * phi_ext, 0.0)
     return kinetic + self_pot + jnp.sum(ext)

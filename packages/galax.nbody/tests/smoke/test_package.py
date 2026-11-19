@@ -1,5 +1,6 @@
 """Testing :mod:`galax.nbody` module."""
 
+import ast
 import re
 import sys
 import tomllib
@@ -42,17 +43,24 @@ def test_imports_are_declared_dependencies() -> None:
     declared = {
         re.match(r"[A-Za-z0-9._-]+", d)[0] for d in project["project"]["dependencies"]
     }
-    pattern = re.compile(r"^(?:import|from) ([A-Za-z_][\w.]*)", re.MULTILINE)
-    imported = set()
+    # `ast` finds imports anywhere, including indented ones in functions and
+    # `with` blocks. Relative imports (level > 0) stay inside the package.
+    mods = []
     for path in (root / "src").rglob("*.py"):
-        for mod in pattern.findall(path.read_text()):
-            parts = mod.split(".")
-            name = ".".join(parts[:2]) if parts[0] == "galax" else parts[0]
-            if name not in sys.stdlib_module_names and name not in {
-                "galax.nbody",
-                "__future__",
-            }:
-                imported.add(name)
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Import):
+                mods.extend(a.name for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.level == 0:
+                mods.append(node.module)
+    imported = set()
+    for mod in mods:
+        parts = mod.split(".")
+        name = ".".join(parts[:2]) if parts[0] == "galax" else parts[0]
+        if name not in sys.stdlib_module_names and name not in {
+            "galax.nbody",
+            "__future__",
+        }:
+            imported.add(name)
     assert imported - declared == set()
     sources = project["tool"]["uv"]["sources"]
     assert {d for d in declared if d.startswith("galax.")} <= set(sources)

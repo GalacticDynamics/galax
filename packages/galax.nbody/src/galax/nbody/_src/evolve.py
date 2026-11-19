@@ -104,7 +104,7 @@ def check_timestep(
 def advance(
     field: NBodyField,
     y: tuple[Array, Array],
-    step_ts: Float[Array, " n+1"],
+    step_ts: Float[Array, " steps"],
     adjoint: dfx.AbstractAdjoint,
 ) -> tuple[Array, Array]:
     """Return ``(q, p)`` after leapfrog steps from ``step_ts[0]`` along ``step_ts``.
@@ -137,7 +137,7 @@ def advance(
 def _scan(
     field: NBodyField,
     y: tuple[Array, Array],
-    grids: Float[Array, "R n+1"],
+    grids: Float[Array, "R steps"],
     adjoint: dfx.AbstractAdjoint,
 ) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
     """Run `advance` over each row of ``grids`` in a `jax.lax.scan`.
@@ -176,19 +176,39 @@ def _integrate(
     # and diffrax rejected the mismatch under jit. `advance` takes t0 and t1
     # from the same grid array.
     offsets = np.concat([[0], np.cumsum(n_steps)[:-1]])
+    runs, start = [], 0
+    for n, run in itertools.groupby(n_steps.tolist()):
+        stop = start + len(list(run))
+        runs.append(t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt)
+        start = stop
+    # A dt below the float spacing at t_start rounds grid points together.
+    if any(np.any(np.diff(g, axis=-1) <= 0) for g in runs):
+        msg = (
+            f"dt={dt} is too small for the magnitude of ts (|t| ~ {abs(t_start)})"
+            " in float64: the step grid is not strictly increasing"
+        )
+        raise ValueError(msg)
     qs, ps = [y[0][None]], [y[1][None]]
     # ponytail: each segment re-initialises the leapfrog, one extra force
     # evaluation per save interval; carry `solver_state` with made_jump=False
     # if that cost matters.
-    start = 0
-    for n, run in itertools.groupby(n_steps.tolist()):
-        stop = start + len(list(run))
-        grids = t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt
+    for grids in runs:
         y, (q_run, p_run) = _scan(field, y, jnp.asarray(grids), adjoint)
         qs.append(q_run)
         ps.append(p_run)
-        start = stop
     return jnp.concat(qs), jnp.concat(ps)
+
+
+@eqx.filter_jit
+def _energies(field: NBodyField, ts: Array, q: Array, p: Array) -> Array:
+    """Return the (S,) total energy at each saved state.
+
+    `lax.map`, not `vmap`: batching would widen the backend's chunked map by S
+    and multiply its temp memory by S. It is jitted at module level so eager
+    calls reuse one compilation.
+    """
+    e: Array = jax.lax.map(lambda a: total_energy(field, *a), (ts, q, p))
+    return e
 
 
 def _concrete(x: Any, unit: Any, name: str) -> np.ndarray:
@@ -228,15 +248,17 @@ def evolve(
 
     The steps are leapfrog (`galax.fields.Leapfrog`) at the times
     ``ts[0] + k * dt``. Consecutive save intervals of the same length run as
-    one `jax.lax.scan`, so the integrator compiles once per distinct number of
-    steps, and under an outer `jax.jit` the graph holds one loop per run of
-    equal intervals rather than one per save. ``adjoint`` defaults to
-    `diffrax.RecursiveCheckpointAdjoint`. With ``check_dt`` the step is checked
-    once at ``ts[0]`` by `check_timestep`. The check also runs inside an outer
-    `jax.jit` when the field, ``q0`` and ``p0`` are concrete, and is skipped
-    when any of them is traced. With ``energy`` the result also holds the
-    total energy at each save time. ``system`` is stored on the result so
-    `NBodyResult.component` can split it.
+    one `jax.lax.scan`. Each scan compiles once for each pair of the number of
+    steps per interval and the number of equal intervals in the run, and
+    later calls with the same pairs reuse it. Under an outer `jax.jit` the
+    graph holds one loop per run of equal intervals rather than one per save.
+    ``adjoint`` defaults to `diffrax.RecursiveCheckpointAdjoint`. With
+    ``check_dt`` the step is checked once at ``ts[0]`` by `check_timestep`.
+    The check also runs inside an outer `jax.jit` when the field, ``q0`` and
+    ``p0`` are concrete, and is skipped when any of them is traced. With
+    ``energy`` the result also holds the total energy at each save time.
+    ``system`` is stored on the result so `NBodyResult.component` can split
+    it.
 
     With the default `diffrax.RecursiveCheckpointAdjoint`, reverse mode
     (`jax.grad`) works, but forward mode (`jax.jvp`, `jax.jacfwd`) needs
@@ -250,10 +272,23 @@ def evolve(
     the external potential is static. With a time-dependent potential it
     gives the wrong forces.
 
+    galax.nbody needs float64, so `evolve` raises `ValueError` unless
+    ``jax_enable_x64`` is on. Turn it on with
+    ``jax.config.update("jax_enable_x64", True)`` at the start of the program,
+    or set the environment variable ``JAX_ENABLE_X64=1``.
+
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
-    increasing, or an interval is not a whole number of steps.
+    increasing, an interval is not a whole number of steps, or ``dt`` is too
+    small to tell the step times apart at the magnitude of ``ts`` in float64.
     """
+    if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
+        msg = (
+            "galax.nbody needs float64, but jax_enable_x64 is off. Turn it on "
+            'with jax.config.update("jax_enable_x64", True) at the start of '
+            "the program, or set JAX_ENABLE_X64=1."
+        )
+        raise ValueError(msg)
     units = field.units
     ts_np = np.atleast_1d(_concrete(ts, units["time"], "ts"))
     dt_np = _concrete(dt, units["time"], "dt")
@@ -298,9 +333,5 @@ def evolve(
         field, (q, p), float(ts_np[0]), float(dt_np), n_steps, adjoint
     )
     t_out = jnp.asarray(ts_np)
-    e = None
-    if energy:
-        # `lax.map`, not `vmap`: batching would widen the backend's chunked
-        # map by S and multiply its temp memory by S.
-        e = jax.lax.map(lambda a: total_energy(field, *a), (t_out, q_out, p_out))
+    e = _energies(field, t_out, q_out, p_out) if energy else None
     return NBodyResult(ts=t_out, q=q_out, p=p_out, energy=e, units=units, system=system)

@@ -1,6 +1,10 @@
 """Tests for `galax.nbody.evolve`."""
 
 import logging
+import os
+import subprocess
+import sys
+import textwrap
 
 import diffrax as dfx
 import equinox as eqx
@@ -185,19 +189,83 @@ def test_off_grid_ts_at_large_abs_time_rejected(ts, dt) -> None:
         gn.evolve(field, jnp.ones((2, 3)), jnp.zeros((2, 3)), ts, dt=dt, check_dt=False)
 
 
-def test_eager_calls_reuse_the_compilation(caplog) -> None:
+@pytest.mark.parametrize("energy", [False, True])
+def test_eager_calls_reuse_the_compilation(caplog, energy: bool) -> None:
     """A second eager call with the same shapes compiles nothing."""
-    field, q0, p0 = _cluster(n=4)
-    ts = 0.01 * np.asarray([0, 1, 2, 5, 8, 9])
+    # Shapes used by no other test, so the first call must compile.
+    field, q0, p0 = _cluster(n=7 + energy)
+    ts = 0.01 * np.asarray([0, 1, 2, 5, 8, 9, 13])
 
     def run(q):
-        return gn.evolve(field, q, p0, ts, dt=0.01, check_dt=False).q
+        r = gn.evolve(field, q, p0, ts, dt=0.01, check_dt=False, energy=energy)
+        return r.q, r.energy
 
-    run(q0).block_until_ready()
+    def compiles():
+        return [r for r in caplog.records if "Compiling" in r.getMessage()]
+
+    with jax.log_compiles(), caplog.at_level(logging.WARNING):
+        jax.block_until_ready(run(q0))
+    # Positive control: the log capture does see compiles.
+    assert compiles()
+    caplog.clear()
     q1 = (q0 + 1).block_until_ready()
     with jax.log_compiles(), caplog.at_level(logging.WARNING):
-        run(q1).block_until_ready()
-    assert not [r for r in caplog.records if "Compiling" in r.getMessage()]
+        jax.block_until_ready(run(q1))
+    assert not compiles()
+
+
+def test_requires_x64() -> None:
+    """With x64 off, evolve raises instead of running in float32."""
+    field, q0, p0 = _cluster(n=4)
+    jax.config.update("jax_enable_x64", False)  # noqa: FBT003
+    try:
+        with pytest.raises(ValueError, match="jax_enable_x64"):
+            gn.evolve(field, q0, p0, np.asarray([0.0, 0.1]), dt=0.01)
+    finally:
+        jax.config.update("jax_enable_x64", True)  # noqa: FBT003
+
+
+def test_dt_below_float_spacing_of_ts_raises() -> None:
+    """A dt that rounds grid points together at large |ts| raises."""
+    field, q0, p0 = _cluster(n=4)
+    with pytest.raises(ValueError, match="too small for the magnitude of ts"):
+        gn.evolve(
+            field, q0, p0, np.asarray([1e10, 1e10 + 1e-5]), dt=1e-7, check_dt=False
+        )
+
+
+@pytest.mark.slow
+def test_evolve_under_runtime_type_checking() -> None:
+    """A tiny run works with beartype checking the jaxtyping annotations."""
+    pytest.importorskip("beartype")
+    code = textwrap.dedent("""
+        import jax
+        jax.config.update("jax_enable_x64", True)
+        import jax.numpy as jnp
+        import numpy as np
+        import galax.nbody as gn
+        import galax.potential as gp
+        field = gn.NBodyField(
+            masses=jnp.full(2, 1e9),
+            eps=0.1,
+            external_potential=gp.NullPotential(units="galactic"),
+        )
+        q0 = jnp.asarray([[-1.0, 0, 0], [1.0, 0, 0]])
+        r = gn.evolve(
+            field, q0, jnp.zeros((2, 3)), np.asarray([0.0, 0.1, 0.3]),
+            dt=0.05, check_dt=False, energy=True,
+        )
+        assert r.q.shape == (3, 2, 3)
+    """)
+    env = os.environ | {"GALAX_ENABLE_RUNTIME_TYPECHECKING": "beartype.beartype"}
+    proc = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    assert proc.returncode == 0, proc.stderr[-3000:]
 
 
 def test_nonincreasing_ts_raises() -> None:

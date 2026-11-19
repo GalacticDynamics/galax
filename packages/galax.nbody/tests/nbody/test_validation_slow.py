@@ -172,5 +172,5 @@ def test_two_component_mass_ratio_heating_is_measured(record_property) -> None:
     record_property("stellar_r50_growth", growth)
     print(f"stellar 50% radius growth {growth:.4f}")
     assert np.all(np.isfinite(r_half) & (r_half > 0))
-    # A loose band around the measured +134%: catches a blow-up or a collapse.
+    # A loose band around the measured +128%: catches a blow-up or a collapse.
     assert 0.0 < growth < 5.0

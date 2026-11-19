@@ -6,6 +6,7 @@ __all__ = [
     "System",
     "Particles",
     "DirectSum",
+    "PallasDirectSum",
     "PlummerKernel",
     "NewtonianKernel",
     "DehnenK1Kernel",
@@ -36,6 +37,7 @@ with install_import_hook("galax.nbody"):
         PlummerKernel,
         SplineKernel,
     )
+    from ._src.pallas_direct import PallasDirectSum
     from ._src.system import Component, Particles, System
 
 # Cleanup

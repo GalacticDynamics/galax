@@ -296,8 +296,8 @@ def test_progenitor_copy_follows_its_orbit(
     The copy starts from the progenitor's state at the release time and is
     integrated with the particle to the final time. The adaptive case releases
     partway along the orbit. With Leapfrog, released on a step of the
-    progenitor's own grid, only round-off separates them. (Released between
-    steps, the copy starts from the solver's linear interpolation and drifts;
+    progenitor's own grid, only round-off separates them. (Off the grid, or
+    with another progenitor integrator, the copy drifts by Leapfrog's error;
     see `MockStreamGenerator.progenitor_potential`.)
     """
     from galax.dynamics._src.legacy.mockstream.mockstream_generator import (

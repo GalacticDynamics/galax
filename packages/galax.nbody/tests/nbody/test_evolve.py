@@ -580,6 +580,16 @@ def test_system_size_checked_before_dt() -> None:
         )
 
 
+@pytest.mark.parametrize("eps", [0.0, 0.1])
+def test_check_timestep_nan_position_is_reported(eps) -> None:
+    """A NaN position of an active particle gives a NaN ``dt_max``, softened or not."""
+    pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=eps, external_potential=pot)
+    q0 = jnp.asarray([[8.0, 0.0, 0.0], [jnp.nan, 0.0, 0.0]])
+    with pytest.raises(ValueError, match="dt_max is NaN"):
+        gn.check_timestep(field, q0, 0.0, 1.0, strict=True)
+
+
 def test_system_of_wrong_size_rejected() -> None:
     """A ``system`` whose particle count differs from ``q0`` raises."""
     stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e9, h=0.1)

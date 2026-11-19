@@ -7,7 +7,6 @@ from jaxtyping import PRNGKeyArray
 
 import diffrax as dfx
 import jax
-import jax.extend as jex
 import jax.random as jr
 import jax.tree as jtu
 import numpy as np
@@ -198,14 +197,12 @@ class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
         return gd.ChenStreamDF()
 
 
-@pytest.mark.parametrize("sequential", [False, True], ids=["pair", "sequential"])
-def test_integrate_to_solves_each_particle_on_its_own(sequential: bool) -> None:
+def test_integrate_to_solves_each_particle_on_its_own() -> None:
     """With an adaptive solver, each arm keeps its own step sizes.
 
     A leading and a trailing particle on very different orbits, integrated
     together by `MockStreamGenerator._integrate_to`, each equal a solve of that
     particle alone. One solve of both would share a step size and miss this.
-    ``sequential=True`` is what the scan path uses with a progenitor potential.
     """
     pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
     gen = gd.MockStreamGenerator(gd.FardalStreamDF(), pot)
@@ -213,7 +210,7 @@ def test_integrate_to_solves_each_particle_on_its_own(sequential: bool) -> None:
         [[30.0, 10.0, 20.0, 0.01, -0.15, -0.02], [2.0, 0.0, 0.5, 0.0, 0.3, 0.05]]
     )
     t0, t1 = u.Q(0.0, "Myr"), u.Q(300.0, "Myr")
-    got = gen._integrate_to(w0, t0, t1, sequential=sequential)
+    got = gen._integrate_to(w0, t0, t1)
 
     field = gd.fields.HamiltonianField(pot)
     for i in range(2):
@@ -222,86 +219,6 @@ def test_integrate_to_solves_each_particle_on_its_own(sequential: bool) -> None:
         )[-1]
         # Here ~1e-12 of the scale; one solve of both particles is off by > 7e-9.
         assert jnp.max(jnp.abs(got[i] - want)) < 1e-10 * jnp.max(jnp.abs(want))
-
-
-def _count_while_loops(jaxpr: jex.core.Jaxpr) -> int:
-    """``while`` loops in ``jaxpr``, counting each use of a nested jaxpr."""
-    n = 0
-    for eqn in jaxpr.eqns:
-        n += eqn.primitive.name == "while"
-        for v in jtu.leaves(
-            eqn.params, is_leaf=lambda x: isinstance(x, jex.core.ClosedJaxpr)
-        ):
-            if isinstance(v, jex.core.ClosedJaxpr):
-                n += _count_while_loops(v.jaxpr)
-            elif isinstance(v, jex.core.Jaxpr):
-                n += _count_while_loops(v)
-    return n
-
-
-def test_integrate_to_sequential_runs_two_solves() -> None:
-    """``sequential=True`` traces two solves, the default one vmapped solve."""
-    pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
-    gen = gd.MockStreamGenerator(gd.FardalStreamDF(), pot)
-    w0 = jnp.zeros((2, 6)).at[:, 0].set(10.0).at[:, 4].set(0.2)
-    t0, t1 = u.Q(0.0, "Myr"), u.Q(100.0, "Myr")
-
-    def n_loops(*, sequential: bool) -> int:
-        f = lambda w: gen._integrate_to(w, t0, t1, sequential=sequential)
-        return _count_while_loops(jax.make_jaxpr(f)(w0).jaxpr)
-
-    assert n_loops(sequential=True) == 2 * n_loops(sequential=False) > 0
-
-
-_SEEN: list[bool] = []
-
-
-class _SolveSpy(gd.MockStreamGenerator):
-    """Records the ``sequential`` flag of each `_integrate_to` call."""
-
-    def _integrate_to(self, *args, sequential: bool = False):  # type: ignore[no-untyped-def]
-        _SEEN.append(sequential)
-        return super()._integrate_to(*args, sequential=sequential)
-
-
-@pytest.mark.parametrize(
-    ("vmapped", "with_progenitor", "want"),
-    [
-        (False, False, False),
-        (False, True, True),
-        (True, False, False),
-        (True, True, False),
-    ],
-    ids=["scan", "scan-progenitor", "vmap", "vmap-progenitor"],
-)
-def test_run_solve_choice(vmapped: bool, with_progenitor: bool, want: bool) -> None:
-    """Only the scan path with a progenitor potential solves the arms one by one.
-
-    In the host alone the vmapped pair is faster. Under `_run_vmap` (and under
-    a caller's own `jax.vmap` of ``run``), two solves one after the other
-    become two batched loops, about twice the loop iterations of one.
-    """
-    units = u.unitsystem("galactic")
-    pp = gp.PlummerPotential(m_tot=u.Q(1e4, "Msun"), r_s=u.Q(4, "pc"), units=units)
-    gen = _SolveSpy(
-        gd.FardalStreamDF(),
-        gp.NFWPotential(m=1e12, r_s=15.0, units=units),
-        progenitor_potential=pp if with_progenitor else None,
-    )
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q([30, 10, 20], "kpc"), p=u.Q([10, -150, -20], "km/s"), t=u.Q(0.0, "Myr")
-    )
-    jax.clear_caches()  # so `run` traces `_integrate_to` again
-    _SEEN.clear()
-    gen.run(
-        jr.key(0),
-        u.Q(jnp.linspace(0.0, 100.0, 3), "Myr"),
-        w0,
-        u.Q(1e4, "Msun"),
-        vmapped=vmapped,
-    )
-    assert _SEEN
-    assert set(_SEEN) == {want}
 
 
 @pytest.mark.parametrize("df_cls", [gd.ChenStreamDF, gd.FardalStreamDF])

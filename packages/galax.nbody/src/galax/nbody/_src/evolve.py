@@ -23,7 +23,13 @@ from .diagnostics import total_energy
 from .field import NBodyField
 from .system import System
 
-_REL_TOL = 1e-9
+# A save time may differ from its grid point by this many float spacings.
+# Measured on random cases: ts built as t0 + k*dt, or with np.linspace, after
+# a unit conversion through unxt (Gyr, kyr, yr or s to Myr, with dt converted
+# separately) were off by at most 4 spacings; without a conversion t0 + k*dt is
+# exact and np.linspace is off by at most 2. Twice the worst gives 8. It is far
+# below the 100 spacings an off-grid time is checked against in the tests.
+_GRID_ULPS = 8
 
 
 class NBodyResult(eqx.Module):
@@ -205,6 +211,36 @@ def _energies(field: NBodyField, ts: Array, q: Array, p: Array) -> Array:
     return e
 
 
+def _grid_steps(ts: np.ndarray, dt: float) -> np.ndarray:
+    """Return the integer step counts ``n`` with ``ts == ts[0] + n * dt``.
+
+    ``ts`` is a strictly increasing 1-D float64 array and ``dt > 0``. The
+    integration builds each grid point as ``ts[0] + n * dt``, so this rounds
+    ``(ts - ts[0]) / dt`` to integers ``n``, rebuilds the grid the same way,
+    and accepts ``ts`` when each time is within `_GRID_ULPS` float spacings of
+    its grid point. The spacing is taken at the largest of ``|ts[0]|``,
+    ``|ts[k]|`` and ``|n[k] * dt|``, which bounds the rounding in building the
+    grid point and in building ``ts`` from ``ts[0]``. ``n`` must be strictly
+    increasing, so each interval is at least one step. Raises `ValueError` if
+    ``dt`` is under 10 float spacings of the largest ``|ts|``, where grid
+    points cannot be told apart reliably, or if ``ts`` is off the grid.
+    """
+    t_max = np.max(np.abs(ts))
+    if dt < 10 * np.spacing(t_max):
+        msg = (
+            f"dt={dt} is too small for the magnitude of ts (|t| up to {t_max}) "
+            "in float64: whole steps cannot be told apart at that resolution"
+        )
+        raise ValueError(msg)
+    n: np.ndarray = np.rint((ts - ts[0]) / dt).astype(np.int64)
+    ndt = n * dt
+    ulp = np.spacing(np.maximum(np.maximum(np.abs(ts[0]), np.abs(ts)), np.abs(ndt)))
+    if np.any(np.diff(n) <= 0) or np.any(np.abs(ts - (ts[0] + ndt)) > _GRID_ULPS * ulp):
+        msg = f"each interval of ts must be a whole number of steps dt={dt}"
+        raise ValueError(msg)
+    return n
+
+
 def _concrete(x: Any, unit: Any, name: str) -> np.ndarray:
     if _is_traced(x):
         msg = f"{name} must be concrete, not traced; pass it from outside jit"
@@ -235,7 +271,11 @@ def evolve(
     ``q0`` and ``p0`` are (N, 3) positions and velocities, and ``ts`` and
     ``dt`` are the save times and the fixed step. Each may be an array or a
     Quantity, and is converted to the field's units. ``ts`` must be strictly
-    increasing and each interval must be a whole number of steps ``dt``.
+    increasing and lie on the grid ``ts[0] + n * dt`` with integer ``n``. Each
+    time may be off its grid point by a few float spacings, the rounding from
+    building ``ts`` as ``t0 + k * dt``, with `numpy.linspace` or through a
+    unit conversion. `numpy.arange` adds a rounding error per element, so a
+    long ``arange`` far from zero drifts off the grid and is rejected.
     ``ts`` and ``dt`` must be concrete, so they cannot be traced, but the
     field and the initial state can be, for example under `jax.vmap` or
     `jax.grad`.
@@ -273,8 +313,8 @@ def evolve(
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
-    increasing, an interval is not a whole number of steps, or ``dt`` is too
-    small to tell the step times apart at the magnitude of ``ts`` in float64.
+    increasing, a time is off the grid, or ``dt`` is under 10 float spacings
+    of the largest ``|ts|``, too small to tell the step times apart.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
         msg = (
@@ -301,26 +341,7 @@ def evolve(
     if np.any(np.diff(ts_np) <= 0):
         msg = "ts must be strictly increasing"
         raise ValueError(msg)
-    ratio = np.diff(ts_np) / dt_np
-    n_steps = np.rint(ratio).astype(int)
-    # The round-off in diff(ts) is at most about the float spacing of its two
-    # ends, so in steps it is at most abs_tol. When that is a sizeable part of
-    # a step, whole steps cannot be told apart from fractions of one. The
-    # relative term allows for an inexact dt. The grid is rebuilt from ts[0]
-    # and the integer step counts, so this round-off never enters it.
-    abs_tol = 2 * (np.spacing(np.abs(ts_np[:-1])) + np.spacing(np.abs(ts_np[1:])))
-    abs_tol = abs_tol / dt_np
-    if np.any(abs_tol >= 0.1):
-        msg = (
-            f"dt={dt_np} is too small for the magnitude of ts "
-            f"(|t| up to {np.max(np.abs(ts_np))}) in float64: whole steps cannot "
-            "be told apart at that resolution"
-        )
-        raise ValueError(msg)
-    tol = _REL_TOL * ratio + abs_tol
-    if np.any(n_steps == 0) or np.any(np.abs(ratio - n_steps) > tol):
-        msg = f"each interval of ts must be a whole number of steps dt={dt_np}"
-        raise ValueError(msg)
+    n_steps = np.diff(_grid_steps(ts_np, float(dt_np)))
 
     if check_dt and not _is_traced((field, q0, p0)):
         # Inside an outer jit, ops on closed-over constants are still staged,

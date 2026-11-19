@@ -264,21 +264,33 @@ class _SolveSpy(gd.MockStreamGenerator):
 
 
 @pytest.mark.parametrize(
-    ("vmapped", "with_progenitor", "want"),
+    ("vmapped", "with_progenitor", "sequential", "want"),
     [
-        (False, False, False),
-        (False, True, True),
-        (True, False, False),
-        (True, True, False),
+        (False, False, None, False),
+        (False, True, None, True),
+        (True, False, None, False),
+        (True, True, None, False),
+        (False, True, False, False),
+        (True, False, True, True),
     ],
-    ids=["scan", "scan-progenitor", "vmap", "vmap-progenitor"],
+    ids=[
+        "scan",
+        "scan-progenitor",
+        "vmap",
+        "vmap-progenitor",
+        "scan-progenitor-pair",
+        "vmap-sequential",
+    ],
 )
-def test_run_solve_choice(vmapped: bool, with_progenitor: bool, want: bool) -> None:
-    """Only the scan path with a progenitor potential solves the arms one by one.
+def test_run_solve_choice(
+    vmapped: bool, with_progenitor: bool, sequential: bool | None, want: bool
+) -> None:
+    """By default only the scan path with a progenitor potential is sequential.
 
     In the host alone the vmapped pair is faster. Under `_run_vmap` (and under
     a caller's own `jax.vmap` of ``run``), two solves one after the other
-    become two batched loops, about twice the loop iterations of one.
+    become two batched loops, about twice the loop iterations of one. Passing
+    ``sequential`` overrides the default on either path.
     """
     units = u.unitsystem("galactic")
     pp = gp.PlummerPotential(m_tot=u.Q(1e4, "Msun"), r_s=u.Q(4, "pc"), units=units)
@@ -298,6 +310,7 @@ def test_run_solve_choice(vmapped: bool, with_progenitor: bool, want: bool) -> N
         w0,
         u.Q(1e4, "Msun"),
         vmapped=vmapped,
+        sequential=sequential,
     )
     assert _SEEN
     assert set(_SEEN) == {want}

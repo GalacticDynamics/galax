@@ -7,6 +7,10 @@ __all__ = [
     "Particles",
     "DirectSum",
     "PlummerKernel",
+    "NewtonianKernel",
+    "DehnenK1Kernel",
+    "DehnenK2Kernel",
+    "SplineKernel",
     "AbstractSofteningKernel",
     "AbstractForceBackend",
     "Sources",
@@ -26,6 +30,13 @@ from ._src.direct import DirectSum
 from ._src.evolve import check_timestep, evolve
 from ._src.field import NBodyField
 from ._src.gradpolicy import AbstractGradPolicy, Autodiff, NoGrad, StopGrad
-from ._src.kernels import AbstractSofteningKernel, PlummerKernel
+from ._src.kernels import (
+    AbstractSofteningKernel,
+    DehnenK1Kernel,
+    DehnenK2Kernel,
+    NewtonianKernel,
+    PlummerKernel,
+    SplineKernel,
+)
 from ._src.particles import Sources, Targets
 from ._src.system import Component, Particles, System

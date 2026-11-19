@@ -491,6 +491,20 @@ def test_component_split_on_result() -> None:
         no_sys.component("stars")
 
 
+def test_ts_span_overflow_rejected() -> None:
+    """Times whose span overflows float64 raise instead of passing the grid check."""
+    field = gn.NBodyField(masses=jnp.zeros(2), eps=0.0, external_potential=_NULL)
+    with pytest.raises(ValueError, match="overflows float64"):
+        gn.evolve(
+            field,
+            jnp.ones((2, 3)),
+            jnp.zeros((2, 3)),
+            np.asarray([-1e308, 1e308]),
+            dt=1e295,
+            check_dt=False,
+        )
+
+
 def test_system_of_wrong_size_rejected() -> None:
     """A ``system`` whose particle count differs from ``q0`` raises."""
     stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e9, h=0.1)

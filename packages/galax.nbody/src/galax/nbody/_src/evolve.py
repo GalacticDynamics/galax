@@ -83,7 +83,7 @@ def check_timestep(
     particles where that density is zero are skipped. With no limit at all
     ``dt_max`` is infinite.
 
-    Raises `ValueError` if ``dt`` is negative or not finite. If
+    Raises `ValueError` if ``dt`` is not a finite, non-negative scalar. If
     ``dt > dt_max``, or ``dt_max`` is NaN, this warns with `UserWarning`, or
     raises `ValueError` when ``strict``. ``stacklevel`` is passed to
     `warnings.warn`; the default points the warning at the caller. It needs
@@ -92,19 +92,24 @@ def check_timestep(
     units = field.units
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q), dtype=float)
     t = u.ustrip(AllowValue, units["time"], t)
-    dt = float(u.ustrip(AllowValue, units["time"], dt))
-    if not (np.isfinite(dt) and dt >= 0):
-        msg = f"dt must be finite and not negative, got {dt}"
+    dt_np = np.asarray(u.ustrip(AllowValue, units["time"], dt))
+    if dt_np.ndim != 0 or not (np.isfinite(dt_np) and dt_np >= 0):
+        msg = f"dt must be a finite, non-negative scalar, got {dt_np}"
         raise ValueError(msg)
+    dt = float(dt_np)
     a = jnp.linalg.norm(field.acceleration(t, q), axis=-1)
     h = field.softening
     rho = jnp.asarray(gp.density(field.external_potential, q, t))
     soft = jnp.where(field.active & (h > 0), eta * jnp.sqrt(2 * h / a), jnp.inf)
     G = field._G  # noqa: SLF001
     tidal = jnp.where(field.active & (rho > 0), eta_rho / jnp.sqrt(G * rho), jnp.inf)
-    dt_max = float(jnp.min(jnp.minimum(soft, tidal)))
+    dt_max = float(jnp.min(jnp.minimum(soft, tidal), initial=jnp.inf))
     if not dt <= dt_max:  # also catches a NaN dt_max
-        msg = f"dt={dt} is above the safe time step dt_max={dt_max}"
+        msg = (
+            f"the safe time step dt_max is NaN (dt={dt}); check q for NaN"
+            if np.isnan(dt_max)
+            else f"dt={dt} is above the safe time step dt_max={dt_max}"
+        )
         if strict:
             raise ValueError(msg)
         warnings.warn(msg, UserWarning, stacklevel=stacklevel)
@@ -353,15 +358,19 @@ def evolve(
     if dt_np.ndim != 0 or not dt_np > 0:
         msg = f"dt must be a positive scalar, got {dt_np}"
         raise ValueError(msg)
+    if np.any(ts_np[1:] <= ts_np[:-1]):
+        msg = "ts must be strictly increasing"
+        raise ValueError(msg)
     with np.errstate(over="ignore"):
         span = ts_np[-1] - ts_np[0]
     if not np.isfinite(span):
         msg = f"the span of ts, {ts_np[0]} to {ts_np[-1]}, overflows float64"
         raise ValueError(msg)
-    if np.any(ts_np[1:] <= ts_np[:-1]):
-        msg = "ts must be strictly increasing"
-        raise ValueError(msg)
     n_steps = np.diff(_grid_steps(ts_np, float(dt_np)))
+    n_q0 = np.shape(u.ustrip(AllowValue, units["length"], q0))[0]
+    if system is not None and system.slices[-1][1] != n_q0:
+        msg = f"system has {system.slices[-1][1]} particles but q0 has {n_q0}"
+        raise ValueError(msg)
 
     if check_dt and not _is_traced((field, q0, p0)):
         # Inside an outer jit, ops on closed-over constants are still staged,
@@ -371,9 +380,6 @@ def evolve(
             check_timestep(field, q0, ts_np[0], dt_np, stacklevel=3)
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q0), dtype=float)
     p = jnp.asarray(u.ustrip(AllowValue, units["speed"], p0), dtype=float)
-    if system is not None and system.slices[-1][1] != q.shape[0]:
-        msg = f"system has {system.slices[-1][1]} particles but q0 has {q.shape[0]}"
-        raise ValueError(msg)
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint
 
     q_out, p_out = _integrate(

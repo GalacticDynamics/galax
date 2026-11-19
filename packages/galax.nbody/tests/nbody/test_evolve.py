@@ -521,11 +521,11 @@ def test_extreme_ts_rejected(ts, dt) -> None:
         gn.evolve(field, jnp.ones((1, 3)), jnp.zeros((1, 3)), ts, dt=dt, check_dt=False)
 
 
-@pytest.mark.parametrize("dt", [float("nan"), float("inf"), -1.0])
+@pytest.mark.parametrize("dt", [float("nan"), float("inf"), -1.0, np.asarray([0.01])])
 def test_check_timestep_rejects_bad_dt(dt) -> None:
     """``check_timestep`` raises for a dt that is negative or not finite."""
     field = gn.NBodyField(masses=jnp.ones(2), eps=0.1, external_potential=_NULL)
-    with pytest.raises(ValueError, match="finite and not negative"):
+    with pytest.raises(ValueError, match="finite, non-negative scalar"):
         gn.check_timestep(field, jnp.eye(2, 3), 0.0, dt, strict=True)
 
 
@@ -554,6 +554,29 @@ def test_non_monotonic_ts_near_float_max_raises_cleanly() -> None:
             np.asarray([-1e308, 1e308, 0.0]),
             dt=1e300,
             check_dt=False,
+        )
+
+
+def test_empty_field_evolves() -> None:
+    """With no particles there is no time-step limit and nothing to integrate."""
+    field = gn.NBodyField(masses=jnp.zeros(0), eps=0.1, external_potential=_NULL)
+    res = gn.evolve(field, jnp.zeros((0, 3)), jnp.zeros((0, 3)), [0.0, 1.0], dt=0.1)
+    assert res.q.shape == (2, 0, 3)
+
+
+def test_system_size_checked_before_dt() -> None:
+    """A wrong-size ``system`` raises before the time-step check can warn."""
+    stars = gn.Component(name="stars", q=jnp.eye(3), p=jnp.zeros((3, 3)), m=1e9, h=0.1)
+    system = gn.System.from_components(stars, units="galactic")
+    field = gn.NBodyField(masses=jnp.full(2, 1e9), eps=0.1, external_potential=_NULL)
+    with pytest.raises(ValueError, match="system has 3 particles but q0 has 2"):
+        gn.evolve(
+            field,
+            jnp.eye(2, 3),
+            jnp.zeros((2, 3)),
+            [0.0, 100.0],
+            dt=100.0,
+            system=system,
         )
 
 

@@ -69,3 +69,20 @@ def test_inactive_nonfinite_rows_are_ignored() -> None:
         q3 = jnp.concat([q, jnp.full((1, 3), bad)])
         p3 = jnp.concat([p, jnp.full((1, 3), bad)])
         assert jnp.allclose(gn.total_energy(three, 0.0, q3, p3), expect)
+
+
+def test_total_energy_ignores_non_finite_tracer() -> None:
+    """A tracer that has gone NaN or inf does not spoil the energy."""
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    field = gn.NBodyField(
+        masses=jnp.asarray([1e9, 1e9, 0.0]),
+        eps=0.1,
+        external_potential=pot,
+        n_massive=2,
+    )
+    q = jnp.asarray([[8.0, 0.0, 0.0], [-8.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+    p = jnp.asarray([[0.0, 0.2, 0.0], [0.0, -0.2, 0.0], [0.0, 0.0, 0.0]])
+    e = gn.total_energy(field, 0.0, q, p)
+    bad_q = q.at[2].set(jnp.inf)
+    bad_p = p.at[2].set(jnp.nan)
+    assert gn.total_energy(field, 0.0, bad_q, bad_p) == e

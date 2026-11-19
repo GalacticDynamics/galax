@@ -313,8 +313,9 @@ def evolve(
 
     Raises `ValueError` before any tracing if ``ts`` or ``dt`` is traced or
     not finite, ``ts`` is empty, ``dt <= 0``, ``ts`` is not strictly
-    increasing, a time is off the grid, or ``dt`` is under 100 float spacings
-    of the largest ``|ts|``, too small to tell the step times apart.
+    increasing, a time is off the grid, ``dt`` is under 100 float spacings
+    of the largest ``|ts|``, too small to tell the step times apart, or
+    ``system`` has a different number of particles than ``q0``.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
         msg = (
@@ -351,6 +352,9 @@ def evolve(
             check_timestep(field, q0, ts_np[0], dt_np, stacklevel=3)
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q0), dtype=float)
     p = jnp.asarray(u.ustrip(AllowValue, units["speed"], p0), dtype=float)
+    if system is not None and system.slices[-1][1] != q.shape[0]:
+        msg = f"system has {system.slices[-1][1]} particles but q0 has {q.shape[0]}"
+        raise ValueError(msg)
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint
 
     q_out, p_out = _integrate(

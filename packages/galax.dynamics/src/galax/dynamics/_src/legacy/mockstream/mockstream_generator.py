@@ -123,6 +123,13 @@ class MockStreamGenerator(eqx.Module):
     stream_integrator: Integrator = eqx.field(default=default_integrator, static=True)
     """Integrator for the stream."""
 
+    def __check_init__(self) -> None:
+        # The progenitor's forces are added to the host's as raw arrays.
+        pp = self.progenitor_potential
+        if pp is not None and pp.units != self.potential.units:
+            msg = "progenitor_potential must have the same unit system as potential"
+            raise ValueError(msg)
+
     @property
     def units(self) -> u.AbstractUnitSystem:
         """Units of the potential."""

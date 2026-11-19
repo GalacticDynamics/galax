@@ -283,30 +283,48 @@ def test_field_accelerations() -> None:
 
 
 @pytest.mark.parametrize(
-    "integ", [adaptive(1e-12), leapfrog(0.5, 3000.0)], ids=["adaptive", "leapfrog"]
+    ("integ", "t_release"),
+    [(adaptive(1e-12), -1234.5), (leapfrog(0.5, 3000.0), -3000.0)],
+    ids=["adaptive-midway", "leapfrog-on-grid"],
 )
-def test_progenitor_copy_follows_its_orbit(integ: gd.integrate.Integrator) -> None:
+def test_progenitor_copy_follows_its_orbit(
+    integ: gd.integrate.Integrator, t_release: float
+) -> None:
     """Each particle's copy of the progenitor stays on the progenitor's orbit.
 
     The copy starts from the progenitor's state at the release time and is
-    integrated with the particle to the final time. With Leapfrog both start on
-    a step of the same grid, so only round-off separates them.
+    integrated with the particle to the final time. The adaptive case releases
+    partway along the orbit. With Leapfrog, released on a step of the
+    progenitor's own grid, only round-off separates them; released between
+    steps, the copy is off by Leapfrog's own error.
     """
     from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
         _ProgenitorField,
     )
 
     prog = gp.KeplerPotential(m_tot=u.Q(1e5, "Msun"), units=USYS)
-    t0, t1 = u.Q(-3000.0, "Myr"), u.Q(0.0, "Myr")
+    t0, t1 = u.Q(t_release, "Myr"), u.Q(0.0, "Myr")
     orbit = gd.evaluate_orbit(
-        HOST, PROG_W0, u.Q([-3000.0, 0.0], "Myr"), integrator=integ
+        HOST, PROG_W0, u.Q([-3000.0, t_release, 0.0], "Myr"), integrator=integ
     )
-    wp = orbit.w(units=USYS)
+    wp = orbit.w(units=USYS)[-2:]
     particle = wp[0] + jnp.array([0.05, 0.0, 0.0, 0.0, 0.001, 0.0])
     y0 = jnp.stack([particle, wp[0]])
     out = integ(_ProgenitorField(HOST, prog), y0, t0, t1, saveat=jnp.asarray([t1]))
     got = np.asarray(out.w(units=USYS)).reshape(2, 6)[1]
     np.testing.assert_allclose(got[:3], wp[1, :3], rtol=0, atol=1e-8)
+
+
+def test_progenitor_units_must_match() -> None:
+    """A progenitor potential in other units raises, as a composite one did.
+
+    Its forces are added to the host's as raw arrays, so other units would be
+    silently wrong.
+    """
+    pc = u.unitsystem("pc", "Msun", "Myr", "radian")
+    pp = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=pc)
+    with pytest.raises(ValueError, match="same unit system"):
+        gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=pp)
 
 
 def test_zero_mass_limit() -> None:

@@ -294,11 +294,11 @@ def test_progenitor_copy_follows_its_orbit(
     """Each particle's copy of the progenitor stays on the progenitor's orbit.
 
     The copy starts from the progenitor's state at the release time, partway
-    along the orbit, and is integrated with the particle to the final time.
-    With Leapfrog the release time is a whole number of steps after the orbit's
-    start, so the copy takes the progenitor's own steps and only round-off
-    separates them. (Off that grid, or with another progenitor integrator, the
-    copy drifts by Leapfrog's error; see `MockStreamGenerator.progenitor_potential`.)
+    along the orbit, and is integrated with the particle to a final time on the
+    progenitor's Leapfrog grid, so it takes the progenitor's own steps and only
+    round-off separates them. (`run` ends at ``ts[-1] + 1e-3`` Myr, so there a
+    fixed-step copy drifts by the stream solver's error; see
+    `MockStreamGenerator.progenitor_potential`.)
     """
     from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
         _ProgenitorField,
@@ -321,8 +321,8 @@ def test_progenitor_units_must_match() -> None:
     """A progenitor potential in other units raises in `run`, as on `main`.
 
     Its forces are added to the host's as raw arrays, so other units would be
-    silently wrong. Also when it is swapped in with `eqx.tree_at`, which skips
-    the generator's own checks.
+    silently wrong. Also when it is swapped in with `eqx.tree_at`, which
+    would skip a check made when the generator is constructed.
     """
     pc = u.unitsystem("pc", "Msun", "Myr", "radian")
     pp = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=pc)

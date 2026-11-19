@@ -1,6 +1,7 @@
 """Tests for `galax.nbody.evolve`."""
 
 import diffrax as dfx
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -13,6 +14,7 @@ import galax.fields as gf
 import galax.nbody as gn
 import galax.orbits as go
 import galax.potential as gp
+from galax.nbody._src.evolve import advance
 
 _NULL = gp.NullPotential(units="galactic")
 
@@ -235,3 +237,35 @@ def test_nograd_forward_under_checkpoint_adjoint() -> None:
     )
     ref = gn.evolve(field, q0, p0, ts, dt=0.01)
     np.testing.assert_allclose(res.q, ref.q, rtol=1e-12)
+
+
+def test_forward_memory_is_chunk_bounded_with_field_argument() -> None:
+    # 1000 = 3 * 256 + 232, so the last chunk sits outside the chunk loop. XLA
+    # used to hoist its pair softening and self mask out of the time loop and
+    # carry them through every step.
+    n, chunk = 1000, 256
+    rng = np.random.default_rng(0)
+    field = gn.NBodyField(
+        masses=np.full(n, 1.0 / n),
+        softening=rng.uniform(0.01, 0.02, n),
+        external_potential=_NULL,
+        backend=gn.DirectSum(chunk_size=chunk),
+    )
+    q = jnp.asarray(rng.normal(size=(n, 3)))
+    dyn, static = eqx.partition(field, eqx.is_array)
+
+    def fwd(d, q, p):
+        f, adjoint = eqx.combine(d, static), dfx.RecursiveCheckpointAdjoint()
+        return advance(f, (q, p), jnp.asarray(0.0), 3, jnp.asarray(1e-3), adjoint)
+
+    def acc(d, q):
+        return eqx.combine(d, static).acceleration(0.0, q)
+
+    def temp(f, *args):
+        return jax.jit(f).lower(*args).compile().memory_analysis().temp_size_in_bytes
+
+    t_fwd, t_acc = temp(fwd, dyn, q, q), temp(acc, dyn, q)
+    assert t_fwd < 16 * chunk * n * 8
+    assert t_acc < 16 * chunk * n * 8
+    # The time loop must not add a (chunk, N) array, not even a boolean one.
+    assert t_fwd - t_acc < chunk * n

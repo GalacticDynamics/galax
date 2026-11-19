@@ -122,6 +122,11 @@ class MockStreamGenerator(eqx.Module):
 
     Each particle is integrated together with its own copy of the progenitor,
     from the progenitor's state at the particle's release time, as gala does.
+    With a fixed-step ``progenitor_integrator``, put the release times ``ts``
+    on its step grid: a release time between steps takes the progenitor's
+    state from the solver's linear interpolation, ``O(dt^2)`` off its orbit,
+    and the copy then drifts from the progenitor (up to ~20 pc over 3 Gyr with
+    Leapfrog at 1 Myr steps, ~1 kpc at 7 Myr).
     """
 
     progenitor_integrator: Integrator = eqx.field(

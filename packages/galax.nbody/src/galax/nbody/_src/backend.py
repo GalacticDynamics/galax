@@ -1,6 +1,6 @@
-"""The force-backend interface, plus the particle sets it acts on."""
+"""The force-backend interface."""
 
-__all__ = ["AbstractForceBackend", "Sources", "Targets"]
+__all__ = ["AbstractForceBackend"]
 
 import abc
 

@@ -10,13 +10,13 @@ import numpy as np
 import pytest
 from jax.test_util import check_grads
 
-from galax.nbody._src.backend import Sources, Targets
 from galax.nbody._src.direct import (
     DirectSum,
     direct_sum_accelerations,
     direct_sum_potential,
 )
 from galax.nbody._src.kernels import PlummerKernel
+from galax.nbody._src.particles import Sources, Targets
 
 G = 1.7
 
@@ -182,7 +182,7 @@ def test_runtime_typechecked_grad_policies() -> None:
         import jax.numpy as jnp
         from jaxtyping import install_import_hook
         with install_import_hook("galax.nbody._src", "beartype.beartype"):
-            from galax.nbody._src.backend import Sources, Targets
+            from galax.nbody._src.particles import Sources, Targets
             from galax.nbody._src.direct import DirectSum
         s = Sources(q=jnp.eye(3), m=jnp.ones(3), h=jnp.full(3, 0.1))
         t = Targets(q=s.q, h=s.h, self_index=jnp.arange(3))

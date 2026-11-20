@@ -4,7 +4,6 @@ __all__ = ["AbstractGradPolicy", "Autodiff", "NoGrad", "StopGrad", "as_grad_poli
 
 import abc
 import dataclasses
-import operator
 
 from collections.abc import Callable, Iterable
 from jaxtyping import Array
@@ -98,10 +97,10 @@ class StopGrad(AbstractGradPolicy):
         targets: Targets,
     ) -> Array:
         def stop(obj: _T) -> _T:
-            for name in self.wrt & {f.name for f in dataclasses.fields(obj)}:
-                value = jax.lax.stop_gradient(getattr(obj, name))
-                obj = eqx.tree_at(operator.attrgetter(name), obj, value)
-            return obj
+            names = self.wrt & {f.name for f in dataclasses.fields(obj)}
+            return dataclasses.replace(
+                obj, **{n: jax.lax.stop_gradient(getattr(obj, n)) for n in names}
+            )
 
         return fn(stop(sources), stop(targets))
 

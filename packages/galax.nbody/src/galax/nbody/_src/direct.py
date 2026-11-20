@@ -12,8 +12,9 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
-from .backend import AbstractForceBackend, Sources, Targets
+from .backend import AbstractForceBackend
 from .kernels import AbstractSofteningKernel, PlummerKernel
+from .particles import Sources, Targets
 
 
 def _pair_terms(

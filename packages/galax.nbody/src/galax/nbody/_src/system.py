@@ -1,17 +1,19 @@
 """Named particle components and the flat particle system built from them."""
 
-__all__ = ["Component", "Particles", "System", "system_from_components"]
+__all__ = ["Component", "Particles", "System"]
 
-from collections.abc import Sequence
 from jaxtyping import Array, Bool, Float, Int, Real
 from typing import Any
 
 import equinox as eqx
 import jax.numpy as jnp
 import numpy as np
+from plum import dispatch
 
 import unxt as u
 from unxt.quantity import AllowValue
+
+from .checks import input_oks
 
 AnyReal = Real[Array, "..."] | Real[u.AbstractQuantity, "..."] | float
 
@@ -75,9 +77,91 @@ class System(eqx.Module):
     units: u.AbstractUnitSystem = eqx.field(static=True)
 
     @classmethod
+    @dispatch
+    def from_(cls: "type[System]", *args: Any, **kwargs: Any) -> "System":
+        """Build a `System`, by default with the constructor.
+
+        Registered methods take a `System` (returned as is) and `Component`
+        objects with ``units=`` (see `System.from_components`).
+        """
+        return cls(*args, **kwargs)
+
+    @classmethod
     def from_components(cls, *components: Component, units: Any) -> "System":
-        """Build a system from components, converting to ``units``."""
-        return system_from_components(components, units=units)
+        """Build a system from ``components``, converted to ``units``.
+
+        Massive components are stable-sorted before massless ones. ``id``
+        follows the input order. The checks run on concrete values, so call
+        this outside ``jit``.
+        """
+        usys = u.unitsystem(units)
+        names = [c.name for c in components]
+        if len(set(names)) != len(names):
+            msg = f"duplicate component names in {names}"
+            raise ValueError(msg)
+        sizes = []
+        for c in components:
+            q, p = _strip(c.q, usys["length"]), _strip(c.p, usys["speed"])
+            if q.ndim != 2 or q.shape[1] != 3 or p.shape != q.shape:
+                msg = f"{c.name!r}: q, p shapes {q.shape}, {p.shape}; need (N, 3) both"
+                raise ValueError(msg)
+            n = q.shape[0]
+            m, h = _strip(c.m, usys["mass"]), _strip(c.h, usys["length"])
+            if m.shape not in ((), (n,)) or h.shape not in ((), (n,)):
+                msg = f"{c.name!r}: m, h shapes {m.shape}, {h.shape}; need () or ({n},)"
+                raise ValueError(msg)
+            sizes.append(n)
+        first_id = dict(zip(names, np.cumsum([0, *sizes[:-1]]).tolist(), strict=True))
+        order = sorted(components, key=lambda c: not c.massive)  # stable
+        n_of = dict(zip(names, sizes, strict=True))
+        ns = [n_of[c.name] for c in order]
+
+        def flat(attr: str, unit: str, shape: tuple[int, ...]) -> Array:
+            return jnp.concat(
+                [
+                    jnp.broadcast_to(_strip(getattr(c, attr), usys[unit]), (n, *shape))
+                    for c, n in zip(order, ns, strict=True)
+                ]
+            )
+
+        m, h = flat("m", "mass", ()), flat("h", "length", ())
+        species = np.repeat(np.arange(len(order)), ns)
+        n_massive = sum(n for c, n in zip(order, ns, strict=True) if c.massive)
+        m_ok, tracer_ok, h_ok = input_oks(m, h, n_massive)
+        for ok, what in (
+            (m_ok, "negative or non-finite mass"),
+            (h_ok, "negative or non-finite h"),
+        ):
+            if not np.all(ok):
+                name = order[species[np.argmin(np.asarray(ok))]].name
+                msg = f"component {name!r} has {what}"
+                raise ValueError(msg)
+        if not np.all(tracer_ok):
+            name = order[species[n_massive + np.argmin(np.asarray(tracer_ok))]].name
+            msg = f"component {name!r} is massless but has nonzero m"
+            raise ValueError(msg)
+        ends = np.cumsum(ns).tolist()
+        particles = Particles(
+            q=flat("q", "length", (3,)),
+            p=flat("p", "speed", (3,)),
+            m=m,
+            h=h,
+            species=jnp.asarray(species),
+            id=jnp.concat(
+                [
+                    first_id[c.name] + jnp.arange(n)
+                    for c, n in zip(order, ns, strict=True)
+                ]
+            ),
+            active=jnp.ones(sum(ns), dtype=bool),
+        )
+        return cls(
+            particles=particles,
+            names=tuple(c.name for c in order),
+            slices=tuple((e - n, e) for e, n in zip(ends, ns, strict=True)),
+            n_massive=n_massive,
+            units=usys,
+        )
 
     def split(self, x: Array) -> dict[str, Array]:
         """Split ``x`` along axis 0 into a dict keyed by component name."""
@@ -88,63 +172,22 @@ def _strip(x: Any, unit: Any) -> Array:
     return jnp.asarray(u.ustrip(AllowValue, unit, x), dtype=float)
 
 
-def system_from_components(components: Sequence[Component], *, units: Any) -> System:
-    """Return a `System` from ``components``, converted to ``units``.
+@System.from_.dispatch
+def from_(cls: type[System], system: System, /) -> System:  # noqa: ARG001
+    """Return ``system`` unchanged.
 
-    Massive components are stable-sorted before massless ones. ``id`` follows
-    the input order. The checks run on concrete values, so call this outside
-    ``jit``.
+    >>> import jax.numpy as jnp
+    >>> import galax.nbody as gn
+    >>> z = jnp.zeros((1, 3))
+    >>> c = gn.Component(name="a", q=z, p=z, m=1.0, h=0.0)
+    >>> s = gn.System.from_(c, units="galactic")
+    >>> gn.System.from_(s) is s
+    True
     """
-    usys = u.unitsystem(units)
-    names = [c.name for c in components]
-    if len(set(names)) != len(names):
-        msg = f"duplicate component names in {names}"
-        raise ValueError(msg)
+    return system
 
-    rows = []
-    start = 0
-    for c in components:
-        q = _strip(c.q, usys["length"])
-        p = _strip(c.p, usys["speed"])
-        if q.ndim != 2 or q.shape[1] != 3 or p.shape != q.shape:
-            msg = f"{c.name!r}: q, p shapes {q.shape}, {p.shape}; need (N, 3) both"
-            raise ValueError(msg)
-        n = q.shape[0]
-        m, h = _strip(c.m, usys["mass"]), _strip(c.h, usys["length"])
-        if m.shape not in ((), (n,)) or h.shape not in ((), (n,)):
-            msg = f"{c.name!r}: m, h shapes {m.shape}, {h.shape}; need () or ({n},)"
-            raise ValueError(msg)
-        if not np.all(np.isfinite(m) & (np.asarray(m) >= 0)):
-            msg = f"component {c.name!r} has negative or non-finite mass"
-            raise ValueError(msg)
-        if not np.all(np.isfinite(h) & (np.asarray(h) >= 0)):
-            msg = f"component {c.name!r} has negative or non-finite h"
-            raise ValueError(msg)
-        if not c.massive and np.any(np.asarray(m) != 0):
-            msg = f"component {c.name!r} is massless but has nonzero m"
-            raise ValueError(msg)
-        ids = jnp.arange(start, start + n)
-        rows.append(
-            (c, q, p, jnp.broadcast_to(m, (n,)), jnp.broadcast_to(h, (n,)), ids)
-        )
-        start += n
 
-    rows.sort(key=lambda r: not r[0].massive)  # stable: keeps order within groups
-    sizes = [r[1].shape[0] for r in rows]
-    ends = np.cumsum(sizes).tolist()
-    particles = Particles(
-        q=jnp.concat([r[1] for r in rows]),
-        p=jnp.concat([r[2] for r in rows]),
-        m=jnp.concat([r[3] for r in rows]),
-        h=jnp.concat([r[4] for r in rows]),
-        species=jnp.concat([jnp.full(n, i) for i, n in enumerate(sizes)]),
-        id=jnp.concat([r[5] for r in rows]),
-        active=jnp.ones(start, dtype=bool),
-    )
-    return System(
-        particles=particles,
-        names=tuple(r[0].name for r in rows),
-        slices=tuple((e - n, e) for e, n in zip(ends, sizes, strict=True)),
-        n_massive=sum(n for r, n in zip(rows, sizes, strict=True) if r[0].massive),
-        units=usys,
-    )
+@System.from_.dispatch
+def from_(cls: type[System], *components: Component, units: Any) -> System:
+    """Build a `System` from `Component` objects; see `System.from_components`."""
+    return cls.from_components(*components, units=units)

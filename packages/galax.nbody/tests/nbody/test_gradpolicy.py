@@ -5,9 +5,9 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from galax.nbody._src.backend import Sources, Targets
 from galax.nbody._src.direct import DirectSum
 from galax.nbody._src.gradpolicy import Autodiff, NoGrad, StopGrad, as_grad_policy
+from galax.nbody._src.particles import Sources, Targets
 
 
 def fn(s: Sources, t: Targets):

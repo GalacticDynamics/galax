@@ -10,7 +10,6 @@ from typing import Any, final
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-import numpy as np
 from plum import dispatch
 
 import unxt as u
@@ -18,8 +17,10 @@ from unxt.quantity import AllowValue
 
 import galax.orbits.custom_types as gt
 import galax.potential as gp
-from .backend import AbstractForceBackend, Sources, Targets
+from .backend import AbstractForceBackend
+from .checks import MASS_MSG, SOFT_MSG, check, input_oks, tracer_msg
 from .direct import DirectSum
+from .particles import Sources, Targets
 from .system import System
 from galax.orbits import AbstractOrbitField
 
@@ -31,35 +32,6 @@ _DIRECT = DirectSum()
 # there. True for the built-in potentials in float64; in float32
 # LeeSutoTriaxialNFWPotential overflows. Make it per-potential if that matters.
 _SAFE = 1e10
-_MASS_MSG = "masses must be finite and non-negative"
-_SOFT_MSG = "softening must be finite and non-negative"
-
-
-def _tracer_msg(n_massive: int) -> str:
-    return (
-        f"masses after the first n_massive={n_massive} rows must be zero; "
-        "those rows are massless tracers"
-    )
-
-
-def _input_oks(m: Array, h: Array, n_massive: int) -> tuple[Array, Array, Array]:
-    """Return the per-row masks for valid masses, tracer masses and softening."""
-    # `>= 0` is False for NaN; `isfinite` also rejects +-inf.
-    return jnp.isfinite(m) & (m >= 0), m[n_massive:] == 0, jnp.isfinite(h) & (h >= 0)
-
-
-def _check(x: Array, ok: Array, msg: str) -> Array:
-    """Return ``x``, raising if any of ``ok`` is False.
-
-    A concrete ``ok`` raises `ValueError` now. A traced one is checked at run
-    time by `equinox.error_if`.
-    """
-    if isinstance(ok, jax.core.Tracer):
-        out: Array = eqx.error_if(x, ~jnp.all(ok), msg)
-        return out
-    if not np.all(np.asarray(ok)):
-        raise ValueError(msg)
-    return x
 
 
 @final
@@ -166,20 +138,30 @@ class NBodyField(AbstractOrbitField):
             if not 0 <= n_massive <= n:
                 msg = f"n_massive must be in [0, {n}], got {n_massive}"
                 raise ValueError(msg)
-            m_ok, tracer_ok, h_ok = _input_oks(m, h, n_massive)
+            m_ok, tracer_ok, h_ok = input_oks(m, h, n_massive)
         # `eqx.error_if` must stage outside `ensure_compile_time_eval`, or it
         # reports the wrong message. These traced checks only fire if the
         # array reaches an output; `nbody_acceleration` checks again on its
         # result so a force call always keeps them.
-        m = _check(m, m_ok, _MASS_MSG)
-        m = _check(m, tracer_ok, _tracer_msg(n_massive))
-        h = _check(h, h_ok, _SOFT_MSG)
+        m = check(m, m_ok, MASS_MSG)
+        m = check(m, tracer_ok, tracer_msg(n_massive))
+        h = check(h, h_ok, SOFT_MSG)
         self.masses = m
         self.softening = h
         self.active = a
         self.n_massive = n_massive
         self.external_potential = external_potential
         self.backend = backend
+
+    @classmethod
+    @dispatch
+    def from_(cls: "type[NBodyField]", *args: Any, **kwargs: Any) -> "NBodyField":
+        """Build an `NBodyField`, by default with the constructor.
+
+        Registered methods take an `NBodyField` (returned as is) and a
+        `System` with an external potential (see `NBodyField.from_system`).
+        """
+        return cls(*args, **kwargs)
 
     @classmethod
     def from_system(
@@ -241,6 +223,36 @@ class NBodyField(AbstractOrbitField):
         raise NotImplementedError  # pragma: no cover
 
 
+@NBodyField.from_.dispatch
+def from_(cls: type[NBodyField], field: NBodyField, /) -> NBodyField:  # noqa: ARG001
+    """Return ``field`` unchanged."""
+    return field
+
+
+@NBodyField.from_.dispatch
+def from_(
+    cls: type[NBodyField],
+    system: System,
+    external_potential: gp.AbstractPotential,
+    /,
+    *,
+    backend: AbstractForceBackend = _DIRECT,
+) -> NBodyField:
+    """Build a field from ``system``; see `NBodyField.from_system`.
+
+    >>> import jax.numpy as jnp
+    >>> import galax.nbody as gn
+    >>> import galax.potential as gp
+    >>> z = jnp.zeros((2, 3))
+    >>> c = gn.Component(name="a", q=z, p=z, m=1.0, h=0.1)
+    >>> s = gn.System.from_(c, units="galactic")
+    >>> f = gn.NBodyField.from_(s, gp.NullPotential(units="galactic"))
+    >>> f.masses, gn.NBodyField.from_(f) is f
+    (Array([1., 1.], dtype=float64), True)
+    """
+    return cls.from_system(system, external_potential, backend=backend)
+
+
 def nbody_acceleration(
     field: NBodyField, t: Any, q: Float[Array, "N 3"]
 ) -> Float[Array, "N 3"]:
@@ -281,10 +293,10 @@ def nbody_acceleration(
     a = field._G * backend.accelerations(backend.prepare(sources), targets, G=1.0)  # noqa: SLF001
     a = a - jnp.asarray(gp.gradient(field.external_potential, q, t))
     a = jnp.where(use[:, None], a, jnp.where(field.active[:, None], jnp.nan, 0.0))
-    m_ok, tracer_ok, h_ok = _input_oks(field.masses, field.softening, nm)
-    a = _check(a, m_ok, _MASS_MSG)
-    a = _check(a, tracer_ok, _tracer_msg(nm))
-    return _check(a, h_ok, _SOFT_MSG)
+    m_ok, tracer_ok, h_ok = input_oks(field.masses, field.softening, nm)
+    a = check(a, m_ok, MASS_MSG)
+    a = check(a, tracer_ok, tracer_msg(nm))
+    return check(a, h_ok, SOFT_MSG)
 
 
 @NBodyField.__call__.dispatch

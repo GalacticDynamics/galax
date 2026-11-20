@@ -206,6 +206,10 @@ def test_split_rejects_wrong_row_count() -> None:
 def test_bad_softening_and_policy_inputs_name_the_argument() -> None:
     with pytest.raises(ValueError, match="softening must be a scalar"):
         gn.NBodyField(jnp.ones(2), softening=jnp.ones(3))
+    with pytest.raises(ValueError, match="eps must be a scalar"):
+        gn.NBodyField(jnp.ones(2), eps=jnp.ones(3))
+    with pytest.raises(ValueError, match="wrt must be a subset"):
+        gn.StopGrad(wrt={1, "x"})
     with pytest.raises(ValueError, match="unknown gradient policy"):
         gn.DirectSum(grad=["stop"])
     with pytest.raises(ValueError, match="wrt must be a set of names"):

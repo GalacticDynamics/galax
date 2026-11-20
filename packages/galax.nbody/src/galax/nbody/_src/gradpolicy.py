@@ -89,9 +89,8 @@ class StopGrad(AbstractGradPolicy):
     def __check_init__(self) -> None:
         bad = set(self.wrt) - _FIELDS
         if bad:
-            msg = (
-                f"wrt must be a subset of {sorted(_FIELDS)}, got unknown {sorted(bad)}"
-            )
+            unknown = sorted(bad, key=str)
+            msg = f"wrt must be a subset of {sorted(_FIELDS)}, got unknown {unknown}"
             raise ValueError(msg)
 
     def apply(

@@ -48,12 +48,11 @@ class NBodyField(AbstractOrbitField):
     `jax.jit`. Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
-    is given either as one ``eps`` for all particles or per particle as
-    ``softening``.
+    is given as exactly one of ``eps`` and ``softening``; either may be a
+    scalar for all particles or an (N,) array.
 
     ``masses`` and ``softening`` are stored as plain arrays in the external
-    potential's units. The ``eps`` keyword sets one softening for every
-    particle. Swapping ``external_potential`` with `equinox.tree_at` keeps
+    potential's units. Swapping ``external_potential`` with `equinox.tree_at` keeps
     those numbers and so reinterprets them in the new units. `dataclasses.replace`
     does the same, because it passes the stored plain arrays back in unchanged.
     To change units, build a new field from Quantities.
@@ -128,7 +127,8 @@ class NBodyField(AbstractOrbitField):
                 raise ValueError(msg)
             n = m.shape[0]
             if h.shape not in ((), (n,)):
-                msg = f"softening must be a scalar or have shape ({n},), got {h.shape}"
+                which = "eps" if softening is None else "softening"
+                msg = f"{which} must be a scalar or have shape ({n},), got {h.shape}"
                 raise ValueError(msg)
             h = jnp.broadcast_to(h, (n,))
             a = jnp.ones(n, bool) if active is None else jnp.asarray(active, bool)

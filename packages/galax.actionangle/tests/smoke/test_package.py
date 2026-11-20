@@ -10,6 +10,7 @@ def test_all() -> None:
     """Test the `galax.actionangle` API."""
     assert set(actionangle.__all__) == {
         "ActionsAnglesFrequencies",
+        "harmonic_oscillator_actions_angles_freqs",
         "isochrone_actions_angles_freqs",
         "staeckel_fudge_delta",
     }

@@ -12,7 +12,17 @@ are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
 """
 
-__all__ = ["ZhaoPotential"]
+__all__ = [
+    "ZhaoPotential",
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
+]
 
 import functools as ft
 
@@ -31,6 +41,7 @@ from xmmutablemap import ImmutableMap
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.kernels import spherical_gradient
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -38,6 +49,7 @@ from galax.potential._src.utils import (
     incomplete_beta_zw,
     r_spherical,
     radial_derivatives,
+    safe_vector_norm,
     shell_d2phi_dr2,
     with_r_derivative,
 )
@@ -108,7 +120,7 @@ class ZhaoPotential(AbstractSinglePotential):
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         """Analytic, from the enclosed mass; see `gradient`."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        return gradient(self.params(t), xyz)  # type: ignore[no-any-return]
+        return gradient(self.params(t), xyz)
 
     @ft.partial(jax.jit)
     def _laplacian(self, xyz: gt.BBtQorVSz3, /, t: gt.BBtQorVSz0) -> gt.BBtFloatSz0:
@@ -402,17 +414,8 @@ def laplacian(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return 4.0 * jnp.pi * p["G"] * density(p, r)  # type: ignore[no-any-return]
 
 
-@ft.partial(jax.jit)
-def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
-    r"""Gradient of the potential.
-
-    .. math::
-
-        \nabla\Phi = \frac{d\Phi}{dr} \hat{r} = \frac{G M(r)}{r^2} \hat{r}
-
-    """
-    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+# $\nabla\Phi = \Phi'(r)\,\hat{r}$, exactly zero at the origin.
+gradient = spherical_gradient(dpotential_dr)
 
 
 @ft.partial(jax.jit)
@@ -439,13 +442,18 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
     removes barriers before fusion). Each division by $r$ is kept separate, as
     in `shell_d2phi_dr2`, for float32 in SI units.
     """
-    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    origin = jnp.sum(jnp.square(xyz), axis=-1, keepdims=True) == 0
+    r = safe_vector_norm(xyz)[..., None]
     # `dpotential_dr`, not `mass_enclosed` directly: its custom jvp keeps a
     # derivative of this Hessian off autodiff of the series.
     radial = dpotential_dr(p, r) / r
-    coef_outer = p["G"] * dmass_dr(p, r) / r / r - 3 * radial
+    # At the origin the outer term is dropped; the inner `where` keeps its
+    # radius off 0 so that no inf * 0 = NaN reaches a later gradient.
+    r1 = jnp.where(origin, 1.0, r)
+    coef_outer = p["G"] * dmass_dr(p, r1) / r1 / r1 - 3 * radial
+    coef_outer = jnp.where(origin, 0.0, coef_outer)
 
-    rhat = xyz / r
+    rhat = xyz / r1
     outer = rhat[..., :, None] * rhat[..., None, :]
     eye = jnp.eye(3, dtype=outer.dtype)
     _result = radial[..., None] * eye + coef_outer[..., None] * outer

@@ -4,7 +4,12 @@ __all__ = [
     # class
     "PlummerPotential",
     # functions
+    "d2potential_dr2",
     "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
     "mass_enclosed",
     "potential",
 ]
@@ -26,6 +31,13 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -129,3 +141,11 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     _result = -p["G"] * p["m_tot"] / jnp.sqrt(r**2 + p["r_s"] ** 2)
     return _result  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

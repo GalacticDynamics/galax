@@ -52,15 +52,30 @@ def harmonic_sum(lmax: int, factors: RadialFactors, uvec: gt.BtSz3, /) -> gt.BBt
     for l, m, cY, sY in iter_Ylm(lmax, uvec):
         by_l[l].append((m, cY, sY))
 
-    total = None
+    total: Array | float = 0.0
     for l, ms in enumerate(by_l):
         Cl, Sl = factors(l)
-        if total is None:
-            total = jnp.zeros(jnp.shape(uvec)[:-1], dtype=Cl.dtype)
         for m, cY, sY in ms:
             total = total + Cl[m] * cY + Sl[m] * sY
 
     return total  # type: ignore[return-value]
+
+
+def basis_factors(
+    radial: Float[Array, "nmax+1 lmax+1 *batch"],
+    Snlm: Float[Array, "n l m"],
+    Tnlm: Float[Array, "n l m"],
+    /,
+) -> RadialFactors:
+    """Return the per-``l`` radial factors of a basis expansion, for `harmonic_sum`."""
+
+    def factors(l: int) -> tuple[Array, Array]:
+        # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
+        Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
+        Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
+        return Sl, Tl
+
+    return factors
 
 
 def sum_basis(
@@ -108,14 +123,7 @@ def sum_basis(
     Values agree with the grid form to 3.4e-13 absolute at the largest
     order tested, and the potential is bit-identical at ``lmax = 6``.
     """
-
-    def factors(l: int) -> tuple[Array, Array]:
-        # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
-        Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
-        Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
-        return Sl, Tl
-
-    return harmonic_sum(lmax, factors, uvec)
+    return harmonic_sum(lmax, basis_factors(radial, Snlm, Tnlm), uvec)
 
 
 class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
@@ -140,7 +148,7 @@ class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
     @abc.abstractmethod
     def _harmonic_terms(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[RadialFactors, gt.BtSz3, Array]:
+    ) -> tuple[RadialFactors, gt.BtSz3, Array | float]:
         """``(factors, unit direction, prefactor)`` of the potential at ``xyz``.
 
         ``xyz`` is in the potential's length unit and ``p`` holds the
@@ -203,19 +211,11 @@ class AbstractRadialBasisExpansionPotential(
     @abc.abstractmethod
     def _radial_basis(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[Float[Array, "nmax+1 lmax+1 *batch"], gt.BtSz3, Array]:
+    ) -> tuple[Float[Array, "nmax+1 lmax+1 *batch"], gt.BtSz3, Array | float]:
         """``(u_nl at |xyz|, unit direction, prefactor)``; see `_harmonic_terms`."""
 
     def _harmonic_terms(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[RadialFactors, gt.BtSz3, Array]:
+    ) -> tuple[RadialFactors, gt.BtSz3, Array | float]:
         radial, uvec, prefactor = self._radial_basis(xyz, p)
-        Snlm, Tnlm = p["Snlm"], p["Tnlm"]
-
-        def factors(l: int) -> tuple[Array, Array]:
-            # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
-            Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
-            Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
-            return Sl, Tl
-
-        return factors, uvec, prefactor
+        return basis_factors(radial, p["Snlm"], p["Tnlm"]), uvec, prefactor

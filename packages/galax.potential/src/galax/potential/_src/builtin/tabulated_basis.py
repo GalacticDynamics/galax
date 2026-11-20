@@ -180,11 +180,10 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
 
     def _radial_basis(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[Float[Array, "{nmax}+1 {lmax}+1 *batch"], gt.BtSz3, Array]:
+    ) -> tuple[Float[Array, "{nmax}+1 {lmax}+1 *batch"], gt.BtSz3, Array | float]:
         r, uvec = scaled_radius_and_direction(xyz, jnp.ones((), dtype=xyz.dtype))
         log_r = jnp.log(p["r_knots"])
         # held at the edge values outside the knots
         log_rq = jnp.clip(jnp.log(r), log_r[0], log_r[-1])
         radial = eval_log_spline(log_r, p["u_nl"], p["du_nl"], log_rq)  # (*batch, n, l)
-        radial = jnp.moveaxis(jnp.moveaxis(radial, -1, 0), -1, 0)  # (n, l, *batch)
-        return radial, uvec, jnp.ones((), dtype=radial.dtype)
+        return jnp.moveaxis(radial, (-2, -1), (0, 1)), uvec, 1.0

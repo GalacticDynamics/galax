@@ -253,6 +253,17 @@ def _is_traced(tree: Any) -> bool:
     return any(isinstance(x, jax.core.Tracer) for x in jax.tree.leaves(tree))
 
 
+def _check_system(system: System, q0: Any, units: Any) -> None:
+    """Raise `ValueError` if ``system`` does not match ``q0`` and ``units``."""
+    n_q0 = np.shape(u.ustrip(AllowValue, units["length"], q0))[0]
+    if system.slices[-1][1] != n_q0:
+        msg = f"system has {system.slices[-1][1]} particles but q0 has {n_q0}"
+        raise ValueError(msg)
+    if system.units != units:
+        msg = "system units differ from the field's units; build both in one system"
+        raise ValueError(msg)
+
+
 def evolve(
     field: NBodyField,
     q0: Any,
@@ -319,7 +330,7 @@ def evolve(
     the grid, ``dt`` is subnormal, ``ts`` has more than one time and ``dt`` is
     under 100 float spacings of the largest ``|ts|`` (too small to tell the
     step times apart), or ``system`` has a different number of particles
-    than ``q0``.
+    than ``q0`` or different units from ``field``.
     """
     if not jax.config.read("jax_enable_x64"):  # type: ignore[no-untyped-call]
         msg = (
@@ -352,10 +363,8 @@ def evolve(
         msg = f"the span of ts, {ts_np[0]} to {ts_np[-1]}, overflows float64"
         raise ValueError(msg)
     n_steps = np.diff(_grid_steps(ts_np, float(dt_np)))
-    n_q0 = np.shape(u.ustrip(AllowValue, units["length"], q0))[0]
-    if system is not None and system.slices[-1][1] != n_q0:
-        msg = f"system has {system.slices[-1][1]} particles but q0 has {n_q0}"
-        raise ValueError(msg)
+    if system is not None:
+        _check_system(system, q0, units)
 
     if check_dt and not _is_traced((field, q0, p0)):
         # Inside an outer jit, ops on closed-over constants are still staged,

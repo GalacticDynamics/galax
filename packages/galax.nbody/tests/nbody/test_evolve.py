@@ -912,3 +912,21 @@ def test_single_solve_gradient_matches_one_segment_at_a_time() -> None:
     g_ref = jax.grad(lambda q: jnp.sum(ref(q) ** 2))(q0)
     g_jit = jax.jit(jax.grad(lambda q: jnp.sum(new(q) ** 2)))(q0)
     np.testing.assert_allclose(g_jit, g_ref, rtol=1e-14)
+
+
+def test_system_in_other_units_rejected() -> None:
+    """A ``system`` in other units than the field is rejected, not misread."""
+    stars = gn.Component(name="s", q=jnp.eye(2, 3), p=jnp.zeros((2, 3)), m=1.0, h=0.1)
+    system = gn.System.from_(stars, units="galactic")
+    pot = gp.NullPotential(units="solarsystem")
+    field = gn.NBodyField(masses=jnp.ones(2), eps=0.1, external_potential=pot)
+    with pytest.raises(ValueError, match="system units differ"):
+        gn.evolve(
+            field,
+            system.particles.q,
+            system.particles.p,
+            [0.0, 0.1],
+            dt=0.01,
+            system=system,
+            check_dt=False,
+        )

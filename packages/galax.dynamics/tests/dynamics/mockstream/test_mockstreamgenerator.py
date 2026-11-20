@@ -21,6 +21,9 @@ import galax.dynamics as gd
 import galax.dynamics.custom_types as gt
 import galax.fields as gf
 import galax.potential as gp
+from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
+    _ProgenitorField,
+)
 
 
 class MockStreamGeneratorBase_Test(metaclass=ABCMeta):
@@ -197,26 +200,40 @@ class TestChenMockStreamGenerator(MockStreamGeneratorBase_Test):
         return gd.ChenStreamDF()
 
 
-def test_integrate_to_solves_each_particle_on_its_own() -> None:
+@pytest.mark.parametrize("with_progenitor", [False, True], ids=["host", "progenitor"])
+def test_integrate_to_solves_each_particle_on_its_own(with_progenitor: bool) -> None:
     """With an adaptive solver, each arm keeps its own step sizes.
 
     A leading and a trailing particle on very different orbits, integrated
     together by `MockStreamGenerator._integrate_to`, each equal a solve of that
     particle alone. One solve of both would share a step size and miss this.
+    With a progenitor potential each particle is solved with its own copy of
+    the progenitor, so the solo solve is of the pair [particle, progenitor].
     """
     pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
-    gen = gd.MockStreamGenerator(gd.FardalStreamDF(), pot)
+    prog = gp.PlummerPotential(m_tot=1e6, r_s=0.004, units="galactic")
+    gen = gd.MockStreamGenerator(
+        gd.FardalStreamDF(), pot, progenitor_potential=prog if with_progenitor else None
+    )
     w0 = jnp.array(
         [[30.0, 10.0, 20.0, 0.01, -0.15, -0.02], [2.0, 0.0, 0.5, 0.0, 0.3, 0.05]]
     )
+    # 50 pc from the leading particle, so its pull changes that orbit.
+    prog_w0 = (
+        jnp.array([30.05, 10.0, 20.0, 0.01, -0.15, -0.02]) if with_progenitor else None
+    )
     t0, t1 = u.Q(0.0, "Myr"), u.Q(300.0, "Myr")
-    got = gen._integrate_to(w0, t0, t1)
+    got = gen._integrate_to(w0, t0, t1, prog_w0)
 
-    field = gd.fields.HamiltonianField(pot)
+    field: gd.fields.AbstractOrbitField
+    if prog_w0 is None:
+        field = gd.fields.HamiltonianField(pot)
+    else:
+        field = _ProgenitorField(pot, prog)
     for i in range(2):
-        want = gen.stream_integrator(field, w0[i], t0, t1, saveat=jnp.asarray([t1])).w(
-            units=pot.units
-        )[-1]
+        y0 = w0[i] if prog_w0 is None else jnp.stack([w0[i], prog_w0])
+        out = gen.stream_integrator(field, y0, t0, t1, saveat=jnp.asarray([t1]))
+        want = out.w(units=pot.units).reshape(-1, 6)[0]
         # Here ~1e-12 of the scale; one solve of both particles is off by > 7e-9.
         assert jnp.max(jnp.abs(got[i] - want)) < 1e-10 * jnp.max(jnp.abs(want))
 

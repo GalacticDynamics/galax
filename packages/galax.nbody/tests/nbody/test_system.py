@@ -161,3 +161,16 @@ def test_from_dispatches_and_explains_bad_input() -> None:
     assert gn.NBodyField.from_(f) is f
     with pytest.raises(TypeError, match="pass the external potential"):
         gn.NBodyField.from_(s)
+
+
+def test_from_rejects_non_components_and_checks_empty_ones() -> None:
+    c = _comp("a", 2)
+    with pytest.raises(TypeError, match="takes Component objects"):
+        gn.System.from_([c, 1], units="galactic")
+    s = gn.System.from_(c, units="galactic")
+    kw = {f: getattr(s, f) for f in ("particles", "names", "slices", "n_massive")}
+    assert gn.System.from_(**kw, units=s.units).names == ("a",)
+    z = jnp.zeros((0, 3))
+    empty = gn.Component(name="e", q=z, p=z, m=-1.0, h=0.0)
+    with pytest.raises(ValueError, match="'e' has negative"):
+        gn.System.from_components(c, empty, units="galactic")

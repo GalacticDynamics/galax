@@ -88,8 +88,9 @@ class System(eqx.Module):
     def from_(cls: "type[System]", *args: Any, **kwargs: Any) -> "System":
         """Build a `System`, by default with the constructor.
 
-        Registered methods take a `System` (returned as is) and `Component`
-        objects with ``units=`` (see `System.from_components`).
+        Registered methods take a `System` (returned as is), and one or more
+        `Component` objects, or a list or tuple of them, with ``units=`` (see
+        `System.from_components`).
         """
         return cls(*args, **kwargs)
 
@@ -120,6 +121,18 @@ class System(eqx.Module):
             if m.shape not in ((), (n,)) or h.shape not in ((), (n,)):
                 msg = f"{c.name!r}: m, h shapes {m.shape}, {h.shape}; need () or ({n},)"
                 raise ValueError(msg)
+            # Checked on the component's own values, so a scalar on an empty
+            # component is still checked.
+            m_ok, _, h_ok = input_oks(jnp.atleast_1d(m), jnp.atleast_1d(h), 0)
+            if not np.all(m_ok):
+                msg = f"component {c.name!r} has negative or non-finite mass"
+                raise ValueError(msg)
+            if not np.all(h_ok):
+                msg = f"component {c.name!r} has negative or non-finite h"
+                raise ValueError(msg)
+            if c.kind == "tracer" and np.any(np.asarray(m) != 0):
+                msg = f"component {c.name!r} is a tracer but has nonzero m"
+                raise ValueError(msg)
             sizes.append(n)
         first_id = dict(zip(names, np.cumsum([0, *sizes[:-1]]).tolist(), strict=True))
         order = sorted(components, key=lambda c: c.kind == "tracer")  # stable
@@ -134,30 +147,15 @@ class System(eqx.Module):
                 ]
             )
 
-        m, h = flat("m", "mass", ()), flat("h", "length", ())
-        which = np.repeat(np.arange(len(order)), ns)  # component of each row
         n_massive = sum(
             n for c, n in zip(order, ns, strict=True) if c.kind == "massive"
         )
-        m_ok, tracer_ok, h_ok = input_oks(m, h, n_massive)
-        for ok, what in (
-            (m_ok, "negative or non-finite mass"),
-            (h_ok, "negative or non-finite h"),
-        ):
-            if not np.all(ok):
-                name = order[which[np.argmin(np.asarray(ok))]].name
-                msg = f"component {name!r} has {what}"
-                raise ValueError(msg)
-        if not np.all(tracer_ok):
-            name = order[which[n_massive + np.argmin(np.asarray(tracer_ok))]].name
-            msg = f"component {name!r} is a tracer but has nonzero m"
-            raise ValueError(msg)
         ends = np.cumsum(ns).tolist()
         particles = Particles(
             q=flat("q", "length", (3,)),
             p=flat("p", "speed", (3,)),
-            m=m,
-            h=h,
+            m=flat("m", "mass", ()),
+            h=flat("h", "length", ()),
             id=jnp.concat(
                 [
                     first_id[c.name] + jnp.arange(n)
@@ -198,18 +196,24 @@ def from_(cls: type[System], system: System, /) -> System:  # noqa: ARG001
 
 
 @System.from_.dispatch
-def from_(cls: type[System], *components: Component, units: Any) -> System:
+def from_(
+    cls: type[System], component: Component, /, *components: Component, units: Any
+) -> System:
     """Build a `System` from `Component` objects; see `System.from_components`."""
-    return cls.from_components(*components, units=units)
+    return cls.from_components(component, *components, units=units)
 
 
 @System.from_.dispatch
 def from_(
     cls: type[System],
-    components: list[Component] | tuple[Component, ...],
+    components: list[Any] | tuple[Any, ...],
     /,
     *,
     units: Any,
 ) -> System:
     """Build a `System` from a list or tuple of `Component` objects."""
+    bad = [type(c).__name__ for c in components if not isinstance(c, Component)]
+    if bad:
+        msg = f"System.from_ takes Component objects, got {bad}"
+        raise TypeError(msg)
     return cls.from_components(*components, units=units)

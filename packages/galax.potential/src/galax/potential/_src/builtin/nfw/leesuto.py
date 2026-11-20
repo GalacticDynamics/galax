@@ -48,14 +48,131 @@ LOG2: Final = math.log(2.0)
 
 @final
 class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
-    """Approximate triaxial (in the density) NFW potential.
+    r"""Lee-Suto triaxial NFW potential.
 
-    Approximation of a Triaxial NFW Potential with the flattening in the
-    density, not the potential. See Lee & Suto (2003) for details.
+    An analytic approximation to the potential of an NFW halo whose iso-density
+    surfaces are concentric, coaxial ellipsoids [LeeSuto2003]_. The flattening is
+    in the density and not in the potential: the equipotentials are rounder than
+    the iso-density ellipsoids. The potential is the first-order expansion in
+    the squared eccentricities of the exact potential of the triaxial density,
+    so it is accurate for moderate flattening and is built from the same
+    elementary functions as the NFW potential. The parameter ``m`` sets the
+    overall mass scale, ``r_s`` is the scale radius, and ``a1``, ``a2`` and
+    ``a3`` are the lengths of the major, intermediate and minor axes of the
+    ellipsoids, of which only the ratios matter. The inner density slope is
+    :math:`-1` and the outer slope is :math:`-3`, as for the NFW profile, and the
+    total mass is infinite.
 
     .. warning::
 
         This potential is only physical for `a1 >= a2 >= a3`.
+
+    The density that the potential approximates is the triaxial NFW profile of
+    [LeeSuto2003]_ and [JingSuto2002LS]_, with the NFW profile of
+    [NFW1997LeeSuto]_ evaluated at the ellipsoidal radius :math:`R`,
+
+    .. math::
+
+        \rho_{\mathrm{tri}}(\mathbf{x}) = \frac{\rho_s}{(R / r_s)(1 + R / r_s)^2},
+        \qquad
+        R^2 = a_1^2 \left(\frac{x^2}{a_1^2} + \frac{y^2}{a_2^2}
+            + \frac{z^2}{a_3^2}\right).
+
+    With the squared eccentricities :math:`e_b^2 = 1 - (a_2 / a_1)^2` and
+    :math:`e_c^2 = 1 - (a_3 / a_1)^2` and the scaled radius :math:`s = r / r_s`
+    with :math:`r^2 = x^2 + y^2 + z^2`, the potential is
+
+    .. math::
+
+        \Phi(\mathbf{x}) = \Phi_0 \left[ F_1(s)
+            + \frac{e_b^2 + e_c^2}{2} F_2(s)
+            + \frac{e_b^2 y^2 + e_c^2 z^2}{2 r^2} F_3(s) \right],
+
+    where
+
+    .. math::
+
+        F_1(s) &= -\frac{\ln(1 + s)}{s}, \\
+        F_2(s) &= -\frac{1}{3} + \frac{2 s^2 - 3 s + 6}{6 s^2}
+            + \left(\frac{1}{s} - \frac{1}{s^3}\right) \ln(1 + s), \\
+        F_3(s) &= \frac{s^2 - 3 s - 6}{2 s^2 (1 + s)} + \frac{3 \ln(1 + s)}{s^3}.
+
+    The functions :math:`F_1`, :math:`F_2` and :math:`F_3` are those of
+    [LeeSuto2003]_ (their eqs. 20-22 with inner slope :math:`\alpha = 1`,
+    written out in their eqs. A1-A3), and :math:`F_1` is the NFW potential in
+    units of :math:`4 \pi G \rho_s r_s^2`. In polar angles the angular factor is
+    :math:`(e_b^2 \sin^2\theta \sin^2\phi + e_c^2 \cos^2\theta) / 2`. The
+    amplitude is
+
+    .. math::
+
+        \Phi_0 = 4 \pi G \rho_s r_s^2 = \frac{G m / r_s}
+            {\ln 2 - \tfrac{1}{2} + (\ln 2 - \tfrac{3}{4})(e_b^2 + e_c^2)},
+
+    where :math:`G` is the gravitational constant. This fixes ``m`` through the
+    circular velocity on the major axis at the scale radius,
+    :math:`v_c^2(r_s) = x \, \partial_x \Phi |_{x = r_s} = G m / r_s`, and gives
+    the scale density :math:`\rho_s = \Phi_0 / (4 \pi G r_s^2)`. At the centre
+    :math:`F_1(0) = -1`, :math:`F_2(0) = 2/3` and :math:`F_3(0) = 0`, so
+    :math:`\Phi(0) = -\Phi_0 \left[1 - (e_b^2 + e_c^2) / 3\right]`.
+
+    The density of this class is :math:`\rho = \nabla^2 \Phi / (4 \pi G)`. As the
+    potential is linear in :math:`e_b^2` and :math:`e_c^2`, it is the first-order
+    expansion of :math:`\rho_{\mathrm{tri}}` in the squared eccentricities,
+
+    .. math::
+
+        \rho(\mathbf{x}) = \frac{\rho_s}{s (1 + s)^2}
+            \left[ 1 - \frac{e_b^2 y^2 + e_c^2 z^2}{2 r^2}
+                \frac{1 + 3 s}{1 + s} \right].
+
+    Notes
+    -----
+    For :math:`a_1 = a_2 = a_3` the model is the spherical NFW halo with
+    characteristic mass :math:`m / (\ln 2 - 1/2)`, whose enclosed mass is
+    :math:`M(<r) = m \left[\ln(1 + s) - s / (1 + s)\right] / (\ln 2 - 1/2)`. In
+    that case ``m`` is the mass inside :math:`r_s`, which differs from the ``m`` of
+    :class:`~galax.potential.NFWPotential` (the characteristic mass
+    :math:`4 \pi \rho_s r_s^3`).
+
+    The potential is the first-order expansion of [LeeSuto2003]_, so it departs
+    from the potential obtained by integrating the density
+    :math:`\rho_{\mathrm{tri}}` numerically, with the same :math:`\rho_s`, at
+    second order in the squared eccentricities. At :math:`r = 5` kpc, for
+    :math:`r_s = 15` kpc, a numerical comparison gives differences of 0.4, 2 and
+    10 per cent for axis ratios :math:`(a_1, a_2, a_3) = (1, 0.95, 0.9)`,
+    :math:`(1, 0.9, 0.8)` and :math:`(1, 0.8, 0.6)`. The density of this class is
+    not the triaxial NFW density, and it becomes negative far out along the minor
+    axis when :math:`e_c^2 > 2/3` (and along the intermediate axis when
+    :math:`e_b^2 > 2/3`). The mass inside an ellipsoid has no simple closed form,
+    and neither do the circular velocity away from the major axis and the escape
+    velocity. The module function ``density`` evaluates the Laplacian of the
+    potential by automatic differentiation and agrees with the expression above
+    to rounding error. The functions :math:`F_2` and :math:`F_3` are evaluated in
+    forms that avoid cancellation at small and large :math:`s` (see the private
+    helpers of the module). The implementation follows the one in ``gala``.
+
+    References
+    ----------
+    .. [LeeSuto2003] Lee, J., & Suto, Y. (2003). Modeling Intracluster Gas in
+       Triaxial Dark Halos: An Analytic Approach. The Astrophysical Journal,
+       585, 151-160.
+       `ADS <https://ui.adsabs.harvard.edu/abs/2003ApJ...585..151L>`__;
+       `doi:10.1086/345931 <https://doi.org/10.1086/345931>`__;
+       `arXiv:astro-ph/0211007 <https://arxiv.org/abs/astro-ph/0211007>`__.
+       The potential is their eq. 19 with the functions of their appendix A.
+
+    .. [JingSuto2002LS] Jing, Y. P., & Suto, Y. (2002). Triaxial Modeling of Halo
+       Density Profiles with High-Resolution N-Body Simulations. The
+       Astrophysical Journal, 574, 538-553.
+       `doi:10.1086/341065 <https://doi.org/10.1086/341065>`__;
+       `arXiv:astro-ph/0202064 <https://arxiv.org/abs/astro-ph/0202064>`__.
+
+    .. [NFW1997LeeSuto] Navarro, J. F., Frenk, C. S., & White, S. D. M. (1997). A
+       Universal Density Profile from Hierarchical Clustering. The
+       Astrophysical Journal, 490, 493-508.
+       `doi:10.1086/304888 <https://doi.org/10.1086/304888>`__;
+       `arXiv:astro-ph/9611107 <https://arxiv.org/abs/astro-ph/9611107>`__.
 
     Examples
     --------
@@ -146,7 +263,23 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
 
 @ft.partial(jax.jit)
 def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BtFloatSz0:
-    r"""Specific potential energy."""
+    r"""Specific potential energy of the Lee & Suto triaxial NFW halo.
+
+    .. math::
+
+        \Phi = \Phi_0 \left[ F_1(s)
+            + \frac{e_b^2 + e_c^2}{2} F_2(s)
+            + \frac{e_b^2 y^2 + e_c^2 z^2}{2 r^2} F_3(s) \right],
+        \qquad
+        \Phi_0 = \frac{G m / r_s}
+            {\ln 2 - \tfrac{1}{2} + (\ln 2 - \tfrac{3}{4})(e_b^2 + e_c^2)},
+
+    with :math:`s = r / r_s`, :math:`e_b^2 = 1 - (a_2 / a_1)^2`,
+    :math:`e_c^2 = 1 - (a_3 / a_1)^2` and the functions :math:`F_1`, :math:`F_2`
+    and :math:`F_3` of Lee & Suto (2003), eq. 19 and appendix A. See
+    :class:`LeeSutoTriaxialNFWPotential` for the definitions.
+
+    """
     # Compute parameters
     # https://github.com/adrn/gala/blob/2067009de41518a71c674d0252bc74a7b2d78a36/gala/potential/potential/builtin/builtin_potentials.c#L1472
 

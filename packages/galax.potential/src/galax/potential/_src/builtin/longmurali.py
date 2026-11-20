@@ -38,21 +38,95 @@ from galax.potential._src.utils import with_r_derivative
 
 @final
 class LongMuraliBarPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Long & Murali Bar Potential.
+    r"""Long & Murali bar potential.
 
-    Long, K., & Murali, C. 1992, ApJ, 397, 44.
-    https://ui.adsabs.harvard.edu/abs/1992ApJ...397...44L
+    The Long & Murali model describes a triaxial bar of finite total mass. It is
+    built by smoothing a thin uniform "needle" of length :math:`2a` along the
+    bar axis with the Miyamoto-Nagai density, so that the potential is an
+    elementary function and the density is positive everywhere
+    [LongMurali1992]_. The bar lies in the :math:`x`-:math:`y` plane with its long
+    axis at the position angle ``alpha`` from the :math:`x` axis, and is
+    symmetric about the planes :math:`x' = 0`, :math:`y' = 0` and :math:`z = 0`,
+    where :math:`x'` and :math:`y'` are the coordinates in the frame of the bar.
+    The parameter ``m_tot`` is the total mass, ``a`` the half-length of the
+    needle, ``b`` the softening length in the plane perpendicular to the bar axis
+    and ``c`` the vertical softening length. The ratio ``c / b`` sets the
+    thickness of the bar. The model does not rotate: the bar angle is fixed in
+    time.
 
-    A simple, triaxial model for a galaxy bar. This is a softened “needle”
-    density distribution with an analytic potential form. See Long & Murali
-    (1992) for details.
+    The potential is
 
-    The corresponding density (:func:`density`) is obtained by applying
-    Poisson's equation directly to the potential formula below; because of
-    the finite bar length, this expression is algebraically messy (it was
-    derived with a computer algebra system rather than transcribed from a
-    textbook), but it is exact and verified against the finite-difference /
-    autodiff Hessian of the potential.
+    .. math::
+
+        \Phi = \frac{G m_{\mathrm{tot}}}{2a}
+            \ln\frac{x' - a + T_-}{x' + a + T_+},
+
+    where
+
+    .. math::
+
+        x' &= x \cos\alpha + y \sin\alpha, \qquad
+        y' = -x \sin\alpha + y \cos\alpha, \\
+        \zeta &= \sqrt{c^2 + z^2}, \qquad
+        \eta^2 = y'^2 + (b + \zeta)^2, \qquad
+        T_\pm = \sqrt{(a \pm x')^2 + \eta^2},
+
+    and :math:`G` is the gravitational constant. This is the convolution of the
+    needle with the Miyamoto-Nagai potential of scales :math:`(b, c)`,
+
+    .. math::
+
+        \Phi = -\frac{G m_{\mathrm{tot}}}{2a} \int_{-a}^{a}
+            \frac{\mathrm{d}s}{\sqrt{(x' - s)^2 + \eta^2}}.
+
+    The density is the same convolution of the Miyamoto-Nagai density,
+
+    .. math::
+
+        \rho = \frac{m_{\mathrm{tot}}}{2a} \int_{-a}^{a}
+            \frac{c^2}{4\pi}
+            \frac{b \left[(x' - s)^2 + y'^2\right] + (b + 3\zeta)(b + \zeta)^2}
+                 {\left[(x' - s)^2 + \eta^2\right]^{5/2} \zeta^3} \, \mathrm{d}s,
+
+    and it integrates to the total mass :math:`m_{\mathrm{tot}}`. The gradient
+    of the potential in the frame of the bar is
+
+    .. math::
+
+        \frac{\partial\Phi}{\partial x'} &=
+            \frac{2 G m_{\mathrm{tot}} x'}{T_+ T_- (T_+ + T_-)}, \\
+        \frac{\partial\Phi}{\partial y'} &=
+            \frac{G m_{\mathrm{tot}} y'}{2 \eta^2 T_+ T_-}
+            \left(T_+ + T_- - \frac{4 x'^2}{T_+ + T_-}\right), \\
+        \frac{\partial\Phi}{\partial z} &=
+            \frac{G m_{\mathrm{tot}} (b + \zeta) z}{2 \eta^2 \zeta T_+ T_-}
+            \left(T_+ + T_- - \frac{4 x'^2}{T_+ + T_-}\right).
+
+    Notes
+    -----
+    The potential is even in :math:`x'`. The code uses :math:`|x'|`, and it
+    evaluates the logarithm and the gradient in rearranged forms that avoid
+    cancellation near the centre and far from the bar. Far from the bar the
+    potential tends to :math:`-G m_{\mathrm{tot}} / r`. For
+    :math:`a \to 0` the needle shrinks to a point and the model becomes the
+    Miyamoto-Nagai potential with scale length ``b`` and scale height ``c``
+    (see :class:`~galax.potential.MiyamotoNagaiPotential`).
+
+    The density function has no short closed form. It is Poisson's equation,
+    :math:`\rho = \nabla^2 \Phi / (4 \pi G)`, applied to the potential with a
+    computer algebra system, and the module function evaluates the resulting long
+    expression in terms of common sub-expressions. It agrees with the
+    convolution integral above. The enclosed mass, the circular velocity and the
+    escape velocity have no simple closed form for this triaxial model.
+
+    References
+    ----------
+    .. [LongMurali1992] Long, K., & Murali, C. (1992). Analytical Potentials for
+       Barred Galaxies. The Astrophysical Journal, 397, 44-48.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1992ApJ...397...44L>`__;
+       `doi:10.1086/171764 <https://doi.org/10.1086/171764>`__.
+       The potential is their eq. 8b, the needle integral their eq. 8a and the
+       forces their eqs. 9a-9c.
 
     """
 
@@ -93,10 +167,13 @@ class LongMuraliBarPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 
 
 def _bar_terms(p: gt.Params, xyz: gt.Sz3, /) -> tuple[gt.Sz0, ...]:
-    r"""Bar-frame $x'$, $y'$, $\zeta = \sqrt{c^2+z^2}$, $\eta$ and $T_\pm$.
+    r"""Bar-frame coordinates and the auxiliary quantities of the potential.
 
-    $\eta^2 = y'^2 + (b + \zeta)^2$ and $T_\pm = \sqrt{(a \pm |x'|)^2 + \eta^2}$;
-    everything below is even in $x'$, so it is written for $|x'|$.
+    The bar-frame coordinates are :math:`x'` and :math:`y'`, and the auxiliary
+    quantities are :math:`\zeta = \sqrt{c^2+z^2}`,
+    :math:`\eta^2 = y'^2 + (b + \zeta)^2` and
+    :math:`T_\pm = \sqrt{(a \pm |x'|)^2 + \eta^2}`. Everything below is even in
+    :math:`x'`, so it is written for :math:`|x'|`.
     """
     alpha, a, b, c = p["alpha"], p["a"], p["b"], p["c"]
     x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
@@ -113,8 +190,8 @@ def _bar_terms(p: gt.Params, xyz: gt.Sz3, /) -> tuple[gt.Sz0, ...]:
 def _gradient_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz3:
     r"""Gradient, in forms that do not cancel.
 
-    With $\Phi = -\frac{GM}{2a}\left[\sinh^{-1}\frac{a+x'}{\eta}
-    + \sinh^{-1}\frac{a-x'}{\eta}\right]$ (the log form, rationalized),
+    With :math:`\Phi = -\frac{GM}{2a}\left[\sinh^{-1}\frac{a+x'}{\eta}
+    + \sinh^{-1}\frac{a-x'}{\eta}\right]` (the log form, rationalized),
 
     .. math::
 
@@ -124,10 +201,10 @@ def _gradient_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz3:
             = \frac{G M}{2\eta^2}
               \frac{(T_- + T_+)^2 - 4x'^2}{(T_- + T_+) T_+ T_-},
 
-    where autodiff of the log takes differences of $\sim 1/r$ terms that
-    cancel to $\sim a/r^2$ far out, and to $\sim |x|/a^2$ at the centre.
-    $(T_-+T_+)^2 - 4x'^2 = (T_-+T_+-2|x'|)(T_-+T_++2|x'|)$, with
-    $T_- + T_+ - 2|x'| = \eta^2/(T_+ + |x'| + a) + (T_- - |x'| + a)$ and the
+    where autodiff of the log takes differences of :math:`\sim 1/r` terms that
+    cancel to :math:`\sim a/r^2` far out, and to :math:`\sim |x|/a^2` at the centre.
+    :math:`(T_-+T_+)^2 - 4x'^2 = (T_-+T_+-2|x'|)(T_-+T_++2|x'|)`, with
+    :math:`T_- + T_+ - 2|x'| = \eta^2/(T_+ + |x'| + a) + (T_- - |x'| + a)` and the
     last term rationalized like the potential's numerator.
     """
     alpha, a, b = p["alpha"], p["a"], p["b"]
@@ -174,12 +251,18 @@ def _potential_impl(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
 
 @ft.partial(jax.jit)
 def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
-    r"""Specific potential energy.
+    r"""Specific potential energy of the Long & Murali bar (eq. 8b).
 
     .. math::
 
-        \Phi = \frac{G M}{2a}
-            \ln\frac{x' - a + T_-}{x' + a + T_+}
+        \Phi = \frac{G m_{\mathrm{tot}}}{2a}
+            \ln\frac{x' - a + T_-}{x' + a + T_+},
+
+    with :math:`x' = x \cos\alpha + y \sin\alpha`,
+    :math:`y' = -x \sin\alpha + y \cos\alpha`,
+    :math:`\zeta = \sqrt{c^2 + z^2}`,
+    :math:`\eta^2 = y'^2 + (b + \zeta)^2` and
+    :math:`T_\pm = \sqrt{(a \pm x')^2 + \eta^2}`.
 
     Evaluated in forms that do not cancel (`_potential_impl`), with a
     `jax.custom_jvp` whose position derivative is the analytic gradient
@@ -197,11 +280,23 @@ _potential_jvp = with_r_derivative(
 def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
     r"""Density for the Long & Murali (1992) bar potential.
 
-    Obtained by applying Poisson's equation, :math:`\nabla^2\Phi = 4\pi G
-    \rho`, to :func:`potential` with a computer algebra system (the
-    intermediate quantities below are its common sub-expressions, not
-    individually meaningful); verified numerically against the
-    finite-difference Hessian of :func:`potential`.
+    The convolution of the needle with the Miyamoto-Nagai density of scales
+    :math:`(b, c)`,
+
+    .. math::
+
+        \rho = \frac{m_{\mathrm{tot}}}{2a} \int_{-a}^{a}
+            \frac{c^2}{4\pi}
+            \frac{b \left[(x' - s)^2 + y'^2\right] + (b + 3\zeta)(b + \zeta)^2}
+                 {\left[(x' - s)^2 + \eta^2\right]^{5/2} \zeta^3} \, \mathrm{d}s,
+
+    with :math:`x'`, :math:`y'`, :math:`\zeta` and :math:`\eta` as in
+    :func:`potential`. Equivalently, it is Poisson's equation,
+    :math:`\nabla^2\Phi = 4\pi G \rho`, applied to :func:`potential` with a
+    computer algebra system (the intermediate quantities below are its common
+    sub-expressions, not individually meaningful). It has been checked against
+    the convolution integral and against the finite-difference Hessian of
+    :func:`potential`.
     """
     alpha = p["alpha"]
     a, b, c, G, m_tot = p["a"], p["b"], p["c"], p["G"], p["m_tot"]

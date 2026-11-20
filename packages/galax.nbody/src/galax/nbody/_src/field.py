@@ -240,8 +240,8 @@ def from_(
     cls: type[NBodyField],
     system: System,
     external_potential: gp.AbstractPotential,
-    backend: AbstractForceBackend = _DIRECT,
     /,
+    backend: AbstractForceBackend = _DIRECT,
 ) -> NBodyField:
     """Build a field from ``system``; see `NBodyField.from_system`.
 

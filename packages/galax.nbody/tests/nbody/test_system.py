@@ -156,6 +156,8 @@ def test_from_dispatches_and_explains_bad_input() -> None:
     pot = gp.NullPotential(units="galactic")
     f = gn.NBodyField.from_(s, pot, gn.DirectSum(chunk_size=1))
     assert f.backend.chunk_size == 1
+    f2 = gn.NBodyField.from_(s, pot, backend=gn.DirectSum(chunk_size=2))
+    assert f2.backend.chunk_size == 2
     assert gn.NBodyField.from_(f) is f
     with pytest.raises(TypeError, match="pass the external potential"):
         gn.NBodyField.from_(s)

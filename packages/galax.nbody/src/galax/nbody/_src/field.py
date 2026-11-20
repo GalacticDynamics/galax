@@ -40,12 +40,13 @@ class NBodyField(AbstractOrbitField):
 
     The first ``n_massive`` particles are sources. The rest are massless
     tracers that feel the sources but exert nothing. Masses after the first
-    ``n_massive`` rows must be zero. Concrete inputs are checked when the
-    field is built and raise `ValueError`. Traced inputs are checked at run
-    time with `equinox.error_if`, each time the acceleration is computed. The
-    exception type depends on how JAX runs the call: `equinox.EquinoxRuntimeError`
-    when not jitted, and `jax.errors.JaxRuntimeError` or `ValueError` under
-    `jax.jit`. Inactive
+    ``n_massive`` rows must be zero. Inputs whose values are known when the
+    field is built are checked then and raise `ValueError`. Traced inputs are
+    checked with `equinox.error_if` each time the acceleration is computed and
+    raise when it runs, with the same message. The exception class then
+    depends on how JAX runs the call (for example
+    `equinox.EquinoxRuntimeError` under `jax.vmap`, or
+    `jax.errors.JaxRuntimeError` under `jax.jit`). Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
     is given as exactly one of ``eps`` and ``softening``; either may be a

@@ -4,8 +4,14 @@ __all__ = [
     # class
     "JaffePotential",
     # functions
-    "potential",
+    "d2potential_dr2",
     "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
 ]
 
 import functools as ft
@@ -20,6 +26,14 @@ import galax.potential.custom_types as gt
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    mass_from_dpotential,
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -90,3 +104,12 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     _result = p["m_tot"] * p["r_s"] / (4 * jnp.pi * r**2 * (r + p["r_s"]) ** 2)
     return _result  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+mass_enclosed = mass_from_dpotential(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

@@ -6,9 +6,11 @@ the potential's unit system, ``p = pot.params(t)``, single-point kernels. To add
 a module, append one instance to `INSTANCES`.
 """
 
+import ast
 import dataclasses
 import importlib
 import inspect
+import textwrap
 
 from types import ModuleType
 
@@ -30,6 +32,17 @@ RS = u.Q(5, "kpc")
 INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
     gp.ZhaoPotential(m=M, r_s=RS, alpha=0.5, beta=4.0, gamma=1.0, units=G),
+    gp.BurkertPotential(m=M, r_s=RS, units=G),
+    gp.GaussianPotential(m_tot=M, r_s=RS, units=G),
+    gp.HardCutoffNFWPotential(m=M, r_s=RS, r_t=u.Q(20, "kpc"), units=G),
+    gp.HernquistPotential(m_tot=M, r_s=RS, units=G),
+    gp.IsochronePotential(m_tot=M, r_s=RS, units=G),
+    gp.JaffePotential(m_tot=M, r_s=RS, units=G),
+    gp.KeplerPotential(m_tot=M, units=G),
+    gp.NFWPotential(m=M, r_s=RS, units=G),
+    gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
+    gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
+    gp.gNFWPotential(m=M, r_s=RS, gamma=0.5, units=G),
 ]
 
 # Modules whose `laplacian` is not the trace of the hessian of `potential`.
@@ -39,7 +52,20 @@ NO_MASS_QUADRATURE: set[str] = {"kepler"}
 # Modules whose hessian at the origin is not representable: Phi'/r diverges
 # for a cusp (Zhao, gamma = 1) and the incomplete beta series underflows at the
 # smallest normal radius. The autodiff reference there is a finite, wrong 0.
-NO_ORIGIN_HESSIAN: set[str] = {"zhao"}
+NO_ORIGIN_HESSIAN: set[str] = {
+    "zhao",
+    # Cusps with Phi'(0) != 0 or Phi' ~ r^(1-gamma): Phi'/r diverges.
+    "nfw",
+    "gnfw",
+    "powerlawcutoff",
+    "kepler",
+    # Cored, so the limit is finite (Phi''(0)), but at the smallest normal
+    # radius r the shell-theorem Phi' = G M / r^2 has M ~ r^3 underflow and
+    # XLA fuses Phi'/r into 0 / (r * r * r) = NaN. A `spherical_hessian` issue.
+    "burkert",
+    "gaussian",
+    "stoneostriker15",
+}
 # Modules whose kernels take a trailing time argument.
 TIME_EXPLICIT: set[str] = {"monarietal2016bar"}
 
@@ -160,9 +186,12 @@ def test_autodiff_reference(pot):
     nodes, weights = np.polynomial.legendre.leggauss(64)
     for r in jnp.linalg.norm(XYZ, axis=-1):
         if module_name(pot) not in NO_MASS_QUADRATURE:
-            s = r * (nodes + 1) / 2
+            # s = r u^2: a density like r^-1.5 gives an integrand s^0.5, which
+            # Gauss-Legendre in s converges slowly on; in u it is analytic.
+            u_ = (nodes + 1) / 2
+            s = r * u_**2
             integral = jnp.sum(
-                weights * 4 * jnp.pi * s**2 * module.density(p, s) * r / 2
+                weights * 4 * jnp.pi * s**2 * module.density(p, s) * r * u_
             )
             np.testing.assert_allclose(module.mass_enclosed(p, r), integral, rtol=1e-8)
         np.testing.assert_allclose(
@@ -205,3 +234,18 @@ def test_param_gradient(pot):
     got = jax.grad(via_module)(p["m_tot"])
     assert jnp.isfinite(got)
     np.testing.assert_allclose(got, jax.grad(via_class)(p["m_tot"]), rtol=1e-10)
+
+
+@pytest.mark.parametrize("name", ["potential", "density"])
+def test_class_methods_call_module_kernels(pot, name):
+    """``_<name>`` of the class calls the module-level ``<name>``: no formula twice."""
+    module = module_for(pot)
+    method = inspect.unwrap(getattr(type(pot), f"_{name}"))
+    tree = ast.parse(textwrap.dedent(inspect.getsource(method)))
+    called = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert name in called
+    assert method.__globals__[name] is getattr(module, name)

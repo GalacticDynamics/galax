@@ -1,6 +1,18 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["StoneOstriker15Potential"]
+__all__ = [
+    # class
+    "StoneOstriker15Potential",
+    # functions
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
+]
 
 import functools as ft
 
@@ -12,6 +24,13 @@ import galax.potential.custom_types as gt
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -203,3 +222,11 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     k = r_c / r_h
     log_term = 0.5 * jnp.log1p((1 - k) * (1 + k) / ((r / r_h) ** 2 + k**2))
     return A * (atan_term + log_term)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

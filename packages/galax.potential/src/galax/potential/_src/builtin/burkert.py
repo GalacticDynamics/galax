@@ -1,15 +1,20 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = (
+__all__ = [
     # class
     "BurkertPotential",
     # functions
-    "rho0",
+    "d2potential_dr2",
     "density",
-    "potential",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
     "mass_enclosed",
     "mass_total",
-)
+    "potential",
+    "rho0",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -28,6 +33,13 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -277,3 +289,11 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     return -prefactor * (  # type: ignore[no-any-return]
         2 * jnp.atan2(1.0, x) + jnp.log1p(2 * x / (1 + x**2)) + bracket_over_x
     )
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

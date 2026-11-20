@@ -273,6 +273,14 @@ def test_lowers_for_tpu(name) -> None:
     assert "tpu_custom_call" in exp(s.q, s.m, s.h).mlir_module()
 
 
+def test_tpu_defaults_to_float32(monkeypatch) -> None:
+    monkeypatch.setattr(jax, "default_backend", lambda: "tpu")
+    assert PallasDirectSum()._cfg().precision == "float32"
+    assert PallasDirectSum(precision="bfloat16")._cfg().precision == "bfloat16"
+    monkeypatch.setattr(jax, "default_backend", lambda: "gpu")
+    assert PallasDirectSum()._cfg().precision is None
+
+
 @pytest.mark.parametrize(
     "kernel",
     [NewtonianKernel(), DehnenK1Kernel(), DehnenK2Kernel(), SplineKernel()],

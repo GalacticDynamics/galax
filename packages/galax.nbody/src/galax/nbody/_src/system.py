@@ -101,6 +101,9 @@ class System(eqx.Module):
         follows the input order. The checks run on concrete values, so call
         this outside ``jit``.
         """
+        if not components:
+            msg = "pass at least one Component"
+            raise ValueError(msg)
         usys = u.unitsystem(units)
         names = [c.name for c in components]
         if len(set(names)) != len(names):
@@ -197,4 +200,16 @@ def from_(cls: type[System], system: System, /) -> System:  # noqa: ARG001
 @System.from_.dispatch
 def from_(cls: type[System], *components: Component, units: Any) -> System:
     """Build a `System` from `Component` objects; see `System.from_components`."""
+    return cls.from_components(*components, units=units)
+
+
+@System.from_.dispatch
+def from_(
+    cls: type[System],
+    components: list[Component] | tuple[Component, ...],
+    /,
+    *,
+    units: Any,
+) -> System:
+    """Build a `System` from a list or tuple of `Component` objects."""
     return cls.from_components(*components, units=units)

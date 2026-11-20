@@ -142,3 +142,20 @@ def test_two_massive_species_keep_their_masses_and_softening() -> None:
     assert sys.n_massive == 4
     np.testing.assert_array_equal(sys.particles.m, [1.25e6] * 3 + [5e4])
     np.testing.assert_array_equal(sys.particles.h, [0.2] * 3 + [0.05])
+
+
+def test_from_dispatches_and_explains_bad_input() -> None:
+    import galax.potential as gp
+
+    c = _comp("a", 2)
+    s = gn.System.from_(c, units="galactic")
+    assert gn.System.from_(s) is s
+    assert gn.System.from_([c], units="galactic").names == ("a",)
+    with pytest.raises(ValueError, match="at least one Component"):
+        gn.System.from_components(units="galactic")
+    pot = gp.NullPotential(units="galactic")
+    f = gn.NBodyField.from_(s, pot, gn.DirectSum(chunk_size=1))
+    assert f.backend.chunk_size == 1
+    assert gn.NBodyField.from_(f) is f
+    with pytest.raises(TypeError, match="pass the external potential"):
+        gn.NBodyField.from_(s)

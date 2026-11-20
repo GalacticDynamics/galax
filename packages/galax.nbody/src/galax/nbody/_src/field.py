@@ -229,13 +229,19 @@ def from_(cls: type[NBodyField], field: NBodyField, /) -> NBodyField:  # noqa: A
 
 
 @NBodyField.from_.dispatch
+def from_(cls: type[NBodyField], system: System, /) -> NBodyField:  # noqa: ARG001
+    """Raise: a field from a `System` also needs the external potential."""
+    msg = "pass the external potential too: NBodyField.from_(system, potential)"
+    raise TypeError(msg)
+
+
+@NBodyField.from_.dispatch
 def from_(
     cls: type[NBodyField],
     system: System,
     external_potential: gp.AbstractPotential,
-    /,
-    *,
     backend: AbstractForceBackend = _DIRECT,
+    /,
 ) -> NBodyField:
     """Build a field from ``system``; see `NBodyField.from_system`.
 

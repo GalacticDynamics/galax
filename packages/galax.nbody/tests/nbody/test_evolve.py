@@ -827,6 +827,20 @@ def _count_while(jaxpr) -> int:
     return n
 
 
+def test_first_save_is_the_initial_state_even_if_a_row_breaks() -> None:
+    """``q[0]`` and ``p[0]`` are the inputs even when a tracer is NaN after a step."""
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    field = gn.NBodyField(
+        masses=jnp.asarray([1e9, 0.0]), eps=0.0, external_potential=pot, n_massive=1
+    )
+    # The tracer sits at the Kepler centre, so its acceleration is NaN.
+    q0 = jnp.asarray([[8.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+    p0 = jnp.asarray([[0.0, 0.2, 0.0], [0.0, 0.1, 0.0]])
+    res = gn.evolve(field, q0, p0, [0.0, 0.1], dt=0.01, check_dt=False)
+    assert bool(jnp.all(res.q[0] == q0))
+    assert bool(jnp.all(res.p[0] == p0))
+
+
 def test_new_save_spacing_does_not_recompile(caplog) -> None:
     """Save times with the same count and total steps reuse the compilation."""
     field, q0, p0 = _cluster(n=11)
@@ -862,10 +876,10 @@ def test_graph_has_one_loop_however_the_saves_are_spaced() -> None:
 
 
 def _solve_and_segment_loop():
-    """Return evolve's ``q`` and a loop of one `advance` per save interval."""
+    """Return evolve's ``q`` and a loop of one `advance` per uneven save interval."""
     field, q0, p0 = _cluster(n=4)
     dt = 0.01
-    steps = np.asarray([0, 3, 6, 9])
+    steps = np.asarray([0, 3, 4, 9])
     ts = dt * steps
     adjoint = dfx.RecursiveCheckpointAdjoint()
 

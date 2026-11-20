@@ -34,7 +34,7 @@ def _coeffs() -> tuple[jax.Array, jax.Array]:
 def _table() -> u.Quantity:
     radial = (
         G * M_TOT / R_S * phi_nl(NMAX, LMAX, R_KNOTS / R_S)
-    )  # (nmax+1, lmax+1, n_r)
+    )  # (n_max+1, l_max+1, n_r)
     return u.Q(jnp.moveaxis(radial, -1, 0), "kpc2 / Myr2")
 
 

@@ -18,14 +18,14 @@ from galax.potential._src.builtin.multipole import scaled_radius_and_direction
 from galax.potential._src.harmonic.ylm import iter_Ylm
 
 
-@ft.partial(jax.jit, static_argnames=("nmax", "lmax", "compute_var"))
+@ft.partial(jax.jit, static_argnames=("n_max", "l_max", "compute_var"))
 def compute_coeffs_discrete(
     xyz: Float[Array, "N 3"],
     mass: Float[Array, "N"],
     /,
     *,
-    nmax: int,
-    lmax: int,
+    n_max: int,
+    l_max: int,
     r_s: Float[Array, ""],
     compute_var: bool = False,
 ) -> tuple[Float[Array, "..."], ...]:
@@ -37,17 +37,17 @@ def compute_coeffs_discrete(
         Sample positions, shape ``(N, 3)``. Quantity or bare array.
     mass
         Sample masses, shape ``(N,)``. Quantity or bare array.
-    nmax, lmax
+    n_max, l_max
         Maximum radial and angular expansion orders. Static.
     r_s
         Scale radius, in the same length unit as ``xyz``.
     compute_var
-        Also return the ``(2, 2, nmax+1, lmax+1, lmax+1)`` covariance block.
+        Also return the ``(2, 2, n_max+1, l_max+1, l_max+1)`` covariance block.
 
     Returns
     -------
     Snlm, Tnlm
-        Expansion coefficients, shape ``(nmax+1, lmax+1, lmax+1)``, as bare
+        Expansion coefficients, shape ``(n_max+1, l_max+1, l_max+1)``, as bare
         arrays in whatever unit ``mass`` was given in. Divide by the scale
         mass before handing them to `SCFPotential`.
     cov
@@ -56,8 +56,8 @@ def compute_coeffs_discrete(
     Notes
     -----
     The per-particle contributions are materialized as a
-    ``(nmax+1, lmax+1, lmax+1, N)`` array, so peak memory grows as
-    ``nmax * lmax**2 * N``. At ``nmax=12, lmax=6, N=10**6`` that is roughly
+    ``(n_max+1, l_max+1, l_max+1, N)`` array, so peak memory grows as
+    ``n_max * l_max**2 * N``. At ``n_max=12, l_max=6, N=10**6`` that is roughly
     5 GB in float64 -- chunk the particles over several calls and sum the
     results, since the coefficients are a plain sum over ``k``.
 
@@ -74,31 +74,31 @@ def compute_coeffs_discrete(
 
     s, uvec = scaled_radius_and_direction(xyz, r_s)
 
-    # shape: nmax+1 by lmax+1 by N
-    phinl = phi_nl(nmax, lmax, s)
+    # shape: n_max+1 by l_max+1 by N
+    phinl = phi_nl(n_max, l_max, s)
 
-    # Angular part on the full (l, m) grid: (lmax+1, lmax+1, N)
-    shape = (lmax + 1, lmax + 1, len(s))
+    # Angular part on the full (l, m) grid: (l_max+1, l_max+1, N)
+    shape = (l_max + 1, l_max + 1, len(s))
     cYg, sYg = jnp.zeros(shape), jnp.zeros(shape)
-    for l_, m_, cY, sY in iter_Ylm(lmax, uvec):
+    for l_, m_, cY, sY in iter_Ylm(l_max, uvec):
         cYg = cYg.at[l_, m_].set(cY)
         sYg = sYg.at[l_, m_].set(sY)
 
     # A_nl, via gammaln so the numerator does not overflow.
-    n = jnp.arange(nmax + 1, dtype=float)[:, None]
-    l = jnp.arange(lmax + 1, dtype=float)[None, :]
+    n = jnp.arange(n_max + 1, dtype=float)[:, None]
+    l = jnp.arange(l_max + 1, dtype=float)[None, :]
     knl = 0.5 * n * (n + 4 * l + 3) + (l + 1) * (2 * l + 1)
     log_ratio = gammaln(n + 1) + 2 * gammaln(2 * l + 1.5) - gammaln(n + 4 * l + 3)
     anl = (
         -jnp.exp((8 * l + 6) * jnp.log(2.0) + log_ratio)
         / (4 * jnp.pi * knl)
         * (n + 2 * l + 1.5)
-    )  # (nmax+1, lmax+1)
+    )  # (n_max+1, l_max+1)
 
-    # k_m = 2 - delta_{m0}, shape lmax+1
-    km = 2.0 - (jnp.arange(lmax + 1) == 0).astype(float)
+    # k_m = 2 - delta_{m0}, shape l_max+1
+    km = 2.0 - (jnp.arange(l_max + 1) == 0).astype(float)
 
-    # Per-particle contribution: (nmax+1, lmax+1, lmax+1, N)
+    # Per-particle contribution: (n_max+1, l_max+1, l_max+1, N)
     weight = anl[:, :, None, None] * km[None, None, :, None] * mass
     contrib_s = weight * phinl[:, :, None, :] * cYg[None]
     contrib_t = weight * phinl[:, :, None, :] * sYg[None]

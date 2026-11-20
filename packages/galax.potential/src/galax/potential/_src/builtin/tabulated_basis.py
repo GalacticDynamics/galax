@@ -49,7 +49,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
     autodiff. Accuracy follows the knot spacing :math:`h` in :math:`\ln r`:
     :math:`O(h^4)` for the potential, :math:`O(h^3)` for the force and
     :math:`O(h^2)` for the hessian. With 600 knots over six decades (h =
-    0.023) and ``nmax = lmax = 4``, a tabulated Hernquist basis reproduces
+    0.023) and ``n_max = l_max = 4``, a tabulated Hernquist basis reproduces
     `SCFPotential` to better than 1e-6 in the potential, 3e-5 in the force
     and 1e-3 in the hessian, between 0.01 and 1000 kpc.
 
@@ -99,7 +99,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
     u_nl: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="specific energy",
         doc=r"Radial basis :math:`u_{nl}` at the knots, "
-        r"shape ``(n_r, nmax+1, lmax+1)``.",
+        r"shape ``(n_r, n_max+1, l_max+1)``.",
     )
     du_nl: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="specific energy",
@@ -107,11 +107,13 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
     )
     Snlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        doc=r"Coefficients of :math:`\Re Y_l^m`, shape ``(nmax+1, lmax+1, lmax+1)``.",
+        doc=r"Coefficients of :math:`\Re Y_l^m`, "
+        r"shape ``(n_max+1, l_max+1, l_max+1)``.",
     )
     Tnlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        doc=r"Coefficients of :math:`\Im Y_l^m`, shape ``(nmax+1, lmax+1, lmax+1)``.",
+        doc=r"Coefficients of :math:`\Im Y_l^m`, "
+        r"shape ``(n_max+1, l_max+1, l_max+1)``.",
     )
 
     _: KW_ONLY
@@ -120,8 +122,8 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
         default=default_constants, converter=ImmutableMap
     )
 
-    nmax: int = eqx.field(init=False, static=True, repr=False)
-    lmax: int = eqx.field(init=False, static=True, repr=False)
+    n_max: int = eqx.field(init=False, static=True, repr=False)
+    l_max: int = eqx.field(init=False, static=True, repr=False)
 
     def __check_init__(self) -> None:
         # The coefficient shapes are checked by AbstractRadialBasisExpansionPotential.
@@ -139,7 +141,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
             got = getattr(self, name)(t0).shape
             if got != expected:
                 msg = (
-                    f"{name} must have shape (n_r, nmax+1, lmax+1) = {expected}, "
+                    f"{name} must have shape (n_r, n_max+1, l_max+1) = {expected}, "
                     f"got {got}."
                 )
                 raise ValueError(msg)
@@ -166,7 +168,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
         """Build from a tabulated basis, fitting the spline's knot derivatives.
 
         ``r_knots`` (length) and ``u_nl`` (specific energy, shape
-        ``(n_r, nmax+1, lmax+1)``) are constant; ``Snlm`` and ``Tnlm`` may be
+        ``(n_r, n_max+1, l_max+1)``) are constant; ``Snlm`` and ``Tnlm`` may be
         any parameter, including a time-dependent one. ``kwargs`` go to the
         constructor (``units``, ``constants``).
         """
@@ -186,14 +188,14 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
 
     def _radial_basis(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[Float[Array, "{nmax}+1 {lmax}+1 *batch"], gt.BtSz3, Array | float]:
+    ) -> tuple[Float[Array, "{n_max}+1 {l_max}+1 *batch"], gt.BtSz3, Array | float]:
         r, uvec = scaled_radius_and_direction(xyz, jnp.ones((), dtype=xyz.dtype))
         log_r, lq = jnp.log(p["r_knots"]), jnp.log(r)
         radial = eval_log_spline(  # (*batch, n, l)
             log_r, p["u_nl"], p["du_nl"], jnp.clip(lq, log_r[0], log_r[-1])
         )
         # Outside the knots: r^-(l+1) beyond the last, r^l inside the first.
-        ell = jnp.arange(self.lmax + 1, dtype=radial.dtype)
+        ell = jnp.arange(self.l_max + 1, dtype=radial.dtype)
         out = -(ell + 1) * jnp.maximum(lq - log_r[-1], 0.0)[..., None]
         inn = ell * jnp.minimum(lq - log_r[0], 0.0)[..., None]
         radial = radial * jnp.exp(out + inn)[..., None, :]

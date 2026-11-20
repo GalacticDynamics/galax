@@ -28,7 +28,7 @@ def _monopole(m_tot: float = 1e12, r_s: float = 10.0) -> gp.SCFPotential:
 
 
 def test_nmax_lmax_derived_from_coefficients() -> None:
-    """`nmax` and `lmax` come from the coefficient array shape."""
+    """`n_max` and `l_max` come from the coefficient array shape."""
     snlm = jnp.zeros((4, 3, 3))
     pot = gp.SCFPotential(
         m_tot=u.Q(1e12, "Msun"),
@@ -38,8 +38,8 @@ def test_nmax_lmax_derived_from_coefficients() -> None:
         units="galactic",
     )
 
-    assert pot.nmax == 3
-    assert pot.lmax == 2
+    assert pot.n_max == 3
+    assert pot.l_max == 2
 
 
 def test_mismatched_coefficient_shapes_raise() -> None:
@@ -55,7 +55,7 @@ def test_mismatched_coefficient_shapes_raise() -> None:
 
 
 def test_monopole_is_hernquist_potential() -> None:
-    """nmax=lmax=0 with S000=1 reproduces `HernquistPotential` exactly."""
+    """n_max=l_max=0 with S000=1 reproduces `HernquistPotential` exactly."""
     scf = _monopole()
     hern = gp.HernquistPotential(
         m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10.0, "kpc"), units="galactic"
@@ -127,10 +127,10 @@ def _ref_potential(
     big_x = z / r
     phi = np.atan2(y, x)
 
-    nmax, lmax = snlm.shape[0] - 1, snlm.shape[1] - 1
+    n_max, l_max = snlm.shape[0] - 1, snlm.shape[1] - 1
     total = 0.0
-    for n in range(nmax + 1):
-        for l in range(lmax + 1):
+    for n in range(n_max + 1):
+        for l in range(l_max + 1):
             for m in range(l + 1):
                 total += (
                     _ref_phi_nl(n, l, s)
@@ -183,14 +183,14 @@ def test_iter_ylm_matches_condon_shortley_phase() -> None:
 def test_scf_potential_matches_lpmv_reference_with_m_gt_0() -> None:
     """`SCFPotential` agrees with an independent, gala-free reference at m > 0.
 
-    Uses `lmax = 2` coefficients with non-zero `Snlm` and `Tnlm` at several
+    Uses `l_max = 2` coefficients with non-zero `Snlm` and `Tnlm` at several
     `(l, m)` with `m >= 1`, evaluated off-axis so `theta` and `phi` are both
     non-trivial. A (-1)**m convention mismatch would flip the sign of every
     m > 0 term and fail this at any reasonable tolerance.
     """
-    nmax, lmax = 2, 2
-    snlm = np.zeros((nmax + 1, lmax + 1, lmax + 1))
-    tnlm = np.zeros((nmax + 1, lmax + 1, lmax + 1))
+    n_max, l_max = 2, 2
+    snlm = np.zeros((n_max + 1, l_max + 1, l_max + 1))
+    tnlm = np.zeros((n_max + 1, l_max + 1, l_max + 1))
     snlm[0, 0, 0] = 1.0
     snlm[0, 1, 1] = 0.3
     snlm[1, 2, 1] = -0.2
@@ -240,10 +240,10 @@ def test_summation_matches_the_grid_contraction() -> None:
     non-zero coefficients across the whole ``(n, l, m)`` block so that no index
     is exercised only by a zero.
     """
-    nmax, lmax = 4, 3
+    n_max, l_max = 4, 3
     rng = np.random.default_rng(0)
-    snlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
-    tnlm = jnp.asarray(rng.normal(size=(nmax + 1, lmax + 1, lmax + 1)) * 0.02)
+    snlm = jnp.asarray(rng.normal(size=(n_max + 1, l_max + 1, l_max + 1)) * 0.02)
+    tnlm = jnp.asarray(rng.normal(size=(n_max + 1, l_max + 1, l_max + 1)) * 0.02)
     pot = gp.SCFPotential(
         m_tot=u.Q(1e12, "Msun"),
         r_s=u.Q(10.0, "kpc"),
@@ -255,24 +255,24 @@ def test_summation_matches_the_grid_contraction() -> None:
     xyz = jnp.asarray(rng.normal(size=(64, 3)) * 8.0)
     s, uvec = scaled_radius_and_direction(xyz, jnp.asarray(10.0))
 
-    for radial in (phi_nl(nmax, lmax, s), rho_nl(nmax, lmax, s)):
+    for radial in (phi_nl(n_max, l_max, s), rho_nl(n_max, l_max, s)):
         # The grid form, verbatim as it was.
-        shape = (lmax + 1, lmax + 1, *jnp.shape(uvec)[:-1])
+        shape = (l_max + 1, l_max + 1, *jnp.shape(uvec)[:-1])
         cgrid, sgrid = jnp.zeros(shape), jnp.zeros(shape)
-        for l, m, cY, sY in iter_Ylm(lmax, uvec):
+        for l, m, cY, sY in iter_Ylm(l_max, uvec):
             cgrid = cgrid.at[l, m].set(cY)
             sgrid = sgrid.at[l, m].set(sY)
         expect = jnp.einsum("nlm,nl...,lm...->...", snlm, radial, cgrid) + jnp.einsum(
             "nlm,nl...,lm...->...", tnlm, radial, sgrid
         )
 
-        got = sum_basis(pot.lmax, radial, snlm, tnlm, uvec)
+        got = sum_basis(pot.l_max, radial, snlm, tnlm, uvec)
 
         assert jnp.allclose(got, expect, rtol=1e-12, atol=1e-14)
 
 
 def test_monopole_is_hernquist_density() -> None:
-    """nmax=lmax=0 with S000=1 reproduces the Hernquist density exactly."""
+    """n_max=l_max=0 with S000=1 reproduces the Hernquist density exactly."""
     scf = _monopole()
     hern = gp.HernquistPotential(
         m_tot=u.Q(1e12, "Msun"), r_s=u.Q(10.0, "kpc"), units="galactic"

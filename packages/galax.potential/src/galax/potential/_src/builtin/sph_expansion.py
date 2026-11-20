@@ -30,7 +30,7 @@ RadialFactors = Callable[
 ]
 
 
-def harmonic_sum(lmax: int, factors: RadialFactors, uvec: gt.BtSz3, /) -> gt.BBtSz0:
+def harmonic_sum(l_max: int, factors: RadialFactors, uvec: gt.BtSz3, /) -> gt.BBtSz0:
     r"""Sum the harmonics against per-``l`` radial factors.
 
     .. math::
@@ -47,9 +47,9 @@ def harmonic_sum(lmax: int, factors: RadialFactors, uvec: gt.BtSz3, /) -> gt.BBt
     # dict) keeps every term on the accumulator below a plain running sum, with no
     # intermediate collection kept around for XLA to materialize.
     by_l: list[list[tuple[int, gt.BtFloatSz0, gt.BtFloatSz0]]] = [
-        [] for _ in range(lmax + 1)
+        [] for _ in range(l_max + 1)
     ]
-    for l, m, cY, sY in iter_Ylm(lmax, uvec):
+    for l, m, cY, sY in iter_Ylm(l_max, uvec):
         by_l[l].append((m, cY, sY))
 
     total: Array | float = 0.0
@@ -62,7 +62,7 @@ def harmonic_sum(lmax: int, factors: RadialFactors, uvec: gt.BtSz3, /) -> gt.BBt
 
 
 def basis_factors(
-    radial: Float[Array, "nmax+1 lmax+1 *batch"],
+    radial: Float[Array, "n_max+1 l_max+1 *batch"],
     Snlm: Float[Array, "n l m"],
     Tnlm: Float[Array, "n l m"],
     /,
@@ -70,7 +70,7 @@ def basis_factors(
     """Return the per-``l`` radial factors of a basis expansion, for `harmonic_sum`."""
 
     def factors(l: int) -> tuple[Array, Array]:
-        # One matvec per l: (nmax+1, m) against (nmax+1, *batch).
+        # One matvec per l: (n_max+1, m) against (n_max+1, *batch).
         Sl = jnp.einsum("nm,n...->m...", Snlm[:, l, : l + 1], radial[:, l])
         Tl = jnp.einsum("nm,n...->m...", Tnlm[:, l, : l + 1], radial[:, l])
         return Sl, Tl
@@ -79,8 +79,8 @@ def basis_factors(
 
 
 def sum_basis(
-    lmax: int,
-    radial: Float[Array, "nmax+1 lmax+1 *batch"],
+    l_max: int,
+    radial: Float[Array, "n_max+1 l_max+1 *batch"],
     Snlm: Float[Array, "n l m"],
     Tnlm: Float[Array, "n l m"],
     uvec: gt.BtSz3,
@@ -103,16 +103,16 @@ def sum_basis(
 
     **The contraction over** ``n`` **is done once per** ``l``, not once per
     ``(l, m)``. Both are the same arithmetic; the difference is that
-    ``radial[:, l]`` -- which is ``(nmax+1, *batch)``, tens of megabytes at
+    ``radial[:, l]`` -- which is ``(n_max+1, *batch)``, tens of megabytes at
     a large batch -- is then read once for each ``l`` rather than once for
     every ``m <= l``. Per-pair contraction was actually *slower* than the
-    grid it replaced for the density at ``nmax = 24``, which is what
+    grid it replaced for the density at ``n_max = 24``, which is what
     surfaced this.
 
     Measured on the potential over 200,000 positions, against the grid:
 
     =================  ======  =======
-    ``(nmax, lmax)``     grid   folded
+    ``(n_max, l_max)``     grid   folded
     =================  ======  =======
     ``(6, 4)``          47 ms    18 ms
     ``(12, 6)``        129 ms    58 ms
@@ -121,9 +121,9 @@ def sum_basis(
     =================  ======  =======
 
     Values agree with the grid form to 3.4e-13 absolute at the largest
-    order tested, and the potential is bit-identical at ``lmax = 6``.
+    order tested, and the potential is bit-identical at ``l_max = 6``.
     """
-    return harmonic_sum(lmax, basis_factors(radial, Snlm, Tnlm), uvec)
+    return harmonic_sum(l_max, basis_factors(radial, Snlm, Tnlm), uvec)
 
 
 class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
@@ -143,7 +143,7 @@ class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
     basis functions; elsewhere they could be power laws or splined profiles.
     """
 
-    lmax: eqx.AbstractVar[int]
+    l_max: eqx.AbstractVar[int]
 
     @abc.abstractmethod
     def _harmonic_terms(
@@ -153,7 +153,7 @@ class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
 
         ``xyz`` is in the potential's length unit and ``p`` holds the
         parameters at the requested time. The potential is ``prefactor *
-        harmonic_sum(lmax, factors, unit direction)``.
+        harmonic_sum(l_max, factors, unit direction)``.
         """
 
     @ft.partial(jax.jit)
@@ -163,7 +163,7 @@ class AbstractSphericalHarmonicExpansionPotential(AbstractSinglePotential):
             return jnp.vectorize(self._potential, signature="(3),()->()")(xyz, t)  # type: ignore[no-any-return]
         p = self.params(t)
         factors, uvec, prefactor = self._harmonic_terms(xyz, p)
-        return prefactor * harmonic_sum(self.lmax, factors, uvec)
+        return prefactor * harmonic_sum(self.l_max, factors, uvec)
 
 
 class AbstractRadialBasisExpansionPotential(
@@ -178,22 +178,22 @@ class AbstractRadialBasisExpansionPotential(
 
     A subclass supplies the radial basis :math:`u_{nl}` by implementing
     `_radial_basis` and declares the ``Snlm`` and ``Tnlm`` parameters (shape
-    ``(nmax+1, lmax+1, lmax+1)``; any parameter, including a time-dependent
-    one) and the ``nmax`` and ``lmax`` fields, which this class fills in from
+    ``(n_max+1, l_max+1, l_max+1)``; any parameter, including a time-dependent
+    one) and the ``n_max`` and ``l_max`` fields, which this class fills in from
     the coefficient shape. `SCFPotential` has an analytic basis;
     `TabulatedRadialBasisPotential` takes one as a table.
     """
 
     Snlm: eqx.AbstractVar[AbstractParameter]
     Tnlm: eqx.AbstractVar[AbstractParameter]
-    nmax: eqx.AbstractVar[int]
+    n_max: eqx.AbstractVar[int]
 
     def __post_init__(self) -> None:
         # NOTE: must call super() -- it applies the unit system.
         super().__post_init__()
         shape = self.Snlm(u.Q(0.0, "Gyr")).shape
-        object.__setattr__(self, "nmax", shape[0] - 1)
-        object.__setattr__(self, "lmax", shape[1] - 1)
+        object.__setattr__(self, "n_max", shape[0] - 1)
+        object.__setattr__(self, "l_max", shape[1] - 1)
 
     def __check_init__(self) -> None:
         s_shape = self.Snlm(u.Q(0.0, "Gyr")).shape
@@ -205,7 +205,7 @@ class AbstractRadialBasisExpansionPotential(
             raise ValueError(msg)
         if len(s_shape) != 3 or s_shape[1] != s_shape[2]:
             msg = (
-                "Snlm and Tnlm must have shape (nmax+1, lmax+1, lmax+1). "
+                "Snlm and Tnlm must have shape (n_max+1, l_max+1, l_max+1). "
                 f"Got {s_shape}."
             )
             raise ValueError(msg)
@@ -213,7 +213,7 @@ class AbstractRadialBasisExpansionPotential(
     @abc.abstractmethod
     def _radial_basis(
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
-    ) -> tuple[Float[Array, "nmax+1 lmax+1 *batch"], gt.BtSz3, Array | float]:
+    ) -> tuple[Float[Array, "n_max+1 l_max+1 *batch"], gt.BtSz3, Array | float]:
         """``(u_nl at |xyz|, unit direction, prefactor)``; see `_harmonic_terms`."""
 
     def _harmonic_terms(

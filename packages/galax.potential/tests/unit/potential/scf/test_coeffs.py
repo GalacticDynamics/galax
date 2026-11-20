@@ -36,7 +36,7 @@ def test_hernquist_samples_recover_the_monopole() -> None:
     mass = np.full(n, m_tot / n)
 
     Snlm, Tnlm = compute_coeffs_discrete(
-        jnp.asarray(xyz), jnp.asarray(mass), nmax=2, lmax=2, r_s=r_s
+        jnp.asarray(xyz), jnp.asarray(mass), n_max=2, l_max=2, r_s=r_s
     )
 
     assert Snlm.shape == (3, 3, 3)
@@ -55,7 +55,7 @@ def test_recovered_coefficients_rebuild_the_potential() -> None:
     mass = np.full(n, m_tot / n)
 
     Snlm, Tnlm = compute_coeffs_discrete(
-        jnp.asarray(xyz), jnp.asarray(mass), nmax=2, lmax=0, r_s=r_s
+        jnp.asarray(xyz), jnp.asarray(mass), n_max=2, l_max=0, r_s=r_s
     )
     scf = gp.SCFPotential(
         m_tot=u.Q(m_tot, "Msun"),
@@ -141,7 +141,7 @@ def test_coeffs_match_scalar_reference_for_flattened_triaxial_sample() -> None:
     mass = np.full(n, m_tot / n)
 
     Snlm, Tnlm = compute_coeffs_discrete(
-        jnp.asarray(xyz), jnp.asarray(mass), nmax=2, lmax=2, r_s=r_s
+        jnp.asarray(xyz), jnp.asarray(mass), n_max=2, l_max=2, r_s=r_s
     )
 
     triplets = [
@@ -181,7 +181,7 @@ def test_particle_at_origin_gives_finite_coefficients() -> None:
     mass = np.full(n, 1.0 / n)
 
     Snlm, Tnlm = compute_coeffs_discrete(
-        jnp.asarray(xyz), jnp.asarray(mass), nmax=2, lmax=2, r_s=r_s
+        jnp.asarray(xyz), jnp.asarray(mass), n_max=2, l_max=2, r_s=r_s
     )
 
     assert jnp.all(jnp.isfinite(Snlm))
@@ -197,8 +197,8 @@ def test_compute_var_returns_a_covariance_block() -> None:
     _Snlm, _Tnlm, cov = compute_coeffs_discrete(
         jnp.asarray(xyz),
         jnp.asarray(mass),
-        nmax=1,
-        lmax=1,
+        n_max=1,
+        l_max=1,
         r_s=r_s,
         compute_var=True,
     )

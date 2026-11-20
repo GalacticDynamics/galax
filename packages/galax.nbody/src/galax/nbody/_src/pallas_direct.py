@@ -1,24 +1,38 @@
 """Direct-sum force backend as a tiled Pallas kernel.
 
-Each program owns ``block_targets`` targets and loops over sources in tiles of
-``block_sources``, so the pair matrix is never stored. Reverse mode is a
-`jax.custom_vjp` whose two backward kernels differentiate the pair terms with
-`jax.vjp` in-kernel. Padding, NaN targets and ``G`` are handled in plain JAX.
+Everything is a pair sum ``out[i] = sum_j fn(A[i], B[j])`` over column
+operands ``A`` and row operands ``B``, run by one primitive, `pair_sum_p`.
+Each program owns ``block_targets`` rows of ``A`` and loops over ``B`` in tiles
+of ``block_sources``, so the pair matrix is never stored.
+
+Autodiff stays inside the primitive, so all modes compose to any order:
+
+- JVP: the tangent is the pair sum of ``jvp(fn)``, linear in the tangents.
+- Transpose: the pair sum of ``vjp(fn)``. Cotangents of ``A`` sum over ``B``;
+  those of ``B`` sum over ``A``, with the two sides swapped.
+- vmap: a leading batch axis on every operand becomes a grid axis.
+
+Padding, NaN targets and ``G`` are handled in plain JAX outside.
 
 Tested on NVIDIA GPUs (Ampere, Ada). TPU lowers but is untested on hardware.
 """
 
-__all__ = ["PallasDirectSum", "pallas_accelerations", "pallas_potential"]
+__all__ = ["PallasDirectSum", "pair_sum", "pallas_accelerations", "pallas_potential"]
 
+import dataclasses
 import functools as ft
 
+from collections.abc import Callable, Sequence
 from jaxtyping import Array
 from typing import Any, NamedTuple
 
 import equinox as eqx
 import jax
 import jax.numpy as jnp
+import numpy as np
 from jax.experimental import pallas as pl
+from jax.extend.core import Primitive
+from jax.interpreters import ad, batching, mlir
 
 from .backend import AbstractForceBackend, Sources, Targets
 from .direct import direct_sum_accelerations, direct_sum_potential
@@ -27,12 +41,20 @@ from .kernels import AbstractSofteningKernel, PlummerKernel
 _Arrs = tuple[Array, ...]
 
 
-def _sds(shape: tuple[int, int], dtype: Any) -> Any:
+def _sds(shape: tuple[int, ...], dtype: Any) -> Any:
     return jax.ShapeDtypeStruct(shape, dtype)  # type: ignore[no-untyped-call]
 
 
+def _undef(x: Any) -> bool:
+    return bool(ad.is_undefined_primal(x))  # type: ignore[no-untyped-call]
+
+
+def _aval(x: Any) -> Any:
+    return x.aval if _undef(x) else jax.typeof(x)
+
+
 class _Config(NamedTuple):
-    """Static launch configuration."""
+    """Static configuration."""
 
     kernel: AbstractSofteningKernel
     potential: bool
@@ -45,54 +67,155 @@ class _Config(NamedTuple):
     compensated: bool = False
 
 
-def _tile(
-    cfg: _Config,
-    t: tuple[Array, ...],
-    s: tuple[Array, ...],
-    it: Array,
-    okt: Array,
-    j0: Array,
-    *,
-    reduce: bool = True,
-) -> tuple[Array, ...]:
-    """Return one tile's pair terms, summed over sources if ``reduce``.
+class _Launch(NamedTuple):
+    """Launch parameters of `pair_sum_p` (hashable)."""
 
-    ``t = (x, y, z, h)`` are (BT, 1) columns, ``s = (x, y, z, m, h)`` are
-    (1, BS) rows, ``j0`` is the first source index. Pairs with ``it == j`` or
-    ``okt == 0`` are skipped.
+    block_a: int
+    block_b: int
+    num_warps: int | None
+    num_stages: int | None
+    interpret: bool
+    compensated: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Pair functions. Called on (BA, 1) columns ``a`` and (1, BB) rows ``b`` with
+# global indices ``ia`` (BA, 1) and ``jb`` (1, BB); return a tuple of terms.
+# They must be elementwise in the pair, so swapping sides transposes them.
+# Frozen dataclasses: hashable by value, so jit caches hit.
+
+
+@dataclasses.dataclass(frozen=True)
+class _Base:
+    """Softened gravity. ``a = (x, y, z, h, self_index, ok)``, ``b = (x, y, z, m, h)``.
+
+    Pairs with ``self_index == j`` or ``ok == 0`` are skipped with a double
+    ``where``, so every derivative of a skipped pair is finite and zero.
     """
-    xt, yt, zt, ht = t
-    xs, ys, zs, ms, hs = s
-    dx, dy, dz = xs - xt, ys - yt, zs - zt
-    r2 = dx * dx + dy * dy + dz * dz
-    js = j0 + jax.lax.broadcasted_iota(jnp.int32, xs.shape, 1)
-    skip = (it == js) | (okt == 0)
-    # Double where, as in DirectSum: finite value and gradient when skipped.
-    r2s = jnp.where(skip, jnp.ones_like(r2), r2)
-    hp = cfg.kernel.combine(ht, hs)
-    if cfg.potential:
-        pot = cfg.kernel.potential(r2s, hp)
-        w = jnp.where(skip, jnp.zeros_like(pot), pot) * ms
-        terms: tuple[Array, ...] = (w,)
-    else:
-        f = cfg.kernel.force_factor(r2s, hp)
+
+    kernel: AbstractSofteningKernel
+    potential: bool
+
+    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+        del ia
+        xt, yt, zt, ht, it, okt = a
+        xs, ys, zs, ms, hs = b
+        dx, dy, dz = xs - xt, ys - yt, zs - zt
+        r2 = dx * dx + dy * dy + dz * dz
+        skip = (it == jb) | (okt == 0)
+        r2s = jnp.where(skip, jnp.ones_like(r2), r2)
+        hp = self.kernel.combine(ht, hs)
+        if self.potential:
+            pot = self.kernel.potential(r2s, hp)
+            return (jnp.where(skip, jnp.zeros_like(pot), pot) * ms,)
+        f = self.kernel.force_factor(r2s, hp)
         w = jnp.where(skip, jnp.zeros_like(f), f) * ms
-        terms = (w * dx, w * dy, w * dz)
-    if not reduce:
-        return terms
-    return tuple(jnp.sum(x, axis=1, keepdims=True) for x in terms)
+        return (w * dx, w * dy, w * dz)
 
 
-def _n_out(cfg: _Config) -> int:
-    return 1 if cfg.potential else 3
+def _fill(
+    kept: Sequence[Array],
+    zero: tuple[int, ...],
+    dtypes: tuple[Any, ...],
+    shape: tuple[int, ...],
+) -> list[Array]:
+    """Reinsert the operands at ``zero`` as zeros of ``shape``."""
+    it = iter(kept)
+    return [
+        jnp.zeros(shape, dt) if k in zero else next(it) for k, dt in enumerate(dtypes)
+    ]
 
 
-def _compiler_params(cfg: _Config) -> Any:
-    if cfg.interpret or jax.default_backend() != "gpu":
-        return None
-    from jax.experimental.pallas import triton as pltr
+@dataclasses.dataclass(frozen=True)
+class _Jvp:
+    """Tangent of ``f``. Operands: ``f``'s, then tangents of ``nz_a`` / ``nz_b``."""
 
-    return pltr.CompilerParams(num_warps=cfg.num_warps, num_stages=cfg.num_stages)
+    f: Any
+    n_a: int
+    n_b: int
+    nz_a: tuple[int, ...]
+    nz_b: tuple[int, ...]
+
+    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+        fa, ta = list(a[: self.n_a]), a[self.n_a :]
+        fb, tb = list(b[: self.n_b]), b[self.n_b :]
+
+        def g(pa: _Arrs, pb: _Arrs) -> _Arrs:
+            xa, xb = list(fa), list(fb)
+            for k, v in zip(self.nz_a, pa, strict=True):
+                xa[k] = v
+            for k, v in zip(self.nz_b, pb, strict=True):
+                xb[k] = v
+            return tuple(self.f(tuple(xa), tuple(xb), ia, jb))
+
+        prim = (tuple(fa[k] for k in self.nz_a), tuple(fb[k] for k in self.nz_b))
+        _, out = jax.jvp(g, prim, (tuple(ta), tuple(tb)))
+        return tuple(out)
+
+
+@dataclasses.dataclass(frozen=True)
+class _Vjp:
+    """Per-pair cotangents of ``f``'s operands ``wrt`` on ``side``.
+
+    ``side="a"``: operands are ``(f_a kept + ct, f_b kept)``, summed over ``b``.
+    ``side="b"``: operands are ``(f_b kept, f_a kept + ct)``, i.e. swapped, so
+    the sum runs over ``f``'s ``a``. Operands in ``zero_a`` / ``zero_b`` are
+    left out and set to zero (``f`` must be linear in them).
+    """
+
+    f: Any
+    side: str
+    wrt: tuple[int, ...]
+    n_ct: int
+    dtypes_a: tuple[Any, ...]
+    dtypes_b: tuple[Any, ...]
+    zero_a: tuple[int, ...] = ()
+    zero_b: tuple[int, ...] = ()
+
+    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+        shape = jnp.broadcast_shapes(ia.shape, jb.shape)
+        if self.side == "a":
+            ka, ct, kb, i, j = a[: -self.n_ct], a[-self.n_ct :], b, ia, jb
+        else:
+            kb, ka, ct, i, j = a, b[: -self.n_ct], b[-self.n_ct :], jb, ia
+        fa = _fill(ka, self.zero_a, self.dtypes_a, shape)
+        fb = _fill(kb, self.zero_b, self.dtypes_b, shape)
+        mine = fa if self.side == "a" else fb
+
+        def g(*w: Array) -> _Arrs:
+            for k, v in zip(self.wrt, w, strict=True):
+                mine[k] = v
+            out = self.f(tuple(fa), tuple(fb), i, j)
+            return tuple(jnp.broadcast_to(o, shape) for o in out)
+
+        x = tuple(jnp.broadcast_to(mine[k], shape) for k in self.wrt)
+        out, vjp = jax.vjp(g, *x)
+        return tuple(
+            vjp(
+                tuple(
+                    jnp.broadcast_to(c, shape).astype(o.dtype)
+                    for c, o in zip(ct, out, strict=True)
+                )
+            )
+        )
+
+
+@ft.lru_cache(maxsize=512)
+def _out_dtypes(fn: Any, da: tuple[Any, ...], db: tuple[Any, ...]) -> tuple[Any, ...]:
+    """Output dtypes of ``fn`` on operands of dtypes ``da``, ``db``."""
+    sds = lambda dt: _sds((1, 1), dt)
+    out = jax.eval_shape(
+        lambda a, b: fn(
+            a, b, jnp.zeros((1, 1), jnp.int32), jnp.zeros((1, 1), jnp.int32)
+        ),
+        tuple(map(sds, da)),
+        tuple(map(sds, db)),
+    )
+    return tuple(np.dtype(o.dtype) for o in out)
+
+
+# ---------------------------------------------------------------------------
+# Kernel
 
 
 def _i32(x: int) -> Array:
@@ -100,185 +223,302 @@ def _i32(x: int) -> Array:
     return jnp.asarray(x, dtype=jnp.int32)
 
 
-# Kernel refs: 4 target columns, it, okt, 5 source rows, [cotangents], outputs.
+def _kernel(*refs: Any, fn: Any, n_a: int, n_b: int, nb: int, lc: _Launch) -> None:
+    a_refs, b_refs, out_refs = refs[:n_a], refs[n_a : n_a + n_b], refs[n_a + n_b :]
+    ba, bb = lc.block_a, lc.block_b
+    a = tuple(r[...] for r in a_refs)
+    ia = pl.program_id(1) * ba + jax.lax.broadcasted_iota(jnp.int32, (ba, 1), 0)
+    shape = (ba, bb)
 
+    def tile(j0: Array | int, *, masked: bool) -> _Arrs:
+        b = tuple(r[:, pl.ds(j0, bb)] for r in b_refs)
+        jb = j0 + jax.lax.broadcasted_iota(jnp.int32, (1, bb), 1)
+        terms = tuple(
+            jnp.broadcast_to(x, shape).astype(o.dtype)
+            for x, o in zip(fn(a, b, ia, jb), out_refs, strict=True)
+        )
+        if masked:  # padded rows of B
+            terms = tuple(jnp.where(jb < nb, x, jnp.zeros_like(x)) for x in terms)
+        return terms
 
-def _fwd_kernel(*refs: Any, cfg: _Config, n_src: int) -> None:
-    t_refs, it_ref, okt_ref, s_refs = refs[:4], refs[4], refs[5], refs[6:11]
-    out_refs = refs[11:]
-    t = tuple(r[...] for r in t_refs)
-    it, okt = it_ref[...], okt_ref[...]
-    bs = cfg.block_sources
-
-    def body(k: Array, carry: tuple[_Arrs, _Arrs]) -> tuple[_Arrs, _Arrs]:
+    def add(carry: tuple[_Arrs, _Arrs], terms: _Arrs) -> tuple[_Arrs, _Arrs]:
         acc, comp = carry
-        j0 = k * bs
-        s = tuple(r[:, pl.ds(j0, bs)] for r in s_refs)
-        terms = _tile(cfg, t, s, it, okt, j0, reduce=False)
-        if not cfg.compensated:
-            return tuple(a + p for a, p in zip(acc, terms, strict=True)), comp
+        if not lc.compensated:
+            return tuple(x + p for x, p in zip(acc, terms, strict=True)), comp
         ys = tuple(p - c for p, c in zip(terms, comp, strict=True))  # Kahan
-        new = tuple(a + y for a, y in zip(acc, ys, strict=True))
-        comp = tuple((n - a) - y for n, a, y in zip(new, acc, ys, strict=True))
+        new = tuple(x + y for x, y in zip(acc, ys, strict=True))
+        comp = tuple((n - x) - y for n, x, y in zip(new, acc, ys, strict=True))
         return new, comp
 
     # Accumulate per pair; reduce across lanes once at the end.
-    zero = (jnp.zeros((cfg.block_targets, bs), t[0].dtype),) * _n_out(cfg)
-    carry = (zero, zero if cfg.compensated else ())
-    acc, comp = jax.lax.fori_loop(_i32(0), _i32(n_src // bs), body, carry)
-    if cfg.compensated:
-        acc = tuple(a - c for a, c in zip(acc, comp, strict=True))
-    for o, a in zip(out_refs, acc, strict=True):
-        o[...] = jnp.sum(a, axis=1, keepdims=True)
-
-
-def _bwd_targets_kernel(*refs: Any, cfg: _Config, n_src: int) -> None:
-    """Target gradients, looping over source tiles."""
-    t_refs, it_ref, okt_ref, s_refs = refs[:4], refs[4], refs[5], refs[6:11]
-    n = _n_out(cfg)
-    g = tuple(r[...] for r in refs[11 : 11 + n])
-    out_refs = refs[11 + n :]
-    t = tuple(r[...] for r in t_refs)
-    it, okt = it_ref[...], okt_ref[...]
-    bs = cfg.block_sources
-
-    shape = (cfg.block_targets, bs)
-    # Differentiate w.r.t. broadcast inputs to get per-pair gradients.
-    tb = tuple(jnp.broadcast_to(x, shape) for x in t)
-    gb = tuple(jnp.broadcast_to(x, shape) for x in g)
-
-    def body(k: Array, acc: tuple[Array, ...]) -> tuple[Array, ...]:
-        j0 = k * bs
-        s = tuple(r[:, pl.ds(j0, bs)] for r in s_refs)
-        _, vjp = jax.vjp(lambda t_: _tile(cfg, t_, s, it, okt, j0, reduce=False), tb)
-        (gt,) = vjp(gb)
-        return tuple(a + b for a, b in zip(acc, gt, strict=True))
-
-    zero = jnp.zeros(shape, t[0].dtype)
-    acc = jax.lax.fori_loop(_i32(0), _i32(n_src // bs), body, (zero,) * 4)
-    for o, a in zip(out_refs, acc, strict=True):
-        o[...] = jnp.sum(a, axis=1, keepdims=True)
-
-
-def _bwd_sources_kernel(*refs: Any, cfg: _Config, n_tgt: int) -> None:
-    """Source gradients, looping over target tiles."""
-    t_refs, it_ref, okt_ref, s_refs = refs[:4], refs[4], refs[5], refs[6:11]
-    n = _n_out(cfg)
-    g_refs = refs[11 : 11 + n]
-    out_refs = refs[11 + n :]
-    bt = cfg.block_targets
-    shape = (bt, cfg.block_sources)
-    sb = tuple(jnp.broadcast_to(r[...], shape) for r in s_refs)
-    j0 = pl.program_id(0) * cfg.block_sources
-
-    def body(k: Array, acc: tuple[Array, ...]) -> tuple[Array, ...]:
-        rows = pl.ds(k * bt, bt)
-        t = tuple(r[rows, :] for r in t_refs)
-        it, okt = it_ref[rows, :], okt_ref[rows, :]
-        g = tuple(jnp.broadcast_to(r[rows, :], shape) for r in g_refs)
-        _, vjp = jax.vjp(lambda s_: _tile(cfg, t, s_, it, okt, j0, reduce=False), sb)
-        (gs,) = vjp(g)
-        return tuple(a + b for a, b in zip(acc, gs, strict=True))
-
-    zero = jnp.zeros(shape, sb[0].dtype)
-    acc = jax.lax.fori_loop(_i32(0), _i32(n_tgt // bt), body, (zero,) * 5)
-    for o, a in zip(out_refs, acc, strict=True):
-        o[...] = jnp.sum(a, axis=0, keepdims=True)
-
-
-def _specs(cfg: _Config, nt: int, ns: int, *, over: str) -> tuple[Any, Any]:
-    """Return the (target column, source row) BlockSpecs for a 1D grid."""
-    bt, bs = cfg.block_targets, cfg.block_sources
-    if over == "targets":
-        col = pl.BlockSpec((bt, 1), lambda i: (i, 0))
-        row = pl.BlockSpec((1, ns), lambda _: (0, 0))
-    else:
-        col = pl.BlockSpec((nt, 1), lambda _: (0, 0))
-        row = pl.BlockSpec((1, bs), lambda i: (0, i))
-    return col, row
-
-
-def _call_fwd(cfg: _Config, t: _Arrs, it: Array, okt: Array, s: _Arrs) -> _Arrs:
-    nt, ns = t[0].shape[0], s[0].shape[1]
-    col, row = _specs(cfg, nt, ns, over="targets")
-    out = _sds((nt, 1), t[0].dtype)
-    res: list[Array] = pl.pallas_call(
-        ft.partial(_fwd_kernel, cfg=cfg, n_src=ns),
-        grid=(nt // cfg.block_targets,),
-        in_specs=[col] * 6 + [row] * 5,
-        out_specs=[col] * _n_out(cfg),
-        out_shape=[out] * _n_out(cfg),
-        compiler_params=_compiler_params(cfg),
-        interpret=cfg.interpret,
-        name="nbody_direct_fwd",
-    )(*t, it, okt, *s)
-    return tuple(res)
-
-
-def _call_bwd(
-    cfg: _Config, t: _Arrs, it: Array, okt: Array, s: _Arrs, g: _Arrs
-) -> tuple[_Arrs, _Arrs]:
-    nt, ns = t[0].shape[0], s[0].shape[1]
-    n = _n_out(cfg)
-    params = _compiler_params(cfg)
-
-    col, row = _specs(cfg, nt, ns, over="targets")
-    gt = pl.pallas_call(
-        ft.partial(_bwd_targets_kernel, cfg=cfg, n_src=ns),
-        grid=(nt // cfg.block_targets,),
-        in_specs=[col] * 6 + [row] * 5 + [col] * n,
-        out_specs=[col] * 4,
-        out_shape=[_sds((nt, 1), x.dtype) for x in t],
-        compiler_params=params,
-        interpret=cfg.interpret,
-        name="nbody_direct_bwd_targets",
-    )(*t, it, okt, *s, *g)
-
-    col, row = _specs(cfg, nt, ns, over="sources")
-    gs = pl.pallas_call(
-        ft.partial(_bwd_sources_kernel, cfg=cfg, n_tgt=nt),
-        grid=(ns // cfg.block_sources,),
-        in_specs=[col] * 6 + [row] * 5 + [col] * n,
-        out_specs=[row] * 5,
-        out_shape=[_sds((1, ns), x.dtype) for x in s],
-        compiler_params=params,
-        interpret=cfg.interpret,
-        name="nbody_direct_bwd_sources",
-    )(*t, it, okt, *s, *g)
-    return tuple(gt), tuple(gs)
-
-
-@ft.partial(jax.custom_vjp, nondiff_argnums=(0,))
-def _core(cfg: _Config, t: _Arrs, it: Array, okt: Array, s: _Arrs) -> _Arrs:
-    return tuple(_call_fwd(cfg, t, it, okt, s))
-
-
-def _core_fwd(cfg: _Config, t: _Arrs, it: Array, okt: Array, s: _Arrs) -> Any:
-    return _core(cfg, t, it, okt, s), (t, it, okt, s)
-
-
-def _core_bwd(cfg: _Config, res: Any, g: _Arrs) -> Any:
-    t, it, okt, s = res
-    gt, gs = _call_bwd(cfg, t, it, okt, s, g)
-    return gt, None, None, gs
-
-
-_core.defvjp(_core_fwd, _core_bwd)
+    zero = tuple(jnp.zeros(shape, o.dtype) for o in out_refs)
+    carry = (zero, zero if lc.compensated else ())
+    n_full, rem = divmod(nb, bb)
+    carry = jax.lax.fori_loop(
+        _i32(0),
+        _i32(n_full),
+        lambda k, c: add(c, tile(k * bb, masked=False)),
+        carry,
+    )
+    if rem:
+        carry = add(carry, tile(n_full * bb, masked=True))  # static start
+    acc, comp = carry
+    if lc.compensated:
+        acc = tuple(x - c for x, c in zip(acc, comp, strict=True))
+    for o, x in zip(out_refs, acc, strict=True):
+        o[...] = jnp.sum(x, axis=1, keepdims=True)
 
 
 def _pad_to(n: int, b: int) -> int:
     return -(-n // b) * b
 
 
-def _run(
-    sources: Sources,
-    targets: Targets,
-    cfg: _Config,
-) -> tuple[Array, Array]:
-    """Pad and split into columns/rows, then run the kernel."""
-    nt, ns = targets.q.shape[0], sources.q.shape[0]
-    nt_p = _pad_to(nt, cfg.block_targets)
-    ns_p = _pad_to(ns, cfg.block_sources)
+def _call(
+    *ops: Array, fn: Any, n_a: int, lc: _Launch, compiler_params: Any = None
+) -> list[Array]:
+    """Run ``fn``'s pair sum. Operands are (L, N) with L = 1 or the batch size."""
+    a, b = ops[:n_a], ops[n_a:]
+    lead = max(x.shape[0] for x in ops)
+    na, nb = a[0].shape[1], b[0].shape[1]
+    na_p, nb_p = _pad_to(na, lc.block_a), _pad_to(nb, lc.block_b)
+    a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
+    b = tuple(jnp.pad(x, ((0, 0), (0, nb_p - nb)))[:, None, :] for x in b)
+
+    def col(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (0 if one else g, i, 0))
+
+    def row(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec((None, 1, nb_p), lambda g, _: (0 if one else g, 0, 0))
+
+    dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
+    out_spec = pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (g, i, 0))
+    out = pl.pallas_call(
+        ft.partial(_kernel, fn=fn, n_a=n_a, n_b=len(b), nb=nb, lc=lc),
+        grid=(lead, na_p // lc.block_a),
+        in_specs=[col(x) for x in a] + [row(x) for x in b],
+        out_specs=[out_spec] * len(dts),
+        out_shape=[_sds((lead, na_p, 1), dt) for dt in dts],
+        compiler_params=compiler_params,
+        interpret=lc.interpret,
+        name="nbody_pair_sum",
+    )(*a, *b)
+    return [x[:, :na, 0] for x in out]
+
+
+# ---------------------------------------------------------------------------
+# Primitive
+
+pair_sum_p = Primitive("nbody_pair_sum")
+pair_sum_p.multiple_results = True
+
+
+def _bind(*ops: Array, **params: Any) -> list[Array]:
+    return list(pair_sum_p.bind(*ops, **params))  # type: ignore[no-untyped-call]
+
+
+def pair_sum(
+    fn: Any,
+    a: Sequence[Array],
+    b: Sequence[Array],
+    lc: _Launch,
+    *,
+    n_lin_a: int = 0,
+    n_lin_b: int = 0,
+) -> list[Array]:
+    """Return ``out[k][g, i] = sum_j fn(a[:][g, i], b[:][g, j])[k]``.
+
+    Operands are (L, N) arrays with L = 1 (shared) or the batch size. The last
+    ``n_lin_a`` / ``n_lin_b`` operands of each side are ones ``fn`` is linear in;
+    only those can be transposed.
+    """
+    return _bind(*a, *b, fn=fn, n_a=len(a), n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
+
+
+@ft.lru_cache(maxsize=256)
+def _jitted(**params: Any) -> Callable[..., Any]:
+    return jax.jit(ft.partial(_bind, **params))
+
+
+def _impl(*ops: Array, **params: Any) -> list[Array]:
+    out: list[Array] = _jitted(**params)(*ops)
+    return out
+
+
+def _abstract_eval(*ops: Any, fn: Any, n_a: int, **_: Any) -> list[Any]:
+    a, b = ops[:n_a], ops[n_a:]
+    if not a or not b or any(x.ndim != 2 for x in ops):
+        msg = "pair_sum needs (L, N) operands on both sides"
+        raise ValueError(msg)
+    lead = max(x.shape[0] for x in ops)
+    dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
+    return [jax.core.ShapedArray((lead, a[0].shape[1]), dt) for dt in dts]
+
+
+def _gpu_params(lc: _Launch) -> Any:
+    from jax.experimental.pallas import triton as pltr
+
+    return pltr.CompilerParams(num_warps=lc.num_warps, num_stages=lc.num_stages)
+
+
+def _lowering(*, gpu: bool) -> Callable[..., Any]:
+    def rule(ctx: Any, *ops: Any, fn: Any, n_a: int, lc: _Launch, **_: Any) -> Any:
+        params = _gpu_params(lc) if gpu and not lc.interpret else None
+        f = ft.partial(_call, fn=fn, n_a=n_a, lc=lc, compiler_params=params)
+        return mlir.lower_fun(f, multiple_results=True)(ctx, *ops)
+
+    return rule
+
+
+def _jvp(
+    primals: Sequence[Array],
+    tangents: Sequence[Any],
+    *,
+    fn: Any,
+    n_a: int,
+    n_lin_a: int,
+    n_lin_b: int,
+    lc: _Launch,
+) -> tuple[list[Array], list[Any]]:
+    out = _bind(*primals, fn=fn, n_a=n_a, n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
+    nz = [
+        type(t) is not ad.Zero and jnp.dtype(t.dtype) != jax.dtypes.float0
+        for t in tangents
+    ]
+    nz_a = tuple(k for k in range(n_a) if nz[k])
+    nz_b = tuple(k - n_a for k in range(n_a, len(primals)) if nz[k])
+    if not nz_a and not nz_b:
+        return out, [ad.Zero.from_primal_value(o) for o in out]
+    a, b = primals[:n_a], primals[n_a:]
+    ta = [tangents[k] for k in nz_a]
+    tb = [tangents[n_a + k] for k in nz_b]
+    jfn = _Jvp(fn, n_a, len(b), nz_a, nz_b)
+    t_out = pair_sum(
+        jfn,
+        [*a, *ta],
+        [*b, *tb],
+        lc._replace(compensated=False),
+        n_lin_a=len(ta),
+        n_lin_b=len(tb),
+    )
+    return out, t_out
+
+
+def _transpose(
+    cts: Sequence[Any],
+    *ops: Any,
+    fn: Any,
+    n_a: int,
+    n_lin_a: int,
+    n_lin_b: int,
+    lc: _Launch,
+) -> list[Any]:
+    n = len(ops)
+    lin = set(range(n_a - n_lin_a, n_a)) | set(range(n - n_lin_b, n))
+    for k, x in enumerate(ops):
+        if _undef(x) and k not in lin:
+            msg = "pair_sum can only be transposed in its linear operands"
+            raise NotImplementedError(msg)
+    res: list[Any] = [None] * n
+    if all(type(c) is ad.Zero for c in cts):
+        return res
+    aval = _aval
+    lead = max(aval(x).shape[0] for x in ops)
+    ct = [ad.instantiate_zeros(c) for c in cts]  # type: ignore[no-untyped-call]
+    ct = [jnp.broadcast_to(c, (lead, c.shape[1])) for c in ct]
+    lc = lc._replace(compensated=False)
+    und_a = tuple(k for k in range(n_a) if _undef(ops[k]))
+    und_b = tuple(k - n_a for k in range(n_a, n) if _undef(ops[k]))
+
+    if isinstance(fn, _Jvp) and (n_lin_a, n_lin_b) == (len(fn.nz_a), len(fn.nz_b)):
+        # Transpose of a JVP: VJP of the underlying function at the primal.
+        f, nfa = fn.f, fn.n_a
+        fa, fb = list(ops[:nfa]), list(ops[n_a : n_a + fn.n_b])
+        wrt_a = tuple(fn.nz_a[k - nfa] for k in und_a)
+        wrt_b = tuple(fn.nz_b[k - fn.n_b] for k in und_b)
+        zero_a: tuple[int, ...] = ()
+        zero_b: tuple[int, ...] = ()
+    else:
+        # Generic linear fn: drop the linear operands (as zeros).
+        f, nfa = fn, n_a
+        zero_a = tuple(range(n_a - n_lin_a, n_a))
+        zero_b = tuple(range(n - n_a - n_lin_b, n - n_a))
+        fa = [x for k, x in enumerate(ops[:n_a]) if k not in zero_a]
+        fb = [x for k, x in enumerate(ops[n_a:]) if k not in zero_b]
+        wrt_a, wrt_b = und_a, und_b
+
+    nfb = n - n_a if f is fn else fn.n_b
+    da = tuple(aval(x).dtype for x in ops[:nfa])
+    db = tuple(aval(x).dtype for x in ops[n_a : n_a + nfb])
+    common: dict[str, Any] = {
+        "n_ct": len(ct),
+        "dtypes_a": da,
+        "dtypes_b": db,
+        "zero_a": zero_a,
+        "zero_b": zero_b,
+    }
+
+    def put(idx: tuple[int, ...], offset: int, vals: Sequence[Array]) -> None:
+        for k, v in zip(idx, vals, strict=True):
+            target = aval(ops[offset + k])
+            shared = target.shape[0] == 1 and v.shape[0] != 1
+            res[offset + k] = (v.sum(0, keepdims=True) if shared else v).astype(
+                target.dtype
+            )
+
+    if wrt_a:
+        g = pair_sum(_Vjp(f, "a", wrt_a, **common), [*fa, *ct], fb, lc, n_lin_a=len(ct))
+        put(und_a, 0, g)
+    if wrt_b:
+        g = pair_sum(_Vjp(f, "b", wrt_b, **common), fb, [*fa, *ct], lc, n_lin_b=len(ct))
+        put(und_b, n_a, g)
+    return res
+
+
+def _batch(
+    args: Sequence[Array],
+    dims: Sequence[Any],
+    *,
+    fn: Any,
+    n_a: int,
+    n_lin_a: int,
+    n_lin_b: int,
+    lc: _Launch,
+) -> tuple[list[Array], list[int]]:
+    size = next(x.shape[d] for x, d in zip(args, dims, strict=True) if d is not None)
+    old = max(
+        x.shape[0 if d is None or d != 0 else 1]
+        for x, d in zip(args, dims, strict=True)
+    )
+    ops = []
+    for x, d in zip(args, dims, strict=True):
+        if d is None and x.shape[0] == 1:
+            ops.append(x)  # shared by the whole batch
+            continue
+        y = jnp.moveaxis(x, d, 0) if d is not None else x[None]
+        y = jnp.broadcast_to(y, (size, old, y.shape[2]))
+        ops.append(y.reshape(size * old, y.shape[2]))
+    out = _bind(*ops, fn=fn, n_a=n_a, n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
+    return [o.reshape(size, old, o.shape[1]) for o in out], [0] * len(out)
+
+
+pair_sum_p.def_impl(_impl)  # type: ignore[no-untyped-call]
+pair_sum_p.def_abstract_eval(_abstract_eval)  # type: ignore[no-untyped-call]
+mlir.register_lowering(pair_sum_p, _lowering(gpu=False))
+for _plat in ("cuda", "rocm"):
+    mlir.register_lowering(pair_sum_p, _lowering(gpu=True), platform=_plat)
+ad.primitive_jvps[pair_sum_p] = _jvp
+ad.primitive_transposes[pair_sum_p] = _transpose
+batching.primitive_batchers[pair_sum_p] = _batch  # type: ignore[assignment]
+
+
+# ---------------------------------------------------------------------------
+# Forces
+
+
+def _run(sources: Sources, targets: Targets, cfg: _Config) -> tuple[Array, Array]:
+    """Split into (1, N) operands and run the pair sum."""
     out_dtype = jnp.result_type(targets.q, sources.q, sources.m, sources.h, targets.h)
     dtype = out_dtype if cfg.precision is None else jnp.dtype(cfg.precision)
 
@@ -291,28 +531,31 @@ def _run(
         com = jnp.sum(sources.m[:, None] * qs, 0) / jnp.where(mtot == 0, 1, mtot)
         com = jax.lax.stop_gradient(jnp.where(mtot == 0, 0.0, com))
         qt, qs = qt - com, qs - com
-    qt = qt.astype(dtype)
+    qt, qs = qt.astype(dtype), qs.astype(dtype)
 
-    def col(x: Array, fill: float = 0.0) -> Array:
-        return jnp.pad(x, (0, nt_p - nt), constant_values=fill)[:, None]
-
-    def row(x: Array, fill: float = 0.0) -> Array:
-        return jnp.pad(x, (0, ns_p - ns), constant_values=fill)[None, :]
-
-    # Padded sources: m = 0, h = 1 (finite zero terms). Padded targets: okt = 0.
-    t = (col(qt[:, 0]), col(qt[:, 1]), col(qt[:, 2]), col(targets.h.astype(dtype)))
-    it = col(targets.self_index.astype(jnp.int32), -1)
-    okt = col(ok.astype(jnp.int32))
-    q = qs.astype(dtype)
-    s = (
-        row(q[:, 0]),
-        row(q[:, 1]),
-        row(q[:, 2]),
-        row(sources.m.astype(dtype)),
-        row(sources.h.astype(dtype), 1.0),
+    a = (
+        *(qt[:, k] for k in range(3)),
+        targets.h.astype(dtype),
+        targets.self_index.astype(jnp.int32),
+        ok.astype(jnp.int32),
     )
-    out = _core(cfg, t, it, okt, s)
-    return jnp.concatenate(out, axis=1)[:nt].astype(out_dtype), ok
+    b = (
+        *(qs[:, k] for k in range(3)),
+        sources.m.astype(dtype),
+        sources.h.astype(dtype),
+    )
+    lc = _Launch(
+        block_a=cfg.block_targets,
+        block_b=cfg.block_sources,
+        num_warps=cfg.num_warps,
+        num_stages=cfg.num_stages,
+        interpret=cfg.interpret,
+        compensated=cfg.compensated,
+    )
+    out = pair_sum(
+        _Base(cfg.kernel, cfg.potential), [x[None] for x in a], [x[None] for x in b], lc
+    )
+    return jnp.stack([o[0] for o in out], axis=1).astype(out_dtype), ok
 
 
 def pallas_accelerations(
@@ -334,9 +577,11 @@ def pallas_potential(
 class PallasDirectSum(AbstractForceBackend):
     """`DirectSum` as a fused Pallas kernel, for GPU and TPU.
 
-    Reverse-mode autodiff only. On other backends (e.g. CPU) it falls back to
-    `DirectSum`'s code; ``interpret=True`` runs the kernel anywhere, slowly.
-    Block sizes default by backend: (16, 64) on GPU, (8, 128) on TPU.
+    Supports every autodiff mode (``grad``, ``jvp``, ``linearize``, ``vmap``,
+    and higher orders); each derivative is another Pallas pair sum. On other
+    backends (e.g. CPU) it falls back to `DirectSum`'s code; ``interpret=True``
+    runs the kernel anywhere, slowly. Block sizes default by backend: (16, 64)
+    on GPU, (8, 128) on TPU.
 
     ``precision="float32"`` evaluates the pair sum in float32 (positions
     recentred on the source centre of mass) and returns the input dtype.

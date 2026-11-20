@@ -12,6 +12,7 @@ import warnings
 from pathlib import Path
 
 import diffrax as dfx
+import equinox as eqx
 import jax
 import jaxlib
 import numpy as np
@@ -266,55 +267,76 @@ def test_matches_gala_progenitor(dfname: str, progname: str) -> None:
 # ============================================================================
 
 
-# (x64, dtype of ts, max error in kpc)
-FOLLOWS_CASES = {
-    "float64": (True, "float64", 1e-8),
-    "float32-ts": (True, "float32", 1e-8),
-    "float32": (False, "float32", 1e-3),
-}
+def test_field_accelerations() -> None:
+    """The particle feels the host and the progenitor; the progenitor the host."""
+    from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
+        _ProgenitorField,
+    )
+
+    prog = gp.PlummerPotential(m_tot=1e7, r_s=0.01, units=USYS)
+    field = _ProgenitorField(HOST, prog)
+    x = jnp.array([[30.0, 10.0, 20.0], [30.1, 9.9, 20.05]])
+    t = jnp.asarray(0.0)
+    got = field.dv_dt(t, x, None)
+    want_particle = -HOST._gradient(x[0], t) - prog._gradient(x[0] - x[1], t)
+    np.testing.assert_allclose(got[0], want_particle, rtol=1e-14)
+    np.testing.assert_allclose(got[1], -HOST._gradient(x[1], t), rtol=1e-14)
 
 
-# x64 off mid-process: galax's constants were made in float64 at import (a
-# float32 user starts with x64 off and never sees this).
-@pytest.mark.filterwarnings("ignore:Explicitly requested dtype float64")
-@pytest.mark.parametrize("case", list(FOLLOWS_CASES))
-def test_progenitor_follows_its_orbit(case: str) -> None:
-    """The progenitor the particles see sits on the progenitor's orbit.
+@pytest.mark.parametrize(
+    ("integ", "t_release"),
+    [(adaptive(1e-12), -1234.5), (leapfrog(0.5, 3000.0), -1234.5)],
+    ids=["adaptive", "leapfrog-on-grid"],
+)
+def test_progenitor_copy_follows_its_orbit(
+    integ: gd.integrate.Integrator, t_release: float
+) -> None:
+    """Each particle's copy of the progenitor stays on the progenitor's orbit.
 
-    Checked at every release time, with the path called on all of them at
-    once. ``float32-ts``: float32 release times with x64 on still get float64
-    knot times. ``float32``: x64 off, as for a float32 user. There the knot
-    spacing must come from the whole span, since ``tk[1] - tk[0]`` is off by
-    up to half an ulp of |ts[0]|, which over 2**14 knots adds up to tens of pc.
-    The 1e-3 kpc bound is float32 itself: the release times are only good to
-    ~2e-4 Myr there. Leapfrog in float32, since an adaptive solver can't reach
-    its tolerance.
+    The copy starts from the progenitor's state at the release time, partway
+    along the orbit, and is integrated with the particle to a final time on the
+    progenitor's Leapfrog grid. With Leapfrog it takes the progenitor's own
+    steps and only round-off separates them; the adaptive solver takes its own
+    steps and differs by its tolerance-level error. (`run` ends at
+    ``ts[-1] + 1e-3`` Myr, so there a fixed-step copy drifts by the stream
+    solver's error; see `MockStreamGenerator.progenitor_potential`.)
     """
-    x64, dtype, tol = FOLLOWS_CASES[case]
-    with jax.enable_x64(x64):
-        host = gp.NFWPotential(m=1e12, r_s=15.0, units=USYS)
-        w0 = gc.PhaseSpaceCoordinate(
-            q=u.Q([30.0, 10, 20], "kpc"),
-            p=u.Q([10.0, -150, -20], "km/s"),
-            t=u.Q(0.0, "Myr"),
-        )
-        ts = u.Q(jnp.linspace(-3000.0, 0.0, 200, dtype=dtype), "Myr")
-        integ = adaptive(1e-12) if x64 else leapfrog(0.5, 3000.0)
-        gen = gd.MockStreamGenerator(
-            gd.ChenStreamDF(), host,
-            progenitor_potential=gp.KeplerPotential(
-                m_tot=u.Q(1e5, "Msun"), units=USYS
-            ),
-            progenitor_integrator=integ,
-        )  # fmt: skip
-        pot = gen._stream_potential(w0, ts)
-        got = np.asarray(pot["progenitor"].translation(ts, ustrip="kpc"))
-        # The reference at the same instants, solved in the default float type.
-        t_ref = jnp.asarray(ts.value, dtype=jax.dtypes.canonicalize_dtype(float))
-        orbit = gd.evaluate_orbit(host, w0, u.Q(t_ref, "Myr"), integrator=integ)
-        want = np.asarray(orbit.w(units=USYS))[:, :3]
-    err = np.linalg.norm(got - want, axis=1)
-    assert err.max() <= tol, err.max()
+    from galax.dynamics._src.legacy.mockstream.mockstream_generator import (
+        _ProgenitorField,
+    )
+
+    prog = gp.KeplerPotential(m_tot=u.Q(1e5, "Msun"), units=USYS)
+    t0, t1 = u.Q(t_release, "Myr"), u.Q(0.0, "Myr")
+    orbit = gd.evaluate_orbit(
+        HOST, PROG_W0, u.Q([-3000.0, t_release, 0.0], "Myr"), integrator=integ
+    )
+    wp = orbit.w(units=USYS)[-2:]
+    particle = wp[0] + jnp.array([0.05, 0.0, 0.0, 0.0, 0.001, 0.0])
+    y0 = jnp.stack([particle, wp[0]])
+    out = integ(_ProgenitorField(HOST, prog), y0, t0, t1, saveat=jnp.asarray([t1]))
+    got = np.asarray(out.w(units=USYS)).reshape(2, 6)[1]
+    np.testing.assert_allclose(got[:3], wp[1, :3], rtol=0, atol=1e-8)
+
+
+def test_progenitor_units_must_match() -> None:
+    """A progenitor potential in other units raises in `run`.
+
+    The `CompositePotential` this replaced raised there too. Its forces are
+    added to the host's as raw arrays, so other units would be silently wrong.
+    Also when it is swapped in with `eqx.tree_at`, which would skip a check
+    made when the generator is constructed.
+    """
+    pc = u.unitsystem("pc", "Msun", "Myr", "radian")
+    pp = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=pc)
+    ok = gp.PlummerPotential(m_tot=u.Q(1e6, "Msun"), r_s=u.Q(4, "pc"), units=USYS)
+    gen = gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=ok)
+    ts = u.Q(jnp.linspace(-100.0, 0.0, 3), "Myr")
+    for bad in (
+        gd.MockStreamGenerator(gd.ChenStreamDF(), HOST, progenitor_potential=pp),
+        eqx.tree_at(lambda g: g.progenitor_potential, gen, pp),
+    ):
+        with pytest.raises(ValueError, match="same unit system"):
+            bad.run(jax.random.key(0), ts, PROG_W0, u.Q(1e6, "Msun"))
 
 
 def test_zero_mass_limit() -> None:

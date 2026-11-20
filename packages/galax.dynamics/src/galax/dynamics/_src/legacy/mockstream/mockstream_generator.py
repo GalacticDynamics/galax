@@ -7,8 +7,9 @@ import warnings
 from dataclasses import KW_ONLY
 
 from jaxtyping import PRNGKeyArray
-from typing import TypeAlias, cast, final
+from typing import Any, TypeAlias, cast, final
 
+import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.extend as jex
@@ -19,53 +20,82 @@ from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
-import galax.potential as gp
+import galax.fields as gf
 from .df import AbstractStreamDF, ChenStreamDF, ProgenitorMassCallable
 from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit
 from galax.dynamics._src.legacy.integrator import Integrator
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 from galax.dynamics._src.orbit import HamiltonianField, Orbit
+from galax.orbits import AbstractOrbitField
 from galax.potential import AbstractPotential
 from galax.potential.utils import cond_reverse
 
 Carry: TypeAlias = tuple[gt.IntSz0, gt.SzN, gt.SzN]
 
-# Knots of the progenitor orbit that the stream particles see, per release
-# time and at least: <= 0.9 Myr apart for any ``ts`` spanning <= 14 Gyr.
-KNOTS_PER_RELEASE = 20
-MIN_KNOTS = 2**14
-
 
 @final
-class _HermitePath(eqx.Module):
-    """Cubic Hermite interpolant of (x, v) sampled on a uniform time grid.
+class _ProgenitorField(AbstractOrbitField):
+    """A particle (row 0) and the progenitor (row 1), integrated together.
 
-    The error is O(h^4); outside the grid it extrapolates the end cubics.
+    The particle moves in the host plus the progenitor's potential centred on
+    row 1; the progenitor moves in the host alone.
     """
 
-    t0: gt.Sz0
-    dt: gt.Sz0
-    x: gt.SzN  # (n, 3)
-    v: gt.SzN  # (n, 3)
+    host: AbstractPotential
+    progenitor: AbstractPotential
 
-    def __call__(self, t: gt.BBtSz0, /) -> gt.BBtSz3:
-        s = (t - self.t0) / self.dt
-        i = jnp.clip(jnp.floor(s).astype(int), 0, self.x.shape[0] - 2)
-        a = (s - i)[..., None]
-        b = 1 - a
-        x: gt.BBtSz3 = (
-            (b * b * (1 + 2 * a)) * self.x[i]
-            + (a * b * b * self.dt) * self.v[i]
-            + (a * a * (3 - 2 * a)) * self.x[i + 1]
-            - (a * a * b * self.dt) * self.v[i + 1]
-        )
-        return x
+    def __check_init__(self) -> None:
+        # The progenitor's forces are added to the host's as raw arrays. Checked
+        # here, built in each `run`, so a generator changed by `eqx.tree_at` is
+        # checked too.
+        if self.progenitor.units != self.host.units:
+            msg = "progenitor_potential must have the same unit system as potential"
+            raise ValueError(msg)
+
+    @property  # type: ignore[misc]
+    def units(self) -> u.AbstractUnitSystem:
+        return cast("u.AbstractUnitSystem", self.host.units)
+
+    def dx_dt(self, t: gt.Sz0, v: gt.SzN, args: object, /) -> gt.SzN:  # noqa: ARG002
+        return v
+
+    def dv_dt(self, t: gt.Sz0, x: gt.SzN, args: object, /) -> gt.SzN:  # noqa: ARG002
+        a: gt.SzN = -self.host._gradient(x, t)  # noqa: SLF001
+        dx = x[..., 0, :] - x[..., 1, :]
+        a = a.at[..., 0, :].add(-self.progenitor._gradient(dx, t))  # noqa: SLF001
+        return a
+
+
+@AbstractOrbitField.terms.dispatch
+def terms(
+    self: _ProgenitorField, _: dfx.SemiImplicitEuler | gf.Leapfrog, /
+) -> tuple[dfx.ODETerm, dfx.ODETerm]:
+    return (dfx.ODETerm(self.dx_dt), dfx.ODETerm(self.dv_dt))
+
+
+@AbstractOrbitField.__call__.dispatch
+def call(
+    self: _ProgenitorField, t: Any, qp: tuple[Any, Any], args: object = None, /
+) -> tuple[gt.SzN, gt.SzN]:
+    return self.dx_dt(t, qp[1], args), self.dv_dt(t, qp[0], args)
 
 
 @final
 class MockStreamGenerator(eqx.Module):
-    """Generate a mock stellar stream in the specified external potential."""
+    """Generate a mock stellar stream in the specified external potential.
+
+    `jax.jvp` works through `run` with the default integrators. For `jax.grad`
+    (reverse mode) give both integrators an `~galax.dynamics.OrbitSolver` with
+    ``adjoint=diffrax.RecursiveCheckpointAdjoint()`` and an integer
+    ``"max_steps"`` in ``diffeq_kw``. The default `diffrax.ForwardMode` adjoint
+    solves in a `jax.lax.while_loop`, which reverse mode can't differentiate;
+    in turn the reverse-mode adjoint can't be forward-differentiated. By
+    default it keeps about ``sqrt(2 max_steps)`` states per solve and
+    recomputes the steps between them on the backward pass; its
+    ``checkpoints`` argument trades memory for time. `diffrax.DirectAdjoint`
+    supports both modes, e.g. for `jax.hessian`, at a higher cost.
+    """
 
     df: AbstractStreamDF
     """Distribution function for generating mock streams.
@@ -90,13 +120,15 @@ class MockStreamGenerator(eqx.Module):
     potential's mass is its own: the ``prog_mass`` given to `run` only sets the
     release distribution.
 
-    The particles see the progenitor's orbit as a cubic Hermite interpolant of
-    its position and velocity on ``max(20 len(ts), 2**14)`` uniformly spaced
-    times. That orbit is one dense solve with ``progenitor_integrator``, and a
-    dense solve can't be unbounded: a ``"max_steps"`` of `None` in its
-    ``diffeq_kw`` is dropped, so the solver's own ``max_steps`` (``2**16`` by
-    default) caps it. A fixed-step integrator that needs more steps should set
-    an integer ``"max_steps"``.
+    Each particle is integrated together with its own copy of the progenitor,
+    from the progenitor's state at the particle's release time, as gala does.
+    The copy is integrated with ``stream_integrator``, from the release time to
+    the final time. With a fixed-step stream integrator it doesn't take the
+    progenitor's own steps (diffrax spreads a constant-step solve evenly over
+    its span, which differs per release), so it drifts from the progenitor's
+    orbit by that solver's global error, which depends on the orbit. Over
+    3 Gyr with Leapfrog at 1 Myr steps we measured up to ~40 pc on NFW orbits
+    at 5-38 kpc and up to ~0.8 kpc on an eccentric Milky Way orbit.
     """
 
     progenitor_integrator: Integrator = eqx.field(
@@ -125,74 +157,39 @@ class MockStreamGenerator(eqx.Module):
             ),
         )
 
-    def _stream_potential(
-        self, w0: gc.PhaseSpaceCoordinate, ts: gt.QuSzTime, /
-    ) -> AbstractPotential:
-        """Return the potential the stream particles move in."""
-        if self.progenitor_potential is None:
-            return self.potential
-        # With a fixed-step progenitor integrator, knots between its
-        # steps are its linear dense output, O(dt^2) off its own orbit (far
-        # below the particles' own step error); align knots with steps if needed.
-        n = max(KNOTS_PER_RELEASE * len(ts), MIN_KNOTS)
-        # In the default float type: float32 `ts` with x64 on still gets float64
-        # knot times, and a float64 solve below.
-        tk = jnp.linspace(ts[0], ts[-1], n, dtype=jax.dtypes.canonicalize_dtype(float))
-        # Dense output evaluated at the knots: `SaveAt(ts=tk)` would make
-        # diffrax trace one op per knot (its t0 == t1 branch), and XLA's CPU
-        # compile of that runs for minutes to hours.
-        orbit = evaluate_orbit(
-            self.potential,
-            w0,
-            jnp.stack([tk[0], tk[-1]]),
-            integrator=self.progenitor_integrator,
-            dense=True,
-        )
-        wk = orbit.interpolant.evaluate(tk).w(units=self.units)
-        tk = u.ustrip(self.units["time"], tk)
-        # The spacing from the whole span: in float32, `tk[1] - tk[0]` is off by
-        # up to half an ulp of |tk[0]|, which adds up over the n knots.
-        dt = (tk[-1] - tk[0]) / (n - 1)
-        path = _HermitePath(tk[0], dt, wk[:, :3], wk[:, 3:])
-        moving = gp.TranslatedPotential(
-            self.progenitor_potential,
-            translation=gp.params.TimeDependentTranslationParameter(
-                path, units=self.units
-            ),
-        )
-        return gp.CompositePotential(host=self.potential, progenitor=moving)
-
     def _integrate_to(
         self,
         w0: gt.BtSz6,
         t0: gt.QuSz0,
         t1: gt.QuSz0,
-        potential: AbstractPotential | None = None,
+        prog_w0: gt.Sz6 | None = None,
         /,
-        *,
-        sequential: bool = False,
     ) -> tuple[gt.Sz6, gt.Sz6]:
         """Integrate a leading and a trailing particle ``(2, 6)`` from t0 to t1.
 
         Each gets its own solve, so an adaptive solver picks its steps per particle.
-        ``potential`` defaults to the host, ``self.potential``. ``sequential``
-        runs the two solves one after the other instead of vmapped as a pair.
+        With ``prog_w0``, the progenitor's state at t0, each particle is solved
+        together with the progenitor in `progenitor_potential`'s field.
         """
-        pot = self.potential if potential is None else potential
         # `units` is an `eqx.AbstractVar` on the base class, which mypy reads as
-        # an init field; on `HamiltonianField` it is a property.
-        field = HamiltonianField(pot)  # type: ignore[call-arg]
+        # an init field; on these fields it is a property.
+        field: AbstractOrbitField
+        if prog_w0 is None:
+            field = HamiltonianField(self.potential)  # type: ignore[call-arg]
+        else:
+            assert self.progenitor_potential is not None  # noqa: S101
+            field = _ProgenitorField(self.potential, self.progenitor_potential)  # type: ignore[call-arg]
         # `SaveAt(t1=True)` is ~2.4x slower here on the adaptive scan path (an
         # XLA whole-program effect), so save at the time `t1` instead.
         saveat = jnp.asarray([t1])
 
         def final_state(w: gt.Sz6) -> gt.Sz6:
-            out = self.stream_integrator(field, w, t0, t1, saveat=saveat)
-            w1: gt.Sz6 = out.w(units=self.units)[-1]
+            y = w if prog_w0 is None else jnp.stack([w, prog_w0])
+            out = self.stream_integrator(field, y, t0, t1, saveat=saveat)
+            # (1, 6), or (2, 1, 6) with the progenitor as row 1.
+            w1: gt.Sz6 = out.w(units=self.units).reshape(-1, 6)[0]
             return w1
 
-        if sequential:
-            return final_state(w0[0]), final_state(w0[1])
         w = jax.vmap(final_state)(w0)
         return w[0], w[1]
 
@@ -204,7 +201,7 @@ class MockStreamGenerator(eqx.Module):
         ts: gt.QuSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-        potential: AbstractPotential,
+        prog_ws: gt.SzN | None,
         /,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by scanning over the release model/integration.
@@ -214,12 +211,6 @@ class MockStreamGenerator(eqx.Module):
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
         t_f = ts[-1] + u.Q(1e-3, "Myr")  # TODO: not bump in the final time.
-        # With the progenitor's potential, each adaptive step of the vmapped
-        # pair costs several times what a step of one particle does (on CPU,
-        # 3-10x less CPU time one after the other). In the host alone the pair
-        # is cheaper. `_run_vmap` keeps the pair: there it would double the
-        # loop iterations of the batched solve.
-        sequential = self.progenitor_potential is not None
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -238,8 +229,7 @@ class MockStreamGenerator(eqx.Module):
                 jnp.vstack([w0_l_i, w0_t_i]),
                 ts[i],
                 t_f,
-                potential,
-                sequential=sequential,
+                None if prog_ws is None else prog_ws[i],
             )
             # Prepare for next iteration
             carry_out = (i + 1, w0_lead[i + 1, :], w0_trail[i + 1, :])
@@ -261,7 +251,7 @@ class MockStreamGenerator(eqx.Module):
         ts: gt.QuSzTime,
         mock0_lead: MockStreamArm,
         mock0_trail: MockStreamArm,
-        potential: AbstractPotential,
+        prog_ws: gt.SzN | None,
         /,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by vmapping over the release model/integration.
@@ -275,7 +265,10 @@ class MockStreamGenerator(eqx.Module):
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
             return self._integrate_to(
-                jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f, potential
+                jnp.vstack([w0_l_i, w0_t_i]),
+                ts[i],
+                t_f,
+                None if prog_ws is None else prog_ws[i],
             )
 
         w0_lead = mock0_lead.w(units=self.units)
@@ -380,9 +373,13 @@ class MockStreamGenerator(eqx.Module):
         # progenitor orbit. The release times are the stripping times.
         mock0 = self.df.sample(rng, self.potential, prog_o, prog_mass)
 
-        pot = self._stream_potential(w0, ts)
+        # The progenitor's state at each release time, which each particle's
+        # copy of the progenitor starts from.
+        prog_ws = (
+            None if self.progenitor_potential is None else prog_o.w(units=self.units)
+        )
         run = self._run_vmap if use_vmap else self._run_scan
-        lead_arm_w, trail_arm_w = run(ts, mock0["lead"], mock0["trail"], pot)
+        lead_arm_w, trail_arm_w = run(ts, mock0["lead"], mock0["trail"], prog_ws)
 
         t = jnp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 

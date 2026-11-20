@@ -138,10 +138,13 @@ def test_near_circular_grad_bounded():
 
 
 def test_fit_not_converged_flag():
-    # a NaN sample makes every residual NaN, so the solver cannot succeed
+    # The fit leaves out a NaN sample, but with every sample NaN each residual
+    # is NaN, so the solver cannot succeed.
     rng = np.random.default_rng(0)
     q, p, t = rng.normal(size=(50, 3)), rng.normal(size=(50, 3)), np.arange(50.0)
-    q[3, 0] = np.nan
+    _, ok = fit_oscillator(q, p, t)
+    assert bool(ok)
+    q[:, 0] = np.nan
     _, ok = fit_oscillator(q, p, t)
     assert not bool(ok)
 

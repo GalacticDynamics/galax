@@ -107,4 +107,6 @@ def test_coarse_sampling_counted():
     X = np.unwrap(np.mod(theta, 2 * np.pi), axis=0).T
     failed, kinds = ref.check_angle_sampling(NVECS, X)
     assert (kinds == 1).any()
-    assert int(out[5]) == len(failed)
+    # gala counts the exactly resonant n (all components equal rates) as failed
+    assert int(out[5]) + int(out[7]) == len(failed)
+    assert int(out[7]) > 0

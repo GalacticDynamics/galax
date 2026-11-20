@@ -11,7 +11,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ._utils import safe_div
+from ._utils import fill_masked, safe_div
+
+# Floor (rad) of the threshold on the span of n . theta for a resonant n-vector.
+_RESONANT = 1e-6
 
 
 def action_system(
@@ -86,13 +89,25 @@ def angle_system(
     return A, b
 
 
-def _fill_masked(x: jax.Array, ok: jax.Array) -> jax.Array:
-    """Replace rows where ``ok`` is False by the previous good row (else the next)."""
-    i = jnp.arange(len(ok))
-    prev = jax.lax.cummax(jnp.where(ok, i, -1))
-    nxt = jax.lax.cummin(jnp.where(ok, i, len(ok)), reverse=True)
-    idx = jnp.where(prev >= 0, prev, jnp.minimum(nxt, len(ok) - 1))
-    return x[idx]
+def _solve_masked(A: jax.Array, b: jax.Array, drop: jax.Array) -> jax.Array:
+    """Minimum-norm least-squares solution of ``A x = b``, with ``x[drop] = 0``.
+
+    The rows and columns of the dropped unknowns are replaced by those of the
+    identity. ``A`` is scaled by its diagonal before the pseudo-inverse, so the
+    cutoff on small singular values is relative to a well-scaled matrix. On a
+    regular system this equals `jnp.linalg.solve` to round-off. JAX gives
+    `jnp.linalg.pinv` a closed-form derivative, so gradients stay finite on a
+    singular system too.
+    """
+    keep = ~drop
+    A = jnp.where(keep[:, None] & keep[None, :], A, jnp.diag(drop.astype(A.dtype)))
+    b = jnp.where(keep, b, 0.0)
+    a = jnp.abs(jnp.diag(A))
+    d = 1 / jnp.sqrt(jnp.where(a > 0, a, 1.0))
+    # singular values below 100 eps of the largest are cut; static for the jvp
+    rtol = 100 * float(np.finfo(A.dtype).eps)
+    x: jax.Array = d * (jnp.linalg.pinv(d[:, None] * A * d, rtol=rtol) @ (d * b))
+    return x
 
 
 def solve_o2gf(
@@ -101,6 +116,7 @@ def solve_o2gf(
     t: jax.Array,
     nvecs: np.ndarray,
     /,
+    rest: jax.Array | None = None,
 ) -> tuple[jax.Array, ...]:
     """Solve the O2GF action and angle systems.
 
@@ -110,28 +126,71 @@ def solve_o2gf(
     the unwrap sees no jump there.
 
     Returns ``(J[3], S_n[N], theta0[3], Omega[3], dSn_dJ[3N], n_bad_cover,
-    n_nan)``. ``n_bad_cover`` counts the n-vectors for which the span of
+    n_nan, n_resonant)``. ``n_nan`` is the number of masked samples.
+
+    An n-vector is resonant when ``n . theta`` spans less than
+    ``max(1e-6, 100 eps max|n . theta|)`` rad over the orbit (1e-6 rad in
+    float64), and each toy angle with ``n_i != 0`` spans at least 2 pi on its
+    own, e.g. ``n = (0, 2, -2)`` in a spherical potential, where
+    ``Omega_phi = Omega_z``. Its column is then collinear with the action
+    columns, so it is left out of both solves, with S_n and dS_n/dJ set to 0,
+    and counted in ``n_resonant``. An n-vector below the threshold whose
+    angles do not each span 2 pi (a window too short to tell) is left out
+    too, but counted in ``n_bad_cover``. ``rest`` (bool, shape (3,)) marks
+    axes whose toy action is 0 along the whole orbit, e.g. z for a planar
+    orbit; the n-vectors with a nonzero component on such an axis are left
+    out too, and are not counted.
+
+    ``n_bad_cover`` counts the other n-vectors for which the span of
     ``n . theta`` is under 2 pi (window too short) or the span per sample
-    exceeds pi (sampling too coarse). ``n_nan`` is the number of masked samples.
+    exceeds pi (sampling too coarse). Those not below the resonance
+    threshold stay in the solves, as in gala.
+
+    Both systems are solved by minimum-norm least squares. On a regular system
+    this matches gala's ``scipy.linalg.solve``. Dropping the resonant modes
+    does not make every system regular: in a spherical potential the
+    ``cos(n . theta)`` of n-vectors that differ by a resonant vector are
+    still linearly dependent, and there the minimum norm picks the S_n, where
+    gala's solve is singular.
     """
     ok = jnp.isfinite(J_toy).all(axis=1) & jnp.isfinite(theta_raw).all(axis=1)
     ok &= jnp.isfinite(t)
     w = ok.astype(jnp.result_type(J_toy, theta_raw, float))
     J = jnp.where(ok[:, None], J_toy, 0.0)
     tt = jnp.where(ok, t, 0.0)
-    theta = jnp.unwrap(_fill_masked(theta_raw, ok), axis=0)
-
-    A, b = action_system(J, theta, nvecs, w)
-    x = jnp.linalg.solve(A, b)
-    A, b = angle_system(theta, tt, nvecs, w)
-    y = jnp.linalg.solve(A, b)
+    theta = jnp.unwrap(fill_masked(theta_raw, ok), axis=0)
 
     X = theta @ jnp.asarray(nvecs, dtype=theta.dtype).T  # (T, N)
     span = jnp.where(ok[:, None], X, -jnp.inf).max(axis=0) - jnp.where(
         ok[:, None], X, jnp.inf
     ).min(axis=0)
     span = jnp.where(ok.any(), span, 0.0)
+    skip = (
+        jnp.zeros(len(nvecs), bool)
+        if rest is None
+        else jnp.any((nvecs != 0) & rest, axis=1)
+    )
+    # In float32 the round-off of the unwrapped angles exceeds 1e-6 rad.
+    eps = float(np.finfo(theta.dtype).eps)
+    tol = jnp.maximum(
+        _RESONANT, 100 * eps * jnp.max(jnp.abs(jnp.where(ok[:, None], X, 0.0)))
+    )
+    below = (span < tol) & ~skip
+    # A constant n . theta is a resonance only if each angle it involves turns
+    # through 2 pi on its own; otherwise the window is too short to tell.
+    th_span = jnp.where(ok[:, None], theta, -jnp.inf).max(axis=0) - jnp.where(
+        ok[:, None], theta, jnp.inf
+    ).min(axis=0)
+    turns = jnp.where(ok.any(), th_span, 0.0) >= 2 * jnp.pi
+    resonant = below & jnp.all((nvecs == 0) | turns, axis=1)
     bad = (span < 2 * jnp.pi) | (safe_div(span, w.sum()) > jnp.pi)
+    bad &= ~(skip | resonant)
+
+    drop = below | skip
+    A, b = action_system(J, theta, nvecs, w)
+    x = _solve_masked(A, b, jnp.concat([jnp.zeros(3, bool), drop]))
+    A, b = angle_system(theta, tt, nvecs, w)
+    y = _solve_masked(A, b, jnp.concat([jnp.zeros(6, bool), jnp.tile(drop, 3)]))
     return (
         x[:3],
         x[3:],
@@ -140,4 +199,5 @@ def solve_o2gf(
         y[6:],
         bad.sum(),
         (~ok).sum(),
+        resonant.sum(),
     )

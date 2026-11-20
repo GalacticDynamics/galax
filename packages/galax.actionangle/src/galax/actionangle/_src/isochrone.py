@@ -23,12 +23,11 @@ import unxt as u
 
 import galax.coordinates as gc
 from ._parse import parse_qpt, parse_w, wrap_result
-from ._utils import safe_sqrt
+from ._utils import G_in_units, mod_2pi, safe_sqrt
 from .result import ActionsAnglesFrequencies
 from galax.potential import IsochronePotential
 
 _HALF_PI = jnp.pi / 2
-_TWO_PI = 2 * jnp.pi
 # Angles need c > _C_TOL b, with c = GM / (-2E) - b (c = 0 only at the origin
 # at rest), and 1 - e^2 > _Q_TOL for the orbital plane (L > 0).
 _C_TOL = 1e-30
@@ -138,8 +137,7 @@ def _angles(GM: Array, b: Array, xyz: Array, v: Array) -> Array:
 
     thetaz = jnp.where(radial, 0.0, thetaz)
     thetap = jnp.where(radial, 0.0, thetap)
-    angles = jnp.mod(jnp.stack([thetar, thetap, thetaz]), _TWO_PI)
-    return jnp.where(angles >= _TWO_PI, angles - _TWO_PI, angles)  # mod rounding
+    return mod_2pi(jnp.stack([thetar, thetap, thetaz]))
 
 
 def _isochrone_aaf(
@@ -240,9 +238,7 @@ def _aaf(
     tq = u.Q(t, usys["time"])
     m_tot = jnp.broadcast_to(pot.m_tot(tq, ustrip=usys["mass"]), batch)
     b = jnp.broadcast_to(pot.r_s(tq, ustrip=usys["length"]), batch)
-    G = pot.constants["G"].ustrip(
-        usys["length"] ** 3 / (usys["mass"] * usys["time"] ** 2)
-    )
+    G = G_in_units(pot)
 
     def f(m: Array, b_: Array, x: Array, v: Array) -> tuple[Array, Array, Array]:
         return _isochrone_aaf(m, b_, G, x, v)

@@ -1,0 +1,341 @@
+"""O2GF actions, angles and frequencies of loop and box orbits.
+
+The method of Sanders & Binney (2014), following gala's ``find_actions_o2gf``.
+A loop orbit is aligned so that it circulates about z and is mapped through an
+isochrone toy; a box orbit is mapped through a harmonic-oscillator toy. The
+true actions, angles and frequencies then come from two linear solves over the
+samples of the orbit (`solve_o2gf`).
+"""
+
+__all__ = ["NAN_MAX", "O2GFResult"]
+
+import functools as ft
+import warnings
+
+from jaxtyping import Array
+from typing import Any, NamedTuple
+
+import equinox as eqx
+import jax
+import jax.numpy as jnp
+import numpy as np
+from plum import dispatch
+
+import unxt as u
+
+import galax.coordinates as gc
+import galax.potential as gp
+from ._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
+from ._o2gf_orbit import align_circulation, circulation, is_loop
+from ._o2gf_solve import solve_o2gf
+from ._o2gf_toy import (
+    IsochroneToy,
+    OscillatorToy,
+    fit_isochrone,
+    fit_oscillator,
+    toy_aaf,
+)
+from ._parse import parse_qpt, parse_w, wrap_result
+from ._utils import G_in_units, fill_masked, mod_2pi
+from .result import ActionsAnglesFrequencies
+
+# An orbit with more masked (non-finite) toy samples than this is flagged. gala
+# drops the NaN samples and allows one.
+NAN_MAX = 1
+
+# An axis is at rest when its toy action is below this fraction of the total
+# at every sample.
+_REST = 1e-12
+_FAMILIES = (None, "loop", "box")
+
+
+class O2GFResult(eqx.Module):
+    """Result of `o2gf_actions_angles_freqs`.
+
+    Every array has the batch shape of the orbits in front. ``aaf`` holds the
+    actions, angles and frequencies, and ``is_loop`` says which path each
+    orbit took. Loop orbits are in the aligned frame, ordered (R, φ, z);
+    ``aligned_axis`` is the axis that was swapped with z (2 when none was).
+    The swap is a reflection, so after one J_phi is -L_x or -L_y, as in
+    gala. Box orbits are ordered (x, y, z). The angles are those at
+    ``t = 0``, in ``[0, 2 pi)``. On an axis whose toy action is 0 along
+    the whole orbit (e.g. z for a planar orbit) the action is 0 and the angle
+    and frequency are NaN.
+
+    ``toy`` is the toy each orbit used, fitted or given. When the family is
+    chosen per orbit (``family=None`` and no ``toy``), it is the pair
+    ``(IsochroneToy, OscillatorToy)`` and ``nvecs`` is the pair ``(loop_nvecs,
+    box_nvecs)``. ``sn`` holds the generating function S_n for each n-vector
+    and ``dsn_dj`` its derivative, flattened from shape (3, N). Box entries
+    are then zero-padded to the loop length, per block of ``dsn_dj``.
+
+    ``family_mismatch`` is True when the path that ran, fixed by ``family``
+    or by the type of ``toy``, is not the one `is_loop` picks for the orbit
+    (in either direction). It is always False with ``family=None`` and no
+    ``toy``.
+
+    ``n_resonant`` counts the n-vectors whose angle ``n . theta`` is constant
+    along the orbit, e.g. ``(0, 2, -2)`` in a spherical potential: it spans
+    less than ``max(1e-6, 100 eps max|n . theta|)`` rad, while each toy angle
+    it involves spans at least 2 pi. They are left out of the fit, with
+    S_n = 0, and do not flag the orbit. ``n_bad_cover`` counts the other
+    n-vectors, except those that involve a rest axis, whose angle covers
+    less than 2 pi, or whose span divided by the number of kept (unmasked)
+    samples exceeds pi (the mean step, as in gala). Those below the
+    resonance threshold are left out of the fit too.
+    ``n_nan`` counts the samples dropped for non-finite toy values. Samples
+    with a non-finite input are also left out of the classification and of
+    the toy fit.
+    ``fit_converged`` says whether the toy fit converged (True for a given
+    toy). An orbit is ``flagged`` when ``n_bad_cover > 0``, more than
+    `NAN_MAX` samples were dropped, the fit did not converge, or
+    ``family_mismatch`` is True. A flagged
+    orbit keeps its values, so check ``flagged`` before using them.
+    """
+
+    aaf: ActionsAnglesFrequencies
+    toy: IsochroneToy | OscillatorToy | tuple[IsochroneToy, OscillatorToy]
+    is_loop: Array
+    aligned_axis: Array
+    sn: Array
+    dsn_dj: Array
+    n_bad_cover: Array
+    n_resonant: Array
+    n_nan: Array
+    fit_converged: Array
+    family_mismatch: Array
+    flagged: Array
+    nvecs: np.ndarray | tuple[np.ndarray, np.ndarray] = eqx.field(static=True)
+
+
+class _Out(NamedTuple):
+    """Per-orbit output of one path."""
+
+    toy: Any
+    ok: Array
+    axis: Array
+    J: Array
+    th0: Array
+    Om: Array
+    sn: Array
+    dsn: Array
+    n_bad: Array
+    n_nan: Array
+    n_res: Array
+    loop: Array
+    mismatch: Any = None
+
+
+def _finite(q: Array, p: Array, t: Array) -> Array:
+    """Mark the samples with finite ``q``, ``p`` and ``t``.
+
+    The fits and the classification keep these. A non-finite input sample
+    gives non-finite toy values, so the solves drop it too.
+    """
+    return jnp.isfinite(q).all(axis=1) & jnp.isfinite(p).all(axis=1) & jnp.isfinite(t)
+
+
+def _path(
+    loop: bool,  # noqa: FBT001
+    pot: Any,
+    G: Array,
+    q: Array,
+    p: Array,
+    t: Array,
+    toy: Any,
+    nvecs: np.ndarray,
+) -> _Out:
+    """Run the loop or the box path on one orbit."""
+    keep = _finite(q, p, t)
+    if loop:
+        q, p, axis = align_circulation(q, p, circulation(q, p, keep))
+    else:
+        axis = jnp.asarray(2)
+    if toy is None:
+        # Fit in the default float: optimistix's Levenberg-Marquardt mixes in
+        # float64 under jax_enable_x64, which a float32 problem rejects.
+        f = jnp.result_type(float)
+        qf, pf, tf = q.astype(f), p.astype(f), t.astype(f)
+        toy, ok = (
+            fit_isochrone(pot, qf, pf, tf, keep)
+            if loop
+            else fit_oscillator(qf, pf, tf, keep)
+        )
+        toy = jax.tree.map(lambda x: x.astype(q.dtype), toy)
+    else:
+        ok = jnp.asarray(True)  # noqa: FBT003
+    # Map the masked samples through the toy at a kept sample, so their NaN
+    # does not reach the gradient, then mark them NaN for the solve to drop.
+    J, theta, _ = toy_aaf(toy, G, fill_masked(q, keep), fill_masked(p, keep))
+    J = jnp.where(keep[:, None], J, jnp.nan)
+    theta = jnp.where(keep[:, None], theta, jnp.nan)
+    # An axis whose toy action stays 0 (a planar orbit) has no angle to fit.
+    aJ = jnp.abs(J)
+    tiny = (aJ <= _REST * aJ.sum(axis=1, keepdims=True)) | ~jnp.isfinite(aJ)
+    rest = jax.lax.stop_gradient(jnp.all(tiny, axis=0))
+    # Solve about the mean time, which conditions the angle system far better
+    # (it matters in float32), then step the angles back to t = 0.
+    tc = jnp.mean(jnp.where(jnp.isfinite(t), t, 0.0))
+    J, sn, th0, Om, dsn, n_bad, n_nan, n_res = solve_o2gf(J, theta, t - tc, nvecs, rest)
+    th0 = mod_2pi(th0 - Om * tc)
+    # On an axis at rest J is 0, and its angle and frequency are undefined.
+    J = jnp.where(rest, 0.0, J)
+    th0 = jnp.where(rest, jnp.nan, th0)
+    Om = jnp.where(rest, jnp.nan, Om)
+    return _Out(
+        toy, ok, axis, J, th0, Om, sn, dsn, n_bad, n_nan, n_res, jnp.asarray(loop)
+    )
+
+
+def _pad(sn: Array, dsn: Array, n: int) -> tuple[Array, Array]:
+    """Zero-pad S_n to length n, and each of the 3 blocks of dS_n/dJ."""
+    k = n - len(sn)
+    dsn = jnp.pad(dsn.reshape(3, -1), ((0, 0), (0, k))).reshape(-1)
+    return jnp.pad(sn, (0, k)), dsn
+
+
+@ft.partial(jax.jit, static_argnames=("n_max", "family"))
+def _o2gf(
+    pot: Any, q: Array, p: Array, t: Array, toy: Any, *, n_max: int, family: Any
+) -> _Out:
+    """Batched core; ``q``, ``p`` are (..., T, 3) and ``t`` is (..., T)."""
+    G = jnp.asarray(G_in_units(pot), dtype=q.dtype)
+    loop_n, box_n = n_vectors(n_max, LOOP_STEPS), n_vectors(n_max, BOX_STEPS)
+
+    def one(q: Array, p: Array, t: Array, toy: Any) -> _Out:
+        sel = is_loop(circulation(q, p, _finite(q, p, t)))
+        if family is not None:
+            loop = family == "loop"
+            out = _path(loop, pot, G, q, p, t, toy, loop_n if loop else box_n)
+            # The forced path may not be the orbit's family.
+            return out._replace(mismatch=sel != loop)
+        lo = _path(True, pot, G, q, p, t, None, loop_n)  # noqa: FBT003
+        bo = _path(False, pot, G, q, p, t, None, box_n)  # noqa: FBT003
+        sn, dsn = _pad(bo.sn, bo.dsn, len(loop_n))
+        bo = bo._replace(sn=sn, dsn=dsn)
+        mixed = jax.tree.map(
+            lambda a, b: jnp.where(sel, a, b),
+            lo._replace(toy=None),
+            bo._replace(toy=None),
+        )
+        out = mixed._replace(toy=(lo.toy, bo.toy), mismatch=jnp.asarray(False))  # noqa: FBT003
+        return out
+
+    for _ in q.shape[:-2]:
+        one = jax.vmap(one)
+    return one(q, p, t, toy)
+
+
+def _run(
+    pot: Any,
+    q: Array,
+    p: Array,
+    t: Array,
+    as_quantity: bool,  # noqa: FBT001
+    n_max: int,
+    toy: Any,
+    family: Any,
+) -> O2GFResult:
+    if q.ndim < 2 or q.shape[-2] < 2:
+        msg = (
+            "O2GF needs orbits with a time axis of at least 2 samples, so q "
+            f"must have shape (..., T, 3) with T >= 2, got {q.shape}; a single "
+            "phase-space point has no time axis"
+        )
+        raise ValueError(msg)
+    if family not in _FAMILIES:
+        msg = f"family must be None, 'loop' or 'box', got {family!r}"
+        raise ValueError(msg)
+    if toy is not None:
+        if not isinstance(toy, IsochroneToy | OscillatorToy):
+            msg = f"toy must be an IsochroneToy or OscillatorToy, got {type(toy)}"
+            raise TypeError(msg)
+
+        def isq(x: Any) -> bool:
+            return isinstance(x, u.AbstractQuantity)
+
+        if any(isq(x) for x in jax.tree.leaves(toy, is_leaf=isq)):
+            msg = (
+                f"the fields of {type(toy).__name__} must be bare arrays in "
+                f"pot.units ({pot.units}), not Quantities"
+            )
+            raise TypeError(msg)
+        toy_family = "loop" if isinstance(toy, IsochroneToy) else "box"
+        if family not in (None, toy_family):
+            msg = (
+                f"family={family!r} contradicts a {type(toy).__name__}, "
+                f"which needs family={toy_family!r}"
+            )
+            raise ValueError(msg)
+        family = toy_family
+        # broadcast the toy over the orbit batch; an omega keeps its last axis
+        core = 1 if isinstance(toy, OscillatorToy) else 0
+        batch = q.shape[:-2]
+        toy = jax.tree.map(
+            lambda x: jnp.broadcast_to(
+                jnp.asarray(x, dtype=q.dtype),
+                batch + jnp.shape(x)[jnp.ndim(x) - core :],
+            ),
+            toy,
+        )
+
+    loop_n, box_n = n_vectors(n_max, LOOP_STEPS), n_vectors(n_max, BOX_STEPS)
+    for name, n in (("loop", loop_n), ("box", box_n)):
+        if family in (None, name) and len(n) == 0:
+            msg = f"n_max={n_max!r} gives no n-vectors for the {name} path"
+            raise ValueError(msg)
+    out = _o2gf(pot, q, p, t, toy, n_max=n_max, family=family)
+    nvecs: np.ndarray | tuple[np.ndarray, np.ndarray] = (
+        (loop_n, box_n) if family is None else loop_n if family == "loop" else box_n
+    )
+    with warnings.catch_warnings():
+        # equinox warns about any array in a static field; nvecs is a
+        # trace-time NumPy constant, so static is what we want.
+        warnings.filterwarnings("ignore", "A JAX array is being set as static")
+        return O2GFResult(
+            aaf=wrap_result(out.J, out.th0, out.Om, pot, as_quantity),
+            toy=out.toy,
+            is_loop=out.loop,
+            aligned_axis=out.axis,
+            sn=out.sn,
+            dsn_dj=out.dsn,
+            n_bad_cover=out.n_bad,
+            n_resonant=out.n_res,
+            n_nan=out.n_nan,
+            fit_converged=out.ok,
+            family_mismatch=out.mismatch,
+            flagged=(out.n_bad > 0) | (out.n_nan > NAN_MAX) | ~out.ok | out.mismatch,
+            nvecs=nvecs,
+        )
+
+
+@dispatch
+def o2gf_actions_angles_freqs(
+    pot: gp.AbstractPotential,
+    q: Any,
+    p: Any,
+    t: Any,
+    /,
+    *,
+    n_max: int,
+    toy: IsochroneToy | OscillatorToy | None = None,
+    family: str | None = None,
+) -> O2GFResult:
+    """O2GF from positions and velocities (..., T, 3) and times (..., T)."""
+    q, p, t, as_quantity = parse_qpt(pot, q, p, t)
+    return _run(pot, q, p, t, as_quantity, n_max, toy, family)
+
+
+@dispatch
+def o2gf_actions_angles_freqs(
+    pot: gp.AbstractPotential,
+    w: gc.AbstractPhaseSpaceCoordinate,
+    /,
+    *,
+    n_max: int,
+    toy: IsochroneToy | OscillatorToy | None = None,
+    family: str | None = None,
+) -> O2GFResult:
+    """O2GF from an orbit, whose time axis is the last batch axis."""
+    q, p, t = parse_w(pot, w)
+    return _run(pot, q, p, t, True, n_max, toy, family)  # noqa: FBT003

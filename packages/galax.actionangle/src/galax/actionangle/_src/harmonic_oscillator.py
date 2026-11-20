@@ -21,10 +21,9 @@ import unxt as u
 
 import galax.coordinates as gc
 from ._parse import parse_qpt, parse_w, wrap_result
+from ._utils import mod_2pi
 from .result import ActionsAnglesFrequencies
 from galax.potential import HarmonicOscillatorPotential
-
-_TWO_PI = 2 * jnp.pi
 
 
 def _ho_aaf(omega: Array, x: Array, v: Array) -> tuple[Array, Array, Array]:
@@ -33,11 +32,14 @@ def _ho_aaf(omega: Array, x: Array, v: Array) -> tuple[Array, Array, Array]:
     ``omega``, ``x`` and ``v`` have shape (3,). The angle of an axis is
     undefined at ``J_i = 0`` (the particle at rest at the origin) and is 0
     there. Angles are in ``[0, 2 pi)``, with ``x_i = sqrt(2 J_i / omega_i)
-    cos(theta_i)`` and ``v_i = -sqrt(2 J_i omega_i) sin(theta_i)``.
+    cos(theta_i)`` and ``v_i = -sqrt(2 J_i omega_i) sin(theta_i)``. The
+    gradient of the angle at ``J_i = 0`` is set to 0.
     """
     actions = (v**2 + (omega * x) ** 2) / (2 * omega)
-    angles = jnp.mod(jnp.arctan2(-v / omega, x), _TWO_PI)
-    angles = jnp.where(angles >= _TWO_PI, angles - _TWO_PI, angles)  # mod rounding
+    # atan2(0, 0) has a NaN gradient, so an axis at rest takes atan2(0, 1)
+    rest = (x == 0) & (v == 0)
+    y_ = jnp.where(rest, 0.0, -v / omega)
+    angles = mod_2pi(jnp.arctan2(y_, jnp.where(rest, 1.0, x)))
     return actions, angles, omega
 
 

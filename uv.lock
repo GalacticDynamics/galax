@@ -1507,8 +1507,8 @@ dependencies = [
     { name = "galax-potential" },
     { name = "jax" },
     { name = "jaxtyping" },
+    { name = "numpy" },
     { name = "plum" },
-    { name = "quaxed" },
     { name = "unxt" },
 ]
 
@@ -1530,9 +1530,9 @@ requires-dist = [
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "jax", specifier = ">=0.7.2" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
+    { name = "numpy", specifier = ">=2.0" },
     { name = "plum", marker = "python_full_version < '3.14'", specifier = ">=2.8.0" },
     { name = "plum", marker = "python_full_version >= '3.14'", specifier = ">=2.9.0" },
-    { name = "quaxed", specifier = ">=0.10.5" },
     { name = "unxt", specifier = ">=2.0.5,<3" },
 ]
 

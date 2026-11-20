@@ -26,9 +26,9 @@ dependencies = [
   "galax.potential",
   "jax>=0.7.2",
   "jaxtyping>=0.3.3",
+  "numpy>=2.0",
   "plum>=2.8.0; python_version < '3.14'",
   "plum>=2.9.0; python_version >= '3.14'",
-  "quaxed>=0.10.5",
   "unxt>=2.0.5,<3",
 ]
 description = "N-body dynamics for galax"

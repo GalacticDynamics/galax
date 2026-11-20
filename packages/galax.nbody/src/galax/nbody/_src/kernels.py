@@ -25,6 +25,23 @@ import equinox as eqx
 import jax
 import jax.numpy as jnp
 
+# ``rsqrt`` with an analytic derivative that reuses the value. JAX's own JVP,
+# ``-0.5 rsqrt(x) / x``, divides; f64 division is slow on GPUs (~12% of the
+# f64 Plummer gradient).
+
+
+@jax.custom_jvp
+def _rsqrt(x: Array) -> Array:
+    """``x^(-1/2)``, with derivative ``-s^3 / 2`` for ``s = x^(-1/2)``."""
+    return jax.lax.rsqrt(x)
+
+
+@_rsqrt.defjvp
+def _rsqrt_jvp(primals: tuple[Array], tangents: tuple[Array]) -> tuple[Array, Array]:
+    (x,), (t,) = primals, tangents
+    s = _rsqrt(x)
+    return s, -0.5 * (s * s * s) * t
+
 
 def plummer_force_factor(r2: Array, h: Array) -> Array:
     """Return the Plummer factor ``(r2 + h^2)^(-3/2)`` that multiplies ``dx``.
@@ -37,7 +54,7 @@ def plummer_force_factor(r2: Array, h: Array) -> Array:
     0.125
 
     """
-    return jax.lax.rsqrt(r2 + h**2) ** 3
+    return _rsqrt(r2 + h**2) ** 3
 
 
 def plummer_potential(r2: Array, h: Array) -> Array:
@@ -51,7 +68,7 @@ def plummer_potential(r2: Array, h: Array) -> Array:
     -0.5
 
     """
-    return -jax.lax.rsqrt(r2 + h**2)
+    return -_rsqrt(r2 + h**2)
 
 
 def max_softening(h_i: Array, h_j: Array) -> Array:
@@ -102,12 +119,12 @@ class NewtonianKernel(AbstractSofteningKernel):
     def force_factor(self, r2: Array, h: Array) -> Array:
         """Return ``r^-3``."""
         del h
-        return jax.lax.rsqrt(r2) ** 3
+        return _rsqrt(r2) ** 3
 
     def potential(self, r2: Array, h: Array) -> Array:
         """Return ``-1/r``."""
         del h
-        return -jax.lax.rsqrt(r2)
+        return -_rsqrt(r2)
 
 
 class DehnenK1Kernel(AbstractSofteningKernel):
@@ -116,14 +133,14 @@ class DehnenK1Kernel(AbstractSofteningKernel):
     def force_factor(self, r2: Array, h: Array) -> Array:
         """Return ``d^-3/2 + 3/2 h^2 d^-5/2`` with ``d = r2 + h^2``."""
         h2 = h * h
-        s = jax.lax.rsqrt(r2 + h2)
+        s = _rsqrt(r2 + h2)
         s3 = s**3
         return s3 + 1.5 * h2 * s3 * s * s
 
     def potential(self, r2: Array, h: Array) -> Array:
         """Return ``-d^-1/2 - 1/2 h^2 d^-3/2``."""
         h2 = h * h
-        s = jax.lax.rsqrt(r2 + h2)
+        s = _rsqrt(r2 + h2)
         return -s - 0.5 * h2 * s**3
 
 
@@ -133,14 +150,14 @@ class DehnenK2Kernel(AbstractSofteningKernel):
     def force_factor(self, r2: Array, h: Array) -> Array:
         """Return ``d^-3/2 + 3/2 h^2 d^-5/2 + 15/8 h^4 d^-7/2``."""
         h2 = h * h
-        s = jax.lax.rsqrt(r2 + h2)
+        s = _rsqrt(r2 + h2)
         s2, s3 = s * s, s**3
         return s3 * (1.0 + h2 * s2 * (1.5 + 1.875 * h2 * s2))
 
     def potential(self, r2: Array, h: Array) -> Array:
         """Return ``-d^-1/2 - 1/2 h^2 d^-3/2 - 3/8 h^4 d^-5/2``."""
         h2 = h * h
-        s = jax.lax.rsqrt(r2 + h2)
+        s = _rsqrt(r2 + h2)
         s2 = s * s
         return -s * (1.0 + h2 * s2 * (0.5 + 0.375 * h2 * s2))
 

@@ -198,7 +198,7 @@ class MockStreamGenerator(eqx.Module):
 
     # ==========================================================================
 
-    @ft.partial(jax.jit)
+    @ft.partial(jax.jit, static_argnames=("sequential",))
     def _run_scan(  # TODO: output shape depends on the input shape
         self,
         ts: gt.QuSzTime,
@@ -206,6 +206,8 @@ class MockStreamGenerator(eqx.Module):
         mock0_trail: MockStreamArm,
         potential: AbstractPotential,
         /,
+        *,
+        sequential: bool,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by scanning over the release model/integration.
 
@@ -214,12 +216,6 @@ class MockStreamGenerator(eqx.Module):
         w0_lead = mock0_lead.w(units=self.units)
         w0_trail = mock0_trail.w(units=self.units)
         t_f = ts[-1] + u.Q(1e-3, "Myr")  # TODO: not bump in the final time.
-        # With the progenitor's potential, each adaptive step of the vmapped
-        # pair costs several times what a step of one particle does (on CPU,
-        # 3-10x less CPU time one after the other). In the host alone the pair
-        # is cheaper. `_run_vmap` keeps the pair: there it would double the
-        # loop iterations of the batched solve.
-        sequential = self.progenitor_potential is not None
 
         def one_pt_intg(
             carry: Carry, _: gt.IntSz0
@@ -255,7 +251,7 @@ class MockStreamGenerator(eqx.Module):
 
         return lead_arm_w, trail_arm_w
 
-    @ft.partial(jax.jit)
+    @ft.partial(jax.jit, static_argnames=("sequential",))
     def _run_vmap(  # TODO: output shape depends on the input shape
         self,
         ts: gt.QuSzTime,
@@ -263,6 +259,8 @@ class MockStreamGenerator(eqx.Module):
         mock0_trail: MockStreamArm,
         potential: AbstractPotential,
         /,
+        *,
+        sequential: bool,
     ) -> tuple[gt.BtSz6, gt.BtSz6]:
         """Generate stellar stream by vmapping over the release model/integration.
 
@@ -275,7 +273,11 @@ class MockStreamGenerator(eqx.Module):
             i: gt.IntSz0, w0_l_i: gt.Sz6, w0_t_i: gt.Sz6
         ) -> tuple[gt.Sz6, gt.Sz6]:
             return self._integrate_to(
-                jnp.vstack([w0_l_i, w0_t_i]), ts[i], t_f, potential
+                jnp.vstack([w0_l_i, w0_t_i]),
+                ts[i],
+                t_f,
+                potential,
+                sequential=sequential,
             )
 
         w0_lead = mock0_lead.w(units=self.units)
@@ -284,7 +286,7 @@ class MockStreamGenerator(eqx.Module):
         lead_arm_w, trail_arm_w = jax.vmap(one_pt_intg)(pt_ids, w0_lead, w0_trail)
         return lead_arm_w, trail_arm_w
 
-    @ft.partial(jax.jit, static_argnames=("vmapped",))
+    @ft.partial(jax.jit, static_argnames=("vmapped", "sequential"))
     def run(
         self,
         rng: PRNGKeyArray,
@@ -293,6 +295,7 @@ class MockStreamGenerator(eqx.Module):
         prog_mass: gt.FloatQuSz0 | ProgenitorMassCallable,
         *,
         vmapped: bool | None = None,
+        sequential: bool | None = None,
     ) -> tuple[MockStream, gc.PhaseSpaceCoordinate]:
         """Generate mock stellar stream.
 
@@ -329,6 +332,14 @@ class MockStreamGenerator(eqx.Module):
             usage, while ``vmapped=False`` is recommended for CPU usage.  If
             `None` (default), then `jax.vmap` is used on GPU and `jax.lax.scan`
             otherwise.
+        sequential : bool | None, optional keyword-only
+            Whether to integrate each leading and trailing particle one after
+            the other (`True`) or as a vmapped pair (`False`). If `None`
+            (default), they are sequential on the `jax.lax.scan` path when there
+            is a ``progenitor_potential``, and a pair otherwise. If you
+            `jax.vmap` this method yourself (over keys or progenitors), pass
+            ``sequential=False``: under an outer `jax.vmap` the two solves
+            become two batched loops, which is slower than one batched pair.
 
         Returns
         -------
@@ -381,8 +392,17 @@ class MockStreamGenerator(eqx.Module):
         mock0 = self.df.sample(rng, self.potential, prog_o, prog_mass)
 
         pot = self._stream_potential(w0, ts)
+        if sequential is None:
+            # With the progenitor's potential, each adaptive step of the vmapped
+            # pair costs several times what a step of one particle does (on CPU,
+            # 3-10x less CPU time one after the other). In the host alone the
+            # pair is cheaper. `_run_vmap` keeps the pair: there it would double
+            # the loop iterations of the batched solve.
+            sequential = self.progenitor_potential is not None and not use_vmap
         run = self._run_vmap if use_vmap else self._run_scan
-        lead_arm_w, trail_arm_w = run(ts, mock0["lead"], mock0["trail"], pot)
+        lead_arm_w, trail_arm_w = run(
+            ts, mock0["lead"], mock0["trail"], pot, sequential=sequential
+        )
 
         t = jnp.ones_like(ts) * ts.value[-1]  # TODO: ensure this time is correct
 

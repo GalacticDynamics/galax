@@ -25,6 +25,11 @@ from galax.orbits import AbstractOrbitField
 
 _NULL = gp.NullPotential(units="galactic")
 _DIRECT = DirectSum()
+# Inactive rows and non-finite tracers are parked at multiples of this, in the
+# field's length unit.
+# ponytail: assumes the external potential and its gradient are finite out
+# there. True for the built-in potentials in float64; in float32
+# LeeSutoTriaxialNFWPotential overflows. Make it per-potential if that matters.
 _SAFE = 1e10
 _MASS_MSG = "masses must be finite and non-negative"
 _SOFT_MSG = "softening must be finite and non-negative"
@@ -247,8 +252,9 @@ def nbody_acceleration(
 
     An active tracer with a non-finite position gets a NaN acceleration. That
     NaN, and any NaN cotangent later arriving on its row, stays out of the
-    other particles' values and gradients. A non-finite massive particle makes
-    every acceleration NaN, since its force reaches every particle.
+    other particles' values and gradients. An active massive particle with a
+    non-finite position makes every active particle's acceleration NaN, since
+    its force reaches them all; inactive rows still get 0.
 
     Traced masses and softening are checked here on the result, so the checks
     run whenever the acceleration is used, even when the inputs themselves

@@ -180,3 +180,16 @@ def test_from_rejects_non_components_and_checks_empty_ones() -> None:
     empty = gn.Component(name="e", q=z, p=z, m=-1.0, h=0.0)
     with pytest.raises(ValueError, match="'e' has negative"):
         gn.System.from_components(c, empty, units="galactic")
+
+
+def test_constructor_converts_units_and_from_checks_them() -> None:
+    import galax.potential as gp
+
+    s = gn.System.from_(_comp("a", 2), units="galactic")
+    kw = {f: getattr(s, f) for f in ("particles", "names", "slices", "n_massive")}
+    s2 = gn.System(**kw, units="galactic")
+    assert s2.units == s.units
+    gn.NBodyField.from_(s2, gp.NullPotential(units="galactic"))
+    assert gn.System.from_(s, units="galactic") is s
+    with pytest.raises(ValueError, match="differ from the system's units"):
+        gn.System.from_(s, units="solarsystem")

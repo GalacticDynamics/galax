@@ -42,9 +42,10 @@ class NBodyField(AbstractOrbitField):
     tracers that feel the sources but exert nothing. Masses after the first
     ``n_massive`` rows must be zero. Concrete inputs are checked when the
     field is built and raise `ValueError`. Traced inputs are checked at run
-    time with `equinox.error_if`, each time the acceleration is computed. That
-    check raises `equinox.EquinoxRuntimeError`, or `jax.errors.JaxRuntimeError`
-    under `jax.jit`. Inactive
+    time with `equinox.error_if`, each time the acceleration is computed. The
+    exception type depends on how JAX runs the call: `equinox.EquinoxRuntimeError`
+    when not jitted, and `jax.errors.JaxRuntimeError` or `ValueError` under
+    `jax.jit`. Inactive
     particles (``active`` False) exert nothing and get zero acceleration, but
     their velocity passes through unchanged, so they keep drifting. Softening
     is given either as one ``eps`` for all particles or per particle as

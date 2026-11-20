@@ -81,7 +81,7 @@ class System(eqx.Module):
     names: tuple[str, ...] = eqx.field(static=True)
     slices: tuple[tuple[int, int], ...] = eqx.field(static=True)
     n_massive: int = eqx.field(static=True)
-    units: u.AbstractUnitSystem = eqx.field(static=True)
+    units: u.AbstractUnitSystem = eqx.field(static=True, converter=u.unitsystem)
 
     @classmethod
     @dispatch
@@ -181,8 +181,17 @@ def _strip(x: Any, unit: Any) -> Array:
 
 
 @System.from_.dispatch
-def from_(cls: type[System], system: System, /) -> System:  # noqa: ARG001
+def from_(
+    cls: type[System],  # noqa: ARG001
+    system: System,
+    /,
+    *,
+    units: Any = None,
+) -> System:
     """Return ``system`` unchanged.
+
+    ``units`` may be passed, as with components, and must then equal
+    ``system.units``.
 
     >>> import jax.numpy as jnp
     >>> import galax.nbody as gn
@@ -192,6 +201,9 @@ def from_(cls: type[System], system: System, /) -> System:  # noqa: ARG001
     >>> gn.System.from_(s) is s
     True
     """
+    if units is not None and u.unitsystem(units) != system.units:
+        msg = f"units {units!r} differ from the system's units"
+        raise ValueError(msg)
     return system
 
 

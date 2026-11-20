@@ -48,3 +48,23 @@ def test_friction_outside_b_coulomb_min():
 
     jac = jax.jacobian(lmc_acc, argnums=1)(1.0, LMC_X)
     assert jnp.all(jnp.isfinite(jac))
+
+
+def test_quantity_inputs_match_arrays():
+    """A Quantity time and coordinates give the same result as plain arrays."""
+    field = gd.examples.RigidMWandLMCField(
+        mw_pot=MW_POT,
+        lmc_pot=LMC_POT,
+        sigma_func=lambda _: u.Q(130, "km/s").ustrip("kpc/Myr"),
+        b_coulomb_min=u.Q(1, "kpc"),
+    )
+    mw_x, mw_v = jnp.array([1.0, 2, 3]), jnp.array([0.01, 0.02, 0.03])
+    coords = ((mw_x, mw_v), (LMC_X, LMC_V))
+    qcoords = (
+        (u.Q(mw_x, "kpc"), u.Q(mw_v, "kpc/Myr").uconvert("km/s")),
+        (u.Q(LMC_X, "kpc"), u.Q(LMC_V, "kpc/Myr").uconvert("km/s")),
+    )
+    expect = field(100.0, coords)
+    got = field(u.Q(0.1, "Gyr"), qcoords)
+    for e, g in zip(jax.tree.leaves(expect), jax.tree.leaves(got), strict=True):
+        assert jnp.allclose(e, g)

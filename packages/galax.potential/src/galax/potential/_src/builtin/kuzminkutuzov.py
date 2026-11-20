@@ -1,12 +1,15 @@
 """Kuzmin-Kutuzov Staeckel potential."""
 
-__all__ = (
+__all__ = [
     # class
     "KuzminKutuzovPotential",
     # functions
-    "potential",
     "density",
-)
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -26,6 +29,11 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -200,3 +208,9 @@ def density(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
     numer = lam_nu + a2 * (lam_plus_nu + 3 * sqrt_lam_nu)
     denom = lam_nu * sqrt_lam_nu * sum_sqrt**3
     return p["m_tot"] * c2 / (4 * jnp.pi) * numer / denom  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

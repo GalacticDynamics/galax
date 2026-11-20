@@ -1,6 +1,15 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = ["LeeSutoTriaxialNFWPotential"]
+__all__ = [
+    # class
+    "LeeSutoTriaxialNFWPotential",
+    # functions
+    "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -14,12 +23,20 @@ import jax
 import quaxed.lax as qlax
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from .base import potential as nfw_potential
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.jax import vectorize_method
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    cartesian_laplacian,
+    poisson_density,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -111,6 +128,16 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     ) -> gt.BBtSz0:
         params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
+
+    @ft.partial(jax.jit)
+    @vectorize_method(signature="(3),()->()")
+    def _density(self, xyz: gt.QuSz3 | gt.Sz3, t: gt.QuSz0 | gt.Sz0) -> gt.Sz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        t = u.ustrip(AllowValue, self.units["time"], t)
+
+        params = self.params(t)
+        return density(params, xyz)  # type: ignore[no-any-return]
 
 
 # =============================================================
@@ -270,3 +297,11 @@ $$ G = \frac{w}{2} - \frac{3}{2}(1-w) X \sum_{j \geq 0}
 which cancels by at most a factor 1.1 (at $s = 2$). Beyond, the direct form
 cancels by less than a factor 5.
 """
+
+
+# Derived quantities. There is no closed-form density: it is Poisson's equation
+# applied to the autodiff Laplacian of `potential`.
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)
+laplacian = cartesian_laplacian(potential)
+density = poisson_density(laplacian)

@@ -43,10 +43,35 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
     gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
     gp.gNFWPotential(m=M, r_s=RS, gamma=0.5, units=G),
+    gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
+    gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
+    gp.LongMuraliBarPotential(
+        m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
+    ),
+    gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
+    # Rb = 12 kpc puts every test point inside the bar: outside it the density is
+    # exactly 0 and the autodiff trace is round-off (1e-20), which an rtol-only
+    # comparison cannot match.
+    gp.MonariEtAl2016BarPotential(
+        alpha=u.Q(0.01, ""),
+        R0=u.Q(8.0, "kpc"),
+        v0=u.Q(220.0, "km/s"),
+        Rb=u.Q(12.0, "kpc"),
+        phi_b=u.Q(25, "deg"),
+        Omega=u.Q(52.2, "km/(s kpc)"),
+        units=G,
+    ),
+    gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
+    gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
 ]
 
 # Modules whose `laplacian` is not the trace of the hessian of `potential`.
-NO_POISSON: set[str] = {"kuzmin", "kepler"}
+NO_POISSON: set[str] = {
+    # Razor-thin disk: the density is exactly 0 off the plane, while the hessian
+    # trace is round-off (1e-17), which an rtol-only comparison cannot match.
+    "kuzmin",
+    "kepler",
+}
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
 NO_MASS_QUADRATURE: set[str] = {"kepler"}
 # Modules whose hessian at the origin is not representable: Phi'/r diverges
@@ -249,3 +274,12 @@ def test_class_methods_call_module_kernels(pot, name):
     }
     assert name in called
     assert method.__globals__[name] is getattr(module, name)
+
+
+def test_kuzmin_density_is_zero():
+    """The razor-thin disk has no volume density off the plane."""
+    pot = gp.KuzminPotential(m_tot=M, r_s=RS, units=G)
+    got = gp.kuzmin.density(pot.params(0.0), XYZ[0])
+    assert got.shape == ()
+    assert got == 0.0
+    assert jnp.all(pot.density(XYZ, 0.0) == 0.0)

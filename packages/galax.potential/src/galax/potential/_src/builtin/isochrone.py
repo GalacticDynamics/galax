@@ -4,8 +4,14 @@ __all__ = [
     # class
     "IsochronePotential",
     # functions
-    "potential",
+    "d2potential_dr2",
     "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
 ]
 
 import functools as ft
@@ -25,6 +31,14 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    mass_from_dpotential,
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -129,3 +143,12 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     numer = m_tot * r_s * (3 * r_s * s + 2 * r**2 + 3 * r_s**2)
     denom = 4 * jnp.pi * s**3 * (r_s + s) ** 3
     return numer / denom  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+mass_enclosed = mass_from_dpotential(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

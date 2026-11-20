@@ -2,13 +2,24 @@
 
 __all__ = [
     # Modules
-    "io",
+    "burkert",
+    "gaussian",
+    "gnfw",
+    "hardcutoffnfw",
     "harmonic",
+    "hernquist",
+    "io",
+    "isochrone",
+    "jaffe",
+    "kepler",
     "multipole_profile",
+    "nfw",
     "params",
     "plot",
     "plummer",
+    "powerlawcutoff",
     "scf",
+    "stoneostriker15",
     "zhao",
     # ABCs
     "AbstractPotential",
@@ -89,7 +100,27 @@ __all__ = [
     "d2potential_dr2",
 ]
 
-from . import harmonic, io, multipole_profile, params, plot, plummer, scf, zhao
+from . import (
+    burkert,
+    gaussian,
+    gnfw,
+    hardcutoffnfw,
+    harmonic,
+    hernquist,
+    io,
+    isochrone,
+    jaffe,
+    kepler,
+    multipole_profile,
+    nfw,
+    params,
+    plot,
+    plummer,
+    powerlawcutoff,
+    scf,
+    stoneostriker15,
+    zhao,
+)
 from ._src.api import (
     acceleration,
     d2potential_dr2,

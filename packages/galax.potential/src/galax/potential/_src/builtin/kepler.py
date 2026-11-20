@@ -1,13 +1,19 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = (
+__all__ = [
     # class
     "KeplerPotential",
     # functions
+    "d2potential_dr2",
     "density",
-    "potential",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
     "point_mass_potential",
-)
+    "potential",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -27,6 +33,14 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    mass_from_dpotential,
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -122,3 +136,12 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     )
     _result = qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
     return _result  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+mass_enclosed = mass_from_dpotential(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

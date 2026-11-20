@@ -1,7 +1,17 @@
 """galax: Galactic Dynamix in Jax."""
 
 __all__ = [
+    # class
     "gNFWPotential",
+    # functions
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
 ]
 
 import functools as ft
@@ -25,6 +35,11 @@ from galax.potential._src.base_single import (
     LaplacianFromDensityMixin,
 )
 from galax.potential._src.jax import vectorize_method
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_second_derivative,
+    spherical_hessian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -358,3 +373,10 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     """
     r = safe_vector_norm(xyz)[..., None]
     return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above. `dpotential_dr` and
+# `gradient` are defined above.
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

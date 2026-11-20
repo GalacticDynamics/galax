@@ -4,11 +4,16 @@ __all__ = [
     # class
     "NFWPotential",
     # functions
-    "rho0_of_m",
-    "m_of_rho0",
+    "d2potential_dr2",
     "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "m_of_rho0",
     "mass_enclosed",
     "potential",
+    "rho0_of_m",
 ]
 
 import functools as ft
@@ -29,6 +34,13 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -365,3 +377,11 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     x = r / r_s
     phi0 = -p["G"] * p["m"] / r_s
     return phi0 * jnp.log1p(x) / x  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2)

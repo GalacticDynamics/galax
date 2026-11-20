@@ -161,6 +161,12 @@ def test_from_dispatches_and_explains_bad_input() -> None:
     assert gn.NBodyField.from_(f) is f
     with pytest.raises(TypeError, match="pass the external potential"):
         gn.NBodyField.from_(s)
+    with pytest.raises(TypeError, match="pass the external potential"):
+        gn.NBodyField.from_(s, backend=gn.DirectSum())
+    f3 = gn.NBodyField.from_(
+        s, external_potential=pot, backend=gn.DirectSum(chunk_size=3)
+    )
+    assert f3.backend.chunk_size == 3
 
 
 def test_from_rejects_non_components_and_checks_empty_ones() -> None:

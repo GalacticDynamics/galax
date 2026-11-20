@@ -229,10 +229,16 @@ def from_(cls: type[NBodyField], field: NBodyField, /) -> NBodyField:  # noqa: A
 
 
 @NBodyField.from_.dispatch
-def from_(cls: type[NBodyField], system: System, /) -> NBodyField:  # noqa: ARG001
-    """Raise: a field from a `System` also needs the external potential."""
-    msg = "pass the external potential too: NBodyField.from_(system, potential)"
-    raise TypeError(msg)
+def from_(cls: type[NBodyField], system: System, /, **kwargs: Any) -> NBodyField:
+    """Build a field from ``system`` and keyword arguments for `from_system`.
+
+    Plum dispatches on positional arguments only, so a potential passed as
+    ``external_potential=`` arrives here. Without it this raises `TypeError`.
+    """
+    if "external_potential" not in kwargs:
+        msg = "pass the external potential too: NBodyField.from_(system, potential)"
+        raise TypeError(msg)
+    return cls.from_system(system, **kwargs)
 
 
 @NBodyField.from_.dispatch

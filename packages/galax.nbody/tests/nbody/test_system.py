@@ -193,3 +193,20 @@ def test_constructor_converts_units_and_from_checks_them() -> None:
     assert gn.System.from_(s, units="galactic") is s
     with pytest.raises(ValueError, match="differ from the system's units"):
         gn.System.from_(s, units="solarsystem")
+
+
+def test_split_rejects_wrong_row_count() -> None:
+    s = gn.System.from_(_comp("a", 2), _comp("t", 3, kind="tracer"), units="galactic")
+    with pytest.raises(ValueError, match="5 rows on axis 0"):
+        s.split(jnp.zeros((10, 5, 3)))
+    with pytest.raises(ValueError, match="5 rows on axis 0"):
+        s.split(jnp.zeros((3, 3)))
+
+
+def test_bad_softening_and_policy_inputs_name_the_argument() -> None:
+    with pytest.raises(ValueError, match="softening must be a scalar"):
+        gn.NBodyField(jnp.ones(2), softening=jnp.ones(3))
+    with pytest.raises(ValueError, match="unknown gradient policy"):
+        gn.DirectSum(grad=["stop"])
+    with pytest.raises(ValueError, match="wrt must be a set of names"):
+        gn.StopGrad(wrt=None)

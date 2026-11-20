@@ -172,8 +172,15 @@ class System(eqx.Module):
         )
 
     def split(self, x: Array) -> dict[str, Array]:
-        """Split ``x`` along axis 0 into a dict keyed by component name."""
-        return {n: x[a:b] for n, (a, b) in zip(self.names, self.slices, strict=True)}
+        """Split ``x`` along axis 0 into a dict keyed by component name.
+
+        Axis 0 must have one row per particle. Raises `ValueError` otherwise.
+        """
+        n = self.slices[-1][1]
+        if x.shape[:1] != (n,):
+            msg = f"x must have {n} rows on axis 0, one per particle; got {x.shape}"
+            raise ValueError(msg)
+        return {k: x[a:b] for k, (a, b) in zip(self.names, self.slices, strict=True)}
 
 
 def _strip(x: Any, unit: Any) -> Array:

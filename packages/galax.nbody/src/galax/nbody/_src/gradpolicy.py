@@ -69,7 +69,11 @@ def _to_frozenset(wrt: Iterable[str]) -> frozenset[str]:
     if isinstance(wrt, str):
         msg = f"wrt must be a set of names, not the string {wrt!r}; use wrt={{'m'}}"
         raise ValueError(msg)  # noqa: TRY004
-    return frozenset(wrt)
+    try:
+        return frozenset(wrt)
+    except TypeError:
+        msg = f"wrt must be a set of names, got {wrt!r}"
+        raise ValueError(msg) from None
 
 
 class StopGrad(AbstractGradPolicy):
@@ -148,6 +152,6 @@ def as_grad_policy(x: "str | AbstractGradPolicy") -> AbstractGradPolicy:
         return x
     try:
         return _POLICIES[x]()
-    except KeyError:
+    except (KeyError, TypeError):
         msg = f"unknown gradient policy {x!r}; valid strings are {sorted(_POLICIES)}"
         raise ValueError(msg) from None

@@ -127,6 +127,9 @@ class NBodyField(AbstractOrbitField):
                 msg = f"masses must be 1-D, got shape {m.shape}"
                 raise ValueError(msg)
             n = m.shape[0]
+            if h.shape not in ((), (n,)):
+                msg = f"softening must be a scalar or have shape ({n},), got {h.shape}"
+                raise ValueError(msg)
             h = jnp.broadcast_to(h, (n,))
             a = jnp.ones(n, bool) if active is None else jnp.asarray(active, bool)
             if a.shape != (n,):

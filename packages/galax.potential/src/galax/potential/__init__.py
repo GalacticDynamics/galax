@@ -1,4 +1,18 @@
-""":mod:`galax.potential`."""
+""":mod:`galax.potential`.
+
+Each built-in potential has a module of plain functions named for its class in
+lower case without ``Potential``, e.g. :mod:`galax.potential.plummer` for
+``PlummerPotential``. The functions take the parameters ``p = pot.params(t)``
+and bare arrays in the unit system of the potential. They work on one point at
+a time (``r`` and ``t`` scalars, ``xyz`` of shape ``(3,)``); use ``jax.vmap``
+for batches. Spherical modules take ``(p, r)`` for ``potential``, ``density``,
+``laplacian``, ``mass_enclosed``, ``dpotential_dr`` and ``d2potential_dr2``, and
+``(p, xyz)`` for ``gradient`` and ``hessian``. Non-spherical modules take
+``(p, xyz)`` for ``potential``, ``density``, ``laplacian``, ``gradient`` and
+``hessian``; ``monarietal2016bar`` adds a trailing scalar ``t``.
+``galax.potential.plummer.potential(p, r)`` is not the dispatched
+``galax.potential.potential(pot, xyz, t)``.
+"""
 
 __all__ = [
     # Modules

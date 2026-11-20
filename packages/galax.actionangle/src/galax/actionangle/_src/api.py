@@ -5,6 +5,7 @@ __all__ = [
     "staeckel_fudge",
     "isochrone_actions_angles_freqs",
     "harmonic_oscillator_actions_angles_freqs",
+    "o2gf_actions_angles_freqs",
 ]
 
 from typing import Any
@@ -192,8 +193,9 @@ def harmonic_oscillator_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` broadcast
     together. The angle of an axis is undefined where ``J_i = 0``, a particle
-    at rest at the origin of that axis, and is set to 0 there. The transform
-    is the toy for box orbits in the Sanders & Binney (2014) formalism.
+    at rest at the origin of that axis, and is set to 0 there, with a
+    gradient of 0. The transform is the toy for box orbits in the Sanders &
+    Binney (2014) formalism.
 
     Examples
     --------
@@ -206,5 +208,159 @@ def harmonic_oscillator_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     ...     pot, u.Q([1.0, 0, 0], "kpc"), u.Q([0.0, 1, 0], "kpc/Myr"), u.Q(0.0, "Myr"))
     >>> res.actions.shape, str(res.angles.unit), str(res.freqs.unit)
     ((3,), 'rad', 'rad / Myr')
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+@dispatch.abstract
+def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
+    """Compute actions, angles and frequencies of orbits with O2GF.
+
+    Overloads:
+
+    - ``(pot, q, p, t, /, *, n_max, toy=None, family=None)``
+    - ``(pot, w, /, *, n_max, toy=None, family=None)``
+
+    The method of Sanders & Binney (2014), as in gala's
+    ``find_actions_o2gf``. Each orbit is mapped through a toy potential whose
+    actions and angles are known, and the true actions, angles and
+    frequencies come from a least-squares fit of the generating function over
+    the samples. Loop orbits use an isochrone toy, after the circulation axis
+    is swapped with z. Box orbits use a harmonic-oscillator toy.
+
+    Parameters
+    ----------
+    pot : `galax.potential.AbstractPotential`
+        The potential the orbit was integrated in. It supplies the units of
+        bare arrays and G, and seeds the isochrone fit.
+    q, p : Quantity or Array, shape (..., T, 3)
+        Cartesian positions and velocities along the orbits. Bare arrays are
+        in ``pot.units``.
+    t : Quantity[time] or Array, shape (..., T)
+        The sample times, broadcast against ``q`` and ``p``.
+    w : `galax.coordinates.AbstractPhaseSpaceCoordinate`
+        An orbit, e.g. from `galax.dynamics.evaluate_orbit`. It must have a
+        time axis, which is its last batch axis. A single phase-space point,
+        or ``q`` with fewer than 2 samples, raises `ValueError`.
+    n_max : int
+        The largest ``|n|`` of the n-vectors in the generating function.
+        Static.
+    toy : `IsochroneToy` or `OscillatorToy`, optional
+        Fixed toy parameters, which skip the fit. The fields are bare arrays
+        in ``pot.units``; Quantity fields raise `TypeError`. They may carry
+        the batch axes of the orbits. An isochrone toy always takes the loop
+        path and an oscillator toy the box path. An orbit of the other family
+        gets ``family_mismatch`` and is flagged.
+    family : {None, "loop", "box"}, optional
+        ``None`` classifies each orbit and runs both paths. A fixed family
+        runs only that path, and an orbit that is not of that family gets
+        ``family_mismatch`` and is flagged. A family that contradicts
+        ``toy`` raises `ValueError`.
+
+    Returns
+    -------
+    `O2GFResult`
+        Every field except the static ``nvecs`` has the batch shape of the
+        orbits in front.
+
+        - ``aaf``: the actions, angles and frequencies, with Quantities if
+          any input is one (always for ``w``). The angles are those at
+          ``t = 0``, in ``[0, 2 pi)``. Loop orbits are in the aligned frame
+          and ordered (R, φ, z); box orbits are ordered (x, y, z). J_phi is
+          signed.
+        - ``toy``: the toy each orbit used, fitted or given, in
+          ``pot.units``.
+        - ``is_loop``: whether the orbit took the loop path.
+        - ``aligned_axis``: the axis (0, 1 or 2) that was swapped with z
+          before the loop path, 2 when none was. To go back, swap axis 2
+          with ``aligned_axis``. The swap is a reflection, so after one
+          J_phi is -L_x or -L_y, as in gala.
+        - ``sn``, ``dsn_dj``: the generating function S_n for each n-vector
+          and its derivative dS_n/dJ, flattened from shape (3, N). They are
+          bare arrays in ``pot.units`` even when ``aaf`` carries units.
+        - ``nvecs``: the n-vectors, shape (N, 3). With ``family=None`` and
+          no ``toy``, ``toy`` is the pair ``(IsochroneToy, OscillatorToy)``,
+          ``nvecs`` is the pair ``(loop_nvecs, box_nvecs)``, and the box
+          S_n and each block of the box dS_n/dJ are zero-padded to the loop
+          length.
+        - ``n_bad_cover``: the number of n-vectors whose angle covers less
+          than 2 pi, or whose span divided by the number of kept (unmasked)
+          samples exceeds pi (the mean step, as in gala). It leaves out the
+          n-vectors that involve a rest axis and the resonant n-vectors.
+        - ``n_nan``: the number of samples dropped for non-finite toy
+          values. Samples with a non-finite input are also left out of the
+          classification and the toy fit.
+        - ``n_resonant``: the number of exactly resonant n-vectors left out
+          of the fit (see Notes).
+        - ``fit_converged``: whether the toy fit converged (True for a given
+          toy).
+        - ``family_mismatch``: whether the path forced by ``family`` or by
+          the type of ``toy`` disagrees with the orbit's classification, in
+          either direction. Always False with ``family=None`` and no ``toy``.
+        - ``flagged``: ``n_bad_cover > 0``, or ``n_nan > NAN_MAX`` (with
+          ``NAN_MAX = 1``), or the fit did not converge, or
+          ``family_mismatch``.
+
+    Notes
+    -----
+    An orbit is ``flagged`` when its angles cover the n-vectors badly (the
+    orbit is too short or too coarsely sampled), when more than one sample
+    has non-finite toy values, when the toy fit did not converge, or when a
+    forced family does not match the orbit. A
+    flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
+    floats (``jax_enable_x64``) for precision.
+
+    In a spherical or nearly spherical potential, numerical noise in the
+    samples of about 1e-7 relative or larger can keep a resonant mode just
+    above the cutoff below. The orbit then stays flagged however long it is
+    or however low ``n_max`` is (short of ``n_max=2``), and integrating the
+    orbit more precisely removes the flag.
+
+    An n-vector whose angle ``n . theta`` is constant along the orbit (an
+    exact resonance, such as ``Omega_phi = Omega_z`` in a spherical
+    potential) is left out of the fit and counted in ``n_resonant``, which
+    does not flag the orbit. Constant means a span below
+    ``max(1e-6, 100 eps max|n . theta|)`` rad while each toy angle it
+    involves spans at least 2 pi. A mode below that threshold whose angles
+    do not each span 2 pi is left out too, but counted in ``n_bad_cover``.
+    Both linear systems are solved by minimum-norm least squares, which
+    agrees with gala on a regular system and picks the smallest S_n where
+    the system is singular.
+
+    For an axis whose toy action is 0 along the whole orbit (e.g. z for a
+    planar orbit), the n-vectors that involve it are left out, the action is
+    0, and the conjugate angle and frequency are undefined and returned as
+    NaN.
+
+    Sample about ten radial periods with a few hundred points per period.
+
+    The fitted toy differs from gala's (Powell) at the fit tolerance, so
+    pass ``toy`` to compare with gala exactly. At odd ``n_max`` the
+    n-vectors differ from gala's.
+
+    References
+    ----------
+    Sanders J. L., Binney J., 2014, MNRAS, 441, 3284.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.dynamics as gd
+    >>> import galax.potential as gp
+    >>> import quaxed.numpy as jnp
+    >>> from galax.actionangle import o2gf_actions_angles_freqs
+    >>> pot = gp.MilkyWayPotential2022()
+    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([8.0, 0, 0.5], "kpc"),
+    ...                              p=u.Q([10.0, 220, 20], "km/s"),
+    ...                              t=u.Q(0.0, "Myr"))
+    >>> orbit = gd.evaluate_orbit(pot, w0, u.Q(jnp.linspace(0, 2000, 2000), "Myr"))
+    >>> res = o2gf_actions_angles_freqs(pot, orbit, n_max=4)
+    >>> res.aaf.actions.shape, str(res.aaf.actions.unit)
+    ((3,), 'kpc2 / Myr')
+    >>> round(float(res.aaf.actions[1].value), 2)
+    1.8
+    >>> bool(res.is_loop), bool(res.flagged)
+    (True, False)
     """
     raise NotImplementedError  # pragma: no cover

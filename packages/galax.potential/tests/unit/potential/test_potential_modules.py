@@ -1,8 +1,8 @@
 """Conformance tests for the public per-potential modules.
 
 Each module ``galax.potential.<name>`` must follow the contract in
-``docs/superpowers/specs/2026-11-20-potential-modules-design.md``: bare arrays in
-the potential's unit system, ``p = pot.params(t)``, single-point kernels. To add
+``docs/potential_modules.rst``: bare arrays in the potential's unit
+system, ``p = pot.params(t)``, single-point kernels. To add
 a module, append one instance to `INSTANCES`.
 """
 
@@ -48,14 +48,10 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
         m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
     ),
     gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
-    # Rb = 12 kpc puts every test point inside the bar: outside it the density is
-    # exactly 0 and the autodiff trace is round-off (1e-20), which an rtol-only
-    # comparison cannot match.
     gp.MonariEtAl2016BarPotential(
         alpha=u.Q(0.01, ""),
         R0=u.Q(8.0, "kpc"),
         v0=u.Q(220.0, "km/s"),
-        Rb=u.Q(12.0, "kpc"),
         phi_b=u.Q(25, "deg"),
         Omega=u.Q(52.2, "km/(s kpc)"),
         units=G,
@@ -64,17 +60,15 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
 ]
 
-# Modules whose `laplacian` is not the trace of the hessian of `potential`.
-NO_POISSON: set[str] = {
-    # Razor-thin disk: the density is exactly 0 off the plane, while the hessian
-    # trace is round-off (1e-17), which an rtol-only comparison cannot match.
-    "kuzmin",
-    "kepler",
-}
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
+# Kepler: point mass, so the density is a delta.
 NO_MASS_QUADRATURE: set[str] = {"kepler"}
 # Modules whose kernels take a trailing time argument.
 TIME_EXPLICIT: set[str] = {"monarietal2016bar"}
+# A time at which Omega * t != 0 for the rotating bar.
+T = 37.0
+# Modules in `galax.potential.__all__` that are not a per-potential module.
+NOT_PER_POTENTIAL = {"harmonic", "io", "multipole_profile", "params", "plot", "scf"}
 
 RADIAL = (
     "potential",
@@ -106,12 +100,12 @@ def is_radial(pot: gp.AbstractSinglePotential, name: str) -> bool:
 
 def extra(pot: gp.AbstractSinglePotential) -> tuple[float, ...]:
     """Return the trailing ``t`` argument of a time-explicit module."""
-    return (0.0,) if module_name(pot) in TIME_EXPLICIT else ()
+    return (T,) if module_name(pot) in TIME_EXPLICIT else ()
 
 
 def point_fn(pot, name):
     """``module.<name>`` as a function of one point ``xyz`` of shape ``(3,)``."""
-    fn, p, ex = getattr(module_for(pot), name), pot.params(0.0), extra(pot)
+    fn, p, ex = getattr(module_for(pot), name), pot.params(T), extra(pot)
     if is_radial(pot, name):
         return lambda x: fn(p, jnp.linalg.norm(x), *ex)
     return lambda x: fn(p, x, *ex)
@@ -149,11 +143,21 @@ def test_module_exists_and_exports_contract(pot):
         ), name
 
 
+def test_instances_cover_per_potential_modules():
+    """Every per-potential module in `galax.potential.__all__` has an instance."""
+    public = {
+        n
+        for n in gp.__all__
+        if isinstance(getattr(gp, n), ModuleType) and n not in NOT_PER_POTENTIAL
+    }
+    assert public == {module_name(pot) for pot in INSTANCES}
+
+
 @pytest.mark.parametrize("shape", [(3,), (2, 3, 3), (0, 3)], ids=str)
 @pytest.mark.parametrize("name", FULL)
 def test_class_matches_vmap(pot, name, shape):
     xyz = jnp.resize(XYZ, shape) if 0 not in shape else jnp.zeros(shape)
-    got = getattr(pot, name)(xyz, 0.0)
+    got = getattr(pot, name)(xyz, T)
     batch = xyz.shape[:-1]
     flat = xyz.reshape(-1, 3)
     want = jax.vmap(point_fn(pot, name))(flat)
@@ -163,7 +167,7 @@ def test_class_matches_vmap(pot, name, shape):
 
 
 def test_autodiff_reference(pot):
-    module, p, ex = module_for(pot), pot.params(0.0), extra(pot)
+    module, p, ex = module_for(pot), pot.params(T), extra(pot)
     spherical = pot.symmetry == gp.Symmetry.SPHERICAL
     phi = point_fn(pot, "potential")  # a function of xyz, through the norm
 
@@ -173,10 +177,14 @@ def test_autodiff_reference(pot):
         )
         hess = jax.hessian(phi)(xyz)
         np.testing.assert_allclose(point_fn(pot, "hessian")(xyz), hess, rtol=1e-8)
-        if module_name(pot) not in NO_POISSON:
-            np.testing.assert_allclose(
-                point_fn(pot, "laplacian")(xyz), jnp.trace(hess), rtol=1e-8
-            )
+        # Where the laplacian is exactly 0 (a thin disk, a point mass, outside a
+        # bar) the hessian trace is round-off, a few 1e-16 of the largest entry.
+        np.testing.assert_allclose(
+            point_fn(pot, "laplacian")(xyz),
+            jnp.trace(hess),
+            rtol=1e-8,
+            atol=1e-12 * np.abs(hess).max(),
+        )
 
         point = jnp.linalg.norm(xyz) if spherical else xyz
         g = jax.jit(jax.grad(module.potential, 1))(p, point, *ex)
@@ -187,9 +195,10 @@ def test_autodiff_reference(pot):
     if not spherical:
         return
 
+    radii = jnp.linalg.norm(XYZ, axis=-1)
     nodes, weights = np.polynomial.legendre.leggauss(64)
-    for r in jnp.linalg.norm(XYZ, axis=-1):
-        if module_name(pot) not in NO_MASS_QUADRATURE:
+    if module_name(pot) not in NO_MASS_QUADRATURE:
+        for r in radii:
             # s = r u^2: a density like r^-1.5 gives an integrand s^0.5, which
             # Gauss-Legendre in s converges slowly on; in u it is analytic.
             u_ = (nodes + 1) / 2
@@ -198,6 +207,12 @@ def test_autodiff_reference(pot):
                 weights * 4 * jnp.pi * s**2 * module.density(p, s) * r * u_
             )
             np.testing.assert_allclose(module.mass_enclosed(p, r), integral, rtol=1e-8)
+
+    # r = 30 kpc is outside the cutoff radius of 20 kpc. Not in the quadrature
+    # above: the density jump at r_t breaks Gauss-Legendre convergence.
+    if module_name(pot) == "hardcutoffnfw":
+        radii = jnp.concat([radii, jnp.array([30.0])])
+    for r in radii:
         np.testing.assert_allclose(
             module.dpotential_dr(p, r),
             p["G"] * module.mass_enclosed(p, r) / r**2,
@@ -226,20 +241,21 @@ def test_origin(pot):
 
 
 def test_param_gradient(pot):
-    p, ex = pot.params(0.0), extra(pot)
-    if "m_tot" not in p:
-        pytest.skip("no m_tot parameter")
+    p, ex = pot.params(T), extra(pot)
+    if "m_tot" not in p and "m" not in p:
+        pytest.skip("no mass parameter")
+    key = "m_tot" if "m_tot" in p else "m"
     module, xyz = module_for(pot), XYZ[0]
 
     def via_module(m):
-        return module.gradient({**p, "m_tot": m}, xyz, *ex).sum()
+        return module.gradient({**p, key: m}, xyz, *ex).sum()
 
     def via_class(m):
-        return dataclasses.replace(pot, m_tot=m).gradient(xyz, 0.0).sum()
+        return dataclasses.replace(pot, **{key: m}).gradient(xyz, T).sum()
 
-    got = jax.grad(via_module)(p["m_tot"])
+    got = jax.grad(via_module)(p[key])
     assert jnp.isfinite(got)
-    np.testing.assert_allclose(got, jax.grad(via_class)(p["m_tot"]), rtol=1e-10)
+    np.testing.assert_allclose(got, jax.grad(via_class)(p[key]), rtol=1e-10)
 
 
 @pytest.mark.parametrize("name", ["potential", "density"])

@@ -186,6 +186,60 @@ def test_drop_in_for_nbody_field(interpret) -> None:
     np.testing.assert_allclose(got, want, rtol=1e-10)
 
 
+@pytest.mark.skipif(
+    jax.default_backend() in ("gpu", "tpu"), reason="fallback is CPU-only"
+)
+@pytest.mark.parametrize("name", ["accelerations", "potential"])
+def test_cpu_fallback_matches_direct_sum(name) -> None:
+    """Compiled mode on CPU falls back to DirectSum, value and forward mode."""
+    s, t = massive(17)
+    f, fd = (
+        _fns(b, name, t)[0]
+        for b in (
+            backend(interpret=False),
+            DirectSum(chunk_size=PallasDirectSum.fallback_chunk_size),
+        )
+    )
+    args = (s.q, s.m, s.h)
+    np.testing.assert_array_equal(f(*args), fd(*args))
+    tan = _tangents(args)
+    _close(jax.jvp(f, args, tan), jax.jvp(fd, args, tan), 1e-14)
+
+
+def test_lowers_for_gpu_with_launch_params() -> None:
+    """Pallas -> Triton lowering passes num_warps/num_stages; runs on CPU CI."""
+    from jax import export
+
+    from galax.nbody._src.pallas_direct import _Config, pallas_accelerations
+
+    cfg = _Config(
+        kernel=PlummerKernel(),
+        potential=False,
+        block_targets=16,
+        block_sources=64,
+        num_warps=4,
+        num_stages=2,
+        interpret=False,
+    )
+    s, t = massive(20)
+
+    def acc(q):
+        return pallas_accelerations(
+            Sources(q, s.m, s.h), Targets(q, s.h, t.self_index), G=G, cfg=cfg
+        )
+
+    triton = "__gpu$xla.gpu.triton"
+    exp = export.export(
+        jax.jit(jax.jvp, static_argnums=0),
+        platforms=["cuda"],
+        disabled_checks=[export.DisabledSafetyCheck.custom_call(triton)],
+    )(acc, (s.q,), (s.q,))
+    mlir = exp.mlir_module()
+    assert triton in mlir
+    assert "num_warps = 4" in mlir
+    assert "num_stages = 2" in mlir
+
+
 @pytest.mark.parametrize("name", ["accelerations", "potential"])
 def test_lowers_for_tpu(name) -> None:
     """Pallas -> Mosaic lowering only; not run on TPU hardware."""

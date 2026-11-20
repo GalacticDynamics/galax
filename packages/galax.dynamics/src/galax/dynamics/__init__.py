@@ -5,6 +5,7 @@ __all__ = [
     "cluster",
     "fields",
     "mockstream",
+    "nbody",
     "orbit",
     "plot",
     "examples",
@@ -48,7 +49,7 @@ from .setup_package import install_import_hook, load_interop_plugins
 with install_import_hook("galax.dynamics"):
     from diffraxtra import DiffEqSolver
 
-    from . import cluster, examples, fields, integrate, mockstream, plot
+    from . import cluster, examples, fields, integrate, mockstream, nbody, plot
     from ._src.api import omega, specific_angular_momentum
     from ._src.cluster import lagrange_points, tidal_radius
     from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField

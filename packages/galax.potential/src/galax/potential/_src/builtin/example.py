@@ -34,7 +34,10 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
 
     .. math::
 
-        \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
+        \Phi(\mathbf{q}, t) = \frac{1}{2} \sum_i (\omega_i(t) q_i)^2
+
+    ``omega`` is a scalar, shared by all axes, or a vector with one frequency per
+    axis.
 
     Examples
     --------
@@ -59,9 +62,15 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
     >>> pot.density(q, t)
     Q(5.30693121e+10, 'solMass / kpc3')
 
+    A vector ``omega`` gives one frequency per axis.
+
+    >>> pot = gp.HarmonicOscillatorPotential(omega=u.Q([1.0, 2.0, 3.0], "1 / Myr"),
+    ...                                      units="galactic")
+    >>> pot.potential(u.Q([1.0, 1.0, 1.0], "kpc"), t)
+    Q(7., 'kpc2 / Myr2')
+
     """
 
-    # TODO: enable omega to be a 3D vector
     omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="frequency", doc="The frequency."
     )
@@ -81,7 +90,7 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # Compute parameters
-        # \Phi(\mathbf{q}, t) = \frac{1}{2} |\omega(t) \cdot \mathbf{q}|^2
+        # \Phi(\mathbf{q}, t) = \frac{1}{2} \sum_i (\omega_i(t) q_i)^2
         p = self.params(t)
 
         _result = 0.5 * jnp.sum(jnp.square(jnp.atleast_1d(p["omega"]) * xyz), axis=-1)

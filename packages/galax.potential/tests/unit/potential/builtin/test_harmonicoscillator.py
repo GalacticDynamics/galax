@@ -149,3 +149,72 @@ class TestHarmonicOscillatorPotential(
     @pytest.mark.skip("TODO")
     def test_evaluate_orbit_batch(self, pot: gp.AbstractPotential, xv: gt.Sz6) -> None:
         """Test the `AbstractPotential.evaluate_orbit` method."""
+
+
+################################################################################
+
+
+class TestHarmonicOscillatorVectorOmega:
+    """A 3-vector omega gives an anisotropic oscillator."""
+
+    @pytest.fixture(scope="class")
+    def pot(self) -> gp.HarmonicOscillatorPotential:
+        return gp.HarmonicOscillatorPotential(
+            omega=u.Q([1.0, 2.0, 3.0], "1/Myr"), units="galactic"
+        )
+
+    @pytest.fixture(scope="class")
+    def q(self) -> u.Q:
+        return u.Q([1.0, 1.0, 1.0], "kpc")
+
+    @pytest.fixture(scope="class")
+    def t(self) -> u.Q:
+        return u.Q(0.0, "Myr")
+
+    def test_omega_shape(self, pot, t) -> None:
+        assert pot.omega(t).shape == (3,)
+
+    def test_potential(self, pot, q, t) -> None:
+        assert jnp.allclose(pot.potential(q, t).ustrip("kpc2/Myr2"), 7.0)  # 1/2 (1+4+9)
+
+    def test_gradient(self, pot, q, t) -> None:
+        got = pot.gradient(q, t).ustrip("kpc/Myr2")
+        assert jnp.allclose(got, jnp.asarray([1.0, 4.0, 9.0]))
+
+    def test_hessian(self, pot, q, t) -> None:
+        got = pot.hessian(q, t).ustrip("1/Myr2")
+        assert jnp.allclose(got, jnp.diag(jnp.asarray([1.0, 4.0, 9.0])))
+
+    def test_density(self, pot, q, t) -> None:
+        G = pot.constants["G"].ustrip("kpc3/(Msun Myr2)")
+        got = pot.density(q, t).ustrip("Msun/kpc3")
+        assert jnp.allclose(got, 14.0 / (4 * jnp.pi * G))
+
+    def test_batch(self, pot, t) -> None:
+        qs = u.Q(jnp.ones((5, 3)), "kpc")
+        assert pot.potential(qs, t).shape == (5,)
+        assert pot.density(qs, t).shape == (5,)
+
+    def test_scalar_omega_unchanged(self, t) -> None:
+        pot = gp.HarmonicOscillatorPotential(omega=u.Q(2.0, "1/Myr"), units="galactic")
+        G = pot.constants["G"].ustrip("kpc3/(Msun Myr2)")
+        cases = [
+            ([1.0, 0.0, 0.0], 2.0),
+            ([1.0, 2.0, 0.0], 10.0),
+            ([1.0, 2.0, 3.0], 28.0),
+        ]
+        for xyz, phi in cases:
+            q = u.Q(xyz, "kpc")
+            assert jnp.allclose(pot.potential(q, t).ustrip("kpc2/Myr2"), phi)
+            assert jnp.allclose(
+                pot.density(q, t).ustrip("Msun/kpc3"), 3 * 4.0 / (4 * jnp.pi * G)
+            )
+
+    def test_vector_omega_time_dependent(self, q) -> None:
+        def omega(t: u.Quantity["time"]) -> ParametricQuantity["frequency"]:
+            return u.Q(jnp.asarray([1.0, 2.0, 3.0]) * (1 + t.ustrip("Myr")), "1/Myr")
+
+        pot = gp.HarmonicOscillatorPotential(omega=omega, units="galactic")
+        t = u.Q(1.0, "Myr")
+        assert pot.omega(t).shape == (3,)
+        assert jnp.allclose(pot.potential(q, t).ustrip("kpc2/Myr2"), 28.0)

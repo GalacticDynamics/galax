@@ -1,6 +1,5 @@
 """Orbits. Private module."""
 
-from .field_nbody import *
 from .lyapunov import compute_lyapunov as compute_lyapunov
 from .variational import compute_variational as compute_variational
 from galax.orbits import (

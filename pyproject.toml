@@ -44,6 +44,7 @@ dependencies = [
   # silently stop astropy conversions from registering -- a missing entry point
   # produces no error.
   "galax.interop.astropy>0.0.3",
+  "galax.nbody",
   "galax.orbits",
   "galax.potential",
   "interpax>=0.3.11",
@@ -111,6 +112,7 @@ members = ["packages/*"]
 "galax.interop.gala" = { workspace = true }
 "galax.interop.galpy" = { workspace = true }
 "galax.interop.matplotlib" = { workspace = true }
+"galax.nbody" = { workspace = true }
 "galax.orbits" = { workspace = true }
 "galax.potential" = { workspace = true }
 
@@ -246,6 +248,7 @@ run.source = [
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
   "packages/galax.interop.matplotlib/src",
+  "packages/galax.nbody/src",
   "packages/galax.orbits/src",
   "packages/galax.potential/src",
 ]
@@ -269,6 +272,7 @@ mypy_path = [
   "packages/galax.interop.gala/src",
   "packages/galax.interop.galpy/src",
   "packages/galax.interop.matplotlib/src",
+  "packages/galax.nbody/src",
   "packages/galax.orbits/src",
   "packages/galax.potential/src",
 ]
@@ -491,6 +495,7 @@ banned-from = ["astropy.coordinates"]
 "galax.dynamics" = "gd"
 "galax.fields" = "gf"
 "galax.orbits" = "go"
+"galax.nbody" = "gn"
 "jax.extend" = "jex"
 "optimistix" = "optx"
 "unxt" = "u"

@@ -8,6 +8,7 @@
 #   6. `galax.actionangle` installs on its own, without dynamics
 #   7. `galax.fields` installs on its own, without dynamics
 #   8. `galax.orbits` installs with fields, coordinates and potential, without dynamics
+#   9. `galax.nbody` installs with orbits and the portions below it, without dynamics
 #
 # Both need a clean environment: the dev venv has every extra installed, so it
 # cannot tell a required dependency from an optional one.
@@ -141,6 +142,13 @@ if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/orbits/' >/dev/null; t
   echo "the root galax wheel contains galax/orbits/ files"; exit 1
 fi
 
+echo "== the root wheel ships no galax/nbody/ =="
+# `galax.nbody` owns that leaf. A root wheel carrying it would let two
+# distributions write the same files.
+if unzip -Z1 "$WHEELS"/galax-[0-9]*.whl | grep -E '^galax/nbody/' >/dev/null; then
+  echo "the root galax wheel contains galax/nbody/ files"; exit 1
+fi
+
 echo "== shape 1: bare \`pip install galax\` =="
 # Install the freshly built root wheel *by path*, so a published PyPI version
 # cannot satisfy it; --find-links resolves its inter-distribution pins from the
@@ -156,12 +164,13 @@ import astropy.units as apyu
 import numpy as np
 
 # The core portions must all import on a bare install; `galax.actionangle`,
-# `galax.coordinates`, `galax.dynamics`, `galax.fields` and `galax.orbits` are
-# imported for that alone.
+# `galax.coordinates`, `galax.dynamics`, `galax.fields`, `galax.nbody` and
+# `galax.orbits` are imported for that alone.
 import galax.actionangle
 import galax.coordinates
 import galax.dynamics
 import galax.fields
+import galax.nbody
 import galax.orbits
 import galax.potential as gp
 
@@ -271,10 +280,11 @@ print("potential-only install OK")
 PY
 
 echo "== shape 5: \`galax.dynamics\` alone =="
-# This portion must install standalone, pulling the four portions below it
-# (coordinates, potential, fields and orbits) and nothing from the interop layer. This shape (with shape 8) exercises the
-# solver stack, so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this
-# portion's metadata fails here rather than at a user's.
+# This portion must install standalone, pulling the five portions below it
+# (coordinates, potential, fields, orbits and nbody) and nothing from the
+# interop layer. This shape (with shapes 8 and 9) exercises the solver stack,
+# so a missing `diffrax`/`diffraxtra`/`optimistix` pin in this portion's
+# metadata fails here rather than at a user's.
 uv run --isolated --no-project \
   --find-links "$WHEELS" \
   --with "$(echo "$WHEELS"/galax_dynamics-*.whl)" \
@@ -395,6 +405,39 @@ for absent in ("galax.dynamics", "galax.actionangle", "galax.interop", "gala",
     assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
 
 print("orbits-only install OK")
+PY
+
+echo "== shape 9: \`galax.nbody\` alone =="
+# Pulls orbits and the portions below it, which it declares, and neither
+# `galax.dynamics` nor `galax.actionangle`. Solving a two-body problem checks
+# that the field works with the solver it gets from `galax.orbits`.
+uv run --isolated --no-project \
+  --find-links "$WHEELS" \
+  --with "$(echo "$WHEELS"/galax_nbody-*.whl)" \
+  python - <<'PY'
+import importlib.util
+
+import unxt as u
+
+import galax.nbody as gn
+import galax.orbits as go
+import galax.potential as gp
+
+field = gn.NBodyField(
+    masses=u.Q([1, 1], "Msun"),
+    eps=u.Q(1e-4, "AU"),
+    external_potential=gp.NullPotential(units="solarsystem"),
+)
+q = u.Q([[-0.5, 0, 0], [0.5, 0, 0]], "AU")
+p = u.Q([[0, -25, 0], [0, 25, 0]], "km/s")
+soln = go.OrbitSolver().solve(field, (q, p), u.Q(0, "yr"), u.Q(1, "yr"))
+assert soln.ys[0].shape[-2:] == (2, 3), soln.ys[0].shape
+
+for absent in ("galax.dynamics", "galax.actionangle", "galax.interop", "gala",
+               "galpy", "matplotlib"):
+    assert importlib.util.find_spec(absent) is None, f"{absent} is importable"
+
+print("nbody-only install OK")
 PY
 
 echo "all install shapes OK"

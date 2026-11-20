@@ -2,7 +2,6 @@
 
 __all__ = ["NBodyResult", "check_timestep", "evolve"]
 
-import itertools
 import warnings
 
 from jaxtyping import Array, Float
@@ -127,11 +126,13 @@ def advance(
     y: tuple[Array, Array],
     step_ts: Float[Array, " steps"],
     adjoint: dfx.AbstractAdjoint,
+    save_ts: Float[Array, " S"] | None = None,
 ) -> tuple[Array, Array]:
     """Return ``(q, p)`` after leapfrog steps from ``step_ts[0]`` along ``step_ts``.
 
-    The number of steps comes from the shape of ``step_ts``, so this compiles
-    once per distinct number of steps.
+    With ``save_ts`` it returns the (S, N, 3) states at those times instead,
+    which must be points of ``step_ts``. The step and save counts come from the
+    shapes, so this compiles once per distinct pair of them.
     """
     terms = (
         dfx.ODETerm(lambda t, p, a: p),  # noqa: ARG005
@@ -147,34 +148,11 @@ def advance(
         y,
         stepsize_controller=dfx.StepTo(ts=step_ts),
         max_steps=step_ts.shape[0] - 1,
-        saveat=dfx.SaveAt(t1=True),
+        saveat=dfx.SaveAt(t1=True) if save_ts is None else dfx.SaveAt(ts=save_ts),
         adjoint=adjoint,
     )
     q, p = sol.ys
-    return q[0], p[0]
-
-
-@eqx.filter_jit
-def _scan(
-    field: NBodyField,
-    y: tuple[Array, Array],
-    grids: Float[Array, "R steps"],
-    adjoint: dfx.AbstractAdjoint,
-) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
-    """Run `advance` over each row of ``grids`` in a `jax.lax.scan`.
-
-    It returns the final ``(q, p)`` and the (R, N, 3) states after each row.
-    It is jitted at module level, so eager calls with the same shapes and
-    static structure reuse one compilation.
-    """
-
-    def step(
-        y: tuple[Array, Array], step_ts: Array
-    ) -> tuple[tuple[Array, Array], tuple[Array, Array]]:
-        y = advance(field, y, step_ts, adjoint)
-        return y, y
-
-    return jax.lax.scan(step, y, grids)
+    return (q[0], p[0]) if save_ts is None else (q, p)
 
 
 def _integrate(
@@ -187,34 +165,25 @@ def _integrate(
 ) -> tuple[Array, Array]:
     """Return the (S, N, 3) ``(q, p)``: ``y``, then the state after each segment.
 
-    Each run of equal segments is one `jax.lax.scan`, so the graph holds one
-    `advance` per run, not one per save.
+    The whole run is one `diffrax.diffeqsolve` over the step grid, saving at
+    the segment ends, so the leapfrog starts once and reverse mode keeps one
+    set of checkpoints.
     """
     # Each grid point is ts[0] + k * dt with an integer step count k, so it is
-    # rounded once and is never a sum of segment lengths. The grids are built
-    # here in numpy. Built from a traced start time inside the scan, XLA fused
-    # t1 and the `StepTo` grid separately, one with an fma and one without,
-    # and diffrax rejected the mismatch under jit. `advance` takes t0 and t1
-    # from the same grid array.
+    # rounded once and is never a sum of segment lengths. The grid is built
+    # here in numpy, and the save times are taken from it, so each save time
+    # is exactly a step end. Built from a traced start time, XLA fused t1 and
+    # the `StepTo` grid separately, one with an fma and one without, and
+    # diffrax rejected the mismatch under jit.
     # ponytail: the full grid is held in memory, about 8 bytes per step on
     # the host and again on the device (a large constant under an outer jit).
-    # Only runs of ~1e7 steps notice; build the grid per run from an integer
-    # offset with the same arithmetic if that matters.
-    offsets = np.concat([[0], np.cumsum(n_steps)[:-1]])
-    runs, start = [], 0
-    for n, run in itertools.groupby(n_steps.tolist()):
-        stop = start + len(list(run))
-        runs.append(t_start + (offsets[start:stop, None] + np.arange(n + 1)) * dt)
-        start = stop
-    qs, ps = [y[0][None]], [y[1][None]]
-    # ponytail: each segment re-initialises the leapfrog, one extra force
-    # evaluation per save interval; carry `solver_state` with made_jump=False
-    # if that cost matters.
-    for grids in runs:
-        y, (q_run, p_run) = _scan(field, y, jnp.asarray(grids), adjoint)
-        qs.append(q_run)
-        ps.append(p_run)
-    return jnp.concat(qs), jnp.concat(ps)
+    # Only runs of ~1e7 steps notice; build it in chunks if that matters.
+    total = int(n_steps.sum())
+    if total == 0:
+        return y[0][None], y[1][None]
+    grid = t_start + np.arange(total + 1) * dt
+    saves = grid[np.concat([[0], np.cumsum(n_steps)])]
+    return advance(field, y, jnp.asarray(grid), adjoint, jnp.asarray(saves))
 
 
 @eqx.filter_jit
@@ -307,11 +276,10 @@ def evolve(
     `jax.grad`.
 
     The steps are leapfrog (`galax.fields.Leapfrog`) at the times
-    ``ts[0] + k * dt``. Consecutive save intervals of the same length run as
-    one `jax.lax.scan`. Each scan compiles once for each pair of the number of
-    steps per interval and the number of equal intervals in the run, and
-    later calls with the same pairs reuse it. Under an outer `jax.jit` the
-    graph holds one loop per run of equal intervals rather than one per save.
+    ``ts[0] + k * dt``. The whole run is one `diffrax.diffeqsolve`, saving at
+    ``ts``. It compiles once for each pair of the total number of steps and
+    the number of save times, and later calls with the same pair reuse it,
+    however the save times are spaced.
     ``adjoint`` defaults to `diffrax.RecursiveCheckpointAdjoint`. With
     ``check_dt`` the step is checked once at ``ts[0]`` by `check_timestep`.
     The check also runs inside an outer `jax.jit` when the field, ``q0`` and
@@ -323,12 +291,12 @@ def evolve(
     With the default `diffrax.RecursiveCheckpointAdjoint`, reverse mode
     (`jax.grad`) works, but forward mode (`jax.jvp`, `jax.jacfwd`) needs
     ``adjoint=diffrax.ForwardMode()``, which also suits derivatives with
-    respect to a few parameters. Each save interval is its own solve, and the
-    checkpoint adjoint keeps checkpoints for every interval: about
-    ``sqrt(2 n)`` of them for an interval of ``n`` steps, each a few times the
-    size of one (q, p) state. Reverse-mode memory therefore grows with the
-    number of save intervals, and ``RecursiveCheckpointAdjoint(checkpoints=...)``
-    sets the count per interval.
+    respect to a few parameters. The checkpoint adjoint stores about
+    ``sqrt(2 n)`` checkpoints for a run of ``n`` steps, each a few times the
+    size of one (q, p) state, plus the saved states.
+    ``RecursiveCheckpointAdjoint(checkpoints=n)``, a checkpoint at every step,
+    makes the gradient about 1.2 to 2 times faster for memory that grows
+    linearly with ``n``.
 
     `evolve` runs forward in time only, so ``ts`` must increase. Flipping the
     velocities and running forward is the same as running backward only when

@@ -22,7 +22,6 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.potential._src.utils import r_spherical
 
 G = "galactic"
 M = u.Q(1e12, "Msun")
@@ -74,23 +73,6 @@ NO_POISSON: set[str] = {
 }
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
 NO_MASS_QUADRATURE: set[str] = {"kepler"}
-# Modules whose hessian at the origin is not representable: Phi'/r diverges
-# for a cusp (Zhao, gamma = 1) and the incomplete beta series underflows at the
-# smallest normal radius. The autodiff reference there is a finite, wrong 0.
-NO_ORIGIN_HESSIAN: set[str] = {
-    "zhao",
-    # Cusps with Phi'(0) != 0 or Phi' ~ r^(1-gamma): Phi'/r diverges.
-    "nfw",
-    "gnfw",
-    "powerlawcutoff",
-    "kepler",
-    # Cored, so the limit is finite (Phi''(0)), but at the smallest normal
-    # radius r the shell-theorem Phi' = G M / r^2 has M ~ r^3 underflow and
-    # XLA fuses Phi'/r into 0 / (r * r * r) = NaN. A `spherical_hessian` issue.
-    "burkert",
-    "gaussian",
-    "stoneostriker15",
-}
 # Modules whose kernels take a trailing time argument.
 TIME_EXPLICIT: set[str] = {"monarietal2016bar"}
 
@@ -156,18 +138,15 @@ def test_module_exists_and_exports_contract(pot):
     names = (*radial, *VECTOR) if spherical else FULL
     assert set(names) <= set(module.__all__)
 
-    # The helper-built functions carry generic parameter names for now; the exact
-    # `r` / `xyz` names are checked once the factories keep the source signature.
-    # A trailing `*rest` (the helpers' spelling of `t`) counts for timed modules.
     timed = module_name(pot) in TIME_EXPLICIT
     for name in names:
-        P = inspect.Parameter
+        point = "r" if is_radial(pot, name) else "xyz"
+        want = ("p", point, *(("t",) if timed else ()))
         params = inspect.signature(getattr(module, name)).parameters.values()
-        kinds = [q.kind for q in params]
-        n_pos = sum(k in (P.POSITIONAL_ONLY, P.POSITIONAL_OR_KEYWORD) for k in kinds)
-        has_rest = P.VAR_POSITIONAL in kinds
-        assert next(iter(params)).name == "p", name
-        assert n_pos + (has_rest and timed) == (3 if timed else 2), name
+        assert tuple(x.name for x in params) == want, name
+        assert all(
+            x.kind in (x.POSITIONAL_ONLY, x.POSITIONAL_OR_KEYWORD) for x in params
+        ), name
 
 
 @pytest.mark.parametrize("shape", [(3,), (2, 3, 3), (0, 3)], ids=str)
@@ -226,22 +205,24 @@ def test_autodiff_reference(pot):
         )
 
 
-def test_origin_matches_autodiff_where_finite(pot):
+def test_origin(pot):
+    """Spherical origin rule: gradient 0, hessian `laplacian(p, 0) / 3 * I`."""
     if pot.symmetry != gp.Symmetry.SPHERICAL:
         pytest.skip("origin handling is a spherical-kernel contract")
     module, p, x0 = module_for(pot), pot.params(0.0), jnp.zeros(3)
-    unit = pot.units["length"]
 
-    def phi(x):
-        return module.potential(p, r_spherical(x, unit))
+    assert np.array_equal(module.gradient(p, x0), np.zeros(3))
 
-    pairs = [(module.gradient(p, x0), jax.grad(phi)(x0))]
-    if module_name(pot) not in NO_ORIGIN_HESSIAN:
-        pairs.append((module.hessian(p, x0), jax.hessian(phi)(x0)))
-    for got, ref in pairs:
-        assert jnp.all(jnp.isfinite(got))
-        ok = np.isfinite(ref)
-        np.testing.assert_allclose(np.asarray(got)[ok], np.asarray(ref)[ok], rtol=1e-8)
+    h0 = np.asarray(module.hessian(p, x0))
+    assert not np.any(np.isnan(h0))
+    np.testing.assert_array_equal(h0[~np.eye(3, dtype=bool)], 0)
+
+    if np.isfinite(module.density(p, jnp.zeros(()))):
+        # A core: Phi'/r -> Phi''(0), read off the transverse entry nearby.
+        near = module.hessian(p, jnp.array([1e-6, 0.0, 0.0]))[1, 1]
+        np.testing.assert_allclose(np.diag(h0), near, rtol=1e-6)
+    else:
+        assert np.all(np.diag(h0) == np.inf)
 
 
 def test_param_gradient(pot):

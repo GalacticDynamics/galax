@@ -13,7 +13,9 @@ alternative is differentiating through that function on every force evaluation.
 """
 
 __all__ = [
+    # class
     "ZhaoPotential",
+    # functions
     "d2potential_dr2",
     "density",
     "dpotential_dr",
@@ -441,15 +443,19 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
     per point (an `optimization_barrier` does not stop it: the CPU backend
     removes barriers before fusion). Each division by $r$ is kept separate, as
     in `shell_d2phi_dr2`, for float32 in SI units.
+
+    At the origin the Hessian is $\nabla^2\Phi(0)/3\,\delta_{ij}$ (`laplacian`
+    at $r = 0$), which is $+\infty$ on the diagonal for a cusp.
     """
     origin = jnp.sum(jnp.square(xyz), axis=-1, keepdims=True) == 0
-    r = safe_vector_norm(xyz)[..., None]
+    r1 = jnp.where(origin, 1.0, safe_vector_norm(xyz)[..., None])
     # `dpotential_dr`, not `mass_enclosed` directly: its custom jvp keeps a
     # derivative of this Hessian off autodiff of the series.
-    radial = dpotential_dr(p, r) / r
-    # At the origin the outer term is dropped; the inner `where` keeps its
-    # radius off 0 so that no inf * 0 = NaN reaches a later gradient.
-    r1 = jnp.where(origin, 1.0, r)
+    # At the origin the Hessian is isotropic with trace `laplacian(p, 0)`
+    # (as in `spherical_hessian`); the outer term is dropped, and the inner
+    # `where` keeps every radius off 0 so that no inf * 0 = NaN arises.
+    r0 = jnp.where(origin, 0.0, r1)
+    radial = jnp.where(origin, laplacian(p, r0) / 3, dpotential_dr(p, r1) / r1)
     coef_outer = p["G"] * dmass_dr(p, r1) / r1 / r1 - 3 * radial
     coef_outer = jnp.where(origin, 0.0, coef_outer)
 

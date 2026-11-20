@@ -379,4 +379,4 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
 # `gradient` are defined above.
 d2potential_dr2 = radial_second_derivative(dpotential_dr)
 laplacian = poisson_laplacian(density)
-hessian = spherical_hessian(dpotential_dr, d2potential_dr2)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

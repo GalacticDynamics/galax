@@ -1,6 +1,6 @@
 r"""Shared kernel factories for the per-potential modules.
 
-The contract (see ``docs/superpowers/specs/2026-11-20-potential-modules-design.md``)
+The contract (see ``docs/potential_modules.rst``)
 is that positions and parameters are bare arrays in the potential's unit system,
 and ``p`` is the dict returned by ``pot.params(t)``. Kernels are single-point:
 ``r`` is a scalar, ``xyz`` has shape ``(3,)``, ``t`` is a scalar, and results are
@@ -38,6 +38,8 @@ __all__ = (
     "spherical_hessian",
 )
 
+import inspect
+
 from collections.abc import Callable
 from typing import Any
 
@@ -47,6 +49,22 @@ import quaxed.numpy as jnp
 
 import galax.potential.custom_types as gt
 from .utils import RadialFn, safe_vector_norm
+
+
+def _signed(source: Callable[..., Any], f: Callable[..., Any], /) -> Callable[..., Any]:
+    """`jax.jit` of ``f`` that shows the parameters of ``source`` in ``help()``.
+
+    The factories below return ``(p, x, *rest)`` wrappers; the parameters are
+    copied from ``source`` (as positional-only, since the wrapper's own
+    parameter is ``x``) so that ``p``, ``r`` / ``xyz`` and ``t`` appear.
+    """
+    sig = inspect.signature(source)
+    f.__signature__ = sig.replace(  # type: ignore[attr-defined]
+        parameters=[q.replace(kind=q.POSITIONAL_ONLY) for q in sig.parameters.values()],
+        return_annotation=inspect.Signature.empty,
+    )
+    return jax.jit(f)
+
 
 # ==============================================================================
 # Radial
@@ -75,7 +93,7 @@ def radial_second_derivative(dpotential_dr: RadialFn, /) -> RadialFn:
 def mass_from_dpotential(dpotential_dr: RadialFn, /) -> RadialFn:
     """``mass_enclosed`` from Newton's shell theorem: ``r^2 Phi'(r) / G``."""
 
-    def mass_enclosed(p: gt.Params, r: gt.BBtSz0) -> gt.BBtSz0:
+    def mass_enclosed(p: gt.Params, r: gt.Sz0) -> gt.Sz0:
         """``mass_enclosed = r**2 * dpotential_dr(p, r) / p["G"]``."""
         return r**2 * dpotential_dr(p, r) / p["G"]
 
@@ -91,7 +109,9 @@ def spherical_gradient(
 ) -> Callable[[gt.Params, gt.BBtSz3], gt.BBtSz3]:
     r"""Cartesian gradient of a spherical potential: $\Phi'(r)\,\vec{x}/r$.
 
-    At the origin the gradient is exactly zero.
+    At the origin the gradient is exactly zero. To differentiate at the origin
+    use `spherical_hessian`: ``jax.jacfwd(gradient)`` at ``0`` is zero, because
+    the outer `jnp.where` discards the tangent.
     """
 
     def gradient(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz3:
@@ -107,29 +127,33 @@ def spherical_gradient(
 
 
 def spherical_hessian(
-    dpotential_dr: RadialFn, d2potential_dr2: RadialFn, /
-) -> Callable[[gt.Params, gt.BBtSz3], Any]:
+    dpotential_dr: RadialFn, d2potential_dr2: RadialFn, laplacian: RadialFn, /
+) -> Callable[[gt.Params, gt.BBtSz3], gt.BBtSz33]:
     r"""Cartesian Hessian of a spherical potential.
 
     $\Phi'/r\,\delta_{ij} + (\Phi'' - \Phi'/r)\,x_i x_j/r^2$. At the origin the
-    first term is evaluated at the smallest normal radius, which for a cored
-    profile is $\Phi''(0)$, and the second is dropped.
+    Hessian is isotropic with trace ``laplacian(p, 0)``, so it is
+    $\nabla^2\Phi(0)/3\,\delta_{ij}$: $\Phi''(0)\,I$ for a core, and $+\infty$
+    on the diagonal (zero off it) for a cusp. It is never NaN, and a parameter
+    gradient at an off-origin point stays finite for a cusp too.
     """
 
-    def hessian(p: gt.Params, xyz: gt.BBtSz3) -> Any:
+    def hessian(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz33:
         """``hessian`` as ``Phi'/r delta_ij + (Phi'' - Phi'/r) x_i x_j / r^2``."""
         origin = jnp.sum(jnp.square(xyz), axis=-1) == 0
-        r = safe_vector_norm(xyz)
-        # The second term is masked at the origin, with the inner `where`
-        # keeping its radius away from 0 so that no inf * 0 = NaN arises.
-        r1 = jnp.where(origin, 1.0, r)
+        # The inner `where` keeps every radial kernel away from r = 0, where
+        # shell-theorem profiles (M ~ r^3) underflow to 0 / 0.
+        r1 = jnp.where(origin, 1.0, safe_vector_norm(xyz))
         dphi_over_r = dpotential_dr(p, r1) / r1
-        coeff = (d2potential_dr2(p, r1) - dphi_over_r) / r1**2
-        coeff = jnp.where(origin, 0.0, coeff)
+        coeff = jnp.where(origin, 0.0, (d2potential_dr2(p, r1) - dphi_over_r) / r1**2)
+        # r0 is 0 only at the origin, so a cusp's inf never reaches an
+        # off-origin cotangent of `p`.
+        r0 = jnp.where(origin, 0.0, r1)
+        iso = jnp.where(origin, laplacian(p, r0) / 3, dphi_over_r)
+        eye = jnp.eye(3, dtype=bool)
         outer = xyz[..., :, None] * xyz[..., None, :]
-        eye = jnp.eye(3, dtype=xyz.dtype)
-        iso = (dpotential_dr(p, r) / r)[..., None, None] * eye
-        return iso + coeff[..., None, None] * outer
+        iso_eye = jnp.where(eye, iso[..., None, None], 0.0)
+        return iso_eye + coeff[..., None, None] * outer  # type: ignore[no-any-return]
 
     return jax.jit(hessian)
 
@@ -145,7 +169,7 @@ def poisson_laplacian(density: Callable[..., Any], /) -> Callable[..., Any]:
         """``laplacian = 4 * pi * p["G"] * density(p, x, *rest)``."""
         return 4 * jnp.pi * p["G"] * density(p, x, *rest)
 
-    return jax.jit(laplacian)
+    return _signed(density, laplacian)
 
 
 def poisson_density(laplacian: Callable[..., Any], /) -> Callable[..., Any]:
@@ -155,7 +179,7 @@ def poisson_density(laplacian: Callable[..., Any], /) -> Callable[..., Any]:
         """``density = laplacian(p, x, *rest) / (4 * pi * p["G"])``."""
         return laplacian(p, x, *rest) / (4 * jnp.pi * p["G"])
 
-    return jax.jit(density)
+    return _signed(laplacian, density)
 
 
 # ==============================================================================
@@ -169,7 +193,7 @@ def cartesian_gradient(potential: Callable[..., Any], /) -> Callable[..., Any]:
         """``gradient`` as ``jax.grad(potential, argnums=1)``."""
         return jax.grad(potential, argnums=1)(p, xyz, *rest)
 
-    return jax.jit(gradient)
+    return _signed(potential, gradient)
 
 
 def cartesian_hessian(potential: Callable[..., Any], /) -> Callable[..., Any]:
@@ -179,7 +203,7 @@ def cartesian_hessian(potential: Callable[..., Any], /) -> Callable[..., Any]:
         """``hessian`` as ``jax.hessian(potential, argnums=1)``."""
         return jax.hessian(potential, argnums=1)(p, xyz, *rest)
 
-    return jax.jit(hessian)
+    return _signed(potential, hessian)
 
 
 def cartesian_laplacian(potential: Callable[..., Any], /) -> Callable[..., Any]:
@@ -190,4 +214,4 @@ def cartesian_laplacian(potential: Callable[..., Any], /) -> Callable[..., Any]:
         """``laplacian`` as the trace of ``jax.hessian(potential, argnums=1)``."""
         return jnp.trace(hess(p, xyz, *rest))
 
-    return jax.jit(laplacian)
+    return _signed(potential, laplacian)

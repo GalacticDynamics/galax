@@ -1,5 +1,7 @@
 """Tests for `galax.potential._src.kernels`."""
 
+import inspect
+
 import jax
 
 import quaxed.numpy as jnp
@@ -19,6 +21,10 @@ def dphi(p, r):
 
 def d2phi(p, r):
     return p["G"] * p["m"] * (p["a"] ** 2 - 2 * r**2) / (r**2 + p["a"] ** 2) ** 2.5
+
+
+def lap(p, r):
+    return 3 * p["G"] * p["m"] * p["a"] ** 2 / (r**2 + p["a"] ** 2) ** 2.5
 
 
 def phi3(p, xyz):
@@ -51,7 +57,7 @@ def test_spherical_hessian_matches_autodiff():
         [[[1.0, 2.0, 3.0], [0.5, -1.0, 2.0], [3.0, 0.1, 0.2]],
          [[-1.0, 2.0, 0.3], [4.0, 4.0, 4.0], [0.2, 0.3, -0.4]]]
     )  # fmt: skip
-    got = k.spherical_hessian(dphi, d2phi)(p, xyz)
+    got = k.spherical_hessian(dphi, d2phi, lap)(p, xyz)
     one = jax.hessian(lambda x: phi(p, jnp.linalg.norm(x)))
     want = jax.vmap(jax.vmap(one))(xyz)
     assert got.shape == (2, 3, 3, 3)
@@ -61,10 +67,55 @@ def test_spherical_hessian_matches_autodiff():
 def test_spherical_origin_cored():
     z = jnp.zeros(3)
     g = k.spherical_gradient(dphi)(p, z)
-    h = k.spherical_hessian(dphi, d2phi)(p, z)
+    h = k.spherical_hessian(dphi, d2phi, lap)(p, z)
     assert jnp.array_equal(g, z)
     assert jnp.allclose(h, p["G"] * p["m"] / p["a"] ** 3 * jnp.eye(3))
     assert jnp.all(jnp.isfinite(h))
+    # The origin value is differentiable with respect to `p` and `xyz`.
+    hess = k.spherical_hessian(dphi, d2phi, lap)
+    assert jnp.all(jnp.isfinite(jax.jacfwd(hess, argnums=1)(p, z)))
+    assert all(jnp.all(jnp.isfinite(v)) for v in jax.jacfwd(hess)(p, z).values())
+
+
+def test_spherical_origin_float32():
+    """The float32 origin Hessian equals the float64 one to float32 precision."""
+    z32 = jnp.zeros(3, dtype=jnp.float32)
+    p32 = {key: jnp.float32(v) for key, v in p.items()}
+    h32 = k.spherical_hessian(dphi, d2phi, lap)(p32, z32)
+    h64 = k.spherical_hessian(dphi, d2phi, lap)(p, jnp.zeros(3))
+    assert h32.dtype == jnp.float32
+    assert jnp.allclose(h32, h64, rtol=1e-6)
+
+
+def test_spherical_origin_cusp():
+    """A cusp has an infinite diagonal and zero off-diagonal, never NaN."""
+    p_ = {"G": 1.0, "m": 1.0}
+    h = k.spherical_hessian(
+        lambda p, r: p["G"] * p["m"] / r,  # Phi' ~ 1/r: a log cusp
+        lambda p, r: -p["G"] * p["m"] / r**2,
+        lambda p, r: p["G"] * p["m"] / r**2,
+    )(p_, jnp.zeros(3))
+    assert jnp.all(jnp.diag(h) == jnp.inf)
+    assert jnp.all(h[~jnp.eye(3, dtype=bool)] == 0)
+
+
+def test_helper_signatures():
+    """Helper-built functions show the parameters of their source function."""
+
+    def sig(f):
+        return str(inspect.signature(f))
+
+    def rho(p, r):
+        return p["m"] * jnp.exp(-r / p["a"])
+
+    def phi4(p, xyz, t):
+        return phi3(p, xyz) * jnp.cos(t)
+
+    assert sig(k.poisson_laplacian(rho)) == "(p, r, /)"
+    assert sig(k.poisson_density(rho)) == "(p, r, /)"
+    assert sig(k.cartesian_gradient(phi3)) == "(p, xyz, /)"
+    assert sig(k.cartesian_hessian(phi4)) == "(p, xyz, t, /)"
+    assert sig(k.cartesian_laplacian(phi4)) == "(p, xyz, t, /)"
 
 
 def test_poisson_roundtrip():
@@ -115,9 +166,9 @@ def test_float32_preserved():
         d2(p32, r),
         k.mass_from_dpotential(d1)(p32, r),
         k.spherical_gradient(d1)(p32, xyz),
-        k.spherical_hessian(d1, d2)(p32, xyz),
+        k.spherical_hessian(d1, d2, lap)(p32, xyz),
         k.spherical_gradient(d1)(p32, jnp.zeros(3, dtype=jnp.float32)),
-        k.spherical_hessian(d1, d2)(p32, jnp.zeros(3, dtype=jnp.float32)),
+        k.spherical_hessian(d1, d2, lap)(p32, jnp.zeros(3, dtype=jnp.float32)),
         k.poisson_laplacian(phi)(p32, r),
         k.poisson_density(phi)(p32, r),
         k.cartesian_gradient(phi3)(p32, xyz),

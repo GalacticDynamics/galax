@@ -3,6 +3,8 @@
 Run in interpret mode everywhere, and compiled too when a GPU is present.
 """
 
+import functools as ft
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -661,7 +663,7 @@ def test_fused_kernel_matches_two_pass(n) -> None:
     ct = tuple(jnp.asarray(rng.normal(size=n)) for _ in range(3))
     da, db = tuple(x.dtype for x in a), tuple(x.dtype for x in b)
     f, wrt = _Base(NewtonianKernel(), potential=False), (0, 1, 2, 3)
-    lc = _Launch(16, 16, None, None, interpret=True)
+    lc = _Launch(16, 16, None, None, interpret=True, split=True)
     kw = {"n_ct": 3, "dtypes_a": da, "dtypes_b": db}
     row = lambda xs: [x[None] for x in xs]
     got = _call_ab(
@@ -702,3 +704,28 @@ def test_fused_lowers_for_gpu() -> None:
         disabled_checks=[export.DisabledSafetyCheck.custom_call(triton)],
     )(s.q)
     assert "nbody_pair_sum_fused" in exp.mlir_module()
+
+
+def test_self_pairs_in_any_tile(interpret) -> None:
+    """Self pairs off the diagonal tiles, mixed with tracers and a NaN target."""
+    s, _ = massive(53)
+    rng = np.random.default_rng(5)
+    perm = rng.permutation(53)
+    si = jnp.asarray(np.where(rng.uniform(size=53) < 0.3, -1, perm))
+    q = s.q[perm].at[7].set(jnp.nan)
+    t = Targets(q=q, h=s.h[perm], self_index=si)
+    b = backend(interpret, block_targets=8, block_sources=8)
+    ok = np.isfinite(np.asarray(q)).all(1)
+    tt = Targets(q=q[ok], h=t.h[ok], self_index=si[ok])
+    check_brute(b, s, tt)
+    acc = b.accelerations(s, t, G=G)
+    assert np.isnan(acc[7]).all()
+    assert np.isfinite(np.delete(acc, 7, 0)).all()
+
+    def loss(bk, q):
+        out = bk.accelerations(Sources(q, s.m, s.h), t, G=G)
+        return jnp.sum(jnp.sin(jnp.where(jnp.isfinite(out), out, 0.0)))
+
+    _close(
+        jax.grad(ft.partial(loss, b))(s.q), jax.grad(ft.partial(loss, DirectSum()))(s.q)
+    )

@@ -96,12 +96,16 @@ class _Launch(NamedTuple):
     interpret: bool
     compensated: bool = False
     fused: bool = False
+    split: bool = False  # set at lowering: skip masking off the self tiles
 
 
 # ---------------------------------------------------------------------------
 # Pair functions. Called on (BA, 1) columns ``a`` and (1, BB) rows ``b`` with
 # global indices ``ia`` (BA, 1) and ``jb`` (1, BB); return a tuple of terms.
 # They must be elementwise in the pair, so swapping sides transposes them.
+# ``exact_tiles(a, bb, n)`` gives the range of ``b`` tiles that may hold a
+# skipped pair for this block of ``a`` (None: all); elsewhere the kernel calls
+# them with ``exact=False``, which skips the masking.
 # Frozen dataclasses: hashable by value, so jit caches hit.
 
 
@@ -111,26 +115,41 @@ class _Base:
 
     Pairs with ``self_index == j`` or ``ok == 0`` are skipped with a double
     ``where``, so every derivative of a skipped pair is finite and zero.
+    ``exact=False`` drops that masking, for tiles without such pairs.
     """
 
     kernel: AbstractSofteningKernel
     potential: bool
 
-    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+    def __call__(
+        self, a: _Arrs, b: _Arrs, ia: Array, jb: Array, *, exact: bool = True
+    ) -> _Arrs:
         del ia
         xt, yt, zt, ht, it, okt = a
         xs, ys, zs, ms, hs = b
         dx, dy, dz = xs - xt, ys - yt, zs - zt
         r2 = dx * dx + dy * dy + dz * dz
         skip = (it == jb) | (okt == 0)
-        r2s = jnp.where(skip, jnp.ones_like(r2), r2)
+        keep: Callable[[Array], Array] = lambda x: (
+            jnp.where(skip, jnp.zeros_like(x), x) if exact else x
+        )
+        r2s = jnp.where(skip, jnp.ones_like(r2), r2) if exact else r2
         hp = self.kernel.combine(ht, hs)
         if self.potential:
-            pot = self.kernel.potential(r2s, hp)
-            return (jnp.where(skip, jnp.zeros_like(pot), pot) * ms,)
-        f = self.kernel.force_factor(r2s, hp)
-        w = jnp.where(skip, jnp.zeros_like(f), f) * ms
+            return (keep(self.kernel.potential(r2s, hp)) * ms,)
+        w = keep(self.kernel.force_factor(r2s, hp)) * ms
         return (w * dx, w * dy, w * dz)
+
+    def exact_tiles(self, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
+        """``[lo, hi)``: tiles with this block's self pairs; all if any ``ok == 0``."""
+        it, okt = a[4], a[5]
+        has = it >= 0
+        lo = jnp.min(jnp.where(has, it, jnp.full_like(it, n * bb))) // bb
+        hi = jnp.max(jnp.where(has, it, jnp.full_like(it, -bb))) // bb + 1
+        bad = jnp.max((okt == 0).astype(jnp.int32)) > 0  # no reduce_or in Triton
+        lo = jnp.where(bad, jnp.zeros_like(lo), jnp.clip(lo, 0, n))
+        hi = jnp.where(bad, jnp.full_like(hi, n), jnp.clip(hi, lo, n))
+        return lo, hi
 
 
 def _fill(
@@ -156,7 +175,12 @@ class _Jvp:
     nz_a: tuple[int, ...]
     nz_b: tuple[int, ...]
 
-    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+    def exact_tiles(self, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
+        return _exact_tiles(self.f, a[: self.n_a], bb, n)
+
+    def __call__(
+        self, a: _Arrs, b: _Arrs, ia: Array, jb: Array, *, exact: bool = True
+    ) -> _Arrs:
         fa, ta = list(a[: self.n_a]), a[self.n_a :]
         fb, tb = list(b[: self.n_b]), b[self.n_b :]
 
@@ -166,7 +190,7 @@ class _Jvp:
                 xa[k] = v
             for k, v in zip(self.nz_b, pb, strict=True):
                 xb[k] = v
-            return tuple(self.f(tuple(xa), tuple(xb), ia, jb))
+            return tuple(self.f(tuple(xa), tuple(xb), ia, jb, exact=exact))
 
         prim = (tuple(fa[k] for k in self.nz_a), tuple(fb[k] for k in self.nz_b))
         _, out = jax.jvp(g, prim, (tuple(ta), tuple(tb)))
@@ -192,7 +216,15 @@ class _Vjp:
     zero_a: tuple[int, ...] = ()
     zero_b: tuple[int, ...] = ()
 
-    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+    def exact_tiles(self, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
+        if self.side == "b":  # f's a operands are columns here
+            return None
+        fa = _fill(a[: -self.n_ct], self.zero_a, self.dtypes_a, (1, 1))
+        return _exact_tiles(self.f, tuple(fa), bb, n)
+
+    def __call__(
+        self, a: _Arrs, b: _Arrs, ia: Array, jb: Array, *, exact: bool = True
+    ) -> _Arrs:
         shape = jnp.broadcast_shapes(ia.shape, jb.shape)
         if self.side == "a":
             ka, ct, kb, i, j = a[: -self.n_ct], a[-self.n_ct :], b, ia, jb
@@ -205,7 +237,7 @@ class _Vjp:
         def g(*w: Array) -> _Arrs:
             for k, v in zip(self.wrt, w, strict=True):
                 mine[k] = v
-            out = self.f(tuple(fa), tuple(fb), i, j)
+            out = self.f(tuple(fa), tuple(fb), i, j, exact=exact)
             return tuple(jnp.broadcast_to(o, shape) for o in out)
 
         x = tuple(jnp.broadcast_to(mine[k], shape) for k in self.wrt)
@@ -237,7 +269,13 @@ class _Both:
     zero_a: tuple[int, ...] = ()
     zero_b: tuple[int, ...] = ()
 
-    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+    def exact_tiles(self, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
+        fa = _fill(a[: -self.n_ct], self.zero_a, self.dtypes_a, (1, 1))
+        return _exact_tiles(self.f, tuple(fa), bb, n)
+
+    def __call__(
+        self, a: _Arrs, b: _Arrs, ia: Array, jb: Array, *, exact: bool = True
+    ) -> _Arrs:
         shape = jnp.broadcast_shapes(ia.shape, jb.shape)
         ka, ct = a[: -self.n_ct], a[-self.n_ct :]
         fa = _fill(ka, self.zero_a, self.dtypes_a, shape)
@@ -248,7 +286,7 @@ class _Both:
                 fa[k] = v
             for k, v in zip(self.wrt_b, xb, strict=True):
                 fb[k] = v
-            out = self.f(tuple(fa), tuple(fb), ia, jb)
+            out = self.f(tuple(fa), tuple(fb), ia, jb, exact=exact)
             return tuple(jnp.broadcast_to(o, shape) for o in out)
 
         xa = tuple(jnp.broadcast_to(fa[k], shape) for k in self.wrt_a)
@@ -281,6 +319,38 @@ def _out_dtypes(fn: Any, da: tuple[Any, ...], db: tuple[Any, ...]) -> tuple[Any,
 # Kernel
 
 
+def _exact_tiles(fn: Any, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
+    get = getattr(fn, "exact_tiles", None)
+    return None if get is None else get(a, bb, n)  # type: ignore[no-any-return]
+
+
+def _loop(
+    fn: Any,
+    a: _Arrs,
+    n: int,
+    bb: int,
+    step: Callable[..., Any],
+    carry: Any,
+    *,
+    split: bool,
+) -> Any:
+    """Run ``step(k, carry, exact=...)`` over tiles ``k < n``, exact only where needed.
+
+    Three plain loops rather than a branch per tile: a ``cond`` in the loop
+    body slows the Triton kernel down more than the masking costs. Off on TPU:
+    Mosaic fails to lower the data-dependent loop bounds.
+    """
+    rng = _exact_tiles(fn, a, bb, n) if split else None
+    if rng is None:
+        return jax.lax.fori_loop(
+            _i32(0), _i32(n), lambda k, c: step(k, c, exact=True), carry
+        )
+    lo, hi = (x.astype(jnp.int32) for x in rng)
+    carry = jax.lax.fori_loop(_i32(0), lo, lambda k, c: step(k, c, exact=False), carry)
+    carry = jax.lax.fori_loop(lo, hi, lambda k, c: step(k, c, exact=True), carry)
+    return jax.lax.fori_loop(hi, _i32(n), lambda k, c: step(k, c, exact=False), carry)
+
+
 def _i32(x: int) -> Array:
     """Loop bounds as int32; Mosaic (TPU) can't lower int64 under x64."""
     return jnp.asarray(x, dtype=jnp.int32)
@@ -293,12 +363,13 @@ def _kernel(*refs: Any, fn: Any, n_a: int, n_b: int, nb: int, lc: _Launch) -> No
     ia = pl.program_id(1) * ba + jax.lax.broadcasted_iota(jnp.int32, (ba, 1), 0)
     shape = (ba, bb)
 
-    def tile(j0: Array | int, *, masked: bool) -> _Arrs:
+    def tile(j0: Array | int, *, masked: bool, exact: bool = True) -> _Arrs:
         b = tuple(r[:, pl.ds(j0, bb)] for r in b_refs)
         jb = j0 + jax.lax.broadcasted_iota(jnp.int32, (1, bb), 1)
+        out = fn(a, b, ia, jb) if exact else fn(a, b, ia, jb, exact=False)
         terms = tuple(
             jnp.broadcast_to(x, shape).astype(o.dtype)
-            for x, o in zip(fn(a, b, ia, jb), out_refs, strict=True)
+            for x, o in zip(out, out_refs, strict=True)
         )
         if masked:  # padded rows of B
             terms = tuple(jnp.where(jb < nb, x, jnp.zeros_like(x)) for x in terms)
@@ -317,11 +388,14 @@ def _kernel(*refs: Any, fn: Any, n_a: int, n_b: int, nb: int, lc: _Launch) -> No
     zero = tuple(jnp.zeros(shape, o.dtype) for o in out_refs)
     carry = (zero, zero if lc.compensated else ())
     n_full, rem = divmod(nb, bb)
-    carry = jax.lax.fori_loop(
-        _i32(0),
-        _i32(n_full),
-        lambda k, c: add(c, tile(k * bb, masked=False)),
+    carry = _loop(
+        fn,
+        a,
+        n_full,
+        bb,
+        lambda k, c, exact: add(c, tile(k * bb, masked=False, exact=exact)),
         carry,
+        split=lc.split,
     )
     if rem:
         carry = add(carry, tile(n_full * bb, masked=True))  # static start
@@ -386,10 +460,10 @@ def _kernel_ab(
     ia = pl.program_id(1) * ba + jax.lax.broadcasted_iota(jnp.int32, (ba, 1), 0)
     shape = (ba, bb)
 
-    def tile(j0: Array | int, acc: _Arrs, *, masked: bool) -> _Arrs:
+    def tile(j0: Array | int, acc: _Arrs, *, masked: bool, exact: bool = True) -> _Arrs:
         b = tuple(r[:, pl.ds(j0, bb)] for r in b_refs)
         jb = j0 + jax.lax.broadcasted_iota(jnp.int32, (1, bb), 1)
-        g = fn(a, b, ia, jb)
+        g = fn(a, b, ia, jb) if exact else fn(a, b, ia, jb, exact=False)
         ok = ia < na
         if masked:
             ok = ok & (jb < nb)
@@ -407,8 +481,14 @@ def _kernel_ab(
 
     acc = tuple(jnp.zeros(shape, o.dtype) for o in out_a)
     n_full, rem = divmod(nb, bb)
-    acc = jax.lax.fori_loop(
-        _i32(0), _i32(n_full), lambda k, c: tile(k * bb, c, masked=False), acc
+    acc = _loop(
+        fn,
+        a,
+        n_full,
+        bb,
+        lambda k, c, exact: tile(k * bb, c, masked=False, exact=exact),
+        acc,
+        split=lc.split,
     )
     if rem:
         acc = tile(n_full * bb, acc, masked=True)
@@ -520,6 +600,7 @@ def _gpu_params(lc: _Launch) -> Any:
 def _lowering(*, gpu: bool) -> Callable[..., Any]:
     def rule(ctx: Any, *ops: Any, fn: Any, n_a: int, lc: _Launch, **_: Any) -> Any:
         params = _gpu_params(lc) if gpu and not lc.interpret else None
+        lc = lc._replace(split=gpu or lc.interpret)
         f = ft.partial(_call, fn=fn, n_a=n_a, lc=lc, compiler_params=params)
         # The Pallas interpreter loses `vma` on refs carried through loops, so
         # `shard_map`'s check fails inside it; lowering doesn't need it.
@@ -757,7 +838,7 @@ def _ab_lowering(*, gpu: bool) -> Callable[..., Any]:
                 _call_ab,
                 fn=params["fn"],
                 n_a=params["n_fa"] + params["n_ct"],
-                lc=lc,
+                lc=lc._replace(split=True),
                 compiler_params=_gpu_params(lc),
             )
         else:

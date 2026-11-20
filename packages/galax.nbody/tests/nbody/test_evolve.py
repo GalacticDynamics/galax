@@ -765,6 +765,12 @@ def test_energy_memory_is_one_evaluation() -> None:
     assert added < 4 * one
 
 
+def test_two_dimensional_ts_raises() -> None:
+    field, q0, p0 = _cluster(n=4)
+    with pytest.raises(ValueError, match="ts must be 1-D"):
+        gn.evolve(field, q0, p0, np.zeros((1, 2)), dt=0.01)
+
+
 def test_empty_ts_raises() -> None:
     field, q0, p0 = _cluster(n=4)
     with pytest.raises(ValueError, match="at least one time"):

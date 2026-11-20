@@ -56,6 +56,9 @@ __all__ = [
     "gNFWPotential",
     "ZhaoPotential",
     "SCFPotential",
+    "TabulatedRadialBasisPotential",
+    "AbstractSphericalHarmonicExpansionPotential",
+    "AbstractRadialBasisExpansionPotential",
     # Pre-composited
     "AbstractPreCompositedPotential",
     "BovyMWPotential2014",
@@ -112,6 +115,8 @@ with install_import_hook("galax.potential"):
     from ._src.builtin import (
         AbstractMultipolePotential,
         AbstractMultipoleProfilePotential,
+        AbstractRadialBasisExpansionPotential,
+        AbstractSphericalHarmonicExpansionPotential,
         AxisymmetricGaussianPotential,
         BovyMWPotential2014,
         BurkertPotential,
@@ -147,6 +152,7 @@ with install_import_hook("galax.potential"):
         SatohPotential,
         SCFPotential,
         StoneOstriker15Potential,
+        TabulatedRadialBasisPotential,
         TriaxialGaussianPotential,
         TriaxialHernquistPotential,
         TriaxialNFWPotential,

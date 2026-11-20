@@ -11,6 +11,7 @@ import unxt as u
 import galax.potential as gp
 from galax.potential._src.builtin.multipole import scaled_radius_and_direction
 from galax.potential._src.builtin.scf.bfe import phi_nl, rho_nl
+from galax.potential._src.builtin.sph_expansion import sum_basis
 from galax.potential._src.harmonic.ylm import iter_Ylm
 
 
@@ -228,10 +229,10 @@ def test_scf_potential_matches_lpmv_reference_with_m_gt_0() -> None:
 def test_summation_matches_the_grid_contraction() -> None:
     """REGRESSION: folding the ``(l, m)`` terms must not change the answer.
 
-    `SCFPotential._summation` used to scatter the harmonics into an
-    ``(l, m, *batch)`` grid and contract it with a single `einsum`. It now folds
-    each term into the running sum as `iter_Ylm` produces it, and contracts over
-    ``n`` once per ``l`` rather than once per ``(l, m)`` -- both because
+    `sum_basis` (formerly `SCFPotential._summation`) used to scatter the harmonics
+    into an ``(l, m, *batch)`` grid and contract it with a single `einsum`. It now
+    folds each term into the running sum as `iter_Ylm` produces it, and contracts
+    over ``n`` once per ``l`` rather than once per ``(l, m)`` -- both because
     materializing a grid to contract is what stops XLA fusing the reduction, but
     neither may change a value.
 
@@ -265,7 +266,7 @@ def test_summation_matches_the_grid_contraction() -> None:
             "nlm,nl...,lm...->...", tnlm, radial, sgrid
         )
 
-        got = pot._summation(radial, snlm, tnlm, uvec)
+        got = sum_basis(pot.lmax, radial, snlm, tnlm, uvec)
 
         assert jnp.allclose(got, expect, rtol=1e-12, atol=1e-14)
 

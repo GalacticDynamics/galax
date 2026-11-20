@@ -308,9 +308,16 @@ jobs:
           # an INTERNALERROR before a single benchmark is collected. The warning
           # says nothing about galax, so ignore it here rather than repo-wide,
           # where it would still flag a genuinely broken numpy build.
-          run:
-            uv run pytest tests/benchmark --codspeed -W
-            "ignore:Signature:UserWarning"
+          #
+          # One pytest process per file. Under Valgrind JAX's compiled programs
+          # take ~7x their native memory and are never freed, so in one process
+          # the files add up past the runner's 16 GB and the run dies mid-file
+          # (every main push from #889 to here). The multipole file alone peaks
+          # at ~9.7 GB.
+          run: |
+            for f in tests/benchmark/test_*.py; do
+              uv run pytest "$f" --codspeed -W "ignore:Signature:UserWarning" || exit 1
+            done
 
   status:
     name: CI Pass

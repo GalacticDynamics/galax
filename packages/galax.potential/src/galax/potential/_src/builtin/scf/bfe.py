@@ -188,6 +188,8 @@ class SCFPotential(AbstractRadialBasisExpansionPotential):
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+        if jnp.ndim(t) > 0:  # a time per position: coefficients differ per time
+            return jnp.vectorize(self._density, signature="(3),()->()")(xyz, t)  # type: ignore[no-any-return]
 
         p = self.params(t)
 

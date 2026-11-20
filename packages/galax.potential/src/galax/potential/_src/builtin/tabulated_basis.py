@@ -49,13 +49,16 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
     autodiff. Accuracy follows the knot spacing :math:`h` in :math:`\ln r`:
     :math:`O(h^4)` for the potential, :math:`O(h^3)` for the force and
     :math:`O(h^2)` for the hessian. With 600 knots over six decades (h =
-    0.023) a tabulated Hernquist basis reproduces `SCFPotential` to 1e-7 in
-    the potential, 3e-5 in the force and 3e-3 in the hessian.
+    0.023) and ``nmax = lmax = 4``, a tabulated Hernquist basis reproduces
+    `SCFPotential` to better than 1e-6 in the potential, 3e-5 in the force
+    and 1e-3 in the hessian, between 0.01 and 1000 kpc.
 
-    **Outside the knot range** the radial functions are held at
-    their edge values, as EXP does: the potential stays finite and the
-    radial force vanishes there, so choose knots that cover the region of
-    interest.
+    **Outside the knot range** each term continues as the solution of
+    Laplace's equation: :math:`u_{nl} \propto r^{-(l+1)}` beyond the
+    outermost knot, as EXP's spherical basis does (exact when the basis meets
+    the vacuum boundary condition there), and :math:`u_{nl} \propto r^l`
+    inside the innermost, so the potential and force stay finite at the
+    origin. Both are joined to the table in value, not in slope.
 
     The coefficients may depend on time (any `AbstractParameter`), which is how
     a time series of snapshots from a simulation becomes a potential: for
@@ -156,6 +159,8 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
         Snlm: Any,
         Tnlm: Any,
         /,
+        *,
+        units: Any,
         **kwargs: Any,
     ) -> "TabulatedRadialBasisPotential":
         """Build from a tabulated basis, fitting the spline's knot derivatives.
@@ -165,7 +170,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
         any parameter, including a time-dependent one. ``kwargs`` go to the
         constructor (``units``, ``constants``).
         """
-        units = u.unitsystem(kwargs["units"])
+        units = u.unitsystem(units)
         r = u.ustrip(AllowValue, units["length"], r_knots)
         un = u.ustrip(AllowValue, units["specific energy"], u_nl)
         du = fit_log_spline(jnp.log(r), un)
@@ -175,6 +180,7 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
             du_nl=u.Q(du, units["specific energy"]),
             Snlm=Snlm,
             Tnlm=Tnlm,
+            units=units,
             **kwargs,
         )
 
@@ -182,8 +188,13 @@ class TabulatedRadialBasisPotential(AbstractRadialBasisExpansionPotential):
         self, xyz: gt.BBtSz3, p: dict[str, Array], /
     ) -> tuple[Float[Array, "{nmax}+1 {lmax}+1 *batch"], gt.BtSz3, Array | float]:
         r, uvec = scaled_radius_and_direction(xyz, jnp.ones((), dtype=xyz.dtype))
-        log_r = jnp.log(p["r_knots"])
-        # held at the edge values outside the knots
-        log_rq = jnp.clip(jnp.log(r), log_r[0], log_r[-1])
-        radial = eval_log_spline(log_r, p["u_nl"], p["du_nl"], log_rq)  # (*batch, n, l)
+        log_r, lq = jnp.log(p["r_knots"]), jnp.log(r)
+        radial = eval_log_spline(  # (*batch, n, l)
+            log_r, p["u_nl"], p["du_nl"], jnp.clip(lq, log_r[0], log_r[-1])
+        )
+        # Outside the knots: r^-(l+1) beyond the last, r^l inside the first.
+        ell = jnp.arange(self.lmax + 1, dtype=radial.dtype)
+        out = -(ell + 1) * jnp.maximum(lq - log_r[-1], 0.0)[..., None]
+        inn = ell * jnp.minimum(lq - log_r[0], 0.0)[..., None]
+        radial = radial * jnp.exp(out + inn)[..., None, :]
         return jnp.moveaxis(radial, (-2, -1), (0, 1)), uvec, 1.0

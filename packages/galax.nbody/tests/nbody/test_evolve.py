@@ -827,8 +827,26 @@ def _count_while(jaxpr) -> int:
     return n
 
 
-def test_graph_has_one_loop_per_run_of_equal_segments() -> None:
-    """Under an outer jit the graph grows with the runs of equal segments, not saves."""
+def test_new_save_spacing_does_not_recompile(caplog) -> None:
+    """Save times with the same count and total steps reuse the compilation."""
+    field, q0, p0 = _cluster(n=11)
+
+    def run(ts):
+        return gn.evolve(field, q0, p0, ts, dt=0.01, check_dt=False).q
+
+    def compiles():
+        return [r for r in caplog.records if "Compiling" in r.getMessage()]
+
+    with jax.log_compiles(), caplog.at_level(logging.WARNING):
+        jax.block_until_ready(run(0.01 * np.asarray([0, 1, 2, 5, 8, 9, 13])))
+        assert compiles()
+        caplog.clear()
+        jax.block_until_ready(run(0.01 * np.asarray([0, 4, 6, 7, 10, 12, 13])))
+    assert not compiles()
+
+
+def test_graph_has_one_loop_however_the_saves_are_spaced() -> None:
+    """Under an outer jit the graph holds one solve, whatever the saves."""
     field, q0, p0 = _cluster(n=4)
 
     def count(ts):
@@ -840,12 +858,11 @@ def test_graph_has_one_loop_per_run_of_equal_segments() -> None:
     one = count(0.01 * np.arange(2))
     assert one > 0
     assert count(0.01 * np.arange(5)) == count(0.01 * np.arange(50)) == one
-    # Runs of 1, 3 and 1 steps: one loop per run of equal segments.
-    assert count(0.01 * np.asarray([0, 1, 2, 5, 8, 9])) == 3 * one
+    assert count(0.01 * np.asarray([0, 1, 2, 5, 8, 9])) == one
 
 
-def _scan_and_segment_loop():
-    """Return evolve's ``q`` and a segment loop over `advance` for one run of 3."""
+def _solve_and_segment_loop():
+    """Return evolve's ``q`` and a loop of one `advance` per save interval."""
     field, q0, p0 = _cluster(n=4)
     dt = 0.01
     steps = np.asarray([0, 3, 6, 9])
@@ -867,21 +884,17 @@ def _scan_and_segment_loop():
     return new, ref, q0
 
 
-def test_scan_matches_one_segment_at_a_time() -> None:
-    """A run of equal segments gives the states of a segment loop.
-
-    The second and third segments of the run start at traced times inside the
-    scan, which once made diffrax reject t1 != ts[-1] under jit.
-    """
-    new, ref, q0 = _scan_and_segment_loop()
+def test_single_solve_matches_one_segment_at_a_time() -> None:
+    """One solve saving at ``ts`` gives the states of a solve per interval."""
+    new, ref, q0 = _solve_and_segment_loop()
     np.testing.assert_allclose(new(q0), ref(q0), rtol=1e-15, atol=1e-15)
     np.testing.assert_allclose(jax.jit(new)(q0), ref(q0), rtol=1e-15, atol=1e-15)
 
 
 @pytest.mark.slow
-def test_scan_gradient_matches_one_segment_at_a_time() -> None:
-    """A run of equal segments gives the gradients of a segment loop under jit."""
-    new, ref, q0 = _scan_and_segment_loop()
+def test_single_solve_gradient_matches_one_segment_at_a_time() -> None:
+    """One solve gives the gradients of a solve per interval under jit."""
+    new, ref, q0 = _solve_and_segment_loop()
     g_ref = jax.grad(lambda q: jnp.sum(ref(q) ** 2))(q0)
     g_jit = jax.jit(jax.grad(lambda q: jnp.sum(new(q) ** 2)))(q0)
     np.testing.assert_allclose(g_jit, g_ref, rtol=1e-14)

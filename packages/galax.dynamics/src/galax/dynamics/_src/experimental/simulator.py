@@ -96,17 +96,21 @@ class SpraySimulator(eqx.Module):
         How the particles are integrated.
     progenitor_potential : AbstractPotential | Callable | None
         The progenitor's potential, centred on it, felt by the particles. A
-        callable is given ``Msat`` (as passed to the call, traced) and returns
-        the potential. It must use the host's unit system.
+        callable is given ``Msat`` (a scalar, traced) and returns the potential.
+        It must use the host's unit system.
     solver : diffraxtra.DiffEqSolver
         Settings of the stream's solves. A `diffrax.ConstantStepSize`
         controller steps on the schedule's lattice; any other is adaptive.
     progenitor_solver : diffraxtra.DiffEqSolver | None
-        Settings of the progenitor's orbit; `None` means ``solver``.
+        Settings of the progenitor's orbit in the per-particle modes; `None`
+        means ``solver``. `WholeStream` integrates the progenitor with the
+        stream, so there it must be `None` or equal to ``solver``.
 
     Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
     `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
-    ``Msat`` a scalar or one mass per release. ``lead[i]`` and ``trail[i]``
+    ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
+    release. A failed solve gives NaN for the whole result; it never raises.
+    ``lead[i]`` and ``trail[i]``
     share ``release_times[i]``. All inputs and outputs are raw arrays in the
     host potential's units.
     """
@@ -149,8 +153,14 @@ def simulate(
     xl, vl, xt, vt = sample_releases(sim.df, key, pot, ts, ws[idx, :3], ws[idx, 3:], Ms)
     pp = sim.progenitor_potential
     if pp is not None and not isinstance(pp, gp.AbstractPotential):
+        if jnp.ndim(Msat) != 0:
+            msg = (
+                "a callable progenitor_potential needs a scalar Msat; pass a "
+                "time-dependent potential for a varying mass"
+            )
+            raise ValueError(msg)
         pp = pp(Msat)
-    lead, trail = _evolve(
+    lead, trail, prog = _evolve(
         sim.mode,
         sim,
         pot,
@@ -160,7 +170,7 @@ def simulate(
         jnp.concat([xl, vl], axis=-1),
         jnp.concat([xt, vt], axis=-1),
     )
-    return SprayResult(lead, trail, ts, ws[-1], jnp.asarray(schedule.t1, dtype=float))
+    return SprayResult(lead, trail, ts, prog, jnp.asarray(schedule.t1, dtype=float))
 
 
 def evolve_whole_stream(
@@ -173,24 +183,33 @@ def evolve_whole_stream(
     """Evolve the rows ``w0`` (R, 6) over the segments ``grids`` (S, L + 1).
 
     Segment ``s`` is one solve along ``grids[s]`` with the tracers ``active[s]``
-    (S, R - 1) moving and the rest frozen.
+    (S, R - 1) moving and the rest frozen. If a segment fails, the later ones
+    go on from the state before it (a NaN state would make an adaptive solve
+    run to ``max_steps``) and every row comes out NaN.
     """
     terms = field.terms(solver)
     split = isinstance(solver.solver, gf.Leapfrog)
 
-    def segment(y: Any, xs: tuple[Array, Array]) -> tuple[Any, None]:
+    def segment(
+        carry: tuple[Any, Array], xs: tuple[Array, Array]
+    ) -> tuple[tuple[Any, Array], None]:
+        y, failed = carry
         grid, on = xs
-        return solve_on(solver, terms, y, grid, args={"active": on}), None
+        y1 = solve_on(solver, terms, y, grid, args={"active": on})
+        bad = jnp.any(jnp.isnan(jnp.concat(jax.tree.leaves(y1), axis=None)))
+        y1 = jax.tree.map(lambda a, b: jnp.where(bad, a, b), y, y1)
+        return (y1, failed | bad), None
 
     y0: Any = (w0[:, :3], w0[:, 3:]) if split else w0
-    y: Any
-    y, _ = jax.lax.scan(segment, y0, (grids, active))
-    return jnp.concat(y, axis=-1) if split else y
+    no = jnp.zeros((), bool)
+    (y, failed), _ = jax.lax.scan(segment, (y0, no), (grids, active))
+    w = jnp.concat(y, axis=-1) if split else y
+    return jnp.where(failed, jnp.nan, w)
 
 
 @dispatch.abstract
-def _evolve(mode: Any, *args: Any) -> tuple[Array, Array]:
-    """Integrate the release states ``(lead0, trail0)`` to ``t1``."""
+def _evolve(mode: Any, *args: Any) -> tuple[Array, Array, Array]:
+    """Integrate the release states to ``t1``: ``(lead, trail, progenitor)``."""
 
 
 @dispatch
@@ -203,7 +222,16 @@ def _evolve(
     ws: Array,
     lead0: Array,
     trail0: Array,
-) -> tuple[Array, Array]:
+) -> tuple[Array, Array, Array]:
+    # The tracers orbit the progenitor row, so it must start from (and its
+    # release states come from) the same solver.
+    psolver = sim.progenitor_solver
+    if psolver is not None and eqx.tree_equal(psolver, sim.solver) is not True:
+        msg = (
+            "WholeStream integrates the progenitor with the stream: "
+            "progenitor_solver must be None or equal to solver"
+        )
+        raise ValueError(msg)
     # One segment per stretch between releases (one for a single release); the
     # tracers released by a segment's start move in it.
     n = schedule.n_release
@@ -219,11 +247,11 @@ def _evolve(
         grids,
         jnp.concat([on, on], axis=1),
     )
-    return w[1 : n + 1], w[n + 1 :]
+    return w[1 : n + 1], w[n + 1 :], w[0]
 
 
 @dispatch
-def _evolve(mode: PerParticle, *args: Any) -> tuple[Array, Array]:
+def _evolve(mode: PerParticle, *args: Any) -> tuple[Array, Array, Array]:
     msg = f"per-particle mode with {type(mode.progenitor).__name__}"
     raise NotImplementedError(msg)
 

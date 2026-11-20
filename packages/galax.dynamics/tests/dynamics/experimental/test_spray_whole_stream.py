@@ -1,6 +1,7 @@
 """Tests for `SpraySimulator` in whole-stream mode."""
 
 import diffrax as dfx
+import equinox as eqx
 import jax
 import jax.numpy as jnp
 import jax.random as jr
@@ -321,3 +322,91 @@ def test_grad_whole_stream(df_cls) -> None:
         ]
     )
     np.testing.assert_allclose(g, fd, rtol=1e-5, atol=1e-7 * jnp.abs(g).max())
+
+
+def test_callable_progenitor_needs_scalar_msat() -> None:
+    sched = gde.Uniform(jnp.asarray(300.0), 4, 5)
+    sim = gde.SpraySimulator(
+        gde.Fardal2015DF(), gde.WholeStream(), progenitor_potential=plummer
+    )
+    with pytest.raises(ValueError, match="scalar Msat"):
+        sim(KEY, HOST, W_TODAY, jnp.full(4, 1e5), sched)
+    # A per-release Msat is fine with a fixed potential.
+    sim = gde.SpraySimulator(
+        gde.Fardal2015DF(), gde.WholeStream(), progenitor_potential=plummer(MSAT)
+    )
+    res = sim(KEY, HOST, W_TODAY, jnp.full(4, 1e5), sched)
+    assert jnp.all(jnp.isfinite(res.lead))
+
+
+def test_whole_stream_needs_one_solver() -> None:
+    sched = gde.Uniform(jnp.asarray(300.0), 4, 5)
+    sim = gde.SpraySimulator(
+        gde.Fardal2015DF(),
+        gde.WholeStream(),
+        progenitor_solver=adaptive(1e-8, 10_000),
+    )
+    with pytest.raises(ValueError, match="progenitor_solver"):
+        sim(KEY, HOST, W_TODAY, MSAT, sched)
+    # The same settings as `solver` are fine.
+    sim = gde.SpraySimulator(
+        gde.Fardal2015DF(), gde.WholeStream(), solver=LEAP, progenitor_solver=LEAP
+    )
+    assert jnp.all(jnp.isfinite(sim(KEY, HOST, W_TODAY, MSAT, sched).lead))
+
+
+class _Counted(eqx.Module):
+    """A field whose terms count their evaluations on the host."""
+
+    field: _WholeStreamField
+
+    def terms(self, solver):
+        term = self.field.terms(solver)
+
+        def vf(t, w, args):
+            jax.debug.callback(lambda: COUNT.append(1))
+            return term.vf(t, w, args)
+
+        return dfx.ODETerm(vf)
+
+
+COUNT: list[int] = []
+
+
+def test_failed_segment_is_nan_and_cheap() -> None:
+    """A failed segment makes every row NaN, without later segments stalling.
+
+    The first segment (1000 Myr) needs more than ``max_steps``; the five after
+    it (1 Myr each) need a few steps. Continuing from NaN, each of them would
+    run to ``max_steps``.
+    """
+    solver = adaptive(1e-10, 30)
+    ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
+    w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
+    field = _WholeStreamField(HOST, plummer(MSAT))
+    active = jnp.ones((6, 1), bool)
+
+    def grids(span):
+        ends = jnp.concat([jnp.asarray([0.0, span]), span + jnp.arange(1.0, 6.0)])
+        return jnp.stack([ends[:-1], ends[1:]], axis=1)
+
+    run = jax.jit(lambda g: evolve_whole_stream(_Counted(field), solver, w0, g, active))
+    COUNT.clear()
+    good = run(grids(1.0))
+    jax.effects_barrier()
+    n_good = len(COUNT)
+    assert jnp.all(jnp.isfinite(good))
+
+    COUNT.clear()
+    bad = run(grids(1000.0))
+    jax.effects_barrier()
+    assert jnp.all(jnp.isnan(bad))
+    # Segment 0 at max_steps plus normal later segments, not 6 x max_steps.
+    assert len(COUNT) < 30 * 16 + 2 * n_good, (len(COUNT), n_good)
+
+    # Under vmap, a failing lane leaves the good one as it was.
+    both = jax.jit(
+        jax.vmap(lambda g: evolve_whole_stream(field, solver, w0, g, active))
+    )(jnp.stack([grids(1.0), grids(1000.0)]))
+    np.testing.assert_allclose(both[0], good, rtol=1e-13, atol=1e-13)
+    assert jnp.all(jnp.isnan(both[1]))

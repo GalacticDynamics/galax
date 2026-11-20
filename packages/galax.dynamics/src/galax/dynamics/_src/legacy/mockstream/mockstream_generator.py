@@ -128,11 +128,7 @@ class MockStreamGenerator(eqx.Module):
     its span, which differs per release), so it drifts from the progenitor's
     orbit by that solver's global error, which depends on the orbit. Over
     3 Gyr with Leapfrog at 1 Myr steps we measured up to ~40 pc on NFW orbits
-    at 5-38 kpc and up to ~0.8 kpc on an eccentric Milky Way orbit. The
-    stream's median error against a converged reference was 0.8-2x that of the
-    previous design, in which the particles saw the progenitor's own orbit
-    (largest on a tight 5-8 kpc NFW orbit). With the default adaptive
-    integrators the streams moved by only ~1e-6 kpc from the previous design.
+    at 5-38 kpc and up to ~0.8 kpc on an eccentric Milky Way orbit.
     """
 
     progenitor_integrator: Integrator = eqx.field(

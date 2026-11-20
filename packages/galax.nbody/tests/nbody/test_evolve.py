@@ -466,7 +466,7 @@ def test_component_split_on_result() -> None:
         p=jnp.zeros((2, 3)),
         m=0.0,
         h=0.0,
-        massive=False,
+        kind="tracer",
     )
     system = gn.System.from_components(stars, tracers, units="galactic")
     field = gn.NBodyField.from_system(system, _NULL)
@@ -616,7 +616,7 @@ def test_component_on_vmapped_result() -> None:
         p=jnp.ones((2, 3)),
         m=0.0,
         h=0.0,
-        massive=False,
+        kind="tracer",
     )
     system = gn.System.from_components(stars, tracers, units="galactic")
     field = gn.NBodyField.from_system(system, _NULL)

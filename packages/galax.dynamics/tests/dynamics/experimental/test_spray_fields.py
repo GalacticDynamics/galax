@@ -1,6 +1,7 @@
 """Tests for the experimental spray orbit fields."""
 
 import diffrax as dfx
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -93,3 +94,18 @@ def test_inactive_tracers_frozen(solver) -> None:
 def test_units_must_match(make) -> None:
     with pytest.raises(ValueError, match="same unit system"):
         make(PROG_PC)
+
+
+@pytest.mark.parametrize("solver", [LEAP, DOPRI])
+def test_inactive_tracer_at_progenitor_grad_finite(solver) -> None:
+    q = Q.at[2].set(Q[0])  # inactive tracer exactly at the progenitor
+    act = jnp.asarray([True, False])
+
+    def f(q, p, m):
+        field = _WholeStreamField(HOST, gp.KeplerPotential(m_tot=m, units="galactic"))
+        dq, dp = _dp(field, solver, q, p, {"active": act})
+        return jnp.sum(dq) + jnp.sum(dp)
+
+    gq, gp_, gm = jax.grad(f, argnums=(0, 1, 2))(q, P, jnp.asarray(1e5))
+    for g in (gq, gp_, gm):
+        assert jnp.all(jnp.isfinite(g))

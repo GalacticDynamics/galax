@@ -64,7 +64,12 @@ class _WholeStreamField(eqx.Module):
     def _acc(self, t: Array, q: Array, args: Any) -> Array:
         a = -_grad(self.host, q, t)
         if self.progenitor_potential is not None:
-            a = a.at[1:].add(-_grad(self.progenitor_potential, q[1:] - q[0], t))
+            # An inactive tracer may sit exactly at the progenitor, where a
+            # singular potential has NaN gradients that `where` would leak into
+            # reverse mode (NaN * 0): evaluate it at a safe separation instead.
+            on = args["active"][:, None]
+            dq = jnp.where(on, q[1:] - q[0], 1.0)
+            a = a.at[1:].add(-_grad(self.progenitor_potential, dq, t))
         return jnp.where(self._active(args), a, 0.0)
 
     def terms(self, solver: dfxtra.DiffEqSolver) -> Any:

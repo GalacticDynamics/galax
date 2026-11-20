@@ -16,6 +16,7 @@ from collections.abc import Callable
 from jaxtyping import Array, PRNGKeyArray
 from typing import Any, TypeAlias
 
+import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -29,9 +30,15 @@ import galax.coordinates as gc
 import galax.fields as gf
 import galax.potential as gp
 from .df import AbstractKinematicDF, sample_releases
-from .fields import _WholeStreamField
+from .fields import _CopiesField, _WholeStreamField
 from .schedule import Uniform
-from .solve import default_solver, progenitor_states, solve_on
+from .solve import (
+    default_solver,
+    host_terms,
+    is_lattice,
+    progenitor_states,
+    solve_on,
+)
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 
@@ -62,11 +69,21 @@ class SharedTrack(eqx.Module):
 
 
 class Copies(eqx.Module):
-    """Per-particle progenitor model: each particle carries its own copy."""
+    """Per-particle progenitor model: each particle carries its own copy.
+
+    A copy starts from the progenitor's state at the release (from
+    ``progenitor_solver``) and moves with ``solver``. With the same fixed-step
+    solver it equals the progenitor to round-off; with different solvers it
+    drifts from it by their difference.
+    """
 
 
 class PerParticle(eqx.Module):
-    """Integrate each particle with its own solve, from its release to ``t1``."""
+    """Integrate each particle with its own solve, from its release to ``t1``.
+
+    The lead and trail of a release are vmapped; ``loop`` (`jaxmore` `VMap` or
+    `Scan`) maps over the releases. A failed solve gives NaN for its particle.
+    """
 
     progenitor: SharedTrack | Copies
     loop: type[lstrat.Scan | lstrat.VMap] = eqx.field(default=lstrat.VMap, static=True)
@@ -109,10 +126,10 @@ class SpraySimulator(eqx.Module):
     Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
     `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
     ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
-    release. A failed solve gives NaN for the whole result; it never raises.
-    ``lead[i]`` and ``trail[i]``
-    share ``release_times[i]``. All inputs and outputs are raw arrays in the
-    host potential's units.
+    release. A failed solve gives NaN, for the whole result in `WholeStream`
+    and for that particle in `PerParticle`; it never raises. ``lead[i]`` and
+    ``trail[i]`` share ``release_times[i]``. All inputs and outputs are raw
+    arrays in the host potential's units.
     """
 
     df: AbstractKinematicDF
@@ -207,6 +224,65 @@ def evolve_whole_stream(
     return jnp.where(failed, jnp.nan, w)
 
 
+class _FromRelease(dfx.AbstractTerm):  # type: ignore[misc]
+    """``term`` with time held at ``t_release`` before it.
+
+    Every step that ends by ``t_release`` has a zero control, so it leaves the
+    state exactly as it is; later steps are the plain ``term``'s.
+    """
+
+    term: dfx.AbstractTerm
+    t_release: Array
+
+    def vf(self, t: Array, y: Any, args: Any) -> Any:
+        return self.term.vf(jnp.maximum(t, self.t_release), y, args)
+
+    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Array:  # noqa: ARG002
+        return jnp.maximum(t1, self.t_release) - jnp.maximum(t0, self.t_release)
+
+    def prod(self, vf: Any, control: Array) -> Any:
+        return self.term.prod(vf, control)
+
+
+def evolve_per_particle(
+    terms: Any,
+    solver: dfxtra.DiffEqSolver,
+    w0: Array,
+    t0: Array,
+    lattice: Array,
+    loop: type[lstrat.Scan | lstrat.VMap],
+) -> Array:
+    """Evolve each ``w0[i, j]`` (..., 6) alone, from ``t0[i]`` to ``lattice[-1]``.
+
+    ``j`` (lead, trail) is vmapped; ``loop`` vmaps or scans over ``i``. A
+    fixed-step solve steps over the whole ``lattice`` (static shapes), with
+    no-op steps up to ``t0[i]``, so it takes exactly the lattice steps from
+    ``t0[i]``. An adaptive one starts at ``t0[i]``. A failed solve gives NaN
+    for its particle only.
+    """
+    split = isinstance(solver.solver, gf.Leapfrog)
+    on_lattice = is_lattice(solver)
+
+    def one(w: Array, t: Array) -> Array:
+        if on_lattice:
+            tm = jax.tree.map(
+                lambda x: _FromRelease(x, t),
+                terms,
+                is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
+            )
+            ts = lattice
+        else:
+            tm, ts = terms, jnp.stack([t, lattice[-1]])
+        y = solve_on(solver, tm, (w[..., :3], w[..., 3:]) if split else w, ts)
+        return jnp.concat(y, axis=-1) if split else y
+
+    pair = jax.vmap(one, in_axes=(0, None))
+    if loop is lstrat.Scan:
+        w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0))
+        return w
+    return jax.vmap(pair)(w0, t0)
+
+
 @dispatch.abstract
 def _evolve(mode: Any, *args: Any) -> tuple[Array, Array, Array]:
     """Integrate the release states to ``t1``: ``(lead, trail, progenitor)``."""
@@ -251,9 +327,31 @@ def _evolve(
 
 
 @dispatch
-def _evolve(mode: PerParticle, *args: Any) -> tuple[Array, Array, Array]:
-    msg = f"per-particle mode with {type(mode.progenitor).__name__}"
-    raise NotImplementedError(msg)
+def _evolve(
+    mode: PerParticle,
+    sim: SpraySimulator,
+    pot: gp.AbstractPotential,
+    prog_pot: gp.AbstractPotential | None,
+    schedule: Uniform,
+    ws: Array,
+    lead0: Array,
+    trail0: Array,
+) -> tuple[Array, Array, Array]:
+    if not isinstance(mode.progenitor, Copies):
+        msg = f"per-particle mode with {type(mode.progenitor).__name__}"
+        raise NotImplementedError(msg)
+    idx = schedule.release_index()
+    lattice = schedule.lattice()
+    w0 = jnp.stack([lead0, trail0], axis=1)  # (n, 2, 6)
+    if prog_pot is None:  # no copy needed: the host alone
+        terms = host_terms(pot, sim.solver)
+    else:  # rows [particle, copy]
+        terms = _CopiesField(pot, prog_pot).terms(sim.solver)
+        w0 = jnp.stack([w0, jnp.broadcast_to(ws[idx, None], w0.shape)], axis=2)
+    w = evolve_per_particle(terms, sim.solver, w0, lattice[idx], lattice, mode.loop)
+    if prog_pot is not None:
+        w = w[:, :, 0]
+    return w[:, 0], w[:, 1], ws[-1]
 
 
 def to_mockstream(result: SprayResult, units: Any, /) -> MockStream:

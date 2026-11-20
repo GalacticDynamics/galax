@@ -427,14 +427,26 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
             = \frac{\Phi'(r)}{r} \delta_{ij}
             + \left(\Phi''(r) - \frac{\Phi'(r)}{r}\right) \frac{x_i x_j}{r^2}
 
-    with $\Phi'$ and $\Phi''$ from `dpotential_dr` and `d2potential_dr2`.
+    with $\Phi'(r)/r$ from `dpotential_dr` and, from `d2potential_dr2`,
+
+    .. math::
+
+        \Phi''(r) - \frac{\Phi'(r)}{r} = \frac{G M'(r)}{r^2} - 3 \frac{\Phi'(r)}{r}
+
+    Only $\Phi'/r$ reads $M(r)$. Had both coefficients read it, XLA on CPU would
+    fuse a copy of the incomplete beta series into each and evaluate it twice
+    per point (an `optimization_barrier` does not stop it: the CPU backend
+    removes barriers before fusion). Each division by $r$ is kept separate, as
+    in `shell_d2phi_dr2`, for float32 in SI units.
     """
     r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    # `dpotential_dr`, not `mass_enclosed` directly: its custom jvp keeps a
+    # derivative of this Hessian off autodiff of the series.
     radial = dpotential_dr(p, r) / r
-    d2phi_dr2 = d2potential_dr2(p, r)
+    coef_outer = p["G"] * dmass_dr(p, r) / r / r - 3 * radial
 
     rhat = xyz / r
     outer = rhat[..., :, None] * rhat[..., None, :]
     eye = jnp.eye(3, dtype=outer.dtype)
-    _result = radial[..., None] * eye + (d2phi_dr2 - radial)[..., None] * outer
+    _result = radial[..., None] * eye + coef_outer[..., None] * outer
     return _result  # type: ignore[no-any-return]

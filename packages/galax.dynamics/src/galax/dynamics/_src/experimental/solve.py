@@ -67,6 +67,7 @@ def _solve(
     step_ts: Array,
     release_ts: Array | None,
     saveat: dfx.SaveAt,
+    args: Any = None,
 ) -> Any:
     """Solve and return ``ys``; NaN for a failed solve instead of raising."""
     if is_lattice(solver):
@@ -96,6 +97,7 @@ def _solve(
         step_ts[0],
         step_ts[-1],
         y0=y0,
+        args=args,
         saveat=saveat,
         adjoint=solver.adjoint,
         throw=False,
@@ -112,14 +114,16 @@ def solve_on(
     step_ts: Array,
     *,
     release_ts: Array | None = None,
+    args: Any = None,
 ) -> Any:
     """Return the final state after solving along ``step_ts``.
 
     A fixed-step solver takes exactly the steps ``step_ts``. An adaptive one
     runs from ``step_ts[0]`` to ``step_ts[-1]``, clipped to land on
-    ``release_ts`` when given. A failed solve returns NaN, it never raises.
+    ``release_ts`` when given. ``args`` go to the terms. A failed solve returns
+    NaN, it never raises.
     """
-    ys = _solve(solver, terms, y0, step_ts, release_ts, dfx.SaveAt(t1=True))
+    ys = _solve(solver, terms, y0, step_ts, release_ts, dfx.SaveAt(t1=True), args)
     return jax.tree.map(lambda y: y[0], ys)
 
 

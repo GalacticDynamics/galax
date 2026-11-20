@@ -126,7 +126,7 @@ def test_from_system_matches_direct_construction() -> None:
         p=u.Q(Q4[2:], "km/s"),
         m=0.0,
         h=0.0,
-        massive=False,
+        kind="tracer",
     )
     sys = gn.System.from_components(tracers, stars, units="galactic")
     field = gn.NBodyField.from_system(sys, pot)

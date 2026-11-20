@@ -11,15 +11,14 @@ import unxt as u
 import galax.nbody as gn
 
 
-def _comp(name, n, *, massive=True, m=1.0, offset=0.0):
+def _comp(name, n, *, kind="massive", m=1.0, offset=0.0):
     q = jnp.arange(3.0 * n).reshape(n, 3) + offset
-    return gn.Component(
-        name=name, q=q, p=-q, m=m if massive else 0.0, h=0.1, massive=massive
-    )
+    m = m if kind == "massive" else 0.0
+    return gn.Component(name=name, q=q, p=-q, m=m, h=0.1, kind=kind)
 
 
 def test_from_components_sorts_massive_first_and_keeps_ids() -> None:
-    tracers = _comp("tracers", 3, massive=False)
+    tracers = _comp("tracers", 3, kind="tracer")
     stars = _comp("stars", 2, offset=100.0)
     sys = gn.System.from_components(tracers, stars, units="galactic")
 
@@ -27,14 +26,12 @@ def test_from_components_sorts_massive_first_and_keeps_ids() -> None:
     assert sys.slices == ((0, 2), (2, 5))
     assert sys.n_massive == 2
     np.testing.assert_array_equal(sys.particles.id, [3, 4, 0, 1, 2])
-    np.testing.assert_array_equal(sys.particles.species, [0, 0, 1, 1, 1])
     np.testing.assert_array_equal(sys.particles.q[:2], stars.q)
     np.testing.assert_array_equal(sys.particles.m, [1, 1, 0, 0, 0])
-    assert bool(jnp.all(sys.particles.active))
 
 
 def test_split_round_trips_by_name() -> None:
-    a, b = _comp("a", 2), _comp("b", 3, massive=False, offset=10.0)
+    a, b = _comp("a", 2), _comp("b", 3, kind="tracer", offset=10.0)
     sys = gn.System.from_components(a, b, units="galactic")
     parts = sys.split(sys.particles.q)
     np.testing.assert_array_equal(parts["a"], a.q)
@@ -75,8 +72,8 @@ def test_rejects_duplicate_names_and_bad_shapes() -> None:
         with pytest.raises(ValueError, match="negative"):
             gn.System.from_components(nan, units="galactic")
 
-    massless = gn.Component(name="x", q=q, p=q, m=1.0, h=0.0, massive=False)
-    with pytest.raises(ValueError, match="massless"):
+    massless = gn.Component(name="x", q=q, p=q, m=1.0, h=0.0, kind="tracer")
+    with pytest.raises(ValueError, match="is a tracer but has nonzero m"):
         gn.System.from_components(massless, units="galactic")
 
 
@@ -101,7 +98,7 @@ def test_quantities_converted_to_units() -> None:
 def test_system_serialises_round_trip(tmp_path) -> None:
     def build(scale):
         a = _comp("a", 2, m=scale)
-        b = _comp("b", 3, massive=False, offset=scale)
+        b = _comp("b", 3, kind="tracer", offset=scale)
         return gn.System.from_components(a, b, units="galactic")
 
     sys = build(3.0)
@@ -128,3 +125,20 @@ def test_rejects_zero_d_q_and_negative_h() -> None:
     neg_h = gn.Component(name="x", q=q, p=q, m=1.0, h=-0.1)
     with pytest.raises(ValueError, match="negative or non-finite h"):
         gn.System.from_components(neg_h, units="galactic")
+
+
+def test_component_kind_is_checked() -> None:
+    q = jnp.zeros((1, 3))
+    with pytest.raises(ValueError, match="kind must be one of"):
+        gn.Component(name="x", q=q, p=q, m=0.0, h=0.0, kind="virtual")
+
+
+def test_two_massive_species_keep_their_masses_and_softening() -> None:
+    """Dark matter and stars: both massive, each with its own m and h."""
+    q = jnp.arange(12.0).reshape(4, 3)
+    dm = gn.Component(name="dm", q=q[:3], p=q[:3], m=1.25e6, h=0.2)
+    stars = gn.Component(name="stars", q=q[3:], p=q[3:], m=5e4, h=0.05)
+    sys = gn.System.from_components(dm, stars, units="galactic")
+    assert sys.n_massive == 4
+    np.testing.assert_array_equal(sys.particles.m, [1.25e6] * 3 + [5e4])
+    np.testing.assert_array_equal(sys.particles.h, [0.2] * 3 + [0.05])

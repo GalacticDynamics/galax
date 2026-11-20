@@ -190,7 +190,6 @@ class NBodyField(AbstractOrbitField):
             u.Q(ps.m, us["mass"]),
             external_potential=external_potential,
             softening=u.Q(ps.h, us["length"]),
-            active=ps.active,
             n_massive=system.n_massive,
             backend=backend,
         )

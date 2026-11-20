@@ -2,8 +2,8 @@
 
 __all__ = ["Component", "Particles", "System"]
 
-from jaxtyping import Array, Bool, Float, Int, Real
-from typing import Any
+from jaxtyping import Array, Float, Int, Real
+from typing import Any, Literal
 
 import equinox as eqx
 import jax.numpy as jnp
@@ -16,6 +16,7 @@ from unxt.quantity import AllowValue
 from .checks import input_oks
 
 AnyReal = Real[Array, "..."] | Real[u.AbstractQuantity, "..."] | float
+_KINDS = ("massive", "tracer")
 
 
 class Component(eqx.Module):
@@ -23,8 +24,11 @@ class Component(eqx.Module):
 
     ``q`` and ``p`` are (N, 3) positions and velocities. ``m`` and ``h`` are
     masses and softening lengths, either scalars or (N,). Each may be an array
-    or a Quantity. A component with ``massive=False`` exerts no force, so its
-    ``m`` must be zero.
+    or a Quantity. ``kind`` says how the particles take part in the force sum:
+    ``"massive"`` particles exert and feel forces, and ``"tracer"`` particles
+    only feel them, so their ``m`` must be zero. Several massive components,
+    for example dark matter and stars, may each have their own masses and
+    softening.
     """
 
     name: str = eqx.field(static=True)
@@ -32,7 +36,12 @@ class Component(eqx.Module):
     p: AnyReal
     m: AnyReal
     h: AnyReal
-    massive: bool = eqx.field(default=True, static=True)
+    kind: Literal["massive", "tracer"] = eqx.field(default="massive", static=True)
+
+    def __check_init__(self) -> None:
+        if self.kind not in _KINDS:
+            msg = f"kind must be one of {_KINDS}, got {self.kind!r}"
+            raise ValueError(msg)
 
 
 class Particles(eqx.Module):
@@ -42,9 +51,7 @@ class Particles(eqx.Module):
     p: Float[Array, "N 3"]
     m: Float[Array, " N"]
     h: Float[Array, " N"]
-    species: Int[Array, " N"]
     id: Int[Array, " N"]
-    active: Bool[Array, " N"]
 
 
 class System(eqx.Module):
@@ -59,7 +66,7 @@ class System(eqx.Module):
     >>> import galax.nbody as gn
     >>> tracers = gn.Component(
     ...     name="tracers", q=jnp.ones((3, 3)), p=jnp.zeros((3, 3)),
-    ...     m=0.0, h=0.0, massive=False)
+    ...     m=0.0, h=0.0, kind="tracer")
     >>> stars = gn.Component(
     ...     name="stars", q=jnp.zeros((2, 3)), p=jnp.zeros((2, 3)), m=1e9, h=0.01)
     >>> system = gn.System.from_components(tracers, stars, units="galactic")
@@ -90,7 +97,7 @@ class System(eqx.Module):
     def from_components(cls, *components: Component, units: Any) -> "System":
         """Build a system from ``components``, converted to ``units``.
 
-        Massive components are stable-sorted before massless ones. ``id``
+        Massive components are stable-sorted before tracers. ``id``
         follows the input order. The checks run on concrete values, so call
         this outside ``jit``.
         """
@@ -112,7 +119,7 @@ class System(eqx.Module):
                 raise ValueError(msg)
             sizes.append(n)
         first_id = dict(zip(names, np.cumsum([0, *sizes[:-1]]).tolist(), strict=True))
-        order = sorted(components, key=lambda c: not c.massive)  # stable
+        order = sorted(components, key=lambda c: c.kind == "tracer")  # stable
         n_of = dict(zip(names, sizes, strict=True))
         ns = [n_of[c.name] for c in order]
 
@@ -125,20 +132,22 @@ class System(eqx.Module):
             )
 
         m, h = flat("m", "mass", ()), flat("h", "length", ())
-        species = np.repeat(np.arange(len(order)), ns)
-        n_massive = sum(n for c, n in zip(order, ns, strict=True) if c.massive)
+        which = np.repeat(np.arange(len(order)), ns)  # component of each row
+        n_massive = sum(
+            n for c, n in zip(order, ns, strict=True) if c.kind == "massive"
+        )
         m_ok, tracer_ok, h_ok = input_oks(m, h, n_massive)
         for ok, what in (
             (m_ok, "negative or non-finite mass"),
             (h_ok, "negative or non-finite h"),
         ):
             if not np.all(ok):
-                name = order[species[np.argmin(np.asarray(ok))]].name
+                name = order[which[np.argmin(np.asarray(ok))]].name
                 msg = f"component {name!r} has {what}"
                 raise ValueError(msg)
         if not np.all(tracer_ok):
-            name = order[species[n_massive + np.argmin(np.asarray(tracer_ok))]].name
-            msg = f"component {name!r} is massless but has nonzero m"
+            name = order[which[n_massive + np.argmin(np.asarray(tracer_ok))]].name
+            msg = f"component {name!r} is a tracer but has nonzero m"
             raise ValueError(msg)
         ends = np.cumsum(ns).tolist()
         particles = Particles(
@@ -146,14 +155,12 @@ class System(eqx.Module):
             p=flat("p", "speed", (3,)),
             m=m,
             h=h,
-            species=jnp.asarray(species),
             id=jnp.concat(
                 [
                     first_id[c.name] + jnp.arange(n)
                     for c, n in zip(order, ns, strict=True)
                 ]
             ),
-            active=jnp.ones(sum(ns), dtype=bool),
         )
         return cls(
             particles=particles,

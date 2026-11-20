@@ -35,8 +35,10 @@ def _pair_terms(
     other row: a zero cotangent times a NaN is still NaN.
 
     ponytail: a target at zero distance from a source with zero pair softening
-    still gives NaN gradients for the sources. Masking those pairs costs about
-    60% of the forward pass at N=4096; add it if exact coincidences matter.
+    still gives NaN gradients for the sources. That includes a particle placed
+    exactly on the far-away point `NBodyField` parks an inactive row or a bad
+    tracer at. Masking those pairs costs about 60% of the forward pass at
+    N=4096; add it if exact coincidences matter.
     """
     ok = jnp.all(jnp.isfinite(x_i))
     d = sources.q - jnp.where(ok, x_i, 0.0)

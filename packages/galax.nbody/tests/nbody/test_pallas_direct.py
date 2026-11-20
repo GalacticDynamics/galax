@@ -583,3 +583,122 @@ def test_hessian_lowers_for_tpu() -> None:
 
     exp = export.export(jax.jit(jax.hessian(loss)), platforms=["tpu"])
     assert "tpu_custom_call" in exp(s.q).mlir_module()
+
+
+# ---------------------------------------------------------------------------
+# Fused two-sided VJP (`pair_sum_ab_p`). Compiled on GPU it runs the atomic
+# kernel; elsewhere it lowers to the two pair sums, so these check its rules.
+
+
+def _fused_pair(*, interpret, fused, name="accelerations"):
+    b = backend(interpret, fused_grad=fused)
+    t = massive(23)[1]
+    return _fns(b, name, t)
+
+
+@pytest.mark.parametrize("name", ["accelerations", "potential"])
+def test_fused_grad_matches_unfused(interpret, name) -> None:
+    s, _ = massive(23)
+    args = (s.q, s.m, s.h)
+    (_, lf), (_, lu) = (
+        _fused_pair(interpret=interpret, fused=f, name=name) for f in (True, False)
+    )
+    _close(jax.grad(lf, (0, 1, 2))(*args), jax.grad(lu, (0, 1, 2))(*args))
+    _close(jax.hessian(lf, (0, 1, 2))(*args), jax.hessian(lu, (0, 1, 2))(*args), 1e-9)
+    rr = lambda f: jax.jacrev(jax.grad(f))(*args)  # transposes the fused op's JVP
+    _close(rr(lf), rr(lu), 1e-9)
+    vg = lambda f: jax.vmap(jax.grad(f), (0, None, None))(
+        jnp.stack([s.q, 1.1 * s.q]), s.m, s.h
+    )
+    _close(vg(lf), vg(lu))
+
+
+def test_fused_grad_policy() -> None:
+    s, _ = massive(9)
+    args = (s.q, s.m, s.h)
+
+    def used(fused, dtype):
+        _, loss = _fused_pair(interpret=True, fused=fused)
+        jpr = jax.make_jaxpr(jax.grad(loss))(*(x.astype(dtype) for x in args))
+        return "nbody_pair_sum_ab" in str(jpr)
+
+    assert used(None, jnp.float64)
+    assert not used(None, jnp.float32)
+    assert used(True, jnp.float32)  # noqa: FBT003
+    assert not used(False, jnp.float64)  # noqa: FBT003
+
+
+def test_fused_linear_transpose() -> None:
+    """The fused op is linear in the cotangent; transposing it uses its rule."""
+    s, t = massive(11)
+    f, _ = _fused_pair(interpret=True, fused=True)
+    _, vjp_f = jax.vjp(lambda q: f(q, s.m, s.h), s.q)
+    _, vjp_u = jax.vjp(
+        lambda q: _fused_pair(interpret=True, fused=False)[0](q, s.m, s.h), s.q
+    )
+    ct = jnp.ones_like(s.q)
+    tf = jax.linear_transpose(lambda c: vjp_f(c)[0], ct)
+    tu = jax.linear_transpose(lambda c: vjp_u(c)[0], ct)
+    _close(tf(s.q), tu(s.q))
+
+
+@pytest.mark.parametrize("n", [5, 37])
+def test_fused_kernel_matches_two_pass(n) -> None:
+    """The atomic kernel itself, in interpret mode (padding on both sides)."""
+    from galax.nbody._src.pallas_direct import (
+        _Base,
+        _Both,
+        _call_ab,
+        _Launch,
+        _Vjp,
+        pair_sum,
+    )
+
+    s, t = massive(n)
+    rng = np.random.default_rng(3)
+    a = (*s.q.T, s.h, t.self_index.astype(jnp.int32), jnp.ones(n, jnp.int32))
+    b = (*s.q.T, s.m, s.h)
+    ct = tuple(jnp.asarray(rng.normal(size=n)) for _ in range(3))
+    da, db = tuple(x.dtype for x in a), tuple(x.dtype for x in b)
+    f, wrt = _Base(NewtonianKernel(), potential=False), (0, 1, 2, 3)
+    lc = _Launch(16, 16, None, None, interpret=True)
+    kw = {"n_ct": 3, "dtypes_a": da, "dtypes_b": db}
+    row = lambda xs: [x[None] for x in xs]
+    got = _call_ab(
+        *row((*a, *ct, *b)), fn=_Both(f, wrt, wrt, **kw), n_a=len(a) + 3, lc=lc
+    )
+    want_a = pair_sum(_Vjp(f, "a", wrt, **kw), row((*a, *ct)), row(b), lc, n_lin_a=3)
+    want_b = pair_sum(_Vjp(f, "b", wrt, **kw), row(b), row((*a, *ct)), lc, n_lin_b=3)
+    _close(got, [*want_a, *want_b], 1e-12)
+
+
+def test_fused_lowers_for_gpu() -> None:
+    """The f64 gradient lowers to the fused Triton kernel; runs on CPU CI."""
+    from jax import export
+
+    from galax.nbody._src.pallas_direct import _Config, pallas_accelerations
+
+    cfg = _Config(
+        kernel=PlummerKernel(),
+        potential=False,
+        block_targets=16,
+        block_sources=64,
+        num_warps=4,
+        num_stages=None,
+        interpret=False,
+    )
+    s, t = massive(20)
+
+    def loss(q):
+        acc = pallas_accelerations(
+            Sources(q, s.m, s.h), Targets(q, s.h, t.self_index), G=G, cfg=cfg
+        )
+        return jnp.sum(jnp.sin(acc))
+
+    triton = "__gpu$xla.gpu.triton"
+    exp = export.export(
+        jax.jit(jax.grad(loss)),
+        platforms=["cuda"],
+        disabled_checks=[export.DisabledSafetyCheck.custom_call(triton)],
+    )(s.q)
+    assert "nbody_pair_sum_fused" in exp.mlir_module()

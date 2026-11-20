@@ -12,6 +12,10 @@ Autodiff stays inside the primitive, so all modes compose to any order:
   those of ``B`` sum over ``A``, with the two sides swapped.
 - vmap: a leading batch axis on every operand becomes a grid axis.
 
+When a transpose needs cotangents on both sides, `pair_sum_ab_p` can compute
+them in one kernel: ``A``'s summed in registers, ``B``'s added atomically
+(GPU only; ``_Launch.fused``). Elsewhere it lowers to the two pair sums.
+
 Padding, NaN targets and ``G`` are handled in plain JAX outside.
 
 Tested on NVIDIA GPUs (Ampere, Ada). TPU lowers but is untested on hardware.
@@ -79,6 +83,7 @@ class _Config(NamedTuple):
     interpret: bool
     precision: str | None = None
     compensated: bool = False
+    fused_grad: bool | None = None
 
 
 class _Launch(NamedTuple):
@@ -90,6 +95,7 @@ class _Launch(NamedTuple):
     num_stages: int | None
     interpret: bool
     compensated: bool = False
+    fused: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -214,6 +220,49 @@ class _Vjp:
         )
 
 
+@dataclasses.dataclass(frozen=True)
+class _Both:
+    """Per-pair cotangents of ``f``'s ``wrt_a`` and ``wrt_b`` operands, one VJP.
+
+    Operands as for ``_Vjp(side="a")``: ``(f_a kept + ct, f_b kept)``. Returns
+    the ``wrt_a`` cotangents, then the ``wrt_b`` ones, all per pair.
+    """
+
+    f: Any
+    wrt_a: tuple[int, ...]
+    wrt_b: tuple[int, ...]
+    n_ct: int
+    dtypes_a: tuple[Any, ...]
+    dtypes_b: tuple[Any, ...]
+    zero_a: tuple[int, ...] = ()
+    zero_b: tuple[int, ...] = ()
+
+    def __call__(self, a: _Arrs, b: _Arrs, ia: Array, jb: Array) -> _Arrs:
+        shape = jnp.broadcast_shapes(ia.shape, jb.shape)
+        ka, ct = a[: -self.n_ct], a[-self.n_ct :]
+        fa = _fill(ka, self.zero_a, self.dtypes_a, shape)
+        fb = _fill(b, self.zero_b, self.dtypes_b, shape)
+
+        def g(xa: _Arrs, xb: _Arrs) -> _Arrs:
+            for k, v in zip(self.wrt_a, xa, strict=True):
+                fa[k] = v
+            for k, v in zip(self.wrt_b, xb, strict=True):
+                fb[k] = v
+            out = self.f(tuple(fa), tuple(fb), ia, jb)
+            return tuple(jnp.broadcast_to(o, shape) for o in out)
+
+        xa = tuple(jnp.broadcast_to(fa[k], shape) for k in self.wrt_a)
+        xb = tuple(jnp.broadcast_to(fb[k], shape) for k in self.wrt_b)
+        out, vjp = jax.vjp(g, xa, xb)
+        ga, gb = vjp(
+            tuple(
+                jnp.broadcast_to(c, shape).astype(o.dtype)
+                for c, o in zip(ct, out, strict=True)
+            )
+        )
+        return (*ga, *gb)
+
+
 @ft.lru_cache(maxsize=512)
 def _out_dtypes(fn: Any, da: tuple[Any, ...], db: tuple[Any, ...]) -> tuple[Any, ...]:
     """Output dtypes of ``fn`` on operands of dtypes ``da``, ``db``."""
@@ -322,6 +371,90 @@ def _call(
     return [x[:, :na, 0] for x in out]
 
 
+def _kernel_ab(
+    *refs: Any, fn: _Both, n_a: int, n_b: int, na: int, nb: int, lc: _Launch
+) -> None:
+    """One VJP per pair: ``A``'s cotangents summed here, ``B``'s added atomically."""
+    from jax.experimental.pallas import triton as pltr
+
+    n_ga, n_gb = len(fn.wrt_a), len(fn.wrt_b)
+    a_refs, b_refs = refs[:n_a], refs[n_a : n_a + n_b]
+    out_a = refs[n_a + n_b + n_gb : n_a + n_b + n_gb + n_ga]  # after aliased zeros
+    out_b = refs[n_a + n_b + n_gb + n_ga :]
+    ba, bb = lc.block_a, lc.block_b
+    a = tuple(r[...] for r in a_refs)
+    ia = pl.program_id(1) * ba + jax.lax.broadcasted_iota(jnp.int32, (ba, 1), 0)
+    shape = (ba, bb)
+
+    def tile(j0: Array | int, acc: _Arrs, *, masked: bool) -> _Arrs:
+        b = tuple(r[:, pl.ds(j0, bb)] for r in b_refs)
+        jb = j0 + jax.lax.broadcasted_iota(jnp.int32, (1, bb), 1)
+        g = fn(a, b, ia, jb)
+        ok = ia < na
+        if masked:
+            ok = ok & (jb < nb)
+        ga, gb = (
+            tuple(
+                jnp.where(ok, jnp.broadcast_to(x, shape), jnp.zeros(shape, o.dtype))
+                for x, o in zip(xs, outs, strict=True)
+            )
+            for xs, outs in ((g[:n_ga], out_a), (g[n_ga:], out_b))
+        )
+        idx = (pl.ds(_i32(0), 1), pl.ds(jnp.asarray(j0, jnp.int32), bb))  # int32 (x64)
+        for o, x in zip(out_b, gb, strict=True):
+            pltr.atomic_add(o, idx, x.sum(0, keepdims=True))
+        return tuple(s + x for s, x in zip(acc, ga, strict=True))
+
+    acc = tuple(jnp.zeros(shape, o.dtype) for o in out_a)
+    n_full, rem = divmod(nb, bb)
+    acc = jax.lax.fori_loop(
+        _i32(0), _i32(n_full), lambda k, c: tile(k * bb, c, masked=False), acc
+    )
+    if rem:
+        acc = tile(n_full * bb, acc, masked=True)
+    for o, x in zip(out_a, acc, strict=True):
+        o[...] = jnp.sum(x, axis=1, keepdims=True)
+
+
+def _call_ab(
+    *ops: Array, fn: _Both, n_a: int, lc: _Launch, compiler_params: Any = None
+) -> list[Array]:
+    """Run `_kernel_ab`. Operands as for `_call`."""
+    a, b = ops[:n_a], ops[n_a:]
+    lead = max(x.shape[0] for x in ops)
+    na, nb = a[0].shape[1], b[0].shape[1]
+    na_p, nb_p = _pad_to(na, lc.block_a), _pad_to(nb, lc.block_b)
+    a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
+    b = tuple(jnp.pad(x, ((0, 0), (0, nb_p - nb)))[:, None, :] for x in b)
+
+    def col(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (0 if one else g, i, 0))
+
+    def row(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec((None, 1, nb_p), lambda g, _: (0 if one else g, 0, 0))
+
+    n_ga = len(fn.wrt_a)
+    dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
+    zeros = [jnp.zeros((lead, 1, nb_p), dt) for dt in dts[n_ga:]]
+    out_a = pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (g, i, 0))
+    n_in = len(a) + len(b)
+    out = pl.pallas_call(
+        ft.partial(_kernel_ab, fn=fn, n_a=n_a, n_b=len(b), na=na, nb=nb, lc=lc),
+        grid=(lead, na_p // lc.block_a),
+        in_specs=[col(x) for x in a] + [row(x) for x in (*b, *zeros)],
+        out_specs=[out_a] * n_ga + [row(z) for z in zeros],
+        out_shape=[_sds((lead, na_p, 1), dt) for dt in dts[:n_ga]]
+        + [_sds(z.shape, z.dtype) for z in zeros],
+        input_output_aliases={n_in + k: n_ga + k for k in range(len(zeros))},
+        compiler_params=compiler_params,
+        interpret=lc.interpret,
+        name="nbody_pair_sum_fused",
+    )(*a, *b, *zeros)
+    return [x[:, :na, 0] for x in out[:n_ga]] + [x[:, 0, :nb] for x in out[n_ga:]]
+
+
 # ---------------------------------------------------------------------------
 # Primitive
 
@@ -407,6 +540,16 @@ def _jvp(
     lc: _Launch,
 ) -> tuple[list[Array], list[Any]]:
     out = _bind(*primals, fn=fn, n_a=n_a, n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
+    t_out = _tangent(primals, tangents, fn=fn, n_a=n_a, lc=lc)
+    if t_out is None:
+        return out, [ad.Zero.from_primal_value(o) for o in out]
+    return out, t_out
+
+
+def _tangent(
+    primals: Sequence[Array], tangents: Sequence[Any], *, fn: Any, n_a: int, lc: _Launch
+) -> list[Array] | None:
+    """Tangent of ``pair_sum(fn, ...)``, or None if all ``tangents`` are zero."""
     nz = [
         type(t) is not ad.Zero and jnp.dtype(t.dtype) != jax.dtypes.float0
         for t in tangents
@@ -414,12 +557,12 @@ def _jvp(
     nz_a = tuple(k for k in range(n_a) if nz[k])
     nz_b = tuple(k - n_a for k in range(n_a, len(primals)) if nz[k])
     if not nz_a and not nz_b:
-        return out, [ad.Zero.from_primal_value(o) for o in out]
+        return None
     a, b = primals[:n_a], primals[n_a:]
     ta = [tangents[k] for k in nz_a]
     tb = [tangents[n_a + k] for k in nz_b]
     jfn = _Jvp(fn, n_a, len(b), nz_a, nz_b)
-    t_out = pair_sum(
+    return pair_sum(
         jfn,
         [*a, *ta],
         [*b, *tb],
@@ -427,7 +570,6 @@ def _jvp(
         n_lin_a=len(ta),
         n_lin_b=len(tb),
     )
-    return out, t_out
 
 
 def _transpose(
@@ -492,6 +634,21 @@ def _transpose(
                 target.dtype
             )
 
+    if wrt_a and wrt_b and lc.fused:
+        g = _bind_ab(
+            *fa,
+            *ct,
+            *fb,
+            fn=_Both(f, wrt_a, wrt_b, **common),
+            fn_a=_Vjp(f, "a", wrt_a, **common),
+            fn_b=_Vjp(f, "b", wrt_b, **common),
+            n_fa=len(fa),
+            n_ct=len(ct),
+            lc=lc,
+        )
+        put(und_a, 0, g[: len(wrt_a)])
+        put(und_b, n_a, g[len(wrt_a) :])
+        return res
     if wrt_a:
         g = pair_sum(_Vjp(f, "a", wrt_a, **common), [*fa, *ct], fb, lc, n_lin_a=len(ct))
         put(und_a, 0, g)
@@ -502,15 +659,18 @@ def _transpose(
 
 
 def _batch(
+    args: Sequence[Array], dims: Sequence[Any], **params: Any
+) -> tuple[list[Array], list[int]]:
+    return _batch_with(_bind, args, dims, params)
+
+
+def _batch_with(
+    bind: Callable[..., list[Array]],
     args: Sequence[Array],
     dims: Sequence[Any],
-    *,
-    fn: Any,
-    n_a: int,
-    n_lin_a: int,
-    n_lin_b: int,
-    lc: _Launch,
+    params: dict[str, Any],
 ) -> tuple[list[Array], list[int]]:
+    """Fold a batch axis into the leading (grid) axis of every operand."""
     size = next(x.shape[d] for x, d in zip(args, dims, strict=True) if d is not None)
     old = max(
         x.shape[0 if d is None or d != 0 else 1]
@@ -524,7 +684,7 @@ def _batch(
         y = jnp.moveaxis(x, d, 0) if d is not None else x[None]
         y = jnp.broadcast_to(y, (size, old, y.shape[2]))
         ops.append(y.reshape(size * old, y.shape[2]))
-    out = _bind(*ops, fn=fn, n_a=n_a, n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
+    out = bind(*ops, **params)
     return [o.reshape(size, old, o.shape[1]) for o in out], [0] * len(out)
 
 
@@ -536,6 +696,129 @@ for _plat in ("cuda", "rocm"):
 ad.primitive_jvps[pair_sum_p] = _jvp
 ad.primitive_transposes[pair_sum_p] = _transpose
 batching.primitive_batchers[pair_sum_p] = _batch  # type: ignore[assignment]
+
+
+# ``(*f_a, *ct, *f_b) -> (cotangents of wrt_a, cotangents of wrt_b)``: the
+# pair sums of ``fn_a`` and ``fn_b`` (two `_Vjp`s), fused on GPU via ``fn``.
+pair_sum_ab_p = Primitive("nbody_pair_sum_ab")
+pair_sum_ab_p.multiple_results = True
+
+
+def _bind_ab(*ops: Array, **params: Any) -> list[Array]:
+    return list(pair_sum_ab_p.bind(*ops, **params))  # type: ignore[no-untyped-call]
+
+
+def _ab_parts(
+    ops: Sequence[Any], *, n_fa: int, n_ct: int
+) -> tuple[tuple[Any, ...], tuple[Any, ...]]:
+    """``ops`` reordered as the operands of the two unfused pair sums."""
+    fa, ct, fb = ops[:n_fa], ops[n_fa : n_fa + n_ct], ops[n_fa + n_ct :]
+    return (*fa, *ct, *fb), (*fb, *fa, *ct)
+
+
+def _ab_two_pass(
+    *ops: Array, fn: _Both, fn_a: _Vjp, fn_b: _Vjp, n_fa: int, n_ct: int, lc: _Launch
+) -> list[Array]:
+    del fn
+    pa, pb = _ab_parts(ops, n_fa=n_fa, n_ct=n_ct)
+    nb = len(ops) - n_fa - n_ct
+    ga = _bind(*pa, fn=fn_a, n_a=n_fa + n_ct, n_lin_a=n_ct, n_lin_b=0, lc=lc)
+    gb = _bind(*pb, fn=fn_b, n_a=nb, n_lin_a=0, n_lin_b=n_ct, lc=lc)
+    return [*ga, *gb]
+
+
+def _ab_abstract_eval(*ops: Any, fn: _Both, n_fa: int, n_ct: int, **_: Any) -> Any:
+    n_a = n_fa + n_ct
+    a, b = ops[:n_a], ops[n_a:]
+    lead = max(x.shape[0] for x in ops)
+    dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
+    n_ga = len(fn.wrt_a)
+    return [
+        jax.core.ShapedArray((lead, (a if k < n_ga else b)[0].shape[1]), dt)
+        for k, dt in enumerate(dts)
+    ]
+
+
+@ft.lru_cache(maxsize=256)
+def _jitted_ab(**params: Any) -> Callable[..., Any]:
+    return jax.jit(ft.partial(_bind_ab, **params))
+
+
+def _ab_impl(*ops: Array, **params: Any) -> list[Array]:
+    out: list[Array] = _jitted_ab(**params)(*ops)
+    return out
+
+
+def _ab_lowering(*, gpu: bool) -> Callable[..., Any]:
+    def rule(ctx: Any, *ops: Any, **params: Any) -> Any:
+        lc = params["lc"]
+        if gpu and lc.fused and not lc.interpret:
+            f: Any = ft.partial(
+                _call_ab,
+                fn=params["fn"],
+                n_a=params["n_fa"] + params["n_ct"],
+                lc=lc,
+                compiler_params=_gpu_params(lc),
+            )
+        else:
+            f = ft.partial(_ab_two_pass, **params)
+        return mlir.lower_fun(f, multiple_results=True)(ctx, *ops)
+
+    return rule
+
+
+def _ab_jvp(
+    primals: Sequence[Array], tangents: Sequence[Any], **params: Any
+) -> tuple[list[Array], list[Any]]:
+    """Tangents via the two unfused pair sums (their transposes fuse again)."""
+    out = _bind_ab(*primals, **params)
+    n_fa, n_ct, lc = params["n_fa"], params["n_ct"], params["lc"]
+    n_ga = len(params["fn"].wrt_a)
+    parts = zip(
+        _ab_parts(primals, n_fa=n_fa, n_ct=n_ct),
+        _ab_parts(tangents, n_fa=n_fa, n_ct=n_ct),
+        (params["fn_a"], params["fn_b"]),
+        (n_fa + n_ct, len(primals) - n_fa - n_ct),
+        (out[:n_ga], out[n_ga:]),
+        strict=True,
+    )
+    t_out: list[Any] = []
+    for p, t, fn, n_a, o in parts:
+        t_part = _tangent(p, t, fn=fn, n_a=n_a, lc=lc)
+        t_out += [ad.Zero.from_primal_value(x) for x in o] if t_part is None else t_part
+    return out, t_out
+
+
+def _ab_transpose(cts: Sequence[Any], *ops: Any, **params: Any) -> list[Any]:
+    """Linear in ``ct`` only; transpose the two-pass form."""
+    und = [k for k, x in enumerate(ops) if _undef(x)]
+
+    def f(*xs: Array) -> list[Array]:
+        full = list(ops)
+        for k, x in zip(und, xs, strict=True):
+            full[k] = x
+        return _ab_two_pass(*full, **params)
+
+    avals = [_sds(ops[k].aval.shape, ops[k].aval.dtype) for k in und]
+    g = jax.linear_transpose(f, *avals)(
+        [ad.instantiate_zeros(c) for c in cts]  # type: ignore[no-untyped-call]
+    )
+    res: list[Any] = [None] * len(ops)
+    for k, v in zip(und, g, strict=True):
+        res[k] = v
+    return res
+
+
+pair_sum_ab_p.def_impl(_ab_impl)  # type: ignore[no-untyped-call]
+pair_sum_ab_p.def_abstract_eval(_ab_abstract_eval)  # type: ignore[no-untyped-call]
+mlir.register_lowering(pair_sum_ab_p, _ab_lowering(gpu=False))
+for _plat in ("cuda", "rocm"):
+    mlir.register_lowering(pair_sum_ab_p, _ab_lowering(gpu=True), platform=_plat)
+ad.primitive_jvps[pair_sum_ab_p] = _ab_jvp
+ad.primitive_transposes[pair_sum_ab_p] = _ab_transpose
+batching.primitive_batchers[pair_sum_ab_p] = lambda args, dims, **p: _batch_with(  # type: ignore[assignment]
+    _bind_ab, args, dims, p
+)
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +859,9 @@ def _run(sources: Sources, targets: Targets, cfg: _Config) -> tuple[Array, Array
         num_stages=cfg.num_stages,
         interpret=cfg.interpret,
         compensated=cfg.compensated,
+        fused=jnp.dtype(dtype) == jnp.float64
+        if cfg.fused_grad is None
+        else cfg.fused_grad,
     )
     out = pair_sum(
         _Base(cfg.kernel, cfg.potential), [x[None] for x in a], [x[None] for x in b], lc
@@ -613,6 +899,11 @@ class PallasDirectSum(AbstractForceBackend):
     ``compensated=True`` adds Kahan summation to the forward pass. On TPU,
     which has no float64, ``precision`` defaults to ``"float32"``.
 
+    ``fused_grad``: on GPU, compute reverse-mode cotangents of targets and
+    sources in one pass, adding the sources' atomically (~1.8x faster in
+    float64; their summation order, so the last bits, can vary between runs).
+    ``None`` (default) turns it on when the pair sum runs in float64.
+
     Untested: TPU hardware and AMD GPUs.
 
     Examples
@@ -637,6 +928,7 @@ class PallasDirectSum(AbstractForceBackend):
     fallback_chunk_size: int = eqx.field(default=1024, static=True)
     precision: str | None = eqx.field(default=None, static=True)
     compensated: bool = eqx.field(default=False, static=True)
+    fused_grad: bool | None = eqx.field(default=None, static=True)
 
     def _use_pallas(self) -> bool:
         return self.interpret or jax.default_backend() in ("gpu", "tpu")
@@ -654,6 +946,7 @@ class PallasDirectSum(AbstractForceBackend):
             interpret=self.interpret,
             precision=self.precision or ("float32" if tpu else None),
             compensated=self.compensated,
+            fused_grad=self.fused_grad,
         )
 
     def prepare(self, sources: Sources) -> Sources:

@@ -50,34 +50,66 @@ from galax.potential._src.utils import r_spherical, radial_derivatives
 
 @final
 class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""NFW Potential.
+    r"""NFW potential.
 
-    The NFW profile is one of the most commonly used model profiles for dark
-    matter halos.
+    The spherical density profile that Navarro, Frenk & White found to fit
+    haloes in cold dark matter simulations. The density falls as :math:`r^{-1}`
+    inside the scale radius ``r_s`` and as :math:`r^{-3}` outside it, so the
+    enclosed mass grows logarithmically without bound and the total mass is
+    infinite. The density diverges at the centre but the potential is finite
+    there. The parameter ``m`` is a mass scale, :math:`m = 4 \pi \rho_s r_s^3`
+    for the characteristic density :math:`\rho_s`, and it is not the total mass.
 
-    The density profile is given by:
+    With :math:`x = r / r_s` the density is
 
-    $$ \rho(r) = \frac{ \rho_0 }{\frac{r}{r_s} (1 + \frac{r}{r_s})^2} $$
+    .. math::
 
-    where :math:`\rho_0` is the central density and :math:`r_s` is the scale
-    radius. For similarity with the other potentials, we define the
-    characteristic mass
+        \rho(r) = \frac{\rho_s}{x (1 + x)^2},
+        \qquad \rho_s = \frac{m}{4 \pi r_s^3},
 
-    $$ m = 4 \pi \rho_0 r_s^3 $$
+    the enclosed mass is
 
-    Since the integrated mass of the NFW profile from 0 to :math:`r` is
+    .. math::
 
-    $$ M(<r) = \frac{m}{\ln(1 + x) - \frac{x}{1 + x}} $$ $$
+        M(<r) = m \left[ \ln(1 + x) - \frac{x}{1 + x} \right],
 
-    where $ x = r / r_s$ is the dimensionless radius.
+    and the potential, with :math:`\Phi(r) \to 0` as :math:`r \to \infty`, is
 
-    Solving Poisson's equation gives the gravitational potential
+    .. math::
 
-    $$ \Phi(r) = -\frac{G m}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s}) $$
+        \Phi(r) = -\frac{G m}{r_s} \frac{\ln(1 + x)}{x},
 
-    Which has the expected behavior of diverging at the center and going to zero
-    at infinity.
+    where :math:`G` is the gravitational constant. The potential is finite at
+    the centre, :math:`\Phi(0) = -G m / r_s`. The circular velocity is
+    :math:`v_c^2(r) = G M(<r) / r`, which peaks at :math:`x \approx 2.163` with
+    :math:`v_c^2 \approx 0.2162\, G m / r_s`, and the escape speed is
+    :math:`v_{\rm esc}(r) = \sqrt{-2 \Phi(r)}`.
 
+    Notes
+    -----
+    A halo of mass :math:`M_{200}` inside the radius :math:`r_{200}` that
+    encloses 200 times the critical density and has concentration
+    :math:`c = r_{200} / r_s` has :math:`r_s = r_{200} / c` and
+    :math:`m = M_{200} / [\ln(1 + c) - c / (1 + c)]`. The constructor
+    :meth:`~galax.potential.NFWPotential.from_M200_c` uses this relation.
+
+    The truncated variant is
+    :class:`~galax.potential.HardCutoffNFWPotential` and the family with a free
+    inner slope is :class:`~galax.potential.gNFWPotential`.
+
+    References
+    ----------
+    .. [NFW1996NFW] Navarro, J. F., Frenk, C. S., & White, S. D. M. (1996). The
+       Structure of Cold Dark Matter Halos. Astrophysical Journal 462, 563.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...462..563N>`__;
+       `doi:10.1086/177173 <https://doi.org/10.1086/177173>`__;
+       `arXiv:astro-ph/9508025 <https://arxiv.org/abs/astro-ph/9508025>`__.
+    .. [NFW1997NFW] Navarro, J. F., Frenk, C. S., & White, S. D. M. (1997). A
+       Universal Density Profile from Hierarchical Clustering. Astrophysical
+       Journal 490, 493.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1997ApJ...490..493N>`__;
+       `doi:10.1086/304888 <https://doi.org/10.1086/304888>`__;
+       `arXiv:astro-ph/9611107 <https://arxiv.org/abs/astro-ph/9611107>`__.
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -105,7 +137,8 @@ class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
         .. math::
 
-            \Phi(r) = -\frac{G M}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s})
+            \Phi(r) = -\frac{G m}{r_s} \frac{\ln(1 + x)}{x},
+            \qquad x = r / r_s
         """
         # Parse inputs
         r = r_spherical(xyz, self.units["length"])
@@ -119,9 +152,9 @@ class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
         .. math::
 
-            v_{h2} = -\frac{G M}{r_s}
-            \rho_0 = \frac{v_{h2}}{4 \pi G r_s^2}
-            \rho(r) = \frac{\rho_0}{u (1 + u)^2}
+            \rho(r) = \frac{\rho_s}{x (1 + x)^2},
+            \qquad \rho_s = \frac{m}{4 \pi r_s^3},
+            \qquad x = r / r_s
 
         """
         # Parse inputs
@@ -136,7 +169,8 @@ class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
         .. math::
 
-            M(<r) = \frac{m}{\ln(1 + x) - \frac{x}{1 + x}}
+            M(<r) = m \left[ \ln(1 + x) - \frac{x}{1 + x} \right],
+            \qquad x = r / r_s
 
         Examples
         --------
@@ -254,12 +288,16 @@ class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
 @ft.partial(jax.jit)
 def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
-    r"""Central density for the NFW model.
+    r"""Characteristic density for the NFW model.
 
-    The NFW profile is parametrized by a characteristic mass $m$ and a scale
-    radius $r_s$. The central density is given by
+    The NFW profile is parametrized by a characteristic mass :math:`m` and a
+    scale radius :math:`r_s`. The characteristic density :math:`\rho_s` that
+    multiplies :math:`1 / [x (1 + x)^2]` is (the density itself diverges at the
+    centre)
 
-    $$ \rho_0 = \frac{m}{4 \pi r_s^3}. $$
+    .. math::
+
+        \rho_s = \frac{m}{4 \pi r_s^3}.
 
     Examples
     --------
@@ -278,10 +316,14 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
 def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     r"""Characteristic mass for the NFW model.
 
-    The NFW profile is parametrized by a characteristic mass $m$ and a scale
-    radius $r_s$. The characteristic mass is given by
+    The NFW profile is parametrized by a characteristic mass :math:`m` and a
+    scale radius :math:`r_s`. The characteristic mass is given by
 
-    $$ m = 4 \pi \rho_0 r_s^3. $$
+    .. math::
+
+        m = 4 \pi \rho_s r_s^3,
+
+    where :math:`\rho_s` is the characteristic density (the ``"rho0"`` entry).
 
     Examples
     --------
@@ -302,13 +344,17 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
 def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Density profile for the NFW model.
 
-    $$ \rho(r) = \frac{ \rho_0 }{\frac{r}{r_s} (1 + \frac{r}{r_s})^2} $$
+    .. math::
 
-    where $\rho_0$ is the central density and $r_s$ is the scale radius. We
-    actually parametrize not with $\rho_0$ but by a characteristic mass $m$,
-    defined as
+        \rho(r) = \frac{\rho_s}{\frac{r}{r_s} (1 + \frac{r}{r_s})^2}
 
-    $$ m = 4 \pi \rho_0 r_s^3. $$
+    where :math:`\rho_s` is the characteristic density and :math:`r_s` is the
+    scale radius. The parameter is not :math:`\rho_s` but a characteristic mass
+    :math:`m`, defined as
+
+    .. math::
+
+        m = 4 \pi \rho_s r_s^3.
 
     """
     x = r / p["r_s"]
@@ -320,9 +366,11 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the NFW model.
 
-    $$ M(<r) = \frac{m}{\ln(1 + x) - \frac{x}{1 + x}} $$
+    .. math::
 
-    where $x = r / r_s$ is the dimensionless radius and $m$ is the
+        M(<r) = m \left[ \ln(1 + x) - \frac{x}{1 + x} \right]
+
+    where :math:`x = r / r_s` is the dimensionless radius and :math:`m` is the
     characteristic mass.
 
     """
@@ -341,8 +389,10 @@ def _log1p_minus_x_over_1px(x: gt.BBtSz0, /) -> gt.BBtSz0:
     every digit as $x \to 0$. With $w = x/(2+x)$, $\ln(1+x) = 2\,\text{atanh}\,w$
     and $x/(1+x) = 2w/(1+w)$, so
 
-    $$ \ln(1+x) - \frac{x}{1+x}
-       = 2 \sum_{k \geq 1} \frac{w^{2k+1}}{2k+1} + \frac{2w^2}{1+w}, $$
+    .. math::
+
+        \ln(1+x) - \frac{x}{1+x}
+        = 2 \sum_{k \geq 1} \frac{w^{2k+1}}{2k+1} + \frac{2w^2}{1+w},
 
     every term positive. Up to $x = 1$ ($w \leq 1/3$) 18 terms reach
     $9^{-18} \approx 10^{-17}$; beyond, the direct difference cancels by at
@@ -368,9 +418,12 @@ def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the NFW model.
 
-    $$ \Phi(r) = -\frac{G m}{r_s} \frac{r_s}{r} \log(1 + \frac{r}{r_s}) $$
+    .. math::
 
-    where $m$ is the characteristic mass and $r_s$ is the scale radius.
+        \Phi(r) = -\frac{G m}{r_s} \frac{r_s}{r} \ln\left(1 + \frac{r}{r_s}\right)
+
+    where :math:`m` is the characteristic mass and :math:`r_s` is the scale
+    radius. It vanishes at infinity and equals :math:`-G m / r_s` at the centre.
 
     """
     r_s = p["r_s"]

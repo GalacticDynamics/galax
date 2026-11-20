@@ -36,7 +36,7 @@ repos:
         # Test-support modules (optional-dependency probes, the agama
         # comparison helper, the action-angle and variational test helpers), not
         # test files.
-        exclude: ^packages/galax\.(potential/tests/unit/potential/optional_deps|potential/tests/integration/agama/_compare|dynamics/tests/dynamics/(optional_deps|_variational_helpers)|actionangle/tests/actionangle/(optional_deps|_helpers))\.py$
+        exclude: ^packages/galax\.(potential/tests/unit/potential/optional_deps|potential/tests/integration/agama/_compare|dynamics/tests/dynamics/(optional_deps|_variational_helpers)|actionangle/tests/actionangle/(optional_deps|_helpers|_o2gf_ref))\.py$
       - id: no-commit-to-branch
         args: ["--branch", "main", "--pattern", "^versions/.*"]
         always_run: true

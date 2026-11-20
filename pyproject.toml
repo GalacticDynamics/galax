@@ -220,7 +220,7 @@ ignore = ["W007", "W008"]
 
 
 [tool.codespell]
-ignore-words-list = "Hart,numer" # Hart: dynamics/_src/cluster/relax_time.py; numer: numerator abbreviation
+ignore-words-list = "Hart,numer,Teated" # Hart: dynamics/_src/cluster/relax_time.py; numer: numerator abbreviation; Teated: journal name in the Kuzmin 1953 reference (potential/_src/builtin/kuzmin.py)
 
 
 [tool.commitizen]

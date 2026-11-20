@@ -53,61 +53,75 @@ from galax.potential._src.utils import r_spherical
 
 @final
 class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Sharply Truncated NFW Potential.
+    r"""Sharply truncated NFW potential.
 
-    Unlike a standard NFW potential this potential is sharply truncated at a
-    specified radius, meaning it has a finite mass.
+    The NFW density profile cut to zero outside the truncation radius ``r_t``.
+    Inside ``r_t`` the density is that of the NFW profile, with an
+    :math:`r^{-1}` cusp at the centre. Outside it the density is zero, so the
+    mass is finite and the potential is that of a point mass. The parameter
+    ``m`` is the characteristic mass of the untruncated NFW profile, and the
+    total mass of this potential is smaller than ``m`` when
+    :math:`r_t < \infty`.
 
-    Terms:
+    With :math:`x = r / r_s`, :math:`x_t = r_t / r_s` and
+    :math:`A(x) = \ln(1 + x) - x / (1 + x)`, the density is
 
-    - $r$ is the radial coordinate
-    - $r_s$ is the scale radius
-    - $r_t$ is the truncation radius
-    - $m$ is the characteristic mass of the potential
+    .. math::
 
-    The density profile is given by
+        \rho(r) = \begin{cases}
+            \dfrac{m}{4 \pi r_s^3} \dfrac{1}{x (1 + x)^2}, & r \le r_t, \\
+            0, & r > r_t,
+        \end{cases}
 
-    $$
-    \rho(r) = \begin{cases}
-        \rho_{NFW}(r) & r \le r_{t}, \\
-        0,            & r > r_{t},
-    \end{cases}
-    $$
+    the enclosed mass is
 
-    where $\rho_{NFW}(r)$ is the NFW density profile. Solving for the mass
-    enclosed within a radius, the mass profile is trivially related to the
-    non-truncated NFW mass profile:
+    .. math::
 
-    $$
-    M(<r)= \begin{cases}
-        M_{NFW}(<r),   & \text{if } r \le r_t, \\
-        M_{NFW}(<r_t), & \text{if } r > r_t
-    \end{cases}
-    $$
+        M(<r) = \begin{cases}
+            m A(x), & r \le r_t, \\
+            m A(x_t), & r > r_t,
+        \end{cases}
 
-    Within the truncation radius the potential is almost the same as the NFW
-    potential, but with a constant offset. Outside the truncation radius the
-    potential is given by the Kepler potential, which is a point mass potential
-    with the mass given by the NFW mass enclosed within the truncation radius.
-    The constant offset ensures continuity of the potential at the truncation
-    radius.
+    so that the total mass is :math:`M_{\rm tot} = m A(x_t)`, and the potential,
+    with :math:`\Phi(r) \to 0` as :math:`r \to \infty`, is
 
-    $$
-    \Phi(r) = \begin{cases}
-        \Phi_{NFW}(r) + \frac{G m}{r_s + r_t}, & r \le r_t, \\
-        -\frac{G M_{NFW}(<r_t)}{r},            & r > r_t,
-    \end{cases}
-    $$
+    .. math::
 
-    Note that the potential is continuous at the truncation radius, but its
-    derivative is not. This is a consequence of the fact that the density is
-    sharply truncated at the truncation radius.
+        \Phi(r) = \begin{cases}
+            -\dfrac{G m}{r_s} \dfrac{\ln(1 + x)}{x} + \dfrac{G m}{r_s + r_t},
+                & r \le r_t, \\
+            -\dfrac{G M_{\rm tot}}{r}, & r > r_t,
+        \end{cases}
 
+    where :math:`G` is the gravitational constant. The central potential is
+    :math:`\Phi(0) = -G m / r_s + G m / (r_s + r_t)`, and the circular velocity
+    is :math:`v_c^2(r) = G M(<r) / r`.
+
+    Notes
+    -----
+    Inside :math:`r_t` the potential is the NFW potential of
+    :class:`~galax.potential.NFWPotential` plus the constant
+    :math:`G m / (r_s + r_t)`, which makes :math:`\Phi` continuous at
+    :math:`r_t`. The gradient :math:`G M(<r) / r^2` is also continuous at
+    :math:`r_t`, because :math:`M(<r)` is continuous. The density and the second
+    derivative of the potential jump at :math:`r_t`.
+
+    The truncation is a modelling choice and not a result of a particular
+    paper. The profile inside :math:`r_t` is the NFW profile.
+
+    References
+    ----------
+    .. [NFW1996HardCutoff] Navarro, J. F., Frenk, C. S., & White, S. D. M. (1996). The
+       Structure of Cold Dark Matter Halos. Astrophysical Journal 462, 563.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...462..563N>`__;
+       `doi:10.1086/177173 <https://doi.org/10.1086/177173>`__;
+       `arXiv:astro-ph/9508025 <https://arxiv.org/abs/astro-ph/9508025>`__.
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass",
-        doc=r"""Total mass.""",
+        doc=r"""Characteristic mass of the untruncated NFW profile. This is NOT the
+        total mass, which is smaller.""",
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
     r_t: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -128,16 +142,16 @@ class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     def _mass_enclosed(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Mass enclosed within a radius.
 
-        $$
-        M(<r)= \begin{cases}
-            M_{NFW}(<r),   & \text{if } r \le r_t, \\
-            M_{NFW}(<r_t), & \text{if } r > r_t
-        \end{cases}
-        $$
+        .. math::
 
-        where $x = r / r_s$ is the dimensionless radius, $x_{\max} = r_{\max} /
-        r_s$ and the other parameters are defined on this class as the
-        parameters of this potential.
+            M(<r)= \begin{cases}
+                M_{NFW}(<r),   & \text{if } r \le r_t, \\
+                M_{NFW}(<r_t), & \text{if } r > r_t
+            \end{cases}
+
+        where :math:`M_{NFW}(<r) = m [\ln(1 + x) - x / (1 + x)]` with
+        :math:`x = r / r_s`, and the other parameters are defined on this class
+        as the parameters of this potential.
 
         Examples
         --------
@@ -189,16 +203,17 @@ class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BtFloatSz0:
         r"""Density.
 
-        $$
-        \rho(r) = \begin{cases}
-            \rho_{NFW}(r) & r \le r_{t}, \\
-            0,            & r > r_{t},
-        \end{cases}
-        $$
+        .. math::
 
-        where $\rho_0$ is the central density and $u = r / r_s$ is the
-        dimensionless radius. We actually parametrize not with $\rho_0$ but by a
-        characteristic mass $m$, defined as $m = 4\pi\rho_0 r_s^3$.
+            \rho(r) = \begin{cases}
+                \rho_{NFW}(r) & r \le r_{t}, \\
+                0,            & r > r_{t},
+            \end{cases}
+
+        where :math:`\rho_{NFW}(r) = \rho_s / [x (1 + x)^2]` with
+        :math:`x = r / r_s` and :math:`\rho_s` is the characteristic density.
+        The parameter is not :math:`\rho_s` but a characteristic mass :math:`m`,
+        defined as :math:`m = 4\pi\rho_s r_s^3`.
 
         Examples
         --------
@@ -244,16 +259,16 @@ class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Density profile for the truncated NFW model.
 
-    $$
-    \rho(<r)=
-        \begin{cases}
-            \rho_{NFW}(r) & r \le r_{t}, \\
-            0,            & r > r_{t},
-        \end{cases}
-    $$
+    .. math::
 
-    where $\rho_{NFW}(r)$ is the NFW density profile and $r_{t}$ is the
-    truncation radius beyond which the density is zero.
+        \rho(r) =
+            \begin{cases}
+                \rho_{NFW}(r) & r \le r_{t}, \\
+                0,            & r > r_{t},
+            \end{cases}
+
+    where :math:`\rho_{NFW}(r)` is the NFW density profile and :math:`r_{t}` is
+    the truncation radius beyond which the density is zero.
 
     """
     return jax.lax.select(r <= p["r_t"], nfw_density(p, r), jnp.zeros_like(r))
@@ -263,23 +278,26 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Mass enclosed within a radius.
 
-    $$
-    M(<r)= \begin{cases}
-        M_{NFW}(<r), & \text{if } r \le r_t, \\
-        M_{NFW}(<r_t), & \text{if } r > r_t,
-    \end{cases}
-    $$
+    .. math::
 
-    where $M_{NFW}(<r)$ is the NFW mass profile and $r_t$ is the truncation
-    radius beyond which the mass is constant.
-    $M_{NFW}(<r)$ is given by:
+        M(<r)= \begin{cases}
+            M_{NFW}(<r), & \text{if } r \le r_t, \\
+            M_{NFW}(<r_t), & \text{if } r > r_t,
+        \end{cases}
 
-    $$ M_{NFW}(<r) = m (\ln(1+x) - \frac{x}{1+x}) $$
+    where :math:`M_{NFW}(<r)` is the NFW mass profile and :math:`r_t` is the
+    truncation radius beyond which the mass is constant.
+    :math:`M_{NFW}(<r)` is given by:
 
-    where $x = r / r_s$ is the dimensionless radius, $r_s$ is the scale radius
-    and $m = 4\pi\rho_0 r_s^3$ is the scale mass of the NFW profile.
+    .. math::
 
-    For more details see the NFW ``mass_enclosed`` method.
+        M_{NFW}(<r) = m \left[\ln(1+x) - \frac{x}{1+x}\right]
+
+    where :math:`x = r / r_s` is the dimensionless radius, :math:`r_s` is the
+    scale radius and :math:`m = 4\pi\rho_s r_s^3` is the scale mass of the
+    NFW profile.
+
+    For more details see the NFW ``mass_enclosed`` function.
 
     """
     r_t = p["r_t"]
@@ -294,7 +312,9 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def _inner_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""NFW potential within the truncation.
 
-    $$ \Phi(r) = \Phi_{NFW}(r) + \frac{Gm}{r_s + r_t} $$
+    .. math::
+
+        \Phi(r) = \Phi_{NFW}(r) + \frac{Gm}{r_s + r_t}
 
     """
     nfw = nfw_potential(p, r)
@@ -306,11 +326,13 @@ def _inner_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Map to Kepler potential.
 
-    $$ \Phi(r) = -\frac{G M_{tot}}{r} $$
+    .. math::
 
-    where $M_{tot}$ is the total mass of the potential and $r$ is the distance
-    from the center of the potential. The total mass is given by the NFW mass
-    enclosed within the truncation radius $r_t$.
+        \Phi(r) = -\frac{G M_{tot}}{r}
+
+    where :math:`M_{tot}` is the total mass of the potential and :math:`r` is
+    the distance from the center of the potential. The total mass is given by
+    the NFW mass enclosed within the truncation radius :math:`r_t`.
     """
     m_tot = nfw_mass_enclosed(p, p["r_t"])
     return kepler.point_mass_potential(p["G"], m_tot, r)  # type: ignore[no-any-return]
@@ -320,21 +342,22 @@ def _outer_potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Specific potential energy.
 
-    $$
-    \Phi(r) = \begin{cases}
-        \Phi_{NFW}(r) + \frac{G m}{r_s + r_t}, & r \le r_t, \\
-        -\frac{G M_{NFW}(<r_t)}{r}, & r > r_t,
-    \end{cases}
-    $$
+    .. math::
+
+        \Phi(r) = \begin{cases}
+            \Phi_{NFW}(r) + \frac{G m}{r_s + r_t}, & r \le r_t, \\
+            -\frac{G M_{NFW}(<r_t)}{r}, & r > r_t,
+        \end{cases}
 
     where
 
-    - $ \Phi_{NFW}(r) $ is the NFW potential
-    - $ G, m, r_s $ are the parameters of the NFW potential
-    - $ r_t $ is the truncation radius
-    - $ M_{NFW}(<r_t) $ is the enclosed mass of the NFW potential, given by $
-      M_{NFW}(<r_t) = m (\ln(1+x_t) - \frac{x_t}{1+x_t}) $ for $x_t = r_t /
-      r_s$
+    - :math:`\Phi_{NFW}(r) = -(G m / r_s) \ln(1 + x) / x` is the NFW potential
+      for :math:`x = r / r_s`
+    - :math:`G, m, r_s` are the parameters of the NFW potential
+    - :math:`r_t` is the truncation radius
+    - :math:`M_{NFW}(<r_t)` is the enclosed mass of the NFW potential, given by
+      :math:`M_{NFW}(<r_t) = m [\ln(1+x_t) - x_t / (1+x_t)]` for
+      :math:`x_t = r_t / r_s`
 
     """
     _result = jnp.where(r <= p["r_t"], _inner_potential(p, r), _outer_potential(p, r))

@@ -147,25 +147,83 @@ def gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
 
 @final
 class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""A spherical power-law density profile with an exponential cutoff.
+    r"""Power-law density profile with an exponential cutoff.
 
-    This model (matching Gala's ``PowerLawCutoffPotential``) is *defined* by
-    the density below, with the potential obtained by directly integrating
-    Poisson's equation; it is not tied to a specific named paper.
+    A spherical density that falls as :math:`r^{-\alpha}` at small radii and is
+    cut off by a Gaussian factor beyond the cutoff radius ``r_c``. The mass is
+    finite and equal to the parameter ``m_tot``. For :math:`\alpha < 3` the
+    enclosed mass converges at the centre, and the central density is finite
+    only for :math:`\alpha = 0`. The form is used for the bulge of the Milky Way
+    model ``MWPotential2014`` in galpy. The model is defined by the density
+    below, and the potential follows from Poisson's equation.
+
+    With :math:`s = r / r_c` and :math:`a = (3 - \alpha) / 2` the density is
 
     .. math::
 
-        \rho(r) = \frac{M}{2\pi \Gamma((3-\alpha)/2) r_c^3}
-            \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
+        \rho(r) = \frac{m_{\mathrm{tot}}}{2 \pi \Gamma(a) r_c^3}
+            \left(\frac{r_c}{r}\right)^{\alpha} e^{-s^2},
+
+    the enclosed mass is
+
+    .. math::
+
+        M(<r) = m_{\mathrm{tot}}\, P(a, s^2),
+
+    and the potential, with :math:`\Phi(r) \to 0` as :math:`r \to \infty`, is
+
+    .. math::
+
+        \Phi(r) = -\frac{G\, M(<r)}{r}
+            - \frac{G\, m_{\mathrm{tot}}}{r_c}
+              \frac{\Gamma(1 - \alpha/2,\, s^2)}{\Gamma(a)},
+
+    where :math:`G` is the gravitational constant, :math:`\Gamma(z)` is the
+    gamma function, :math:`P(a, x) = \gamma(a, x) / \Gamma(a)` is the
+    regularized lower incomplete gamma function and
+    :math:`\Gamma(z, x) = \int_x^\infty t^{z-1} e^{-t}\, dt` is the upper
+    incomplete gamma function. The total mass is :math:`M(<\infty) =
+    m_{\mathrm{tot}}`, the circular velocity is :math:`v_c^2(r) = G M(<r) / r`,
+    and for :math:`\alpha < 2` the central potential is finite,
+
+    .. math::
+
+        \Phi(0) = -\frac{G\, m_{\mathrm{tot}}}{r_c}
+            \frac{\Gamma(1 - \alpha/2)}{\Gamma(a)}.
 
     Parameters
     ----------
-    m_tot : :class:`~unxt.Quantity`[mass]
+    m_tot : :class:`~unxt.Quantity`\ [mass]
         Total mass.
-    alpha : :class:`~unxt.Quantity`[dimensionless]
+    alpha : :class:`~unxt.Quantity`\ [dimensionless]
         Power law index. Must satisfy: ``0 <= alpha < 3``.
-    r_c : :class:`~unxt.Quantity`[length]
+    r_c : :class:`~unxt.Quantity`\ [length]
         Cutoff radius.
+
+    Notes
+    -----
+    The potential function is evaluated with the lower incomplete gamma
+    function of order :math:`1 - \alpha/2`, and it returns NaN for
+    :math:`\alpha \ge 2`. The density and the enclosed mass are valid for
+    :math:`0 \le \alpha < 3`.
+
+    The parameters (total mass, power-law index, cutoff radius) are those of
+    Gala's ``PowerLawCutoffPotential``. The functional form
+    :math:`\rho \propto r^{-\alpha} \exp[-(r / r_c)^2]` is the one of galpy's
+    ``PowerSphericalPotentialwCutoff``.
+
+    References
+    ----------
+    .. [Bovy2015PowerLawCutoff] Bovy, J. (2015). galpy: A Python Library for
+       Galactic Dynamics. Astrophysical Journal Supplement Series 216, 29.
+       `ADS <https://ui.adsabs.harvard.edu/abs/2015ApJS..216...29B>`__;
+       `doi:10.1088/0067-0049/216/2/29 <https://doi.org/10.1088/0067-0049/216/2/29>`__;
+       `arXiv:1412.3451 <https://arxiv.org/abs/1412.3451>`__.
+    .. [PriceWhelan2017PowerLawCutoff] Price-Whelan, A. M. (2017). Gala: A
+       Python package for galactic dynamics. Journal of Open Source Software
+       2(18), 388.
+       `ADS <https://ui.adsabs.harvard.edu/abs/2017JOSS....2..388P>`__;
+       `doi:10.21105/joss.00388 <https://doi.org/10.21105/joss.00388>`__.
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
@@ -211,10 +269,12 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
 
 @ft.partial(jax.jit)
 def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""$M(<r) = M P((3-\alpha)/2, (r/r_c)^2)$, $P$ the regularized lower gamma.
+    r"""Enclosed mass, :math:`M(<r) = m_{\rm tot} P((3-\alpha)/2, (r/r_c)^2)`.
 
-    For $x = (r/r_c)^2 \leq 1$ by $P(a, x) = x^a/\Gamma(a) \sum_k
-    (-x)^k/(k!(a+k))$ (20 terms reach $1/20! \approx 10^{-19}$):
+    :math:`P` is the regularized lower incomplete gamma function.
+
+    For :math:`x = (r/r_c)^2 \leq 1` by :math:`P(a, x) = x^a/\Gamma(a) \sum_k
+    (-x)^k/(k!(a+k))` (20 terms reach :math:`1/20! \approx 10^{-19}`):
     `jax.scipy.special.gammainc` forms $x^a e^{-x}$ as $\exp(a\ln x - x)$, which
     multiplies the rounding of $a \ln x$ by $|a \ln x|$, ~20 ulp at $x = 10^{-16}$.
     """
@@ -246,16 +306,27 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential for the power-law cutoff density profile, with $\Phi(\infty) = 0$.
 
-    The outer shell is $4\pi\int_r^\infty \rho s\,ds = M\,\Gamma(b, x) /
-    (r_c\,\Gamma(a))$, with $a = (3-\alpha)/2$, $b = a - 1/2$ and
-    $x = (r/r_c)^2$, so
+    With :math:`s = r / r_c`, :math:`a = (3 - \alpha)/2`, :math:`b = a - 1/2`
+    and :math:`x = s^2`, the potential is the sum of the enclosed-mass term and
+    the outer shell,
 
-    $$ \Phi = -\frac{G M(<r)}{r} - \frac{G M}{r_c\,\Gamma(a)}\Gamma(b, x). $$
+    .. math::
 
-    Both terms are positive, so there is no cancellation. $b \le 0$ for
-    $\alpha \ge 2$, where Gala's form, $\gamma(b, x) - \Gamma(b)$, has
-    $\Gamma(b) = \pm\infty$ or NaN: see `gamma_upper`, which is good through
-    $b = 0$ ($\alpha = 2$, where $\Gamma(0, x) = E_1(x)$).
+        \Phi(r) = -\frac{G M(<r)}{r}
+            - \frac{G m_{\mathrm{tot}}}{r_c}
+              \frac{\Gamma(b,\, x)}{\Gamma(a)}
+
+    where :math:`M(<r) = m_{\mathrm{tot}} P(a, x)`, :math:`P` is the
+    regularized lower incomplete gamma function and :math:`\Gamma(b, x)` the
+    upper one. The outer shell is :math:`4\pi G \int_r^\infty \rho\, s\, ds`.
+    Both terms are negative, so they do not cancel.
+
+    The older form, :math:`\gamma(b, x) - \Gamma(b)` as in Gala, has
+    :math:`\Gamma(b) = \pm\infty` or NaN once :math:`b \le 0`, that is for
+    :math:`\alpha \ge 2`. ``gamma_upper`` evaluates :math:`\Gamma(b, x)`
+    directly and is good through :math:`b = 0` (:math:`\alpha = 2`, where
+    :math:`\Gamma(0, x) = E_1(x)`), so the potential is finite for the whole
+    range :math:`0 \le \alpha < 3`.
     """
     a = 1.5 - p["alpha"] / 2
     x = (r / p["r_c"]) ** 2
@@ -267,10 +338,13 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Density for the power-law cutoff profile that defines this model.
 
-    $$
-    \rho(r) = \frac{M}{2\pi \Gamma((3-\alpha)/2) r_c^3}
-        \left(\frac{r_c}{r}\right)^\alpha \exp{-(r / r_c)^2}
-    $$
+    .. math::
+
+        \rho(r) = \frac{m_{\mathrm{tot}}}{2\pi \Gamma((3-\alpha)/2) r_c^3}
+            \left(\frac{r_c}{r}\right)^\alpha \exp\left[-(r / r_c)^2\right]
+
+    where :math:`m_{\mathrm{tot}}` is the total mass, :math:`\alpha` is the
+    power-law index and :math:`r_c` is the cutoff radius.
 
     """
     alpha, r_c, m_tot = p["alpha"], p["r_c"], p["m_tot"]

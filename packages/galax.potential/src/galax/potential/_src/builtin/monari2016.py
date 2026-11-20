@@ -3,9 +3,12 @@
 __all__ = [
     # class
     "MonariEtAl2016BarPotential",
-    # function
-    "potential",
+    # functions
     "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
 ]
 
 import functools as ft
@@ -25,6 +28,11 @@ from galax.potential._src.base_single import (
     LaplacianFromDensityMixin,
 )
 from galax.potential._src.jax import vectorize_method
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
@@ -185,3 +193,9 @@ def density(p: gt.Params, xyz: gt.Sz3, t: gt.Sz0, /) -> gt.Sz0:
 
     lap_ang = prefactor * L_of_r(r, p["Rb"]) * (R2 / r2) * jnp.cos(gamma_b)
     return lap_ang / (4 * jnp.pi * p["G"])  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

@@ -1,11 +1,15 @@
 """Disk-like potentials."""
 
-__all__ = (
+__all__ = [
     # class
     "KuzminPotential",
     # functions
+    "density",
+    "gradient",
+    "hessian",
+    "laplacian",
     "potential",
-)
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -25,6 +29,11 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -82,11 +91,13 @@ class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
         return potential(params, xyz)  # type: ignore[no-any-return]
 
     @ft.partial(jax.jit, inline=True)
-    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        # Razor-thin disk: zero volume density off the z=0 plane (all mass
-        # is in the surface density there, which can't be represented as a
-        # finite volume density).
-        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
+
+        # Compute
+        params = self.params(t)
+        return density(params, xyz)  # type: ignore[no-any-return]
 
 
 # ====================================================================
@@ -104,3 +115,20 @@ def potential(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:
     z = xyz[..., 2]
     _result = -p["G"] * p["m_tot"] / jnp.sqrt(R2 + (jnp.abs(z) + p["r_s"]) ** 2)
     return _result  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:  # noqa: ARG001
+    r"""Density for the Kuzmin potential: exactly zero.
+
+    Razor-thin disk: zero volume density off the z=0 plane (all mass is in the
+    surface density there, which can't be represented as a finite volume
+    density).
+    """
+    return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

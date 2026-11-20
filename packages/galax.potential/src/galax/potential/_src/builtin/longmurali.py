@@ -3,9 +3,12 @@
 __all__ = [
     # class
     "LongMuraliBarPotential",
-    # function
-    "potential",
+    # functions
     "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
 ]
 
 import functools as ft
@@ -22,6 +25,11 @@ import galax.potential.custom_types as gt
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -276,3 +284,9 @@ def density(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
         / a
     )
     return lap / (4 * jnp.pi * G)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

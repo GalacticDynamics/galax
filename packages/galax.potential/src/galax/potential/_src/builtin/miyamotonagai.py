@@ -1,10 +1,15 @@
 """Miyamoto-Nagai Potential."""
 
-__all__ = (
+__all__ = [
     # class
     "MiyamotoNagaiPotential",
     # functions
-)
+    "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -24,6 +29,11 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -111,3 +121,9 @@ def density(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
     numer = a * R2 + (a + 3 * zeta) * (a + zeta) ** 2
     denom = (R2 + (a + zeta) ** 2) ** 2.5 * zeta**3
     return b**2 * m_tot / (4 * jnp.pi) * numer / denom  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

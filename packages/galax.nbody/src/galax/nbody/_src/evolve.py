@@ -182,8 +182,12 @@ def _integrate(
     if total == 0:
         return y[0][None], y[1][None]
     grid = t_start + np.arange(total + 1) * dt
-    saves = grid[np.concat([[0], np.cumsum(n_steps)])]
-    return advance(field, y, jnp.asarray(grid), adjoint, jnp.asarray(saves))
+    # `y` is prepended rather than saved: a save at t0 interpolates inside the
+    # first step, so a row that is non-finite after it would come back NaN.
+    q, p = advance(
+        field, y, jnp.asarray(grid), adjoint, jnp.asarray(grid[np.cumsum(n_steps)])
+    )
+    return jnp.concat([y[0][None], q]), jnp.concat([y[1][None], p])
 
 
 @eqx.filter_jit
@@ -295,8 +299,8 @@ def evolve(
     ``sqrt(2 n)`` checkpoints for a run of ``n`` steps, each a few times the
     size of one (q, p) state, plus the saved states.
     ``RecursiveCheckpointAdjoint(checkpoints=n)``, a checkpoint at every step,
-    makes the gradient about 1.2 to 2 times faster for memory that grows
-    linearly with ``n``.
+    makes the gradient faster, from about 1.3 times at large N to several
+    times at small N, for memory that grows linearly with ``n``.
 
     `evolve` runs forward in time only, so ``ts`` must increase. Flipping the
     velocities and running forward is the same as running backward only when

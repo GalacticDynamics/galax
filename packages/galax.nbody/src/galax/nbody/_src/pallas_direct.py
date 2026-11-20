@@ -586,9 +586,10 @@ class PallasDirectSum(AbstractForceBackend):
 
     ``precision="float32"`` evaluates the pair sum in float32 (positions
     recentred on the source centre of mass) and returns the input dtype.
-    ``compensated=True`` adds Kahan summation to the forward pass.
+    ``compensated=True`` adds Kahan summation to the forward pass. On TPU,
+    which has no float64, ``precision`` defaults to ``"float32"``.
 
-    Untested: TPU hardware and AMD GPUs. TPU needs ``precision="float32"``.
+    Untested: TPU hardware and AMD GPUs.
 
     Examples
     --------
@@ -617,7 +618,8 @@ class PallasDirectSum(AbstractForceBackend):
         return self.interpret or jax.default_backend() in ("gpu", "tpu")
 
     def _cfg(self) -> _Config:
-        bt, bs = (8, 128) if jax.default_backend() == "tpu" else (16, 64)
+        tpu = jax.default_backend() == "tpu"
+        bt, bs = (8, 128) if tpu else (16, 64)
         return _Config(
             kernel=self.kernel,
             potential=False,
@@ -626,7 +628,7 @@ class PallasDirectSum(AbstractForceBackend):
             num_warps=self.num_warps,
             num_stages=self.num_stages,
             interpret=self.interpret,
-            precision=self.precision,
+            precision=self.precision or ("float32" if tpu else None),
             compensated=self.compensated,
         )
 

@@ -196,6 +196,10 @@ def _integrate(
     # t1 and the `StepTo` grid separately, one with an fma and one without,
     # and diffrax rejected the mismatch under jit. `advance` takes t0 and t1
     # from the same grid array.
+    # ponytail: the full grid is held in memory, about 8 bytes per step on
+    # the host and again on the device (a large constant under an outer jit).
+    # Only runs of ~1e7 steps notice; build the grid per run from an integer
+    # offset with the same arithmetic if that matters.
     offsets = np.concat([[0], np.cumsum(n_steps)[:-1]])
     runs, start = [], 0
     for n, run in itertools.groupby(n_steps.tolist()):
@@ -319,9 +323,12 @@ def evolve(
     With the default `diffrax.RecursiveCheckpointAdjoint`, reverse mode
     (`jax.grad`) works, but forward mode (`jax.jvp`, `jax.jacfwd`) needs
     ``adjoint=diffrax.ForwardMode()``, which also suits derivatives with
-    respect to a few parameters. The checkpoint adjoint stores about
-    ``sqrt(2 n)`` states for a segment of ``n`` steps, and
-    ``RecursiveCheckpointAdjoint(checkpoints=...)`` sets that number.
+    respect to a few parameters. Each save interval is its own solve, and the
+    checkpoint adjoint keeps checkpoints for every interval: about
+    ``sqrt(2 n)`` of them for an interval of ``n`` steps, each a few times the
+    size of one (q, p) state. Reverse-mode memory therefore grows with the
+    number of save intervals, and ``RecursiveCheckpointAdjoint(checkpoints=...)``
+    sets the count per interval.
 
     `evolve` runs forward in time only, so ``ts`` must increase. Flipping the
     velocities and running forward is the same as running backward only when

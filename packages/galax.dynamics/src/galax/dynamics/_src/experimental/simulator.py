@@ -30,7 +30,7 @@ import galax.coordinates as gc
 import galax.fields as gf
 import galax.potential as gp
 from .df import AbstractKinematicDF, sample_releases
-from .fields import _CopiesField, _WholeStreamField
+from .fields import _CopiesField, _TrackField, _WholeStreamField
 from .schedule import Uniform
 from .solve import (
     default_solver,
@@ -39,6 +39,7 @@ from .solve import (
     progenitor_states,
     solve_on,
 )
+from .track import make_track
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 
@@ -65,7 +66,19 @@ class WholeStream(eqx.Module):
 
 
 class SharedTrack(eqx.Module):
-    """Per-particle progenitor model: one shared track of the progenitor."""
+    """Per-particle progenitor model: one shared track of the progenitor.
+
+    Every particle feels the progenitor potential centred on the same track:
+    the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
+    between knots (its fixed-step lattice, or ``max(20 n_release, 2**14)``
+    uniform knots of an adaptive solve). Gradients use the knots' sensitivity
+    to every inexact array leaf of ``(w_today, pot, schedule)``, computed once
+    with `jax.jacfwd`; a forward-only run never computes it.
+
+    First derivatives are exact. Second derivatives through the track are not:
+    its sensitivity is held constant, so the track's own curvature in those
+    inputs is dropped.
+    """
 
 
 class Copies(eqx.Module):
@@ -183,6 +196,7 @@ def simulate(
         pot,
         pp,
         schedule,
+        w_today,
         ws,
         jnp.concat([xl, vl], axis=-1),
         jnp.concat([xt, vt], axis=-1),
@@ -295,6 +309,7 @@ def _evolve(
     pot: gp.AbstractPotential,
     prog_pot: gp.AbstractPotential | None,
     schedule: Uniform,
+    w_today: Array,  # noqa: ARG001
     ws: Array,
     lead0: Array,
     trail0: Array,
@@ -333,21 +348,25 @@ def _evolve(
     pot: gp.AbstractPotential,
     prog_pot: gp.AbstractPotential | None,
     schedule: Uniform,
+    w_today: Array,
     ws: Array,
     lead0: Array,
     trail0: Array,
 ) -> tuple[Array, Array, Array]:
-    if not isinstance(mode.progenitor, Copies):
-        msg = f"per-particle mode with {type(mode.progenitor).__name__}"
-        raise NotImplementedError(msg)
     idx = schedule.release_index()
     lattice = schedule.lattice()
     w0 = jnp.stack([lead0, trail0], axis=1)  # (n, 2, 6)
-    if prog_pot is None:  # no copy needed: the host alone
+    if prog_pot is None:  # no progenitor model needed: the host alone
         terms = host_terms(pot, sim.solver)
-    else:  # rows [particle, copy]
+    elif isinstance(mode.progenitor, Copies):  # rows [particle, copy]
         terms = _CopiesField(pot, prog_pot).terms(sim.solver)
         w0 = jnp.stack([w0, jnp.broadcast_to(ws[idx, None], w0.shape)], axis=2)
+    else:  # one row about the shared track
+        psolver = sim.progenitor_solver
+        psolver = sim.solver if psolver is None else psolver
+        track = make_track(pot, w_today, schedule, psolver)
+        terms = _TrackField(pot, prog_pot, track).terms(sim.solver)
+        w0 = w0[:, :, None]
     w = evolve_per_particle(terms, sim.solver, w0, lattice[idx], lattice, mode.loop)
     if prog_pot is not None:
         w = w[:, :, 0]

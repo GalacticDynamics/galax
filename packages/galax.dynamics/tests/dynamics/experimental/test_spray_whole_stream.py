@@ -217,13 +217,6 @@ def test_to_mockstream() -> None:
     np.testing.assert_array_equal(u.ustrip("Myr", mock["lead"].t), 0.0)
 
 
-def test_shared_track_not_implemented() -> None:
-    sched = gde.Uniform(jnp.asarray(300.0), 4, 5)
-    sim = gde.SpraySimulator(gde.Fardal2015DF(), gde.PerParticle(gde.SharedTrack()))
-    with pytest.raises(NotImplementedError):
-        sim(KEY, HOST, W_TODAY, MSAT, sched)
-
-
 def _legacy_setup():
     """Chen + 4 pc Plummer, 1 Gyr, 16 releases; default adaptive settings."""
     df = gde.Chen2024DF()

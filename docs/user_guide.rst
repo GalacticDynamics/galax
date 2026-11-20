@@ -29,6 +29,7 @@ pieces of :mod:`gala` work together to meet more realistic research needs.
     :hidden:
 
     glossary
+    potential_modules
 
 
 Recent additions and changes

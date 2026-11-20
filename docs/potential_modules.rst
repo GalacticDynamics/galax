@@ -1,0 +1,113 @@
+.. _galax-potential-modules:
+
+*******************************
+Per-potential function modules
+*******************************
+
+Each built-in potential has a module of plain functions next to its class. The
+module is named for the class in lower case, without ``Potential``, so
+:class:`~galax.potential.PlummerPotential` has :mod:`galax.potential.plummer`.
+The functions compute the same quantities as the class methods. They take bare
+arrays instead of quantities, so they can be used inside a ``jax.jit`` or
+``jax.vmap`` of your own code.
+
+For these examples::
+
+    >>> import jax
+    >>> import jax.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.potential as gp
+
+
+The contract
+============
+
+A kernel takes the parameters ``p`` first, then the position. ``p`` is the
+dictionary returned by ``pot.params(t)``, evaluated at the time of interest.
+Kernels work on one point at a time, so ``r`` and ``t`` are scalars and ``xyz``
+has shape ``(3,)``. To evaluate many points, use ``jax.vmap``.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Module
+      - Functions
+      - Arguments
+    * - Spherical
+      - ``potential``, ``density``, ``laplacian``, ``mass_enclosed``,
+        ``dpotential_dr``, ``d2potential_dr2``
+      - ``(p, r)``
+    * - Spherical
+      - ``gradient``, ``hessian``
+      - ``(p, xyz)``
+    * - Non-spherical
+      - ``potential``, ``density``, ``laplacian``, ``gradient``, ``hessian``
+      - ``(p, xyz)``
+    * - Monari 2016 bar
+      - the non-spherical functions
+      - ``(p, xyz, t)``
+
+Positions and parameters are bare arrays in the unit system of the potential,
+and the caller keeps track of the units. A module may export more than these
+functions, for example ``mass_total`` or ``rho0_of_m``.
+
+:func:`galax.potential.plummer.potential` is a different function from
+:func:`galax.potential.potential`. The first takes ``(p, r)`` and returns a
+number. The second is dispatched on the potential and takes ``(pot, xyz, t)``
+with units.
+
+Evaluate away from the origin. The gradient of a cored profile at the origin is
+0, but the Hessian and the cusped profiles are not guaranteed to be finite
+there.
+
+
+An example
+==========
+
+Build a Plummer potential and take its parameters at :math:`t = 0`:
+
+    >>> pot = gp.PlummerPotential(
+    ...     m_tot=u.Quantity(1e11, "Msun"), r_s=u.Quantity(5.0, "kpc"),
+    ...     units="galactic")
+    >>> p = pot.params(0.0)
+    >>> sorted(p)
+    ['G', 'm_tot', 'r_s']
+
+The kernel evaluates one radius, in kpc, and returns the potential in
+:math:`\mathrm{kpc}^2/\mathrm{Myr}^2`:
+
+    >>> phi = gp.plummer.potential(p, 2.0)
+    >>> phi.shape
+    ()
+
+``jax.vmap`` maps it over an array of radii. ``p`` is shared, so its axis is
+``None``:
+
+    >>> r = jnp.array([1.0, 2.0, 4.0])
+    >>> phis = jax.vmap(gp.plummer.potential, in_axes=(None, 0))(p, r)
+    >>> phis.shape
+    (3,)
+
+These match the potential of the class evaluated on the same points on the
+x axis:
+
+    >>> xyz = u.Quantity(jnp.stack([r, 0 * r, 0 * r], axis=-1), "kpc")
+    >>> bool(jnp.allclose(phis, pot.potential(xyz, 0.0).value))
+    True
+
+
+The modules
+===========
+
+Spherical
+---------
+
+``burkert``, ``gaussian``, ``gnfw``, ``hardcutoffnfw``, ``hernquist``,
+``isochrone``, ``jaffe``, ``kepler``, ``nfw``, ``plummer``,
+``powerlawcutoff``, ``stoneostriker15``, ``zhao``.
+
+Non-spherical
+-------------
+
+``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
+``miyamotonagai``, ``monarietal2016bar``, ``satoh``.

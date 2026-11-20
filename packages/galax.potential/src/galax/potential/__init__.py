@@ -10,8 +10,12 @@ for batches. Spherical modules take ``(p, r)`` for ``potential``, ``density``,
 ``(p, xyz)`` for ``gradient`` and ``hessian``. Non-spherical modules take
 ``(p, xyz)`` for ``potential``, ``density``, ``laplacian``, ``gradient`` and
 ``hessian``; ``monarietal2016bar`` adds a trailing scalar ``t``.
-``galax.potential.plummer.potential(p, r)`` is not the dispatched
-``galax.potential.potential(pot, xyz, t)``.
+``galax.potential.plummer.potential(p, r)`` is a different function from the
+dispatched ``galax.potential.potential(pot, xyz, t)``. At the origin a
+spherical ``gradient`` is 0 and a spherical ``hessian`` is ``laplacian(p, 0) / 3``
+times the identity (``+inf`` on the diagonal for a cusp, never NaN). Functions
+of ``r`` expect ``r > 0``. Classes keep the base-class autodiff for the
+functions that a shared helper builds.
 """
 
 __all__ = [

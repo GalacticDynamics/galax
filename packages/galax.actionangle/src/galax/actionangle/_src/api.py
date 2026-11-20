@@ -4,6 +4,7 @@ __all__ = [
     "staeckel_fudge_delta",
     "staeckel_fudge",
     "isochrone_actions_angles_freqs",
+    "harmonic_oscillator_actions_angles_freqs",
 ]
 
 from typing import Any
@@ -167,6 +168,42 @@ def isochrone_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     ...                             r_s=u.Q(2.0, "kpc"), units="galactic")
     >>> res = isochrone_actions_angles_freqs(
     ...     pot, u.Q([8.0, 0, 0], "kpc"), u.Q([0.0, 150, 0], "km/s"), u.Q(0.0, "Myr"))
+    >>> res.actions.shape, str(res.angles.unit), str(res.freqs.unit)
+    ((3,), 'rad', 'rad / Myr')
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+@dispatch.abstract
+def harmonic_oscillator_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
+    """Compute actions, angles and frequencies in a harmonic-oscillator potential.
+
+    Overloads:
+
+    - ``(pot, q, p, t)``
+    - ``(pot, w)``
+
+    Each Cartesian axis is an independent oscillator, so the results are in
+    (x, y, z) order with ``J_i = (v_i^2 + omega_i^2 x_i^2) / (2 omega_i)`` and
+    ``Omega_i = omega_i``. The angles follow gala's convention,
+    ``x_i = sqrt(2 J_i / omega_i) cos(theta_i)`` and
+    ``v_i = -sqrt(2 J_i omega_i) sin(theta_i)``, and lie in ``[0, 2 pi)``.
+    A scalar ``omega`` is used for all three axes.
+
+    The batch shapes of ``q``, ``p`` (``shape[:-1]``) and ``t`` broadcast
+    together. The angle of an axis is undefined where ``J_i = 0``, a particle
+    at rest at the origin of that axis, and is set to 0 there. The transform
+    is the toy for box orbits in the Sanders & Binney (2014) formalism.
+
+    Examples
+    --------
+    >>> import unxt as u
+    >>> import galax.potential as gp
+    >>> from galax.actionangle import harmonic_oscillator_actions_angles_freqs
+    >>> pot = gp.HarmonicOscillatorPotential(
+    ...     omega=u.Q([1.0, 2.0, 3.0], "1 / Myr"), units="galactic")
+    >>> res = harmonic_oscillator_actions_angles_freqs(
+    ...     pot, u.Q([1.0, 0, 0], "kpc"), u.Q([0.0, 1, 0], "kpc/Myr"), u.Q(0.0, "Myr"))
     >>> res.actions.shape, str(res.angles.unit), str(res.freqs.unit)
     ((3,), 'rad', 'rad / Myr')
     """

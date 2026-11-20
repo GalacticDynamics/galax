@@ -9,7 +9,8 @@ module is named for the class in lower case, without ``Potential``, so
 :class:`~galax.potential.PlummerPotential` has :mod:`galax.potential.plummer`.
 The functions compute the same quantities as the class methods. They take bare
 arrays instead of quantities, so they can be used inside a ``jax.jit`` or
-``jax.vmap`` of your own code.
+``jax.vmap`` of your own code. This page calls these functions kernels, and
+"function" and "kernel" mean the same thing here.
 
 For these examples::
 
@@ -56,9 +57,22 @@ functions, for example ``mass_total`` or ``rho0_of_m``.
 number. The second is dispatched on the potential and takes ``(pot, xyz, t)``
 with units.
 
-Evaluate away from the origin. The gradient of a cored profile at the origin is
-0, but the Hessian and the cusped profiles are not guaranteed to be finite
-there.
+The class methods and the module functions are the same where the module
+function is hand-written. For the functions that a shared helper builds from
+others, such as the ``gradient`` of a non-spherical potential by autodiff or the
+``laplacian`` by Poisson's equation, the classes keep the base-class autodiff,
+and a test checks that the two agree.
+
+At the origin the spherical functions follow one rule. The ``gradient`` is
+exactly 0. The ``hessian`` is ``laplacian(p, 0) / 3`` times the identity, which
+is :math:`\Phi''(0)` times the identity for a cored profile. For a cusp the
+diagonal is ``+inf`` and the off-diagonal entries are 0. It is never NaN. The
+functions of ``r`` expect ``r > 0``, and several of them return NaN at exactly
+``r = 0``. The class method ``pot.hessian`` at exactly the origin keeps its
+older values and can differ from the module function. To differentiate at the
+origin, differentiate the ``hessian``: ``jax.jacfwd`` of the ``gradient`` at 0
+is 0, because the gradient is set to 0 there. The non-spherical functions have
+no such rule, so evaluate them away from the origin.
 
 
 An example

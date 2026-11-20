@@ -332,7 +332,26 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     0, and the conjugate angle and frequency are undefined and returned as
     NaN.
 
-    Sample about ten radial periods with a few hundred points per period.
+    Sample about 40 periods of the orbit's slowest frequency. For 30 random
+    disk orbits in `galax.potential.MilkyWayPotential2022` at ``n_max=8``,
+    with 2000 samples, 21 were flagged at 10 periods, 13 at 20 and 9 at 40.
+    Doubling the samples at 40 periods changed none of them. In those 9 some
+    ``n . Omega`` is so close to 0 that its angle still covers less than
+    2 pi. For an orbit still flagged at 40 periods, first try a lower
+    ``n_max``. In a second sample of 30 such orbits, 8 were flagged at 40
+    periods; 5 of them were unflagged at ``n_max=6`` and 7 at ``n_max=4``,
+    and their actions moved by less than 1 percent from those at
+    ``n_max=8``. A longer orbit helped less: at 80 and at 160 periods, with
+    the same samples per period, 6 of the 8 stayed flagged. If neither
+    works, treat the result as unreliable.
+
+    Orbits near a low-order resonance can be wrong without being flagged.
+    Near the 3:2 resonance of Omega_z and Omega_r, J_z came out 10 to 22
+    percent off on unflagged orbits, and a longer orbit did not fix it. The
+    actions of tubes about the long axis of a triaxial potential are
+    sensitive to the toy fit, and can move by up to 10 percent as ``n_max``
+    changes without being flagged: on one x-tube J_r moved by 10 percent
+    across ``n_max`` = 6, 8 and 10.
 
     The fitted toy differs from gala's (Powell) at the fit tolerance, so
     pass ``toy`` to compare with gala exactly. At odd ``n_max`` the

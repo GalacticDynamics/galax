@@ -7,7 +7,9 @@ __all__ = [
     "multipole_profile",
     "params",
     "plot",
+    "plummer",
     "scf",
+    "zhao",
     # ABCs
     "AbstractPotential",
     "AbstractSinglePotential",
@@ -87,7 +89,7 @@ __all__ = [
     "d2potential_dr2",
 ]
 
-from . import harmonic, io, multipole_profile, params, plot, scf
+from . import harmonic, io, multipole_profile, params, plot, plummer, scf, zhao
 from ._src.api import (
     acceleration,
     d2potential_dr2,

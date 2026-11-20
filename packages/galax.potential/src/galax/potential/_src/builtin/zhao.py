@@ -461,6 +461,8 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
 
     rhat = xyz / r1
     outer = rhat[..., :, None] * rhat[..., None, :]
-    eye = jnp.eye(3, dtype=outer.dtype)
-    _result = radial[..., None] * eye + coef_outer[..., None] * outer
+    # `where`, not `radial * eye`: at a cusp's origin `radial` is inf, and inf * 0
+    # is NaN off the diagonal when nothing rewrites the product (`disable_jit`).
+    eye = jnp.eye(3, dtype=bool)
+    _result = jnp.where(eye, radial[..., None], 0.0) + coef_outer[..., None] * outer
     return _result  # type: ignore[no-any-return]

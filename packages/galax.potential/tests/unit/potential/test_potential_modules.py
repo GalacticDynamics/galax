@@ -240,6 +240,19 @@ def test_origin(pot):
         assert np.all(np.diag(h0) == np.inf)
 
 
+def test_origin_hessian_without_jit(pot):
+    """No NaN at the origin even when nothing rewrites `inf * 0` (`disable_jit`)."""
+    if pot.symmetry != gp.Symmetry.SPHERICAL:
+        pytest.skip("origin handling is a spherical-kernel contract")
+    module, p = module_for(pot), pot.params(0.0)
+
+    with jax.disable_jit():
+        h0 = np.asarray(module.hessian(p, jnp.zeros(3)))
+
+    assert not np.any(np.isnan(h0))
+    np.testing.assert_array_equal(h0[~np.eye(3, dtype=bool)], 0)
+
+
 def test_param_gradient(pot):
     p, ex = pot.params(T), extra(pot)
     if "m_tot" not in p and "m" not in p:

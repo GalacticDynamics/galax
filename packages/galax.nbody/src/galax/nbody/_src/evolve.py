@@ -318,6 +318,12 @@ def evolve(
     the external potential is static. With a time-dependent potential it
     gives the wrong forces.
 
+    A tracer that is NaN or inf from the start, or whose position becomes so,
+    leaves the other particles' values and gradients unchanged. A tracer that
+    reaches a finite point where the external force or its derivative is not
+    finite (outside a user potential's valid region, or exactly at a singular
+    point) makes reverse-mode gradients NaN; forward results are unaffected.
+
     galax.nbody needs float64, so `evolve` raises `ValueError` unless
     ``jax_enable_x64`` is on. Turn it on with
     ``jax.config.update("jax_enable_x64", True)`` at the start of the program,

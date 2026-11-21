@@ -43,7 +43,7 @@ class SatohPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     The Satoh model is a flattened, axisymmetric mass distribution of finite
     total mass, symmetric about the plane :math:`z = 0`. It is the limiting
     member of Satoh's series of flattened higher-order Plummer models
-    [Satoh1980]_. The potential tends to the Kuzmin disc for :math:`b \to 0`
+    [Satoh1980]_. The potential tends to the Kuzmin disk for :math:`b \to 0`
     and to the point-mass potential for :math:`a \to 0`. The parameter ``m_tot``
     is the total mass, ``a`` the scale length and ``b`` the scale height. The
     density is finite and positive everywhere. Satoh proposed the model for
@@ -90,7 +90,7 @@ class SatohPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     Far from the centre the potential tends to :math:`-G m_{\mathrm{tot}} / r`.
     For :math:`a > 0` the density falls as :math:`R^{-3}` in the plane. At
     :math:`b = 0` the potential is
-    :math:`-G m_{\mathrm{tot}} / \sqrt{R^2 + (a + |z|)^2}`, the Kuzmin disc of scale
+    :math:`-G m_{\mathrm{tot}} / \sqrt{R^2 + (a + |z|)^2}`, the Kuzmin disk of scale
     length ``a`` (see :class:`~galax.potential.KuzminPotential`). The
     Miyamoto-Nagai potential (:class:`~galax.potential.MiyamotoNagaiPotential`)
     is the zeroth member of the same series of models, with the same two

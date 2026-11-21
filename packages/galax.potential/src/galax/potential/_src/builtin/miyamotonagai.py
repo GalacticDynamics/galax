@@ -45,10 +45,10 @@ class MiyamotoNagaiPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     r"""Miyamoto-Nagai potential.
 
     The Miyamoto-Nagai model is a flattened, axisymmetric mass distribution of
-    finite total mass, symmetric about the plane :math:`z = 0`. It generalises
-    the Kuzmin disc: the potential reduces to the Kuzmin disc for :math:`b = 0`
+    finite total mass, symmetric about the plane :math:`z = 0`. It generalizes
+    the Kuzmin disk: the potential reduces to the Kuzmin disk for :math:`b = 0`
     and to the Plummer sphere for :math:`a = 0`, so one family covers shapes from
-    a razor-thin disc to a sphere [MiyamotoNagai1975]_. The parameter ``m_tot``
+    a razor-thin disk to a sphere [MiyamotoNagai1975]_. The parameter ``m_tot``
     is the total mass, ``a`` the radial scale length and ``b`` the vertical
     scale height. The density is finite and positive everywhere.
 
@@ -90,7 +90,7 @@ class MiyamotoNagaiPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     :math:`|z|^{-5}` on the symmetry axis. The :math:`a \to 0` limit is the
     Plummer sphere of scale length ``b`` (see
     :class:`~galax.potential.PlummerPotential`) and the :math:`b \to 0` limit is
-    the Kuzmin disc of scale length ``a`` (see
+    the Kuzmin disk of scale length ``a`` (see
     :class:`~galax.potential.KuzminPotential`). The Satoh potential
     (:class:`~galax.potential.SatohPotential`) is a related flattened family with
     the same two parameters and a different vertical structure. The gradient and

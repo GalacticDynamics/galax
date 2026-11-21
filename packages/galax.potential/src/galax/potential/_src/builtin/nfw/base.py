@@ -52,8 +52,9 @@ from galax.potential._src.utils import r_spherical, radial_derivatives
 class NFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""NFW potential.
 
-    The spherical density profile that Navarro, Frenk & White found to fit
-    haloes in cold dark matter simulations. The density falls as :math:`r^{-1}`
+    The model is the spherical density profile that Navarro, Frenk & White
+    found to fit haloes in cold dark matter simulations [NFW1996NFW]_
+    [NFW1997NFW]_. The density falls as :math:`r^{-1}`
     inside the scale radius ``r_s`` and as :math:`r^{-3}` outside it, so the
     enclosed mass grows logarithmically without bound and the total mass is
     infinite. The density diverges at the centre but the potential is finite
@@ -423,7 +424,9 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
         \Phi(r) = -\frac{G m}{r_s} \frac{r_s}{r} \ln\left(1 + \frac{r}{r_s}\right)
 
     where :math:`m` is the characteristic mass and :math:`r_s` is the scale
-    radius. It vanishes at infinity and equals :math:`-G m / r_s` at the centre.
+    radius. It vanishes at infinity and tends to :math:`-G m / r_s` as
+    :math:`r \to 0`. The function is evaluated for :math:`r > 0`, and at exactly
+    :math:`r = 0` it returns NaN.
 
     """
     r_s = p["r_s"]

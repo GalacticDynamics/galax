@@ -102,7 +102,9 @@ class GaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     below :math:`10^{-6} \rho_0` beyond :math:`r \approx 5.3\, r_s`. The density
     is the three-dimensional normal distribution with covariance
     :math:`r_s^2` times the identity. The potential at exactly :math:`r = 0` is
-    evaluated from its limit.
+    evaluated from its limit. The model is not attributed to a particular
+    paper, so there is no reference list. The closed forms above follow from
+    integrating the Gaussian density.
 
     """
 
@@ -253,7 +255,8 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     where :math:`\rho_0` is the central density and :math:`r_s` is the scale
     radius. The class is parametrized by the total mass :math:`m_{\mathrm{tot}}`
-    instead of :math:`\rho_0`, which is given by `rho0_of_m`:
+    instead of :math:`\rho_0`, which is given by
+    :func:`~galax.potential.gaussian.rho0_of_m`:
 
     .. math::
 

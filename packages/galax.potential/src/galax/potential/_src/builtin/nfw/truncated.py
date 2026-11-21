@@ -55,13 +55,14 @@ from galax.potential._src.utils import r_spherical
 class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Sharply truncated NFW potential.
 
-    The NFW density profile cut to zero outside the truncation radius ``r_t``.
-    Inside ``r_t`` the density is that of the NFW profile, with an
-    :math:`r^{-1}` cusp at the centre. Outside it the density is zero, so the
-    mass is finite and the potential is that of a point mass. The parameter
+    The density is the NFW profile [NFW1996HardCutoff]_ inside the truncation
+    radius ``r_t``, with an :math:`r^{-1}` cusp at the centre, and zero outside
+    it. The mass is therefore finite and the potential outside ``r_t`` is that
+    of a point mass. The parameter
     ``m`` is the characteristic mass of the untruncated NFW profile, and the
-    total mass of this potential is smaller than ``m`` when
-    :math:`r_t < \infty`.
+    total mass of this potential is :math:`m A(r_t / r_s)`, with :math:`A`
+    defined below. It is smaller than ``m`` for :math:`r_t < 5.305\, r_s` and
+    larger than ``m`` for a larger truncation radius.
 
     With :math:`x = r / r_s`, :math:`x_t = r_t / r_s` and
     :math:`A(x) = \ln(1 + x) - x / (1 + x)`, the density is
@@ -120,8 +121,9 @@ class HardCutoffNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="mass",
-        doc=r"""Characteristic mass of the untruncated NFW profile. This is NOT the
-        total mass, which is smaller.""",
+        doc=r"""Characteristic mass of the untruncated NFW profile. This is not the
+        total mass, which is ``m`` times :math:`\ln(1 + c) - c / (1 + c)` with
+        :math:`c = r_t / r_s`.""",
     )
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
     r_t: AbstractParameter = ParameterField(  # type: ignore[assignment]

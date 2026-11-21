@@ -54,12 +54,12 @@ CONST_BURKER: Final = 3 * math.log(2.0) - math.pi / 2
 class BurkertPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Burkert potential.
 
-    A spherical density profile with a flat core, introduced by Burkert (1995)
-    as a phenomenological fit to the dark matter haloes of dwarf spiral
-    galaxies. The density is finite and nearly flat inside the core radius and
-    falls as :math:`r^{-3}` far out, so the enclosed mass grows logarithmically
-    without bound and the total mass is infinite. The parameter ``r_s`` is the
-    core radius and ``m`` is the mass inside ``r_s``.
+    A spherical density profile with a flat core, introduced by Burkert
+    [Burkert1995Burkert]_ as a phenomenological fit to the dark matter haloes of dwarf
+    spiral galaxies. The density is finite and nearly flat inside the core radius and
+    falls as :math:`r^{-3}` far out, so the enclosed mass grows logarithmically without
+    bound and the total mass is infinite. The parameter ``r_s`` is the core radius and
+    ``m`` is the mass inside ``r_s``.
 
     The density is
 
@@ -97,9 +97,9 @@ class BurkertPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
     Notes
     -----
-    Burkert (1995, Eq. 2) writes the profile as
+    Burkert [Burkert1995Burkert]_ (Eq. 2) writes the profile as
     :math:`\rho_0 r_0^3 / [(r + r_0)(r^2 + r_0^2)]` with a central density
-    :math:`\rho_0` and a core radius :math:`r_0`. This class uses
+    :math:`\rho_0` and a scale radius :math:`r_0`. This class uses
     :math:`r_0 = r_s` and replaces :math:`\rho_0` by the mass
     :math:`m = \pi C \rho_0 r_s^3`, so that :math:`m` is the mass inside
     :math:`r_s`. The constructor

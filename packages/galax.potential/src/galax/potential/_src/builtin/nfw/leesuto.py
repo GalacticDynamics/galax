@@ -51,10 +51,10 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     r"""Lee-Suto triaxial NFW potential.
 
     An analytic approximation to the potential of an NFW halo whose iso-density
-    surfaces are concentric, coaxial ellipsoids [LeeSuto2003]_. The flattening is
-    in the density and not in the potential: the equipotentials are rounder than
-    the iso-density ellipsoids. The potential is the first-order expansion in
-    the squared eccentricities of the exact potential of the triaxial density,
+    surfaces are concentric, coaxial ellipsoids [LeeSuto2003]_. The equipotentials
+    are flattened too, but they are rounder than the iso-density ellipsoids. The
+    potential is the first-order expansion in the squared eccentricities of the
+    exact potential of the triaxial density,
     so it is accurate for moderate flattening and is built from the same
     elementary functions as the NFW potential. The parameter ``m`` sets the
     overall mass scale, ``r_s`` is the scale radius, and ``a1``, ``a2`` and
@@ -65,7 +65,7 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
 
     .. warning::
 
-        This potential is only physical for `a1 >= a2 >= a3`.
+        This potential is only physical for :math:`a_1 \ge a_2 \ge a_3`.
 
     The density that the potential approximates is the triaxial NFW profile of
     [LeeSuto2003]_ and [JingSuto2002LS]_, with the NFW profile of

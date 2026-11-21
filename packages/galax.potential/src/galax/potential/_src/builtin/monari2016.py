@@ -41,17 +41,22 @@ from galax.potential._src.params.field import ParameterField
 class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Monari et al. (2016) bar potential.
 
-    A rigidly rotating bar that adds a quadrupole perturbation to an
-    axisymmetric Galaxy potential. It is the three-dimensional version of the
+    The model is a rigidly rotating bar that adds a quadrupole perturbation to
+    an axisymmetric Galaxy potential. It is the three-dimensional version of the
     quadrupole bar of Dehnen (2000) [Dehnen2000]_, with Dehnen's cylindrical
     radius replaced by the spherical radius :math:`r`, as written in
     [Monari2016]_. The perturbation is a pure :math:`l = 2`, :math:`m = 2`
-    quadrupole whose radial profile is a cubic inside the bar radius ``Rb`` and
+    quadrupole whose radial profile is a cubic inside the bar length ``Rb`` and
     a source-free :math:`r^{-3}` tail outside. The parameter ``alpha`` is the
     bar strength, ``R0`` the Galactocentric radius of the Sun, ``v0`` the
     circular velocity at ``R0``, ``Rb`` the length of the bar, ``phi_b`` the bar
-    angle at :math:`t = 0` and ``Omega`` the pattern speed. The defaults are the
-    values adopted by Monari et al. (2016).
+    angle at :math:`t = 0` and ``Omega`` the pattern speed. The parameters
+    ``R0`` and ``v0`` have no default. The defaults ``alpha = 0.01``,
+    ``Rb = 3.5 kpc`` and ``Omega = 52.2 km/(s kpc)`` are the values Monari et
+    al. (2016) use in their simulations. They fix the bar angle differently:
+    their 25 degrees is :math:`\phi_b + \Omega t_e`, the angle between the bar
+    major axis and the Sun-centre line at the end of the run :math:`t_e`, so the
+    default ``phi_b = 25 deg`` is that angle at :math:`t = 0`.
 
     The potential is
 
@@ -293,7 +298,7 @@ def density(p: gt.Params, xyz: gt.Sz3, t: gt.Sz0, /) -> gt.Sz0:
             \left(\frac{R_0}{R_b}\right)^3 L(r) \frac{R^2}{r^2} \cos\gamma_b,
 
     with :math:`L(r) = 12 / r^2 + 6 r / R_b^3` for :math:`r < R_b` and 0 outside
-    (see `L_of_r`), :math:`\gamma_b = 2(\phi - \phi_b - \Omega t)` and
+    (see ``L_of_r``), :math:`\gamma_b = 2(\phi - \phi_b - \Omega t)` and
     :math:`G` the gravitational constant.
 
     """

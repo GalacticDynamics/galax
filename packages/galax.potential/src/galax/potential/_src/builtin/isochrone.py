@@ -50,12 +50,12 @@ from galax.potential._src.utils import r_spherical
 class IsochronePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Isochrone potential.
 
-    A spherical model with a constant-density core and a finite total mass. The
-    potential is harmonic near the centre and approaches the point-mass
-    potential far from it, and the scale radius ``r_s`` marks the transition
-    between the two. The parameter ``m_tot`` is the total mass. Hénon (1959)
-    introduced the model, and it is called isochrone because the radial period
-    of an orbit in it depends only on the orbit's energy.
+    The model is spherical, with a constant-density core and a finite total mass. The
+    potential is harmonic near the centre and approaches the point-mass potential far
+    from it, and the scale radius ``r_s`` marks the transition between the two. The
+    parameter ``m_tot`` is the total mass. Hénon [Henon1959]_ introduced the model, and
+    it is called isochrone because the radial period of an orbit in it depends only on
+    the orbit's energy.
 
     The potential is
 
@@ -97,14 +97,13 @@ class IsochronePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     oscillator. At large radius :math:`\Phi \to -G m_{\mathrm{tot}} / r` and
     the density falls as :math:`m_{\mathrm{tot}} r_s / (2 \pi r^4)`, the same
     :math:`r^{-4}` slope as :class:`~galax.potential.HernquistPotential`. Like
-    :class:`~galax.potential.PlummerPotential` it has a core, and unlike
-    that model its outer density slope is :math:`r^{-4}`.
+    :class:`~galax.potential.PlummerPotential` it has a constant-density core.
 
     References
     ----------
     .. [Henon1959] Hénon, M. (1959). L'amas isochrone: I. Annales
        d'Astrophysique, 22, 126.
-       `ADS <https://ui.adsabs.harvard.edu/abs/1959AnAp...22..126H>`_.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1959AnAp...22..126H>`__.
     """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]

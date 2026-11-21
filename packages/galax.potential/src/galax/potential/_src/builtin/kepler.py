@@ -52,9 +52,9 @@ from galax.potential._src.utils import r_spherical
 class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Kepler potential of a point mass.
 
-    The potential of all the mass ``m_tot`` concentrated at the origin. It is
-    spherical, the enclosed mass is the same at every radius, and there is no
-    length scale. Bound orbits in it are Keplerian ellipses. As for the other
+    The potential is that of all the mass ``m_tot`` concentrated at the origin. It is
+    spherical, the enclosed mass is the same at every radius, and there is no length
+    scale. Bound orbits in it are Keplerian ellipses [BT08Kepler]_. As for the other
     parameters, ``m_tot`` can depend on time.
 
     The density is that of a point mass,

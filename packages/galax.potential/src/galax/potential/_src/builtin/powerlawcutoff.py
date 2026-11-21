@@ -149,13 +149,13 @@ def gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
 class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Power-law density profile with an exponential cutoff.
 
-    A spherical density that falls as :math:`r^{-\alpha}` at small radii and is
-    cut off by a Gaussian factor beyond the cutoff radius ``r_c``. The mass is
-    finite and equal to the parameter ``m_tot``. For :math:`\alpha < 3` the
-    enclosed mass converges at the centre, and the central density is finite
-    only for :math:`\alpha = 0`. The form is used for the bulge of the Milky Way
-    model ``MWPotential2014`` in galpy. The model is defined by the density
-    below, and the potential follows from Poisson's equation.
+    A spherical density that falls as :math:`r^{-\alpha}` at small radii and is cut off
+    by a Gaussian factor beyond the cutoff radius ``r_c``. The mass is finite and equal
+    to the parameter ``m_tot``. For :math:`\alpha < 3` the enclosed mass converges at
+    the centre, and the central density is finite only for :math:`\alpha = 0`. The form
+    is used for the bulge of the Milky Way model ``MWPotential2014`` in galpy
+    [Bovy2015PowerLawCutoff]_. The model is defined by the density below, and the
+    potential follows from Poisson's equation.
 
     With :math:`s = r / r_c` and :math:`a = (3 - \alpha) / 2` the density is
 
@@ -207,8 +207,8 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
     :math:`\alpha \ge 2`. The density and the enclosed mass are valid for
     :math:`0 \le \alpha < 3`.
 
-    The parameters (total mass, power-law index, cutoff radius) are those of
-    Gala's ``PowerLawCutoffPotential``. The functional form
+    The parameters (total mass, power-law index, cutoff radius) are those of Gala's
+    ``PowerLawCutoffPotential`` [PriceWhelan2017PowerLawCutoff]_. The functional form
     :math:`\rho \propto r^{-\alpha} \exp[-(r / r_c)^2]` is the one of galpy's
     ``PowerSphericalPotentialwCutoff``.
 
@@ -275,8 +275,9 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     For :math:`x = (r/r_c)^2 \leq 1` by :math:`P(a, x) = x^a/\Gamma(a) \sum_k
     (-x)^k/(k!(a+k))` (20 terms reach :math:`1/20! \approx 10^{-19}`):
-    `jax.scipy.special.gammainc` forms $x^a e^{-x}$ as $\exp(a\ln x - x)$, which
-    multiplies the rounding of $a \ln x$ by $|a \ln x|$, ~20 ulp at $x = 10^{-16}$.
+    ``jax.scipy.special.gammainc`` forms :math:`x^a e^{-x}` as
+    :math:`\exp(a\ln x - x)`, which multiplies the rounding of :math:`a \ln x` by
+    :math:`|a \ln x|`, about 20 ulp at :math:`x = 10^{-16}`.
     """
     a = 1.5 - p["alpha"] / 2
     x = (r / p["r_c"]) ** 2

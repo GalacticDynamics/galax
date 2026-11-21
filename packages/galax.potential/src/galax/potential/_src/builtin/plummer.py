@@ -49,11 +49,11 @@ from galax.potential._src.utils import r_spherical
 class PlummerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Plummer potential.
 
-    A spherical model with a constant-density core and a finite total mass. The
-    density is flat inside the scale radius ``r_s`` and falls as :math:`r^{-5}`
-    far outside it. The parameter ``m_tot`` is the total mass and ``r_s`` sets
-    the size of the core. Plummer (1911) introduced the density law to fit
-    observations of globular clusters.
+    The model is spherical, with a constant-density core and a finite total
+    mass. The density is flat inside the scale radius ``r_s`` and falls as
+    :math:`r^{-5}` far outside it. The parameter ``m_tot`` is the total mass
+    and ``r_s`` sets the size of the core. Plummer [Plummer1911]_ introduced
+    the density law to fit observations of globular clusters.
 
     The density is
 
@@ -100,8 +100,8 @@ class PlummerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     .. [Plummer1911] Plummer, H. C. (1911). On the problem of distribution in
        globular star clusters. Monthly Notices of the Royal Astronomical
        Society, 71, 460-470.
-       `ADS <https://ui.adsabs.harvard.edu/abs/1911MNRAS..71..460P>`_;
-       `doi:10.1093/mnras/71.5.460 <https://doi.org/10.1093/mnras/71.5.460>`_.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1911MNRAS..71..460P>`__;
+       `doi:10.1093/mnras/71.5.460 <https://doi.org/10.1093/mnras/71.5.460>`__.
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]

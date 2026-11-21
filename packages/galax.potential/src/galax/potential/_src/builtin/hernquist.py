@@ -52,12 +52,12 @@ from galax.potential._src.utils import r_spherical, safe_sqrt
 class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Hernquist potential.
 
-    A spherical model with a central density cusp and a finite total mass. The
+    The model is spherical, with a central density cusp and a finite total mass. The
     density goes as :math:`r^{-1}` well inside the scale radius ``r_s`` and as
-    :math:`r^{-4}` well outside it. The parameter ``m_tot`` is the total mass.
-    Hernquist (1990) introduced the model as an analytic description of
-    spherical galaxies and bulges whose projected profile is close to the de
-    Vaucouleurs :math:`R^{1/4}` law.
+    :math:`r^{-4}` well outside it. The parameter ``m_tot`` is the total mass. Hernquist
+    [Hernquist1990]_ introduced the model as an analytic description of spherical
+    galaxies and bulges whose projected profile is close to the de Vaucouleurs
+    :math:`R^{1/4}` law.
 
     The density is
 
@@ -92,7 +92,7 @@ class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     Notes
     -----
     The density diverges at the origin like :math:`m_{\mathrm{tot}} / (2 \pi
-    r_s r)`, while the potential and the gradient stay finite. At large radius
+    r_s^2 r)`, while the potential and the gradient stay finite. At large radius
     the potential approaches the point-mass potential :math:`-G
     m_{\mathrm{tot}} / r`. The profile is cuspy, unlike
     :class:`~galax.potential.PlummerPotential` and
@@ -106,8 +106,8 @@ class HernquistPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     ----------
     .. [Hernquist1990] Hernquist, L. (1990). An analytical model for spherical
        galaxies and bulges. The Astrophysical Journal, 356, 359.
-       `ADS <https://ui.adsabs.harvard.edu/abs/1990ApJ...356..359H>`_;
-       `doi:10.1086/168845 <https://doi.org/10.1086/168845>`_.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1990ApJ...356..359H>`__;
+       `doi:10.1086/168845 <https://doi.org/10.1086/168845>`__.
     """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]

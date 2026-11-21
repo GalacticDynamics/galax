@@ -51,7 +51,7 @@ class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     ``m_tot`` and the scale length ``r_s``, the radius at which the surface
     density has fallen to :math:`2^{-3/2}` of its central value. The potential
     is closed-form, and it is the :math:`c \to 0` limit of
-    `~galax.potential.KuzminKutuzovPotential`.
+    :class:`~galax.potential.KuzminKutuzovPotential`.
 
     The potential, in cylindrical coordinates :math:`(R, z)`, is
 
@@ -64,8 +64,9 @@ class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     (:math:`z > 0`) this is the potential of a point mass
     :math:`m_{\mathrm{tot}}` at :math:`(R, z) = (0, -r_s)`, and below the disk
     that of a point mass at :math:`(0, +r_s)` [DeZeeuwVanDeVen2011Kuzmin]_. The
-    disk was rediscovered by [Toomre1963Disk]_, and a textbook treatment is in
-    [BT08Kuzmin]_.
+    disk is due to Kuzmin [Kuzmin1953Disk]_ and was rediscovered by Toomre
+    [Toomre1963Disk]_, and a textbook treatment is in [BT08Kuzmin]_.
+
     The jump in :math:`\partial \Phi / \partial z` across the plane gives the
     surface density, :math:`\Sigma = (2 \pi G)^{-1}\, \partial_z \Phi |_{z = 0^+}`,
 
@@ -109,15 +110,15 @@ class KuzminPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     .. [Toomre1963Disk] Toomre, A. (1963). On the Distribution of Matter Within
        Highly Flattened Galaxies. The Astrophysical Journal, 138, 385.
        `ADS <https://ui.adsabs.harvard.edu/abs/1963ApJ...138..385T>`__;
-       `doi:10.1086/147653 <https://doi.org/10.1086/147653>`_
+       `doi:10.1086/147653 <https://doi.org/10.1086/147653>`__
     .. [BT08Kuzmin] Binney, J., & Tremaine, S. (2008). Galactic Dynamics, 2nd
        ed. Princeton University Press.
     .. [DeZeeuwVanDeVen2011Kuzmin] de Zeeuw, P. T., & van de Ven, G. (2011).
        Grigori Kuzmin and Stellar Dynamics. Open Astronomy (Baltic Astronomy),
        20, 211.
        `ADS <https://ui.adsabs.harvard.edu/abs/2011BaltA..20..211D>`__;
-       `doi:10.1515/astro-2017-0285 <https://doi.org/10.1515/astro-2017-0285>`_;
-       `arXiv:1108.0382 <https://arxiv.org/abs/1108.0382>`_
+       `doi:10.1515/astro-2017-0285 <https://doi.org/10.1515/astro-2017-0285>`__;
+       `arXiv:1108.0382 <https://arxiv.org/abs/1108.0382>`__
 
     """
 

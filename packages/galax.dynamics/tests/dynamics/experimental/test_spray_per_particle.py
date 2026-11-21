@@ -34,6 +34,7 @@ gde = gd.experimental
 LOOPS = [lstrat.VMap, lstrat.Scan]
 
 
+@pytest.mark.filterwarnings("ignore:Chen2024DF without a progenitor:RuntimeWarning")
 @pytest.mark.parametrize("prog", [None, plummer])
 @pytest.mark.parametrize("loop", LOOPS)
 def test_copies_match_whole_stream(loop, prog) -> None:

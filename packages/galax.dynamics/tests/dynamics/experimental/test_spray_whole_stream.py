@@ -68,6 +68,7 @@ DFS = [gde.Fardal2015DF, gde.Chen2024DF]
 PROGS = {"none": None, "potential": plummer(MSAT), "callable": plummer}
 
 
+@pytest.mark.filterwarnings("ignore:Chen2024DF without a progenitor:RuntimeWarning")
 @pytest.mark.parametrize("prog", list(PROGS))
 @pytest.mark.parametrize("df_cls", DFS)
 def test_whole_stream_runs(df_cls, prog) -> None:
@@ -314,6 +315,23 @@ def test_grad_whole_stream(df_cls) -> None:
         ]
     )
     np.testing.assert_allclose(g, fd, rtol=1e-5, atol=1e-7 * jnp.abs(g).max())
+
+
+MODES = {
+    "whole": gde.WholeStream(),
+    "copies": gde.PerParticle(gde.Copies()),
+    "track": gde.PerParticle(gde.SharedTrack()),
+}
+
+
+@pytest.mark.parametrize("mode", list(MODES))
+def test_chen_without_progenitor_warns(mode) -> None:
+    """As the legacy generator: Chen with no progenitor is its "no progenitor" model."""
+    with pytest.warns(RuntimeWarning, match="no progenitor") as record:
+        sim = gde.SpraySimulator(gde.Chen2024DF(), MODES[mode])
+    assert len(record) == 1
+    res = sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(jnp.asarray(300.0), 4, 5))
+    assert jnp.all(jnp.isfinite(res.lead))
 
 
 def test_callable_progenitor_needs_scalar_msat() -> None:

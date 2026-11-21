@@ -10,6 +10,7 @@ __all__ = [
     "to_mockstream",
 ]
 
+import warnings
 from dataclasses import KW_ONLY
 
 from collections.abc import Callable
@@ -29,7 +30,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.fields as gf
 import galax.potential as gp
-from .df import AbstractKinematicDF, sample_releases
+from .df import AbstractKinematicDF, Chen2024DF, sample_releases
 from .fields import _CopiesField, _TrackField, _WholeStreamField
 from .schedule import Uniform
 from .solve import (
@@ -174,6 +175,17 @@ class SpraySimulator(eqx.Module):
     progenitor_potential: ProgenitorPotential = None
     solver: dfxtra.DiffEqSolver = eqx.field(default_factory=default_solver)
     progenitor_solver: dfxtra.DiffEqSolver | None = None
+
+    def __check_init__(self) -> None:
+        if self.progenitor_potential is None and isinstance(self.df, Chen2024DF):
+            warnings.warn(
+                "Chen2024DF without a progenitor_potential is the "
+                '"no progenitor" variant of the Chen+24 model; pass e.g. '
+                "progenitor_potential=lambda m: PlummerPotential(m_tot=m, "
+                'r_s=u.Q(4, "pc"), units=...) for its default model.',
+                RuntimeWarning,
+                stacklevel=3,  # past equinox's __call__, to the constructor call
+            )
 
     @eqx.filter_jit
     def __call__(

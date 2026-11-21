@@ -1,4 +1,7 @@
-"""Miyamoto-Nagai Potential."""
+"""Private module that defines `MiyamotoNagaiPotential` and its functions.
+
+The public API is `galax.potential.miyamotonagai`.
+"""
 
 __all__ = [
     # class

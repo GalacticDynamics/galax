@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `PlummerPotential` and its functions.
+
+The public API is `galax.potential.plummer`.
+"""
 
 __all__ = [
     # class

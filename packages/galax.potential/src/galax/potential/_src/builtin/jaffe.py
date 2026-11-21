@@ -1,4 +1,7 @@
-"""Jaffe potential."""
+"""Private module that defines `JaffePotential` and its functions.
+
+The public API is `galax.potential.jaffe`.
+"""
 
 __all__ = [
     # class

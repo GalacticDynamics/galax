@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `LeeSutoTriaxialNFWPotential` and its functions.
+
+The public API is `galax.potential.leesutotriaxialnfw`.
+"""
 
 __all__ = [
     # class

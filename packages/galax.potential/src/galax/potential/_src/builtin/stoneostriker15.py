@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `StoneOstriker15Potential` and its functions.
+
+The public API is `galax.potential.stoneostriker15`.
+"""
 
 __all__ = [
     # class

@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `IsochronePotential` and its functions.
+
+The public API is `galax.potential.isochrone`.
+"""
 
 __all__ = [
     # class

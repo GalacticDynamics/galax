@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `KeplerPotential` and its functions.
+
+The public API is `galax.potential.kepler`.
+"""
 
 __all__ = [
     # class

@@ -1,4 +1,7 @@
-"""Bar-typed potentials."""
+"""Private module that defines `LongMuraliBarPotential` and its functions.
+
+The public API is `galax.potential.longmuralibar`.
+"""
 
 __all__ = [
     # class

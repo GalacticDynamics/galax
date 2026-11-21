@@ -1,4 +1,8 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `HernquistPotential` and its functions.
+
+The module also holds the triaxial variant. The public API is
+`galax.potential.hernquist`.
+"""
 
 __all__ = [
     # class

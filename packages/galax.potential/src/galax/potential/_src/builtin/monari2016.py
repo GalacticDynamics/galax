@@ -1,4 +1,7 @@
-"""Bar-typed potentials."""
+"""Private module that defines `MonariEtAl2016BarPotential` and its functions.
+
+The public API is `galax.potential.monarietal2016bar`.
+"""
 
 __all__ = [
     # class

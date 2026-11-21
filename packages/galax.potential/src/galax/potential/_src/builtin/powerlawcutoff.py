@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `PowerLawCutoffPotential` and its functions.
+
+The public API is `galax.potential.powerlawcutoff`.
+"""
 
 __all__ = [
     # class

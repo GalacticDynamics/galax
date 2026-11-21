@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `gNFWPotential` and its functions.
+
+The public API is `galax.potential.gnfw`.
+"""
 
 __all__ = [
     # class

@@ -1,4 +1,7 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `GaussianPotential` and its functions.
+
+The public API is `galax.potential.gaussian`.
+"""
 
 __all__ = [
     # class

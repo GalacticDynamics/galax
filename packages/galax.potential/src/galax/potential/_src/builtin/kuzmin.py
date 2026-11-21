@@ -1,4 +1,7 @@
-"""Disk-like potentials."""
+"""Private module that defines `KuzminPotential` and its functions.
+
+The public API is `galax.potential.kuzmin`.
+"""
 
 __all__ = [
     # class

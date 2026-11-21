@@ -1,4 +1,7 @@
-"""Kuzmin-Kutuzov Staeckel potential."""
+"""Private module that defines `KuzminKutuzovPotential` and its functions.
+
+The public API is `galax.potential.kuzminkutuzov`.
+"""
 
 __all__ = [
     # class

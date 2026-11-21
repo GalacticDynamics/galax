@@ -12,7 +12,7 @@ import functools as ft
 import math
 from dataclasses import KW_ONLY
 
-from typing import final
+from typing import Final, final
 
 import equinox as eqx
 import jax
@@ -35,15 +35,15 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical, radial_derivatives
 
-_X_SWITCH = 2.0
-"""$x$ where `_gamma_upper` changes from its series to its continued fraction."""
-_CF_TERMS = 60
+X_SWITCH: Final = 2.0
+"""$x$ where `gamma_upper` changes from its series to its continued fraction."""
+CF_TERMS: Final = 60
 """Terms of the continued fraction: $10^{-17}$ at $x = 2$, for $-1/2 < b \\le 1$."""
-_SERIES_TERMS = 25
+SERIES_TERMS: Final = 25
 """Terms of the series: $2^{25}/25! \\approx 10^{-18}$."""
-_B_SMALL = 0.2
-"""$|b|$ below which `_lgamma1p_over_b` uses its Taylor series."""
-_LGAMMA1P_COEFFS = np.array(
+B_SMALL: Final = 0.2
+"""$|b|$ below which `lgamma1p_over_b` uses its Taylor series."""
+LGAMMA1P_COEFFS: Final = np.array(
     [(-1.0) ** k * zeta(k) / k for k in range(25, 1, -1)] + [-np.euler_gamma]
 )
 r"""Taylor coefficients, highest power first, of $\ln\Gamma(1+b)/b$.
@@ -53,7 +53,7 @@ term is $\sim 10^{-18}$.
 """
 
 
-def _exprel(t: gt.SzN, /) -> gt.SzN:
+def exprel(t: gt.SzN, /) -> gt.SzN:
     r"""$(e^t - 1)/t$, with its removable singularity at $t = 0$ expanded."""
     small = jnp.abs(t) < 1e-2
     series = jnp.polyval(
@@ -63,21 +63,21 @@ def _exprel(t: gt.SzN, /) -> gt.SzN:
     return jnp.where(small, series, jnp.expm1(t_safe) / t_safe)  # type: ignore[no-any-return]
 
 
-def _lgamma1p_over_b(b: gt.SzN, /) -> gt.SzN:
+def lgamma1p_over_b(b: gt.SzN, /) -> gt.SzN:
     r"""$\ln\Gamma(1+b)/b$, finite at $b = 0$ where it is $-\gamma_E$.
 
     $1 + b$ keeps only the digits of $b$ that fit beside the 1, so near $b = 0$
     the direct quotient loses them all; the Taylor series does not.
     """
-    small = jnp.abs(b) < _B_SMALL
+    small = jnp.abs(b) < B_SMALL
     b_safe = jnp.where(small, 1.0, b)
     return jnp.where(  # type: ignore[no-any-return]
-        small, jnp.polyval(_LGAMMA1P_COEFFS, b), jsp.gammaln(1 + b_safe) / b_safe
+        small, jnp.polyval(LGAMMA1P_COEFFS, b), jsp.gammaln(1 + b_safe) / b_safe
     )
 
 
 @ft.partial(jax.jit)
-def _gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
+def gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
     r"""Upper incomplete gamma $\Gamma(b, x) = \int_x^\infty u^{b-1}e^{-u}du$.
 
     For $x > 0$ and any real $b > -1$, including $b \le 0$ where
@@ -107,29 +107,26 @@ def _gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
     Each form sees only its own $x$ (the other is evaluated at the switch), so the
     unused one cannot put a NaN into a gradient.
     """
-    small = x <= _X_SWITCH
-    xs = jnp.where(small, x, _X_SWITCH)
-    xl = jnp.where(small, _X_SWITCH, x)
+    small = x <= X_SWITCH
+    xs = jnp.where(small, x, X_SWITCH)
+    xl = jnp.where(small, X_SWITCH, x)
 
     # The series, for x at most the switch.
     ln_x = jnp.log(xs)
-    ell = _lgamma1p_over_b(b)
-    head = ell * _exprel(b * ell) - ln_x * _exprel(b * ln_x)
+    ell = lgamma1p_over_b(b)
+    head = ell * exprel(b * ell) - ln_x * exprel(b * ln_x)
     c = jnp.stack(
-        [
-            1.0 / (float(math.factorial(k)) * (b + k))
-            for k in range(_SERIES_TERMS, 0, -1)
-        ]
+        [1.0 / (float(math.factorial(k)) * (b + k)) for k in range(SERIES_TERMS, 0, -1)]
     )
-    tail = -xs * jnp.polyval(c, -xs, unroll=_SERIES_TERMS)
+    tail = -xs * jnp.polyval(c, -xs, unroll=SERIES_TERMS)
     series = head - jnp.exp(b * ln_x) * tail
 
     # The continued fraction, evaluated from the tail up.
     def step(i: int, t: gt.SzN) -> gt.SzN:
-        n = _CF_TERMS - 1 - i
+        n = CF_TERMS - 1 - i
         return xl + 2 * n + 1 - b - (n + 1) * (n + 1 - b) / t  # type: ignore[no-any-return]
 
-    t = jax.lax.fori_loop(0, _CF_TERMS, step, xl + 2 * _CF_TERMS + 1 - b)
+    t = jax.lax.fori_loop(0, CF_TERMS, step, xl + 2 * CF_TERMS + 1 - b)
     cf = jnp.exp(b * jnp.log(xl) - xl) / t
 
     return jnp.where(small, series, cf)  # type: ignore[no-any-return]
@@ -244,12 +241,12 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     Both terms are positive, so there is no cancellation. $b \le 0$ for
     $\alpha \ge 2$, where Gala's form, $\gamma(b, x) - \Gamma(b)$, has
-    $\Gamma(b) = \pm\infty$ or NaN: see `_gamma_upper`, which is good through
+    $\Gamma(b) = \pm\infty$ or NaN: see `gamma_upper`, which is good through
     $b = 0$ ($\alpha = 2$, where $\Gamma(0, x) = E_1(x)$).
     """
     a = 1.5 - p["alpha"] / 2
     x = (r / p["r_c"]) ** 2
-    shell = _gamma_upper(a - 0.5, x) / (p["r_c"] * jsp.gamma(a))
+    shell = gamma_upper(a - 0.5, x) / (p["r_c"] * jsp.gamma(a))
     return -p["G"] * (mass_enclosed(p, r) / r + p["m_tot"] * shell)  # type: ignore[no-any-return]
 
 

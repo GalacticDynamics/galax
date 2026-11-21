@@ -1,13 +1,17 @@
 """`UniformAcceleration` with batched positions and times."""
 
+import diffrax as dfx
 import interpax as ipx
 import jax
+import jax.random as jr
 import pytest
 
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.coordinates as gc
 import galax.dynamics as gd
+import galax.fields as gf
 import galax.potential as gp
 from galax.dynamics._src.examples.uniform_acceleration import UniformAcceleration
 
@@ -107,3 +111,40 @@ def test_orbit_with_function_velocity(pot):
         field, (q, p), u.Q(0.0, "Myr"), u.Q(-20.0, "Myr"), dt0=-1.0
     )
     assert jnp.all(jnp.isfinite(soln.ys[0]))
+
+
+def test_mock_stream_with_progenitor_potential():
+    """A mock stream runs in a host with a `UniformAcceleration` term.
+
+    The stream DF takes the host's Hessian along the progenitor's orbit, and
+    with a progenitor potential each particle and its copy of the progenitor
+    are solved as a ``(2, 6)`` state, so the host sees batched positions in
+    both. The scan and vmap paths take the same Leapfrog steps.
+    """
+    host = gp.CompositePotential(
+        mw=gp.HernquistPotential(m_tot=1e12, r_s=20, units="galactic"), acc=POT
+    )
+    integ = gd.integrate.Integrator(
+        gd.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize()),
+        diffeq_kw={"dt0": 0.1, "max_steps": 400},
+    )
+    gen = gd.MockStreamGenerator(
+        gd.ChenStreamDF(),
+        host,
+        progenitor_potential=gp.PlummerPotential(
+            m_tot=1e5, r_s=0.004, units="galactic"
+        ),
+        stream_integrator=integ,
+        progenitor_integrator=integ,
+    )
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([20.0, 0, 5], "kpc"), p=u.Q([0.0, 150, 30], "km/s"), t=u.Q(-10, "Myr")
+    )
+    ts = u.Q(jnp.linspace(-10.0, 10.0, 5), "Myr")
+    out = [
+        gen.run(jr.key(0), ts, w0, u.Q(1e5, "Msun"), vmapped=vm)[0]["lead"].q.x
+        for vm in (False, True)
+    ]
+    assert out[0].shape == (5,)
+    assert jnp.all(jnp.isfinite(out[0].value))
+    assert jnp.allclose(out[0].value, out[1].value, rtol=1e-12, atol=0)

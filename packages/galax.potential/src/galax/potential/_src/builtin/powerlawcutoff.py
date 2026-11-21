@@ -244,6 +244,11 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     $\Gamma(b) = \pm\infty$ or NaN: see `gamma_upper`, which is good through
     $b = 0$ ($\alpha = 2$, where $\Gamma(0, x) = E_1(x)$).
     """
+    # At r = 0, M(<r)/r is 0/0 and ln x is -inf. Phi(0) is finite for alpha < 2
+    # and infinite above, so floor r where r^2 is still a normal float
+    # (~1e-154 r_c in float64): the value there is Phi(0) to round-off for
+    # alpha well below 2, and for alpha >= 2 a large finite number.
+    r = jnp.maximum(r, 2 * jnp.sqrt(jnp.finfo(r.dtype).tiny) * p["r_c"])
     a = 1.5 - p["alpha"] / 2
     x = (r / p["r_c"]) ** 2
     shell = gamma_upper(a - 0.5, x) / (p["r_c"] * jsp.gamma(a))

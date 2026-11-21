@@ -91,19 +91,25 @@ def make_track(
     w_today: Array,
     schedule: Uniform,
     solver: dfxtra.DiffEqSolver,
+    ws: Array,
+    wrt: Any,
 ) -> ProgenitorTrack:
     """Return the progenitor's track from ``w_today`` at ``schedule.t1``.
 
     The knots are the progenitor's states on the lattice for a fixed-step
-    ``solver``, else ``max(20 n_release, 2**14)`` uniform knots. ``theta`` is
-    every inexact array leaf of ``(w_today, pot, schedule)``, raveled; the
-    sensitivity is `jax.jacfwd` of the knots with a `diffrax.ForwardMode` copy
-    of ``solver``. Knots and sensitivity are constants (`stop_gradient`).
+    ``solver`` (``ws``, from `progenitor_states` with ``solver``, not solved
+    again), else ``max(20 n_release, 2**14)`` uniform knots. ``theta`` is
+    the inexact array leaves of ``(w_today, pot, schedule)`` that the
+    equinox filter spec ``wrt`` selects, raveled; the sensitivity is
+    `jax.jacfwd` of the knots with a `diffrax.ForwardMode` copy of
+    ``solver``. Knots and sensitivity are constants (`stop_gradient`).
     """
     if not is_lattice(solver):
         n = max(KNOTS_PER_RELEASE * schedule.n_release, MIN_KNOTS)
         schedule = Uniform(schedule.t_age, n, 1, schedule.t1)
-    dyn, static = eqx.partition((w_today, pot, schedule), eqx.is_inexact_array)
+    dyn, static = eqx.partition((w_today, pot, schedule), wrt)
+    dyn, rest = eqx.partition(dyn, eqx.is_inexact_array)
+    static = eqx.combine(rest, static)
     theta, unravel = ravel_pytree(dyn)
     fwd = eqx.tree_at(lambda s: s.adjoint, solver, dfx.ForwardMode())
 
@@ -112,7 +118,7 @@ def make_track(
         return progenitor_states(p, w, sched, fwd)
 
     th0 = sg(theta)
-    w = sg(knots(th0))
+    w = sg(ws if is_lattice(solver) else knots(th0))
     S = sg(jax.jacfwd(knots)(th0))  # (n, 6, len(theta))
     dt = jnp.asarray(schedule.t_age, dtype=float) / schedule.n_steps()
     return ProgenitorTrack(

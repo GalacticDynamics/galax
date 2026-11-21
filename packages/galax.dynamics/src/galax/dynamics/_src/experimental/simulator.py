@@ -72,13 +72,36 @@ class SharedTrack(eqx.Module):
     the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
     between knots (its fixed-step lattice, or ``max(20 n_release, 2**14)``
     uniform knots of an adaptive solve). Gradients use the knots' sensitivity
-    to every inexact array leaf of ``(w_today, pot, schedule)``, computed once
-    with `jax.jacfwd`; a forward-only run never computes it.
+    ``S`` to ``theta``, the inexact array leaves of ``(w_today, pot,
+    schedule)`` that ``wrt`` selects, computed once with `jax.jacfwd`. Under
+    `jax.jit` a forward-only run never computes ``S``: nothing uses it, so XLA
+    drops it as dead code.
+
+    ``S`` takes one tangent progenitor solve per entry of ``theta`` and holds
+    ``(n_knots, 6, len(theta))`` floats, so the gradient's cost and memory grow
+    with ``len(theta)``. A host with many parameters (a multipole expansion
+    has thousands) can restrict ``theta`` with ``wrt``.
 
     First derivatives are exact. Second derivatives through the track are not:
     its sensitivity is held constant, so the track's own curvature in those
     inputs is dropped.
+
+    Parameters
+    ----------
+    wrt : filter spec
+        An equinox filter spec (as for `equinox.partition`) over ``(w_today,
+        pot, schedule)``: a callable applied to each leaf, or a pytree prefix
+        of bools and callables (built with `equinox.tree_at` on array leaves,
+        e.g. ``pot["halo"].m.value.value``, not on parameter nodes, which
+        can't hold a bool). Default: every inexact array leaf. Leaves
+        outside ``theta`` get no gradient through the track: the part of their
+        gradient from moving the progenitor that the particles orbit is
+        dropped, not approximated. Their effect on the release states and on
+        the host's force on the particles is kept. Left out, ``t_age`` and
+        ``t1`` still move the knot times; only the knots' values are held.
     """
+
+    wrt: Any = eqx.is_inexact_array
 
 
 class Copies(eqx.Module):
@@ -364,7 +387,7 @@ def _evolve(
     else:  # one row about the shared track
         psolver = sim.progenitor_solver
         psolver = sim.solver if psolver is None else psolver
-        track = make_track(pot, w_today, schedule, psolver)
+        track = make_track(pot, w_today, schedule, psolver, ws, mode.progenitor.wrt)
         terms = _TrackField(pot, prog_pot, track).terms(sim.solver)
         w0 = w0[:, :, None]
     w = evolve_per_particle(terms, sim.solver, w0, lattice[idx], lattice, mode.loop)

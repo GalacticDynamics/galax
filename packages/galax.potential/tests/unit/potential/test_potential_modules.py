@@ -271,6 +271,75 @@ def test_param_gradient(pot):
     np.testing.assert_allclose(got, jax.grad(via_class)(p[key]), rtol=1e-10)
 
 
+def as_float32(tree):
+    """Cast every floating leaf of ``tree`` to float32."""
+
+    def cast(a):
+        return a.astype(jnp.float32) if jnp.issubdtype(a.dtype, jnp.floating) else a
+
+    return jax.tree.map(cast, tree)
+
+
+def to_si(pot, m):
+    """``pot`` in SI units with mass parameter ``m``."""
+    kw = {
+        f.name: getattr(pot, f.name)
+        for f in dataclasses.fields(pot)
+        if f.name not in ("units", "constants")
+    }
+    key = "m_tot" if "m_tot" in kw else "m"
+    return type(pot)(**{**kw, key: m}, units="si")
+
+
+# float32 in SI units: r ~ 1e19 m, so r**3 overflows float32 (max ~3e38).
+# 1e7 Msun, since 1e12 Msun in kg overflows float32 too.
+M_SI = u.Q(1e7, "Msun")
+F32_SI_RADII = (1e16, 3e17, 3.0857e18, 1e19)  # m
+# Wrong in float32 SI before the spherical kernels see them, and the class
+# methods equally so: their radial derivatives are autodiff of a closed form.
+F32_SI_EXCLUDED = {
+    "plummer": "Phi' forms r**2 + r_s**2 ~ 2e40",
+    "isochrone": "Phi' forms r**2 + r_s**2 ~ 2e40",
+    "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
+    # r**-3 underflows float32 beyond 4.4e12 m, r**-2 beyond 9.2e18 m.
+    "jaffe": "Phi'' forms r**-3, Phi' r**-2",
+    "kepler": "Phi'' forms r**-3, Phi' r**-2",
+    # Right in a float32-only run; under the suite's x64 one `lax.cond` branch
+    # of its `potential` is float64 and rejects float32 parameters.
+    "powerlawcutoff": "x64 promotes a lax.cond branch",
+}
+
+
+@pytest.mark.parametrize("name", VECTOR)
+def test_float32_si_gradient_hessian(pot, name):
+    """The jitted float32 ``gradient`` and ``hessian`` in SI units match float64."""
+    if pot.symmetry != gp.Symmetry.SPHERICAL:
+        pytest.skip("radial kernels only")
+    if module_name(pot) in F32_SI_EXCLUDED:
+        pytest.skip(F32_SI_EXCLUDED[module_name(pot)])
+    fn = getattr(module_for(pot), name)
+    p64 = to_si(pot, M_SI).params(0.0)
+    p32 = as_float32(p64)
+    for r in F32_SI_RADII:
+        x64 = r * jnp.array([2.0, 3.0, 6.0]) / 7
+        got, want = jax.jit(fn)(p32, x64.astype(jnp.float32)), fn(p64, x64)
+        assert got.dtype == jnp.float32
+        # Relative to the largest entry: near a core's centre the outer term
+        # Phi'' - Phi'/r cancels to below float32 resolution.
+        atol = 1e-4 * np.abs(want).max()
+        np.testing.assert_allclose(got, want, rtol=1e-4, atol=atol, err_msg=f"r={r}")
+
+
+def test_float32_si_zhao_class_gradient():
+    """Zhao's class gradient in float32 SI keeps its pre-PR (32642250) value."""
+    pot = gp.ZhaoPotential(m=M_SI, r_s=RS, alpha=0.5, beta=4.0, gamma=1.0, units="si")
+    xyz = jnp.array([3.0857e18, 0.0, 0.0], dtype=jnp.float32)  # 0.1 kpc
+    # `_gradient`: the public `gradient` promotes to float64 under x64.
+    got = as_float32(pot)._gradient(xyz, jnp.float32(0.0))
+    assert got.dtype == jnp.float32
+    np.testing.assert_allclose(got, [9.5148315e-14, 0.0, 0.0], rtol=1e-4)
+
+
 @pytest.mark.parametrize("name", ["potential", "density"])
 def test_class_methods_call_module_kernels(pot, name):
     """``_<name>`` of the class calls the module-level ``<name>``: no formula twice."""

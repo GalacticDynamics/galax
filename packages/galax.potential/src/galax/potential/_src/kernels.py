@@ -120,7 +120,9 @@ def spherical_gradient(
         # The inner `where` keeps the division away from r = 0 in the
         # primal, so no NaN or inf reaches a later gradient of this function.
         r = jnp.where(origin, 1.0, safe_vector_norm(xyz))
-        out = (dpotential_dr(p, r) / r)[..., None] * xyz
+        # Times the unit vector: XLA rewrites (a / b) / c to a / (b * c), so a
+        # `/ r` after a `G M / r**2` forms r**3, which overflows float32 in SI.
+        out = dpotential_dr(p, r)[..., None] * (xyz / r[..., None])
         return jnp.where(origin[..., None], 0.0, out)  # type: ignore[no-any-return]
 
     return jax.jit(gradient)
@@ -144,14 +146,18 @@ def spherical_hessian(
         # The inner `where` keeps every radial kernel away from r = 0, where
         # shell-theorem profiles (M ~ r^3) underflow to 0 / 0.
         r1 = jnp.where(origin, 1.0, safe_vector_norm(xyz))
-        dphi_over_r = dpotential_dr(p, r1) / r1
-        coeff = jnp.where(origin, 0.0, (d2potential_dr2(p, r1) - dphi_over_r) / r1**2)
+        # `* (1 / r1)`, not `/ r1`, so that no r**3 forms (see
+        # `spherical_gradient`), and unit vectors in `outer`: a coefficient
+        # divided by r**2 underflows float32 in SI.
+        dphi_over_r = dpotential_dr(p, r1) * (1 / r1)
+        coeff = jnp.where(origin, 0.0, d2potential_dr2(p, r1) - dphi_over_r)
         # r0 is 0 only at the origin, so a cusp's inf never reaches an
         # off-origin cotangent of `p`.
         r0 = jnp.where(origin, 0.0, r1)
         iso = jnp.where(origin, laplacian(p, r0) / 3, dphi_over_r)
         eye = jnp.eye(3, dtype=bool)
-        outer = xyz[..., :, None] * xyz[..., None, :]
+        rhat = xyz / r1[..., None]
+        outer = rhat[..., :, None] * rhat[..., None, :]
         iso_eye = jnp.where(eye, iso[..., None, None], 0.0)
         return iso_eye + coeff[..., None, None] * outer  # type: ignore[no-any-return]
 

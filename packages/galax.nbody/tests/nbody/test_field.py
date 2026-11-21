@@ -559,3 +559,25 @@ def test_nan_massive_particle_poisons_every_row() -> None:
     )
     q = jnp.asarray([[jnp.nan, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 5.0, 0.0]])
     assert bool(jnp.all(jnp.isnan(field.acceleration(0.0, q))))
+
+
+def test_tracer_with_non_finite_external_force_sends_no_nan_back() -> None:
+    """A tracer at a finite point where the external force is NaN stays isolated.
+
+    At the centre of a Kepler potential the external force is 0/0. The
+    tracer's position is finite, so only its force shows it is bad.
+    """
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    m = jnp.asarray([1e9, 1e9, 0.0])
+    q = jnp.asarray([[8.0, 0.0, 0.0], [-8.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+
+    def acc(m, q):
+        field = gn.NBodyField(masses=m, eps=0.1, external_potential=pot, n_massive=2)
+        return field.acceleration(0.0, q)
+
+    a, vjp = jax.vjp(acc, m, q)
+    assert bool(jnp.all(jnp.isnan(a[2])))
+    assert bool(jnp.all(jnp.isfinite(a[:2])))
+    gm, gq = vjp(jnp.ones_like(a).at[2].set(0.0))
+    assert bool(jnp.all(jnp.isfinite(gm)))
+    assert bool(jnp.all(jnp.isfinite(gq)))

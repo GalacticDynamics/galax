@@ -45,7 +45,12 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
     gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
     gp.LongMuraliBarPotential(
-        m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
+        m_tot=M,
+        a=RS,
+        b=u.Q(1.2, "kpc"),
+        c=u.Q(0.7, "kpc"),  # b != c, so that a swap of the two shows
+        alpha=u.Q(0.3, "rad"),
+        units=G,
     ),
     gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
     gp.MonariEtAl2016BarPotential(

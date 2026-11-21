@@ -281,12 +281,9 @@ def _use_rows(field: NBodyField, q: Float[Array, "N 3"]) -> Array:
 
 
 def _sources_targets(
-    field: NBodyField, q: Float[Array, "N 3"], use: Array | None = None
+    field: NBodyField, q: Float[Array, "N 3"]
 ) -> tuple[Float[Array, "N 3"], Sources, Targets]:
-    """Return ``q`` with unused rows moved away, and the sources and targets.
-
-    ``use`` defaults to `_use_rows`.
-    """
+    """Return ``q`` with unused rows moved away, and the sources and targets."""
     nm = field.n_massive
     idx = jnp.arange(q.shape[0])
     # Inactive rows and non-finite tracers are moved to distinct far-away
@@ -294,8 +291,7 @@ def _sources_targets(
     # Neither their forward values nor their gradients (0 * NaN is NaN) can
     # then reach the other rows.
     safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
-    use = _use_rows(field, q) if use is None else use
-    q = jnp.where(use[:, None], q, safe)
+    q = jnp.where(_use_rows(field, q)[:, None], q, safe)
     sources = Sources(
         q=q[:nm], m=(field.masses * field.active)[:nm], h=field.softening[:nm]
     )
@@ -312,13 +308,19 @@ def nbody_acceleration(
     the external term, zeroed for inactive particles. In ``__call__`` the
     velocity of an inactive row passes through unchanged, so it keeps drifting.
 
-    An active tracer with a non-finite position, or one where the external
-    force is not finite (outside a potential's valid region, say), gets a NaN
-    acceleration. That NaN, and any NaN cotangent later arriving on its row,
-    stays out of the
+    An active tracer with a non-finite position gets a NaN acceleration. That
+    NaN, and any NaN cotangent later arriving on its row, stays out of the
     other particles' values and gradients. An active massive particle with a
     non-finite position makes every active particle's acceleration NaN, since
     its force reaches them all; inactive rows still get 0.
+
+    A tracer at a finite position where the external potential's force, or
+    its derivative, is not finite (outside a user potential's valid region,
+    or exactly at a singular point) gets that non-finite force. Values of the
+    other particles are unaffected, but reverse-mode gradients through such a
+    step are NaN, because a zero cotangent times a NaN Jacobian is NaN.
+    Parked rows are also evaluated far away (`_SAFE`), so a potential that is
+    not finite there does the same.
 
     Traced masses and softening are checked here on the result, so the checks
     run whenever the acceleration is used, even when the inputs themselves
@@ -327,16 +329,7 @@ def nbody_acceleration(
     nm = field.n_massive
     # A NaN cotangent on a non-finite tracer stops at the final `where` below.
     use = _use_rows(field, q)
-    # A tracer can have a finite position and a non-finite external force.
-    # Its Jacobian there is NaN too, so it is found from a forward evaluation
-    # and parked like a non-finite tracer before the force is evaluated again.
-    # ponytail: the external force is evaluated twice (about 1.2-1.3x its
-    # cost); skip the check if no potential can be non-finite where defined.
-    parked, _, _ = _sources_targets(field, q, use)
-    ext = jax.lax.stop_gradient(gp.gradient(field.external_potential, parked, t))
-    tracer = jnp.arange(q.shape[0]) >= nm
-    use = use & ~(tracer & ~jnp.all(jnp.isfinite(jnp.asarray(ext)), axis=-1))
-    q, sources, targets = _sources_targets(field, q, use)
+    q, sources, targets = _sources_targets(field, q)
     backend = field.backend
     # G multiplies outside the gradient policy, so StopGrad on m keeps dG and
     # NoGrad's custom_jvp never closes over a traced G.

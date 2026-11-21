@@ -327,17 +327,29 @@ M_SI = u.Q(1e7, "Msun")
 F32_SI_RADII = (1e16, 3e17, 3.0857e18, 1e19)  # m
 # Wrong in float32 SI before the spherical kernels see them, and the class
 # methods equally so: their radial derivatives are autodiff of a closed form.
+_PHI1_SUM = "Phi' forms r**2 + r_s**2 ~ 2e40"
+_PHI2_INV = "Phi'' forms r**-3, which underflows float32 beyond 4.4e12 m"
+# Right in a float32-only run; under the suite's x64 one `lax.cond` branch of
+# its `potential` is float64 and rejects float32 parameters.
+_X64_COND = "x64 promotes a lax.cond branch"
 F32_SI_EXCLUDED = {
-    "plummer": "Phi' forms r**2 + r_s**2 ~ 2e40",
-    "isochrone": "Phi' forms r**2 + r_s**2 ~ 2e40",
-    "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
-    # r**-3 underflows float32 beyond 4.4e12 m, r**-2 beyond 9.2e18 m.
-    "jaffe": "Phi'' forms r**-3, Phi' r**-2",
-    "kepler": "Phi'' forms r**-3, Phi' r**-2",
-    # Right in a float32-only run; under the suite's x64 one `lax.cond` branch
-    # of its `potential` is float64 and rejects float32 parameters.
-    "powerlawcutoff": "x64 promotes a lax.cond branch",
+    "gradient": {
+        "plummer": _PHI1_SUM,
+        "isochrone": _PHI1_SUM,
+        "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
+        "powerlawcutoff": _X64_COND,
+    },
+    "hessian": {
+        "plummer": _PHI1_SUM,
+        "isochrone": _PHI1_SUM,
+        "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
+        "jaffe": _PHI2_INV,
+        "kepler": _PHI2_INV,
+        "powerlawcutoff": _X64_COND,
+    },
 }
+# Their Phi' forms r**-2, which underflows float32 beyond 9.2e18 m.
+F32_SI_MAX_R = {"jaffe": 9.2e18, "kepler": 9.2e18}
 
 
 @pytest.mark.parametrize("name", VECTOR)
@@ -345,12 +357,13 @@ def test_float32_si_gradient_hessian(pot, name):
     """The jitted float32 ``gradient`` and ``hessian`` in SI units match float64."""
     if pot.symmetry != gp.Symmetry.SPHERICAL:
         pytest.skip("radial kernels only")
-    if module_name(pot) in F32_SI_EXCLUDED:
-        pytest.skip(F32_SI_EXCLUDED[module_name(pot)])
+    if module_name(pot) in F32_SI_EXCLUDED[name]:
+        pytest.skip(F32_SI_EXCLUDED[name][module_name(pot)])
+    r_max = F32_SI_MAX_R.get(module_name(pot), np.inf)
     fn = getattr(module_for(pot), name)
     p64 = to_si(pot, M_SI).params(0.0)
     p32 = as_float32(p64)
-    for r in F32_SI_RADII:
+    for r in (r for r in F32_SI_RADII if r < r_max):
         x64 = r * jnp.array([2.0, 3.0, 6.0]) / 7
         got, want = jax.jit(fn)(p32, x64.astype(jnp.float32)), fn(p64, x64)
         assert got.dtype == jnp.float32

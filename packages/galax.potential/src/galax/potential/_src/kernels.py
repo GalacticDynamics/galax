@@ -23,6 +23,17 @@ The factories here build the quantities that have no closed form from the ones
 that do. Every returned function is `jax.jit`-ed. `spherical_gradient` and
 `spherical_hessian` are written with ``axis=-1`` and ellipsis-safe ops, so they
 also accept batches of points; that is not part of the contract.
+
+`spherical_gradient` and `spherical_hessian` are tested in float32 with SI-scale
+values when the parameters are traced arguments, for example when ``p`` is an
+argument of the jitted function. With float32 and SI-scale values an
+intermediate such as ``r**3`` can overflow. When the parameters are compile-time
+constants closed over by `jax.jit`, XLA can fold the arithmetic into that form,
+so the results are not guaranteed and some come out as 0. Use float64, or a unit
+system in which typical values are of order 1, such as galactic. In float32
+with SI-scale values the Hessian at exactly ``xyz = 0`` can also contain NaN,
+because it is ``laplacian(p, 0) / 3`` and several potentials, NFW and Hernquist
+among them, return NaN for ``laplacian(p, 0)`` there.
 """
 
 __all__ = (

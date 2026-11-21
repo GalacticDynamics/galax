@@ -140,6 +140,18 @@ use them when the inputs carry units. The module functions are for code that
 already holds arrays in one system, such as integrators, fits and N-body
 kernels.
 
+Float32 needs care in SI units. The spherical ``gradient`` and ``hessian`` are
+tested in float32 with SI-scale values when the parameters are traced
+arguments, for example when ``p`` is an argument of the jitted function. With
+float32 and SI-scale values an intermediate such as ``r**3`` can overflow. When
+the parameters are compile-time constants closed over by ``jit``, XLA can fold
+the arithmetic into that form, so the results are not guaranteed and some come
+out as 0. Use float64, or a unit system in which typical values are of order 1,
+such as galactic. In float32 with SI-scale values the ``hessian`` at exactly
+``xyz = 0`` can also contain NaN, because it is ``laplacian(p, 0) / 3`` and
+several potentials, NFW and Hernquist among them, return NaN for
+``laplacian(p, 0)`` there.
+
 
 The modules
 ===========

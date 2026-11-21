@@ -220,13 +220,41 @@ def test_autodiff_reference(pot):
         )
 
 
+# Off-centre radii (kpc), >= 0.1 r_s and away from HardCutoffNFW's r_t = 20.
+RADII = (0.5, 1.7, 3.0, 7.0, 30.0)
+
+
+def test_d2potential_dr2_poisson_identity(pot):
+    """``Phi'' = 4 pi G rho - 2 Phi'/r`` (Poisson in radial form), and ``(Phi')'``."""
+    if pot.symmetry != gp.Symmetry.SPHERICAL:
+        pytest.skip("radial kernels only")
+    module, p = module_for(pot), pot.params(0.0)
+    d1, d2 = module.dpotential_dr, module.d2potential_dr2
+    for r in map(jnp.asarray, RADII):
+        poisson = 4 * jnp.pi * p["G"] * module.density(p, r) - 2 * d1(p, r) / r
+        np.testing.assert_allclose(d2(p, r), poisson, rtol=1e-6, err_msg=f"r={r}")
+        h = 1e-5 * r
+        fd = (d1(p, r + h) - d1(p, r - h)) / (2 * h)
+        np.testing.assert_allclose(d2(p, r), fd, rtol=1e-6, err_msg=f"r={r}")
+
+
 def test_origin(pot):
     """Spherical origin rule: gradient 0, hessian `laplacian(p, 0) / 3 * I`."""
     if pot.symmetry != gp.Symmetry.SPHERICAL:
         pytest.skip("origin handling is a spherical-kernel contract")
     module, p, x0 = module_for(pot), pot.params(0.0), jnp.zeros(3)
+    key = "m_tot" if "m_tot" in p else "m"
+
+    def at_origin(fn):
+        """``fn(p, 0)`` as a function of the mass parameter."""
+        return lambda m: fn({**p, key: m}, x0)
 
     assert np.array_equal(module.gradient(p, x0), np.zeros(3))
+    # The outer `where` discards the tangent; the inner one keeps NaN out of
+    # reverse mode and the parameter derivative.
+    assert np.array_equal(jax.jacfwd(module.gradient, 1)(p, x0), np.zeros((3, 3)))
+    assert np.all(np.isfinite(jax.jacrev(module.gradient, 1)(p, x0)))
+    assert np.all(np.isfinite(jax.jacfwd(at_origin(module.gradient))(p[key])))
 
     h0 = np.asarray(module.hessian(p, x0))
     assert not np.any(np.isnan(h0))
@@ -236,6 +264,8 @@ def test_origin(pot):
         # A core: Phi'/r -> Phi''(0), read off the transverse entry nearby.
         near = module.hessian(p, jnp.array([1e-6, 0.0, 0.0]))[1, 1]
         np.testing.assert_allclose(np.diag(h0), near, rtol=1e-6)
+        assert np.all(np.isfinite(jax.jacrev(module.hessian, 1)(p, x0)))
+        assert np.all(np.isfinite(jax.jacfwd(at_origin(module.hessian))(p[key])))
     else:
         assert np.all(np.diag(h0) == np.inf)
 

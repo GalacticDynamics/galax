@@ -425,6 +425,8 @@ def test_bad_inputs_raise():
     toy = IsochroneToy(m=u.Q(1e11, "Msun"), b=u.Q(2.0, "kpc"))
     with pytest.raises(TypeError, match="bare arrays"):
         o2gf(ISO, q, p, t, n_max=N_MAX, toy=toy)
+    with pytest.raises(TypeError, match="IsochroneToy or OscillatorToy"):
+        o2gf(ISO, q, p, t, n_max=N_MAX, toy=(1e11, 2.0))
     with pytest.raises(ValueError, match="time axis"):
         o2gf(ISO, _w0(ISO_Q0, ISO_P0), n_max=N_MAX)
     with pytest.raises(ValueError, match="time axis"):

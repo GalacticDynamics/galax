@@ -221,41 +221,63 @@ def _mw(s):
     )
 
 
-def test_track_wrt() -> None:
-    """Restricting theta keeps its leaves' gradients and shrinks S."""
-    sched = gde.Uniform(jnp.asarray(300.0), 4, 20)
-    tree = (W_TODAY, _mw(1.0), sched)
-    # Select leaves, not nodes: a parameter node can't hold a placeholder.
-    false = jax.tree.map(lambda _: False, tree)
-    wrt = eqx.tree_at(
-        lambda t: (t[0], t[1]["halo"].m.value.value, t[2].t_age),
-        false,
-        replace=(True,) * 3,
-    )
+def _wrt(w, pot, s):
+    return w, pot["halo"].m, s.t_age
+
+
+@pytest.mark.parametrize(
+    ("psolver", "shapes"),
+    [(None, [(4, 20), (5, 8)]), (adaptive(1e-10, 10_000), [(4, 20)])],
+    ids=["lattice", "adaptive"],
+)
+def test_track_wrt(psolver, shapes) -> None:
+    """Restricting theta keeps its leaves' gradients and shrinks S.
+
+    One `wrt` serves every schedule shape: it isn't tied to a treedef.
+    """
 
     def grad(**track_kw):
         sim = gde.SpraySimulator(
             gde.Chen2024DF(),
             gde.PerParticle(gde.SharedTrack(**track_kw)),
             progenitor_potential=plummer,
+            progenitor_solver=psolver,
         )
 
-        def f(s, w, t_age):
-            r = simulator.simulate(sim, KEY, _mw(s), w, MSAT, gde.Uniform(t_age, 4, 20))
+        def f(s, w, t_age, n, spr):
+            r = simulator.simulate(
+                sim, KEY, _mw(s), w, MSAT, gde.Uniform(t_age, n, spr)
+            )
             return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
 
-        return jax.jit(jax.grad(f, argnums=(0, 1, 2)))
+        return jax.jit(jax.grad(f, argnums=(0, 1, 2)), static_argnums=(3, 4))
 
     x = (jnp.asarray(1.0), W_TODAY, jnp.asarray(300.0))
-    want = _flat(grad()(*x))
-    got = _flat(grad(wrt=wrt)(*x))
-    np.testing.assert_allclose(got, want, rtol=1e-12, atol=1e-12 * jnp.abs(want).max())
+    full, part = grad(), grad(wrt=_wrt)
+    for shape in shapes:
+        want = _flat(full(*x, *shape))
+        got = _flat(part(*x, *shape))
+        np.testing.assert_allclose(
+            got, want, rtol=1e-12, atol=1e-12 * jnp.abs(want).max(), err_msg=shape
+        )
 
-    ws = progenitor_states(tree[1], W_TODAY, sched, LEAP)
-    full = make_track(tree[1], W_TODAY, sched, LEAP, ws, eqx.is_inexact_array)
-    part = make_track(tree[1], W_TODAY, sched, LEAP, ws, wrt)
-    assert part.Sx.shape[-1] == 8  # w_today, the halo mass, t_age
-    assert full.Sx.shape[-1] == 22, full.Sx.shape  # + 15 host leaves, t1
+    sched = gde.Uniform(jnp.asarray(300.0), *shapes[0])
+    solver = LEAP if psolver is None else psolver
+    ws = progenitor_states(_mw(1.0), W_TODAY, sched, solver)
+
+    def n_theta(wrt):
+        track = eqx.filter_jit(make_track)(_mw(1.0), W_TODAY, sched, solver, ws, wrt)
+        return track.Sx.shape[-1]
+
+    assert n_theta(_wrt) == 8  # w_today, the halo mass, t_age
+    assert n_theta(None) == 22  # + 15 host leaves, t1
+
+
+def test_track_wrt_must_select_inputs() -> None:
+    sched = gde.Uniform(jnp.asarray(300.0), 4, 20)
+    ws = progenitor_states(HOST, W_TODAY, sched, LEAP)
+    with pytest.raises(ValueError, match="wrt must return"):
+        make_track(HOST, W_TODAY, sched, LEAP, ws, lambda w, *_: w[:3])
 
 
 @pytest.mark.slow

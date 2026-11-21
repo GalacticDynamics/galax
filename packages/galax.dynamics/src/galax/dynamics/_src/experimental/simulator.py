@@ -89,12 +89,13 @@ class SharedTrack(eqx.Module):
 
     Parameters
     ----------
-    wrt : filter spec
-        An equinox filter spec (as for `equinox.partition`) over ``(w_today,
-        pot, schedule)``: a callable applied to each leaf, or a pytree prefix
-        of bools and callables (built with `equinox.tree_at` on array leaves,
-        e.g. ``pot["halo"].m.value.value``, not on parameter nodes, which
-        can't hold a bool). Default: every inexact array leaf. Leaves
+    wrt : Callable | None
+        Like `equinox.tree_at`'s ``where``: called with the call's
+        ``(w_today, pot, schedule)``, it returns the leaves or subtrees to
+        differentiate, e.g. ``lambda w, pot, s: (w, pot["halo"].m, s.t_age)``.
+        Every inexact array under them goes into ``theta``. `None` (the
+        default) means every inexact array leaf. A selection with no inexact
+        leaves gives an empty ``theta``, so the track gets no gradient. Leaves
         outside ``theta`` get no gradient through the track: the part of their
         gradient from moving the progenitor that the particles orbit is
         dropped, not approximated. Their effect on the release states and on
@@ -102,7 +103,7 @@ class SharedTrack(eqx.Module):
         ``t1`` still move the knot times; only the knots' values are held.
     """
 
-    wrt: Any = eqx.is_inexact_array
+    wrt: Callable[..., Any] | None = None
 
 
 class Copies(eqx.Module):

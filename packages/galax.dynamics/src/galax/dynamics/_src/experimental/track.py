@@ -2,6 +2,7 @@
 
 __all__: tuple[str, ...] = ()
 
+from collections.abc import Callable
 from jaxtyping import Array
 from typing import Any
 
@@ -92,35 +93,48 @@ def make_track(
     schedule: Uniform,
     solver: dfxtra.DiffEqSolver,
     ws: Array,
-    wrt: Any,
+    wrt: Callable[..., Any] | None,
 ) -> ProgenitorTrack:
     """Return the progenitor's track from ``w_today`` at ``schedule.t1``.
 
     The knots are the progenitor's states on the lattice for a fixed-step
     ``solver`` (``ws``, from `progenitor_states` with ``solver``, not solved
     again), else ``max(20 n_release, 2**14)`` uniform knots. ``theta`` is
-    the inexact array leaves of ``(w_today, pot, schedule)`` that the
-    equinox filter spec ``wrt`` selects, raveled; the sensitivity is
+    the inexact array leaves under what ``wrt(w_today, pot, schedule)``
+    returns (every inexact leaf for `None`), raveled; the sensitivity is
     `jax.jacfwd` of the knots with a `diffrax.ForwardMode` copy of
     ``solver``. Knots and sensitivity are constants (`stop_gradient`).
     """
-    if not is_lattice(solver):
-        n = max(KNOTS_PER_RELEASE * schedule.n_release, MIN_KNOTS)
-        schedule = Uniform(schedule.t_age, n, 1, schedule.t1)
-    dyn, static = eqx.partition((w_today, pot, schedule), wrt)
-    dyn, rest = eqx.partition(dyn, eqx.is_inexact_array)
-    static = eqx.combine(rest, static)
+    tree = (w_today, pot, schedule)
+    if wrt is None:
+        pick: Any = eqx.is_inexact_array
+    else:
+        # Select by identity, so no spec has to match the tree's structure.
+        ids = {id(x) for x in jax.tree.leaves(wrt(*tree)) if eqx.is_inexact_array(x)}
+        if not ids <= {id(x) for x in jax.tree.leaves(tree)}:
+            msg = "wrt must return leaves or subtrees of (w_today, pot, schedule)"
+            raise ValueError(msg)
+
+        def pick(x: Any) -> bool:
+            return eqx.is_inexact_array(x) and id(x) in ids
+
+    dyn, static = eqx.partition(tree, pick)
     theta, unravel = ravel_pytree(dyn)
     fwd = eqx.tree_at(lambda s: s.adjoint, solver, dfx.ForwardMode())
+    n = max(KNOTS_PER_RELEASE * schedule.n_release, MIN_KNOTS)
+
+    def knot_schedule(sched: Uniform) -> Uniform:
+        return sched if is_lattice(solver) else Uniform(sched.t_age, n, 1, sched.t1)
 
     def knots(th: Array) -> Array:
         w, p, sched = eqx.combine(unravel(th), static)
-        return progenitor_states(p, w, sched, fwd)
+        return progenitor_states(p, w, knot_schedule(sched), fwd)
 
     th0 = sg(theta)
     w = sg(ws if is_lattice(solver) else knots(th0))
     S = sg(jax.jacfwd(knots)(th0))  # (n, 6, len(theta))
-    dt = jnp.asarray(schedule.t_age, dtype=float) / schedule.n_steps()
+    ks = knot_schedule(schedule)
+    dt = jnp.asarray(ks.t_age, dtype=float) / ks.n_steps()
     return ProgenitorTrack(
-        theta, schedule.lattice()[0], dt, w[:, :3], w[:, 3:], S[:, :3], S[:, 3:]
+        theta, ks.lattice()[0], dt, w[:, :3], w[:, 3:], S[:, :3], S[:, 3:]
     )

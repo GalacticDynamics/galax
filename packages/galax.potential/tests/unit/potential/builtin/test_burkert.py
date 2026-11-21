@@ -1,5 +1,6 @@
 from typing import Any, ClassVar
 
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
@@ -10,6 +11,21 @@ import galax.potential.custom_types as gt
 from ..optional_deps import OptDeps
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMMixin, ParameterRSMixin
+from galax.potential import burkert
+
+
+def test_rho0() -> None:
+    """``burkert.rho0`` is the central density: ``m / (pi C r_s^3)``."""
+    pot = gp.BurkertPotential(
+        m=u.Q(1e11, "Msun"), r_s=u.Q(2.5, "kpc"), units="galactic"
+    )
+    got = burkert.rho0(pot.m(0.0), pot.r_s(0.0)).ustrip("Msun / kpc3")
+    # C = 3 ln 2 - pi / 2, from the docstring.
+    c = 3 * np.log(2) - np.pi / 2
+    expect = 1e11 / (np.pi * c * 2.5**3)
+    np.testing.assert_allclose(got, expect, rtol=1e-12)
+    np.testing.assert_allclose(got, burkert.density(pot.params(0.0), 0.0), rtol=1e-12)
+    np.testing.assert_allclose(pot.rho0(0.0).ustrip("Msun / kpc3"), got, rtol=1e-12)
 
 
 class TestBurkertPotential(

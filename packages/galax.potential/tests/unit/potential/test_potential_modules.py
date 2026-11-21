@@ -237,7 +237,10 @@ def test_d2potential_dr2_poisson_identity(pot):
     d1, d2 = module.dpotential_dr, module.d2potential_dr2
     for r in map(jnp.asarray, RADII):
         poisson = 4 * jnp.pi * p["G"] * module.density(p, r) - 2 * d1(p, r) / r
-        np.testing.assert_allclose(d2(p, r), poisson, rtol=1e-6, err_msg=f"r={r}")
+        # Measured error <= 2.5e-14 on all 13 spherical modules; 1e-9 leaves
+        # a margin of 4e4.
+        np.testing.assert_allclose(d2(p, r), poisson, rtol=1e-9, err_msg=f"r={r}")
+        # Central difference: truncation and roundoff, <= 1.2e-9 measured.
         h = 1e-5 * r
         fd = (d1(p, r + h) - d1(p, r - h)) / (2 * h)
         np.testing.assert_allclose(d2(p, r), fd, rtol=1e-6, err_msg=f"r={r}")
@@ -334,15 +337,11 @@ F32_SI_RADII = (1e16, 3e17, 3.0857e18, 1e19)  # m
 # methods equally so: their radial derivatives are autodiff of a closed form.
 _PHI1_SUM = "Phi' forms r**2 + r_s**2 ~ 2e40"
 _PHI2_INV = "Phi'' forms r**-3, which underflows float32 beyond 4.4e12 m"
-# Right in a float32-only run; under the suite's x64 one `lax.cond` branch of
-# its `potential` is float64 and rejects float32 parameters.
-_X64_COND = "x64 promotes a lax.cond branch"
 F32_SI_EXCLUDED = {
     "gradient": {
         "plummer": _PHI1_SUM,
         "isochrone": _PHI1_SUM,
         "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
-        "powerlawcutoff": _X64_COND,
     },
     "hessian": {
         "plummer": _PHI1_SUM,
@@ -350,7 +349,6 @@ F32_SI_EXCLUDED = {
         "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
         "jaffe": _PHI2_INV,
         "kepler": _PHI2_INV,
-        "powerlawcutoff": _X64_COND,
     },
 }
 # Their Phi' forms r**-2, which underflows float32 beyond 9.2e18 m.

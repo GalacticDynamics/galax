@@ -3,6 +3,8 @@
 from jaxtyping import Array, Float
 
 import interpax
+import jax
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
@@ -33,6 +35,43 @@ def test_spline_helpers_reproduce_the_cubic_spline(x: Float[Array, "n_r"]) -> No
 
     assert got.shape == (51, 2)
     assert jnp.allclose(got, expect, rtol=0.0, atol=1e-14)
+
+
+@pytest.mark.parametrize("n", [3, 4, 17])
+def test_knot_derivatives_match_interpax(n: int) -> None:
+    """`fit_log_spline` gives `interpax.approx_df`'s not-a-knot derivatives.
+
+    ``n = 3`` goes through `interpax` itself; from four knots the system is
+    solved with `jax.lax.linalg.tridiagonal_solve`.
+    """
+    x = jnp.geomspace(0.05, 2.0, n)
+    y = jnp.stack([jnp.sin(3.0 * x), x**2 * jnp.exp(-x)], axis=-1)[..., None]
+    expect = interpax.approx_df(x, y, "cubic2", 0, bc_type="not-a-knot")
+    assert jnp.allclose(fit_log_spline(x, y), expect, rtol=0.0, atol=1e-13)
+
+
+def test_knot_derivatives_inside_shard_map() -> None:
+    """The fit works inside `jax.shard_map` with values varying over the axis.
+
+    Through `lineax` this raised "Vector and operator structures do not
+    match": the knots are not mapped, the values are.
+    """
+    x = jnp.log(jnp.geomspace(0.01, 1e3, 64))
+    y = jnp.stack([jnp.sin(k * x) for k in (1.0, 2.0)])  # (2, 64)
+    mesh = jax.sharding.Mesh(np.array(jax.devices()[:1]), ("p",))
+    spec = jax.sharding.PartitionSpec("p")
+    f = jax.jit(
+        jax.shard_map(
+            jax.vmap(lambda v: fit_log_spline(x, v)),
+            mesh=mesh,
+            in_specs=spec,
+            out_specs=spec,
+        )
+    )
+    expect = jax.vmap(
+        lambda v: interpax.approx_df(x, v, "cubic2", 0, bc_type="not-a-knot")
+    )(y)
+    assert jnp.allclose(f(y), expect, rtol=0.0, atol=1e-12)
 
 
 def test_spline_interpolates_its_knots_exactly() -> None:

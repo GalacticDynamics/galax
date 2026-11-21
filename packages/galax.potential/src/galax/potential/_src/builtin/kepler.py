@@ -1,13 +1,19 @@
 """galax: Galactic Dynamix in Jax."""
 
-__all__ = (
+__all__ = [
     # class
     "KeplerPotential",
     # functions
+    "d2potential_dr2",
     "density",
-    "potential",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
     "point_mass_potential",
-)
+    "potential",
+]
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -28,6 +34,14 @@ from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
 )
+from galax.potential._src.kernels import (
+    mass_from_dpotential,
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -36,11 +50,48 @@ from galax.potential._src.utils import r_spherical
 
 @final
 class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""The Kepler potential for a point mass.
+    r"""Kepler potential of a point mass.
+
+    The potential is that of all the mass ``m_tot`` concentrated at the origin. It is
+    spherical, the enclosed mass is the same at every radius, and there is no length
+    scale. Bound orbits in it are Keplerian ellipses [BT08Kepler]_. As for the other
+    parameters, ``m_tot`` can depend on time.
+
+    The density is that of a point mass,
 
     .. math::
 
-        \Phi = -\frac{G M(t)}{r}
+        \rho(r) = m_{\mathrm{tot}}\, \delta^{3}(\mathbf{r})
+
+    and the potential is
+
+    .. math::
+
+        \Phi(r) = -\frac{G m_{\mathrm{tot}}}{r}
+
+    where :math:`r` is the distance from the point mass, :math:`m_{\mathrm{tot}}`
+    is its mass, :math:`\delta^{3}` is the three-dimensional Dirac delta
+    function and :math:`G` is the gravitational constant. The potential
+    satisfies Poisson's equation :math:`\nabla^2 \Phi = 4 \pi G \rho`.
+
+    The mass enclosed within any radius :math:`r > 0` is
+    :math:`M(<r) = m_{\mathrm{tot}}`. The circular speed is :math:`v_c^2 = G
+    m_{\mathrm{tot}} / r` and the escape speed is :math:`v_{\mathrm{esc}}^2 =
+    -2 \Phi = 2 G m_{\mathrm{tot}} / r`.
+
+    Notes
+    -----
+    The potential and the density are singular at the origin. The ``density``
+    function returns 0 for :math:`r > 0` and ``inf`` at :math:`r = 0` when
+    ``m_tot`` is not zero, which stands in for the delta function. The
+    potential falls as :math:`1/r` at all radii, unlike the finite-size models
+    in galax such as :class:`~galax.potential.PlummerPotential`, which reduce
+    to it far outside their scale radius.
+
+    References
+    ----------
+    .. [BT08Kepler] Binney, J. & Tremaine, S. (2008). Galactic Dynamics, 2nd ed.
+       Princeton University Press.
     """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -82,11 +133,12 @@ class KeplerPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
     r"""Potential energy for a point mass.
 
-    $$ \Phi(r) = -\frac{G m}{r} $$
+    .. math::
 
-    Where $G$ is the gravitational constant and $m$ is the mass of the point
-    mass.
+        \Phi(r) = -\frac{G m}{r}
 
+    where :math:`G` is the gravitational constant and :math:`m` is the mass of
+    the point mass.
     """
     return -G * m / r
 
@@ -96,11 +148,12 @@ def point_mass_potential(G: gt.Sz0, m: gt.Sz0, r: gt.Sz0, /) -> gt.Sz0:
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
     r"""Kepler potential specific potential energy.
 
-    $$ \Phi(r) = -\frac{G m_{tot}}{r} $$
+    .. math::
 
-    Where $m_{tot}$ is the total mass of the potential and $r$ is the distance
-    from the center of the potential.
+        \Phi(r) = -\frac{G m_{\mathrm{tot}}}{r}
 
+    where :math:`m_{\mathrm{tot}}` is the total mass of the potential and
+    :math:`r` is the distance from the center of the potential.
     """
     return point_mass_potential(p["G"], p["m_tot"], r)  # type: ignore[no-any-return]
 
@@ -109,12 +162,14 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.Sz0:
 def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Density profile for the Kepler potential.
 
-    $$ \rho(r) = \delta(r) $$
+    .. math::
 
-    Where  $\delta(r)$ is the Dirac delta function. The density is only non-zero
-    at the origin, where the mass is located. The density is zero everywhere
-    else.
+        \rho(r) = m_{\mathrm{tot}}\, \delta^{3}(\mathbf{r})
 
+    where :math:`\delta^{3}` is the three-dimensional Dirac delta function. The
+    density is non-zero only at the origin, where the mass is located. The
+    function returns ``inf`` at :math:`r = 0` when ``m_tot`` is not zero and 0
+    everywhere else.
     """
     pred = jnp.logical_or(  # are we at the origin with non-zero mass?
         jnp.greater(r, jnp.zeros_like(r)),
@@ -122,3 +177,12 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     )
     _result = qlax.select(pred, jnp.zeros_like(r), jnp.full_like(r, fill_value=jnp.inf))
     return _result  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+mass_enclosed = mass_from_dpotential(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

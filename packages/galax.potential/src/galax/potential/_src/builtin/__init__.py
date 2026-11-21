@@ -5,13 +5,16 @@ See the public API in `galax.potential`.
 
 """
 
+# The `# type: ignore`s: the star imports also carry each module's function set,
+# and `mass_enclosed` is a `jax.jit` function in some and a kernel-factory
+# result in others. Nothing reads these names from here (see `galax.potential.<name>`).
 from .burkert import *
 from .example import *
 from .gaussian import *
-from .hernquist import *
-from .isochrone import *
-from .jaffe import *
-from .kepler import *
+from .hernquist import *  # type: ignore[assignment]
+from .isochrone import *  # type: ignore[assignment]
+from .jaffe import *  # type: ignore[assignment]
+from .kepler import *  # type: ignore[assignment]
 from .kuzmin import *
 from .kuzminkutuzov import *
 from .logarithmic import *

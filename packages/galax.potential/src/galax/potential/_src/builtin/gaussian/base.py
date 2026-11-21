@@ -4,11 +4,16 @@ __all__ = [
     # class
     "GaussianPotential",
     # functions
-    "rho0_of_m",
-    "m_of_rho0",
+    "d2potential_dr2",
     "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "m_of_rho0",
     "mass_enclosed",
     "potential",
+    "rho0_of_m",
 ]
 
 import functools as ft
@@ -31,6 +36,13 @@ from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
 )
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -39,27 +51,60 @@ from galax.potential._src.utils import r_spherical, radial_derivatives
 
 @final
 class GaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Gaussian Potential.
+    r"""Gaussian potential.
 
-    A spherical mass distribution with a Gaussian density profile.
+    A spherical mass distribution whose density is a Gaussian in radius. The
+    density is finite at the centre (a core with zero slope), falls faster than
+    any power law, and integrates to a finite total mass, so the potential is
+    finite everywhere and tends to the Kepler potential at large radii. The
+    parameters are the total mass ``m_tot`` and the scale radius ``r_s``, which
+    is the standard deviation of the Gaussian along each Cartesian axis. The
+    potential and the enclosed mass have closed forms.
 
-    The density profile is given by:
+    The density is
 
-    $$ \rho(r) = \frac{ m_\mathrm{tot} }{ (2 \pi)^{3/2} r_s^3 }
-    \exp\left(-\frac{r^2}{2 r_s^2}\right) $$
+    .. math::
 
-    where :math:`m_\mathrm{tot}` is the total mass and :math:`r_s` is the
-    scale radius. Unlike the NFW profile, the Gaussian profile has a finite
-    total mass, so :math:`m_\mathrm{tot}` is the total (rather than a
-    characteristic) mass.
+        \rho(r) = \rho_0 \exp\left(-\frac{r^2}{2 r_s^2}\right),
+        \qquad
+        \rho_0 = \frac{m_{\mathrm{tot}}}{(2 \pi)^{3/2} r_s^3},
 
-    Solving Poisson's equation gives the gravitational potential
+    where :math:`\rho_0` is the central density. With :math:`x = r / r_s`,
+    the mass enclosed within :math:`r` is
 
-    $$ \Phi(r) = -\frac{G m_\mathrm{tot}}{r}
-    \mathrm{erf}\left(\frac{r}{\sqrt{2} r_s}\right) $$
+    .. math::
 
-    Which has the expected behavior of being finite at the center and going to
-    the Kepler potential :math:`-G m_\mathrm{tot} / r` at large radii.
+        M(<r) = m_{\mathrm{tot}} \left[
+            \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right)
+            - \sqrt{\frac{2}{\pi}}\, x\, e^{-x^2 / 2} \right]
+            = m_{\mathrm{tot}}\, P\left(\tfrac{3}{2}, \tfrac{x^2}{2}\right),
+
+    where :math:`P` is the regularized lower incomplete gamma function. The
+    potential, which follows from Poisson's equation with
+    :math:`\Phi(r) \to 0` as :math:`r \to \infty`, is
+
+    .. math::
+
+        \Phi(r) = -\frac{G m_{\mathrm{tot}}}{r}
+                  \mathrm{erf}\left(\frac{r}{\sqrt{2}\, r_s}\right),
+
+    where :math:`G` is the gravitational constant. The central potential is
+    finite, :math:`\Phi(0) = -\sqrt{2 / \pi}\, G m_{\mathrm{tot}} / r_s`, and
+    for :math:`r \gg r_s` the potential approaches
+    :math:`-G m_{\mathrm{tot}} / r`. The circular speed is
+    :math:`v_c^2 = G M(<r) / r`, which peaks at :math:`r \approx 2.137\, r_s`.
+    Half of the mass lies within :math:`r \approx 1.538\, r_s`, the root of
+    :math:`P(3/2, x^2/2) = 1/2`.
+
+    Notes
+    -----
+    There is no cusp and no truncation: the density never reaches zero but is
+    below :math:`10^{-6} \rho_0` beyond :math:`r \approx 5.3\, r_s`. The density
+    is the three-dimensional normal distribution with covariance
+    :math:`r_s^2` times the identity. The potential at exactly :math:`r = 0` is
+    evaluated from its limit. The model is not attributed to a particular
+    paper, so there is no reference list. The closed forms above follow from
+    integrating the Gaussian density.
 
     """
 
@@ -152,10 +197,13 @@ class GaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
     r"""Central density for the Gaussian model.
 
-    The Gaussian profile is parametrized by a total mass $m_\mathrm{tot}$ and
-    a scale radius $r_s$. The central density is given by
+    The Gaussian profile is parametrized by a total mass
+    :math:`m_{\mathrm{tot}}` and a scale radius :math:`r_s`. The central
+    density is given by
 
-    $$ \rho_0 = \frac{m_\mathrm{tot}}{(2 \pi)^{3/2} r_s^3}. $$
+    .. math::
+
+        \rho_0 = \frac{m_{\mathrm{tot}}}{(2 \pi)^{3/2} r_s^3}.
 
     Examples
     --------
@@ -174,10 +222,13 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
 def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
     r"""Total mass for the Gaussian model.
 
-    The Gaussian profile is parametrized by a total mass $m_\mathrm{tot}$ and
-    a scale radius $r_s$. The total mass is given by
+    The Gaussian profile is parametrized by a central density :math:`\rho_0`
+    (the parameter ``rho0`` of this function) and a scale radius :math:`r_s`.
+    The total mass is given by
 
-    $$ m_\mathrm{tot} = (2 \pi)^{3/2} \rho_0 r_s^3. $$
+    .. math::
+
+        m_{\mathrm{tot}} = (2 \pi)^{3/2} \rho_0 r_s^3.
 
     Examples
     --------
@@ -198,13 +249,18 @@ def m_of_rho0(p: gt.Params, /) -> gt.Sz0:
 def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Density profile for the Gaussian model.
 
-    $$ \rho(r) = \rho_0 \exp\left(-\frac{r^2}{2 r_s^2}\right) $$
+    .. math::
 
-    where $\rho_0$ is the central density and $r_s$ is the scale radius. We
-    actually parametrize not with $\rho_0$ but by the total mass $m$, defined
-    as
+        \rho(r) = \rho_0 \exp\left(-\frac{r^2}{2 r_s^2}\right)
 
-    $$ m = (2 \pi)^{3/2} \rho_0 r_s^3. $$
+    where :math:`\rho_0` is the central density and :math:`r_s` is the scale
+    radius. The class is parametrized by the total mass :math:`m_{\mathrm{tot}}`
+    instead of :math:`\rho_0`, which is given by
+    :func:`~galax.potential.gaussian.rho0_of_m`:
+
+    .. math::
+
+        \rho_0 = \frac{m_{\mathrm{tot}}}{(2 \pi)^{3/2} r_s^3}.
 
     """
     x = r / p["r_s"]
@@ -226,18 +282,24 @@ def _x_exp(x: gt.BBtSz0, /) -> gt.BBtSz0:
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Enclosed mass for the Gaussian model.
 
-    $$ M(<r) = m_\mathrm{tot} \left[ \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right) -
-    \sqrt{\frac{2}{\pi}} x \exp\left(-\frac{x^2}{2}\right) \right] $$
+    .. math::
 
-    where $x = r / r_s$ is the dimensionless radius and $m_\mathrm{tot}$ is
-    the total mass. The bracket is the regularized incomplete gamma function
-    $P(3/2, z)$ with $z = x^2/2$; its two terms cancel to $\sim x^3$ as
-    $x \to 0$, so up to $x = 1$ it is summed as the series of positive terms
+        M(<r) = m_{\mathrm{tot}} \left[
+            \mathrm{erf}\left(\frac{x}{\sqrt{2}}\right)
+            - \sqrt{\frac{2}{\pi}}\, x\, e^{-x^2 / 2} \right]
 
-    $$ P(3/2, z) = \frac{x^3 e^{-z}}{\sqrt{2\pi}}
-       \sum_{k \geq 0} \frac{z^k}{(3/2)(5/2) \cdots (k + 3/2)}, $$
+    where :math:`x = r / r_s` is the dimensionless radius and
+    :math:`m_{\mathrm{tot}}` is the total mass. The bracket is the regularized
+    incomplete gamma function :math:`P(3/2, z)` with :math:`z = x^2/2`; its two
+    terms cancel to :math:`\sim x^3` as :math:`x \to 0`, so up to :math:`x = 1`
+    it is summed as the series of positive terms
 
-    whose 15 terms reach $10^{-17}$ there. Beyond, the direct difference
+    .. math::
+
+        P(3/2, z) = \frac{x^3 e^{-z}}{\sqrt{2\pi}}
+            \sum_{k \geq 0} \frac{z^k}{(3/2)(5/2) \cdots (k + 3/2)},
+
+    whose 15 terms reach :math:`10^{-17}` there. Beyond, the direct difference
     cancels by at most a factor 3.5.
 
     """
@@ -260,7 +322,7 @@ r"""$1 / ((3/2)(5/2) \cdots (k + 3/2))$ for $k \leq 14$, highest degree first.""
 
 @ft.partial(jax.jit)
 def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
-    r"""$dM/dr = 4\pi r^2 \rho$, for `radial_derivatives`."""
+    r""":math:`dM/dr = 4\pi r^2 \rho`, for `radial_derivatives`."""
     x = r / p["r_s"]
     dbracket = math.sqrt(2 / math.pi) * _x_exp(x) * x
     return p["m_tot"] / p["r_s"] * dbracket
@@ -271,13 +333,17 @@ def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the Gaussian model.
 
-    $$ \Phi(r) = -\frac{G m_\mathrm{tot}}{r} \mathrm{erf}\left(\frac{r}{\sqrt{2}
-    r_s}\right) $$
+    .. math::
 
-    where $m_\mathrm{tot}$ is the total mass and $r_s$ is the scale radius.
-    At $r=0$ this is the $0/0$ limit $\Phi(0) = -G m_\mathrm{tot}
-    \sqrt{2/\pi} / r_s$, which we substitute explicitly since the profile is
-    finite (unlike e.g. the Kepler potential) at the center.
+        \Phi(r) = -\frac{G m_{\mathrm{tot}}}{r}
+                  \mathrm{erf}\left(\frac{r}{\sqrt{2}\, r_s}\right)
+
+    where :math:`G` is the gravitational constant, :math:`m_{\mathrm{tot}}` is
+    the total mass and :math:`r_s` is the scale radius. At :math:`r = 0` this is
+    the :math:`0/0` limit
+    :math:`\Phi(0) = -G m_{\mathrm{tot}} \sqrt{2/\pi} / r_s`, which is
+    substituted explicitly since the profile is finite (unlike the Kepler
+    potential) at the centre.
 
     """
     r_s = p["r_s"]
@@ -289,3 +355,11 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     phi = phi0 * jsp.erf(x / jnp.sqrt(2.0))
     phi_origin = -p["G"] * p["m_tot"] * jnp.sqrt(2.0 / jnp.pi) / r_s
     return jnp.where(r == 0, phi_origin, phi)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

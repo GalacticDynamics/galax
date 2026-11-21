@@ -1,13 +1,51 @@
-""":mod:`galax.potential`."""
+""":mod:`galax.potential`.
+
+Each built-in potential has a module of plain functions named for its class in
+lower case without ``Potential``, e.g. :mod:`galax.potential.plummer` for
+``PlummerPotential``. The functions take the parameters ``p = pot.params(t)``
+and bare arrays in the unit system of the potential. They work on one point at
+a time (``r`` and ``t`` scalars, ``xyz`` of shape ``(3,)``); use ``jax.vmap``
+for batches. Spherical modules take ``(p, r)`` for ``potential``, ``density``,
+``laplacian``, ``mass_enclosed``, ``dpotential_dr`` and ``d2potential_dr2``, and
+``(p, xyz)`` for ``gradient`` and ``hessian``. Non-spherical modules take
+``(p, xyz)`` for ``potential``, ``density``, ``laplacian``, ``gradient`` and
+``hessian``; ``monarietal2016bar`` adds a trailing scalar ``t``.
+``galax.potential.plummer.potential(p, r)`` is a different function from the
+dispatched ``galax.potential.potential(pot, xyz, t)``. At the origin a
+spherical ``gradient`` is 0 and a spherical ``hessian`` is ``laplacian(p, 0) / 3``
+times the identity (``+inf`` on the diagonal for a cusp, never NaN). Functions
+of ``r`` expect ``r > 0``. Classes keep the base-class autodiff for the
+functions that a shared helper builds.
+"""
 
 __all__ = [
     # Modules
-    "io",
+    "burkert",
+    "gaussian",
+    "gnfw",
+    "hardcutoffnfw",
     "harmonic",
+    "hernquist",
+    "io",
+    "isochrone",
+    "jaffe",
+    "kepler",
+    "kuzmin",
+    "kuzminkutuzov",
+    "leesutotriaxialnfw",
+    "longmuralibar",
+    "miyamotonagai",
+    "monarietal2016bar",
     "multipole_profile",
+    "nfw",
     "params",
     "plot",
+    "plummer",
+    "powerlawcutoff",
+    "satoh",
     "scf",
+    "stoneostriker15",
+    "zhao",
     # ABCs
     "AbstractPotential",
     "AbstractSinglePotential",
@@ -87,7 +125,34 @@ __all__ = [
 from .setup_package import install_import_hook, load_interop_plugins
 
 with install_import_hook("galax.potential"):
-    from . import harmonic, io, multipole_profile, params, plot, scf
+    from . import (
+        burkert,
+        gaussian,
+        gnfw,
+        hardcutoffnfw,
+        harmonic,
+        hernquist,
+        io,
+        isochrone,
+        jaffe,
+        kepler,
+        kuzmin,
+        kuzminkutuzov,
+        leesutotriaxialnfw,
+        longmuralibar,
+        miyamotonagai,
+        monarietal2016bar,
+        multipole_profile,
+        nfw,
+        params,
+        plot,
+        plummer,
+        powerlawcutoff,
+        satoh,
+        scf,
+        stoneostriker15,
+        zhao,
+    )
     from ._src.api import (
         acceleration,
         d2potential_dr2,

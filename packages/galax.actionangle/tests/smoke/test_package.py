@@ -10,7 +10,12 @@ def test_all() -> None:
     """Test the `galax.actionangle` API."""
     assert set(actionangle.__all__) == {
         "ActionsAnglesFrequencies",
+        "IsochroneToy",
+        "O2GFResult",
+        "OscillatorToy",
+        "harmonic_oscillator_actions_angles_freqs",
         "isochrone_actions_angles_freqs",
+        "o2gf_actions_angles_freqs",
         "staeckel_fudge_delta",
     }
     assert all(hasattr(actionangle, name) for name in actionangle.__all__)

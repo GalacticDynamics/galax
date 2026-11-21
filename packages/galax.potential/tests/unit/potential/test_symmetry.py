@@ -11,6 +11,7 @@ import unxt as u
 
 import galax.potential as gp
 from galax.potential._src.symmetry import invariances
+from galax.potential.scf import phi_nl
 
 G = "galactic"
 M = u.Q(1e12, "Msun")
@@ -19,6 +20,15 @@ _HERNQUIST = gp.HernquistPotential(m_tot=M, r_s=RS, units=G)
 _MN = gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G)
 _LM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[2, 1].set(0.3)
 _NLM = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[1, 2, 1].set(0.3)
+# SCF's own radial functions as a table, for `TabulatedRadialBasisPotential`.
+_R_KNOTS = jnp.logspace(-2, 3, 200)
+_SCF_TABLE = u.Q(
+    4.498502151469554e-12
+    * 1e12
+    / 5.0  # G m / r_s, kpc^2 / Myr^2
+    * jnp.moveaxis(phi_nl(1, 2, _R_KNOTS / 5.0), -1, 0),
+    "kpc2 / Myr2",
+)
 # A bar rotated in the x-y plane. It is still even in z (and in (x, y) -> (-x, -y)),
 # but no `Symmetry` member captures that alone, so it declares `NONE`.
 _BAR = gp.LongMuraliBarPotential(
@@ -106,6 +116,9 @@ BUILTINS = [
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
     gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
     gp.SCFPotential(m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G),
+    gp.TabulatedRadialBasisPotential.from_knots(
+        u.Q(_R_KNOTS, "kpc"), _SCF_TABLE, _NLM, jnp.zeros_like(_NLM), units=G
+    ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
     gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
     gp.TransformedPotential(

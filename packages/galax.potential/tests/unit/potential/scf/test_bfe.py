@@ -36,16 +36,16 @@ def _ref_rho_nl(n: int, l: int, s: float) -> float:
 
 def test_phi_nl_matches_scalar_reference() -> None:
     """Vectorized `phi_nl` equals the per-(n,l) scalar transcription."""
-    nmax, lmax = 6, 4
+    n_max, l_max = 6, 4
     s = np.array([0.05, 0.5, 1.0, 3.0, 40.0])
 
-    got = phi_nl(nmax, lmax, jnp.asarray(s))
+    got = phi_nl(n_max, l_max, jnp.asarray(s))
 
-    assert got.shape == (nmax + 1, lmax + 1, len(s))
+    assert got.shape == (n_max + 1, l_max + 1, len(s))
     expected = np.array(
         [
-            [[_ref_phi_nl(n, l, si) for si in s] for l in range(lmax + 1)]
-            for n in range(nmax + 1)
+            [[_ref_phi_nl(n, l, si) for si in s] for l in range(l_max + 1)]
+            for n in range(n_max + 1)
         ]
     )
     assert jnp.allclose(got, expected, rtol=1e-10)
@@ -53,16 +53,16 @@ def test_phi_nl_matches_scalar_reference() -> None:
 
 def test_rho_nl_matches_scalar_reference() -> None:
     """Vectorized `rho_nl` equals the per-(n,l) scalar transcription."""
-    nmax, lmax = 6, 4
+    n_max, l_max = 6, 4
     s = np.array([0.05, 0.5, 1.0, 3.0, 40.0])
 
-    got = rho_nl(nmax, lmax, jnp.asarray(s))
+    got = rho_nl(n_max, l_max, jnp.asarray(s))
 
-    assert got.shape == (nmax + 1, lmax + 1, len(s))
+    assert got.shape == (n_max + 1, l_max + 1, len(s))
     expected = np.array(
         [
-            [[_ref_rho_nl(n, l, si) for si in s] for l in range(lmax + 1)]
-            for n in range(nmax + 1)
+            [[_ref_rho_nl(n, l, si) for si in s] for l in range(l_max + 1)]
+            for n in range(n_max + 1)
         ]
     )
     assert jnp.allclose(got, expected, rtol=1e-10)

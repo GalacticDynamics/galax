@@ -39,5 +39,10 @@ from .satoh import *
 # coefficient fitter, which are not potentials. They stay reachable through
 # the public `galax.potential.scf`.
 from .scf import SCFPotential as SCFPotential
+from .sph_expansion import (
+    AbstractRadialBasisExpansionPotential as AbstractRadialBasisExpansionPotential,
+    AbstractSphericalHarmonicExpansionPotential as AbstractSphericalHarmonicExpansionPotential,  # noqa: E501
+)
 from .stoneostriker15 import *
+from .tabulated_basis import *
 from .zhao import *

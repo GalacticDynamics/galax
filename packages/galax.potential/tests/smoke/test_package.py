@@ -64,6 +64,9 @@ expected_all = [
     "gNFWPotential",
     "ZhaoPotential",
     "SCFPotential",
+    "TabulatedRadialBasisPotential",
+    "AbstractSphericalHarmonicExpansionPotential",
+    "AbstractRadialBasisExpansionPotential",
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",

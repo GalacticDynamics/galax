@@ -16,12 +16,14 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
   "Typing :: Typed",
 ]
-# Two galax dependencies, both downward: this portion sits above
-# `galax.orbits` and `galax.potential`, and below `galax.dynamics` in the
-# import graph. Not `galax` -- depending on the root would recreate the
-# `galax` <-> portion cycle.
+# Three galax dependencies, all downward: this portion sits above
+# `galax.fields`, `galax.orbits` and `galax.potential`, and below
+# `galax.dynamics` in the import graph. Not `galax` -- depending on the root
+# would recreate the `galax` <-> portion cycle.
 dependencies = [
+  "diffrax>=0.7.1",
   "equinox>=0.13.8",
+  "galax.fields",
   "galax.orbits",
   "galax.potential",
   "jax>=0.7.2",
@@ -45,6 +47,7 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 # Workspace members, so resolve them locally instead of from PyPI, where the
 # names are still unclaimed.
 [tool.uv.sources]
+"galax.fields" = { workspace = true }
 "galax.orbits" = { workspace = true }
 "galax.potential" = { workspace = true }
 

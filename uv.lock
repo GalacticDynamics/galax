@@ -1502,7 +1502,9 @@ test = [
 name = "galax-nbody"
 source = { editable = "packages/galax.nbody" }
 dependencies = [
+    { name = "diffrax" },
     { name = "equinox" },
+    { name = "galax-fields" },
     { name = "galax-orbits" },
     { name = "galax-potential" },
     { name = "jax" },
@@ -1525,7 +1527,9 @@ test = [
 
 [package.metadata]
 requires-dist = [
+    { name = "diffrax", specifier = ">=0.7.1" },
     { name = "equinox", specifier = ">=0.13.8" },
+    { name = "galax-fields", editable = "packages/galax.fields" },
     { name = "galax-orbits", editable = "packages/galax.orbits" },
     { name = "galax-potential", editable = "packages/galax.potential" },
     { name = "jax", specifier = ">=0.7.2" },

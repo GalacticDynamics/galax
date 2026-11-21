@@ -12,15 +12,15 @@ from galax.actionangle._src._o2gf_solve import action_system, angle_system, solv
 T = 200
 
 
-def _close(a, e):
-    """Compare at rtol 1e-12 with an absolute floor of 1e-12 of the local scale.
+def _close(a, e, tol=1e-12):
+    """Compare at rtol ``tol`` with an absolute floor of ``tol`` of the local scale.
 
     The scale is the largest entry of the row for a matrix and of the whole
-    vector for a vector, so small matrix entries are held to 1e-12 of their row.
+    vector for a vector, so small matrix entries are held to ``tol`` of their row.
     """
     a, e = np.asarray(a), np.asarray(e)
     scale = np.abs(e).max(axis=-1, keepdims=True) * np.ones_like(e)
-    excess = np.abs(a - e) - 1e-12 * (np.abs(e) + scale)
+    excess = np.abs(a - e) - tol * (np.abs(e) + scale)
     assert (excess <= 0).all(), f"worst abs diff {np.abs(a - e).max():.3e}"
 
 
@@ -62,8 +62,10 @@ def test_nan_sample_masked():
     exp = solve_o2gf(J[keep], wrapped[keep], t[keep], NVECS)
     assert int(out[6]) == 1
     assert int(exp[6]) == 0
+    # Masking a sample and dropping it sum in different orders; Windows CI
+    # measured 7.7e-13 on entries of about 0.75, so this compares at 1e-11.
     for a, e in zip(out[:5], exp[:5], strict=True):
-        _close(a, e)
+        _close(a, e, tol=1e-11)
     assert np.isfinite(np.asarray(out[0])).all()
 
 

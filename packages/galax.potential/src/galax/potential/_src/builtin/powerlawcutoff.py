@@ -12,10 +12,12 @@ import functools as ft
 import math
 from dataclasses import KW_ONLY
 
-from typing import final
+from typing import Final, final
 
 import equinox as eqx
 import jax
+import numpy as np
+from scipy.special import zeta
 
 import quaxed.numpy as jnp
 import quaxed.scipy.special as jsp
@@ -33,10 +35,101 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical, radial_derivatives
 
+X_SWITCH: Final = 2.0
+"""$x$ where `gamma_upper` changes from its series to its continued fraction."""
+CF_TERMS: Final = 60
+"""Terms of the continued fraction: $10^{-17}$ at $x = 2$, for $-1/2 < b \\le 1$."""
+SERIES_TERMS: Final = 25
+"""Terms of the series: $2^{25}/25! \\approx 10^{-18}$."""
+B_SMALL: Final = 0.2
+"""$|b|$ below which `lgamma1p_over_b` uses its Taylor series."""
+LGAMMA1P_COEFFS: Final = np.array(
+    [(-1.0) ** k * zeta(k) / k for k in range(25, 1, -1)] + [-np.euler_gamma]
+)
+r"""Taylor coefficients, highest power first, of $\ln\Gamma(1+b)/b$.
+
+That is $-\gamma_E + \sum_{k\ge2}(-1)^k\zeta(k)b^{k-1}/k$; at $|b| = 0.2$ the last
+term is $\sim 10^{-18}$.
+"""
+
+
+def exprel(t: gt.SzN, /) -> gt.SzN:
+    r"""$(e^t - 1)/t$, with its removable singularity at $t = 0$ expanded."""
+    small = jnp.abs(t) < 1e-2
+    series = jnp.polyval(
+        jnp.asarray([1 / math.factorial(n + 1) for n in range(6, -1, -1)]), t
+    )
+    t_safe = jnp.where(small, 1.0, t)
+    return jnp.where(small, series, jnp.expm1(t_safe) / t_safe)  # type: ignore[no-any-return]
+
+
+def lgamma1p_over_b(b: gt.SzN, /) -> gt.SzN:
+    r"""$\ln\Gamma(1+b)/b$, finite at $b = 0$ where it is $-\gamma_E$.
+
+    $1 + b$ keeps only the digits of $b$ that fit beside the 1, so near $b = 0$
+    the direct quotient loses them all; the Taylor series does not.
+    """
+    small = jnp.abs(b) < B_SMALL
+    b_safe = jnp.where(small, 1.0, b)
+    return jnp.where(  # type: ignore[no-any-return]
+        small, jnp.polyval(LGAMMA1P_COEFFS, b), jsp.gammaln(1 + b_safe) / b_safe
+    )
+
 
 @ft.partial(jax.jit)
-def _safe_gamma_inc(a: gt.SzN, x: gt.SzN) -> gt.SzN:
-    return jsp.gammainc(a, x) * jsp.gamma(a)  # type: ignore[no-any-return]
+def gamma_upper(b: gt.Sz0, x: gt.SzN) -> gt.SzN:
+    r"""Upper incomplete gamma $\Gamma(b, x) = \int_x^\infty u^{b-1}e^{-u}du$.
+
+    For $x > 0$ and any real $b > -1$, including $b \le 0$ where
+    `jax.scipy.special.gammaincc` is undefined. It is analytic in $b$, but the
+    usual form $\Gamma(b) - \gamma(b, x)$ is a difference of two terms that both
+    have a pole at $b = 0$.
+
+    For $x \le 2$,
+
+    .. math::
+
+        \Gamma(b, x) = \frac{\Gamma(1+b) - 1}{b} - \frac{x^b - 1}{b}
+            - x^b \sum_{k\ge1} \frac{(-x)^k}{k!\,(b+k)},
+
+    which is the series of $\gamma(b, x)$ with the $k = 0$ term, $x^b/b$, merged
+    into $\Gamma(b)$. Both quotients are $\mathrm{expm1}(t)/b$ with $t \propto b$,
+    so they are the smooth $\ell\,\mathrm{exprel}(b\ell)$ with
+    $\ell = \ln\Gamma(1+b)/b$ resp. $\ln x$, with no cancellation as
+    $b \to 0$ (the $x^b$ factor is $\exp(b \ln x)$). For $x > 2$ the Legendre
+    continued fraction, which is positive and stable for every $b \le 1$,
+
+    .. math::
+
+        \Gamma(b, x) = x^b e^{-x} \cfrac{1}{x + 1 - b - \cfrac{1(1-b)}{x + 3 - b
+            - \cfrac{2(2-b)}{x + 5 - b - \cdots}}}.
+
+    Each form sees only its own $x$ (the other is evaluated at the switch), so the
+    unused one cannot put a NaN into a gradient.
+    """
+    small = x <= X_SWITCH
+    xs = jnp.where(small, x, X_SWITCH)
+    xl = jnp.where(small, X_SWITCH, x)
+
+    # The series, for x at most the switch.
+    ln_x = jnp.log(xs)
+    ell = lgamma1p_over_b(b)
+    head = ell * exprel(b * ell) - ln_x * exprel(b * ln_x)
+    c = jnp.stack(
+        [1.0 / (float(math.factorial(k)) * (b + k)) for k in range(SERIES_TERMS, 0, -1)]
+    )
+    tail = -xs * jnp.polyval(c, -xs, unroll=SERIES_TERMS)
+    series = head - jnp.exp(b * ln_x) * tail
+
+    # The continued fraction, evaluated from the tail up.
+    def step(i: int, t: gt.SzN) -> gt.SzN:
+        n = CF_TERMS - 1 - i
+        return xl + 2 * n + 1 - b - (n + 1) * (n + 1 - b) / t  # type: ignore[no-any-return]
+
+    t = jax.lax.fori_loop(0, CF_TERMS, step, xl + 2 * CF_TERMS + 1 - b)
+    cf = jnp.exp(b * jnp.log(xl) - xl) / t
+
+    return jnp.where(small, series, cf)  # type: ignore[no-any-return]
 
 
 @final
@@ -138,34 +231,23 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 @ft.partial(jax.jit)
 @radial_derivatives(mass_enclosed, dmass_dr)
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""Potential for the power-law cutoff density profile.
+    r"""Potential for the power-law cutoff density profile, with $\Phi(\infty) = 0$.
 
-    Following Gala's implementation, we compute the potential and subtract
-    the asymptotic value to enforce Phi(infinity) = 0.
+    The outer shell is $4\pi\int_r^\infty \rho s\,ds = M\,\Gamma(b, x) /
+    (r_c\,\Gamma(a))$, with $a = (3-\alpha)/2$, $b = a - 1/2$ and
+    $x = (r/r_c)^2$, so
+
+    $$ \Phi = -\frac{G M(<r)}{r} - \frac{G M}{r_c\,\Gamma(a)}\Gamma(b, x). $$
+
+    Both terms are positive, so there is no cancellation. $b \le 0$ for
+    $\alpha \ge 2$, where Gala's form, $\gamma(b, x) - \Gamma(b)$, has
+    $\Gamma(b) = \pm\infty$ or NaN: see `gamma_upper`, which is good through
+    $b = 0$ ($\alpha = 2$, where $\Gamma(0, x) = E_1(x)$).
     """
-    alpha_half = p["alpha"] / 2
-    s2 = (r / p["r_c"]) ** 2
-    GM = p["G"] * p["m_tot"]
-
-    # Compute potential terms
-    gamma_arg = 1.5 - alpha_half
-    term1 = (
-        GM
-        * _safe_gamma_inc(gamma_arg, s2)
-        * (alpha_half - 1.5)
-        / (r * jsp.gamma(2.5 - alpha_half))
-    )
-    term2 = GM * _safe_gamma_inc(1 - alpha_half, s2) / (p["r_c"] * jsp.gamma(gamma_arg))
-
-    # Subtract asymptotic value to enforce Phi(infinity) = 0
-    # Only needed when gamma_arg > 0 (i.e., alpha < 3)
-    phi_infinity = jax.lax.cond(
-        gamma_arg > 0,
-        lambda: GM * jsp.gamma(1 - alpha_half) / (p["r_c"] * jsp.gamma(gamma_arg)),
-        lambda: 0.0,
-    )
-
-    return term1 + term2 - phi_infinity  # type: ignore[no-any-return]
+    a = 1.5 - p["alpha"] / 2
+    x = (r / p["r_c"]) ** 2
+    shell = gamma_upper(a - 0.5, x) / (p["r_c"] * jsp.gamma(a))
+    return -p["G"] * (mass_enclosed(p, r) / r + p["m_tot"] * shell)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)

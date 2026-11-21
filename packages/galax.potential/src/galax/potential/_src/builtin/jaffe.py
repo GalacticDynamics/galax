@@ -45,10 +45,11 @@ from galax.potential._src.utils import r_spherical
 class JaffePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Jaffe potential.
 
-    A spherical model with a central density cusp and a finite total mass. The
-    density goes as :math:`r^{-2}` well inside the scale radius ``r_s`` and as
-    :math:`r^{-4}` well outside it. The parameter ``m_tot`` is the total mass,
-    and half of it lies inside ``r_s``. Jaffe (1983) introduced the model as a
+    The model is spherical, with a central density cusp and a finite total
+    mass. The density goes as :math:`r^{-2}` well inside the scale radius
+    ``r_s`` and as :math:`r^{-4}` well outside it. The parameter ``m_tot`` is
+    the total mass, and half of it lies inside ``r_s``. Jaffe [Jaffe1983]_
+    introduced the model as a
     simple description of the distribution of light in spherical galaxies whose
     projected profile is close to the de Vaucouleurs :math:`R^{1/4}` law.
 
@@ -96,8 +97,8 @@ class JaffePotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     .. [Jaffe1983] Jaffe, W. (1983). A simple model for the distribution of
        light in spherical galaxies. Monthly Notices of the Royal Astronomical
        Society, 202, 995-999.
-       `ADS <https://ui.adsabs.harvard.edu/abs/1983MNRAS.202..995J>`_;
-       `doi:10.1093/mnras/202.4.995 <https://doi.org/10.1093/mnras/202.4.995>`_.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1983MNRAS.202..995J>`__;
+       `doi:10.1093/mnras/202.4.995 <https://doi.org/10.1093/mnras/202.4.995>`__.
     """
 
     m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]

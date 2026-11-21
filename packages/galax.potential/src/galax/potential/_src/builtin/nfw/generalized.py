@@ -59,15 +59,15 @@ DimT = u.dimension("time")
 class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     r"""Generalized NFW potential.
 
-    A spherical double power-law density profile with the NFW outer slope and a
-    free inner slope. The density falls as :math:`r^{-\gamma}` inside the scale
+    The model is a spherical double power-law density profile with the NFW outer slope
+    and a free inner slope. The density falls as :math:`r^{-\gamma}` inside the scale
     radius ``r_s`` and as :math:`r^{-3}` outside it, so the enclosed mass grows
     logarithmically without bound and the total mass is infinite. The parameter
-    ``gamma`` is the inner slope: ``gamma = 0`` is a cored profile, ``gamma = 1``
-    is the NFW profile and larger values are steeper cusps. The parameter ``m``
-    is a mass scale, :math:`m = 4 \pi \rho_s r_s^3`, and it is not the total
-    mass. The potential at the centre is finite for :math:`0 \le \gamma < 2`,
-    which is the range these functions are written for.
+    ``gamma`` is the inner slope: ``gamma = 0`` is a cored profile, ``gamma = 1`` is the
+    NFW profile [NFW1996gNFW]_ and larger values are steeper cusps. The parameter ``m``
+    is a mass scale, :math:`m = 4 \pi \rho_s r_s^3`, and it is not the total mass. The
+    potential at the centre is finite for :math:`0 \le \gamma < 2`, which is the range
+    these functions are written for.
 
     With :math:`x = r / r_s` the density is
 
@@ -104,7 +104,7 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     Notes
     -----
     This is the member :math:`(\alpha, \beta, \gamma) = (1, 3, \gamma)` of the
-    double power-law family of Zhao (1996, Eq. 1), and :math:`\gamma = 1` is the
+    double power-law family of [Zhao1996gNFW]_ (Eq. 1), and :math:`\gamma = 1` is the
     NFW profile of :class:`~galax.potential.NFWPotential`.
 
     For :math:`\gamma \ge 2` the central potential diverges.
@@ -282,7 +282,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     characteristic mass, and :math:`\gamma` is the inner slope. :math:`B_z(a,
     b)` is the incomplete beta function.
 
-    Note that `jax.scipy.special.betainc` is the regularized incomplete beta
+    Note that ``jax.scipy.special.betainc`` is the regularized incomplete beta
     function, which is related to the incomplete beta function by
 
     .. math::
@@ -387,9 +387,10 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 dpotential_dr = shell_dphi_dr(mass_enclosed, dmass_dr)
 r""":math:`d\Phi/dr = G M(<r) / r^2`, whose :math:`r`-derivative is exact.
 
-A `jax.custom_jvp` from `galax.potential._src.utils.shell_dphi_dr`: its
+A ``jax.custom_jvp`` from ``galax.potential._src.utils.shell_dphi_dr``: its
 derivative is :math:`G M'(r)/r^2 - 2 G M(r)/r^3`, not autodiff of
-`mass_enclosed`'s series, so `gradient` linearizes to the exact Hessian.
+the series in :func:`mass_enclosed`, so :func:`gradient` linearizes to the exact
+Hessian.
 """
 
 
@@ -401,8 +402,8 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
 
         \nabla \Phi(r) = \frac{G M(<r)}{r^2} \hat{r}
 
-    where :math:`M(<r)` is the enclosed mass, by `dpotential_dr`: its jvp is the
-    exact Hessian, and it is 0 rather than NaN at the origin.
+    where :math:`M(<r)` is the enclosed mass, by :func:`dpotential_dr`: its jvp is
+    the exact Hessian, and it is 0 rather than NaN at the origin.
 
     Examples
     --------

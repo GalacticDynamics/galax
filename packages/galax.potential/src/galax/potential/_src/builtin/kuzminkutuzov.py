@@ -45,8 +45,8 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     r"""Kuzmin-Kutuzov Staeckel potential.
 
     An axisymmetric potential, symmetric under :math:`z \to -z`, that is of
-    Staeckel form in prolate spheroidal coordinates, so that every orbit in it
-    has three exact integrals of motion. The mass distribution is stratified
+    Staeckel form in spheroidal coordinates, so that every orbit in it has
+    three exact integrals of motion. The mass distribution is stratified
     approximately on spheroids, oblate for :math:`c < a` and prolate for
     :math:`c > a`, with a density that falls as :math:`r^{-4}` at large radii
     and a finite total mass. The spherical limit :math:`c = a` is Henon's
@@ -116,13 +116,19 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     - :math:`c = a`: the focal points meet at the origin and this is exactly
       the isochrone, :math:`-G m_{\mathrm{tot}} / (a + \sqrt{r^2 + a^2})`.
     - :math:`c > a` is a valid prolate model: :math:`\Phi` and :math:`\rho`
-      are finite and :math:`\rho > 0`. But :math:`\Delta^2 = a^2 - c^2 < 0`,
-      so it is not of Staeckel form in prolate spheroidal coordinates, and a
-      Staeckel-fudge focal distance does not apply.
-    - :math:`c \to 0` tends to the razor-thin `~galax.potential.KuzminPotential`
-      with ``r_s = a``. At :math:`c = 0` exactly :math:`\Phi` is that disk,
-      but the gradient is NaN on the plane :math:`z = 0`; use
-      `~galax.potential.KuzminPotential` instead.
+      are finite and :math:`\rho > 0`. Here :math:`\Delta^2 = a^2 - c^2 < 0`,
+      so the prolate spheroidal coordinates above do not exist. The roots then
+      satisfy :math:`a^2 \le \nu \le c^2 \le \lambda` and form oblate
+      spheroidal coordinates with focal distance :math:`\sqrt{c^2 - a^2}` in
+      the plane, in which the potential is of Staeckel form as well
+      ([DejongheDeZeeuw1988]_ treat the oblate and the prolate models). The
+      prolate model therefore keeps its third integral, but a Staeckel-fudge
+      focal distance built from :math:`\Delta^2 = a^2 - c^2` does not apply.
+    - :math:`c \to 0` tends to the razor-thin
+      :class:`~galax.potential.KuzminPotential` with ``r_s = a``. At
+      :math:`c = 0` exactly :math:`\Phi` is that disk, but the gradient is NaN
+      on the plane :math:`z = 0`; use :class:`~galax.potential.KuzminPotential`
+      instead.
 
     References
     ----------
@@ -133,7 +139,7 @@ class KuzminKutuzovPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
        Axisymmetric Galaxy Models with Three Integrals of Motion. The
        Astrophysical Journal, 333, 90.
        `ADS <https://ui.adsabs.harvard.edu/abs/1988ApJ...333...90D>`__;
-       `doi:10.1086/166727 <https://doi.org/10.1086/166727>`_
+       `doi:10.1086/166727 <https://doi.org/10.1086/166727>`__
     .. [BatsleerDejonghe1994] Batsleer, P., & Dejonghe, H. (1994). The
        generation of Staeckel potentials for galactic dynamical modeling.
        Astronomy & Astrophysics, 287, 43.
@@ -240,7 +246,8 @@ def density(p: gt.Params, xyz: gt.Sz3) -> gt.Sz0:
             \frac{\lambda\nu + a^2 (\lambda + \nu + 3\sqrt{\lambda\nu})}
                  {(\lambda\nu)^{3/2} (\sqrt{\lambda} + \sqrt{\nu})^3}
 
-    with :math:`\lambda + \nu` and :math:`\lambda\nu` as in `potential`.
+    with :math:`\lambda + \nu` and :math:`\lambda\nu` as in
+    :func:`~galax.potential.kuzminkutuzov.potential`.
 
     """
     a2, c2 = p["a"] ** 2, p["c"] ** 2

@@ -264,9 +264,9 @@ def potential(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz0:
     :math:`\eta^2 = y'^2 + (b + \zeta)^2` and
     :math:`T_\pm = \sqrt{(a \pm x')^2 + \eta^2}`.
 
-    Evaluated in forms that do not cancel (`_potential_impl`), with a
-    `jax.custom_jvp` whose position derivative is the analytic gradient
-    (`_gradient_impl`), so every autodiff derivative is accurate too.
+    Evaluated in forms that do not cancel (``_potential_impl``), with a
+    ``jax.custom_jvp`` whose position derivative is the analytic gradient
+    (``_gradient_impl``), so every autodiff derivative is accurate too.
     """
     return _potential_jvp(p, xyz)
 

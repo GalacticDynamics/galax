@@ -106,9 +106,9 @@ class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotentia
     .. [StoneOstriker2015] Stone, N. C., & Ostriker, J. P. (2015). A Dynamical
        Potential-Density Pair for Star Clusters with Nearly Isothermal
        Interiors. The Astrophysical Journal Letters, 806, L28.
-       `ADS <https://ui.adsabs.harvard.edu/abs/2015ApJ...806L..28S>`_;
-       `doi:10.1088/2041-8205/806/2/L28 <https://doi.org/10.1088/2041-8205/806/2/L28>`_;
-       `arXiv:1503.03479 <https://arxiv.org/abs/1503.03479>`_
+       `ADS <https://ui.adsabs.harvard.edu/abs/2015ApJ...806L..28S>`__;
+       `doi:10.1088/2041-8205/806/2/L28 <https://doi.org/10.1088/2041-8205/806/2/L28>`__;
+       `arXiv:1503.03479 <https://arxiv.org/abs/1503.03479>`__
 
     """
 
@@ -172,7 +172,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
         \rho(r) = \frac{\rho_c}{(1 + r^2 / r_c^2)(1 + r^2 / r_h^2)}
 
-    where :math:`\rho_c` is the central density given by `rhoc_of_mtot`.
+    where :math:`\rho_c` is the central density given by ``rhoc_of_mtot``.
     """
     rho_c = rhoc_of_mtot(p)
     core_term = 1 + (r / p["r_c"]) ** 2

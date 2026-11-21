@@ -112,7 +112,8 @@ class ZhaoPotential(AbstractSinglePotential):
                   \Gamma\big(\alpha(\beta - 3)\big)}
                  {\Gamma\big(\alpha(\beta - \gamma)\big)},
 
-    and `from_m_tot` builds the potential from it. The potential (Eqs. 6 and 7)
+    and :meth:`~galax.potential.ZhaoPotential.from_m_tot` builds the potential
+    from it. The potential (Eqs. 6 and 7)
     is
 
     .. math::
@@ -149,19 +150,21 @@ class ZhaoPotential(AbstractSinglePotential):
     :math:`0 \le \gamma < 3`. For :math:`\beta \le 3` the total mass is infinite
     but ``m`` is still defined. The potential vanishes at infinity for
     :math:`\beta > 2`. For :math:`\beta \le 2` the potential cannot be
-    referenced to zero at infinity, the class still returns finite values for
-    :math:`\beta < 2` with the force :math:`G M(<r) / r^2`, and :math:`\beta =
-    2` exactly returns NaN. The class evaluates the gradient, Hessian and
-    Laplacian analytically from :math:`M(<r)` and :math:`\rho`, without
-    automatic differentiation.
+    referenced to zero at infinity. At :math:`\beta = 2` the potential evaluates
+    to :math:`-\infty`. For :math:`\beta < 2` it is finite for some parameter
+    sets and infinite or NaN for others (for example :math:`\alpha = 2`,
+    :math:`\beta = 1.5`), and the finite values have no physical zero point, so
+    only the force :math:`G M(<r) / r^2` is meaningful there. The class
+    evaluates the gradient, Hessian and Laplacian analytically from
+    :math:`M(<r)` and :math:`\rho`, without automatic differentiation.
 
     References
     ----------
     .. [Zhao1996Potential] Zhao, H. (1996). Analytical models for galactic
        nuclei. Monthly Notices of the Royal Astronomical Society, 278, 488.
-       `ADS <https://ui.adsabs.harvard.edu/abs/1996MNRAS.278..488Z>`_;
-       `doi:10.1093/mnras/278.2.488 <https://doi.org/10.1093/mnras/278.2.488>`_;
-       `arXiv:astro-ph/9509122 <https://arxiv.org/abs/astro-ph/9509122>`_
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996MNRAS.278..488Z>`__;
+       `doi:10.1093/mnras/278.2.488 <https://doi.org/10.1093/mnras/278.2.488>`__;
+       `arXiv:astro-ph/9509122 <https://arxiv.org/abs/astro-ph/9509122>`__
 
     """
 
@@ -397,7 +400,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
               = m \frac{B(\alpha(3-\gamma), \alpha(\beta-3); \chi)}
                        {B(\alpha(3-\gamma), \alpha(\beta-3); 1/2)}
 
-    where :math:`C = \rho_s r_s^3` (see `_norm`), :math:`m` is the mass within
+    where :math:`C = \rho_s r_s^3` (see ``_norm``), :math:`m` is the mass within
     :math:`r_s` and :math:`\chi` is Eq. 5.
 
     """
@@ -433,14 +436,16 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
                    + \frac{\alpha B(c_0 - p_0, p_0, 1-\chi)}
                           {(1-\chi)^{c_0-p_0} \chi^{p_0}}
 
-    with $c_0$, $p_0$, $q_0$ from Eq. 42 and $\chi$ from Eq. 5. The first term
-    is the contribution of the mass interior to $r$ (it is $M(r)/r$, Eq. 15),
-    the second that of the shell exterior to it.
+    with :math:`c_0`, :math:`p_0`, :math:`q_0` from Eq. 42 and :math:`\chi` from
+    Eq. 5. The first term is the contribution of the mass interior to
+    :math:`r` (it is :math:`M(r)/r`, Eq. 15), the second that of the shell
+    exterior to it.
 
     Written with the general incomplete beta function of Eq. 43, both terms
     stay finite across the whole valid parameter range: the first for
-    $\beta \leq 3$ (where $q_0 \leq 0$), the second for $\gamma \geq 2$ (where
-    $p_0 \leq 0$, e.g. the Jaffe model, $(\alpha,\beta,\gamma) = (1,4,2)$).
+    :math:`\beta \leq 3` (where :math:`q_0 \leq 0`), the second for
+    :math:`\gamma \geq 2` (where :math:`p_0 \leq 0`, e.g. the Jaffe model,
+    :math:`(\alpha,\beta,\gamma) = (1,4,2)`).
     """
     c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     chi, chi1 = _r_to_chi(p, r), _r_to_1mchi(p, r)
@@ -463,7 +468,7 @@ def dpotential_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Radial derivative of the potential.
 
     The model is spherical, so by Newton's shell theorem only the mass interior
-    to $r$ (Eq. 15) contributes:
+    to :math:`r` (Eq. 15) contributes:
 
     .. math::
 
@@ -477,16 +482,16 @@ def dpotential_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def d2potential_dr2(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Second radial derivative of the potential.
 
-    Differentiating `dpotential_dr` and substituting $M'(r) = 4\pi r^2 \rho(r)$
-    (Eqs. 15 and 1):
+    Differentiating :func:`dpotential_dr` and substituting
+    :math:`M'(r) = 4\pi r^2 \rho(r)` (Eqs. 15 and 1):
 
     .. math::
 
         \frac{d^2\Phi}{dr^2} = 4\pi G \rho(r) - \frac{2 G M(r)}{r^3}
             = \frac{G M'(r)}{r^2} - \frac{2 G M(r)}{r^3}
 
-    Evaluated in the second form, by `shell_d2phi_dr2`: `density` forms
-    $r_s^3$, and that and $r^3$ overflow float32 in SI units.
+    Evaluated in the second form, by ``shell_d2phi_dr2``: :func:`density` forms
+    :math:`r_s^3`, and that and :math:`r^3` overflow float32 in SI units.
     """
     return _d2phi(p, r)
 
@@ -527,20 +532,22 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
             = \frac{\Phi'(r)}{r} \delta_{ij}
             + \left(\Phi''(r) - \frac{\Phi'(r)}{r}\right) \frac{x_i x_j}{r^2}
 
-    with $\Phi'(r)/r$ from `dpotential_dr` and, from `d2potential_dr2`,
+    with :math:`\Phi'(r)/r` from :func:`dpotential_dr` and, from
+    :func:`d2potential_dr2`,
 
     .. math::
 
         \Phi''(r) - \frac{\Phi'(r)}{r} = \frac{G M'(r)}{r^2} - 3 \frac{\Phi'(r)}{r}
 
-    Only $\Phi'/r$ reads $M(r)$. Had both coefficients read it, XLA on CPU would
-    fuse a copy of the incomplete beta series into each and evaluate it twice
-    per point (an `optimization_barrier` does not stop it: the CPU backend
-    removes barriers before fusion). Each division by $r$ is kept separate, as
-    in `shell_d2phi_dr2`, for float32 in SI units.
+    Only :math:`\Phi'/r` reads :math:`M(r)`. Had both coefficients read it, XLA
+    on CPU would fuse a copy of the incomplete beta series into each and
+    evaluate it twice per point (an ``optimization_barrier`` does not stop it:
+    the CPU backend removes barriers before fusion). Each division by :math:`r`
+    is kept separate, as in ``shell_d2phi_dr2``, for float32 in SI units.
 
-    At the origin the Hessian is $\nabla^2\Phi(0)/3\,\delta_{ij}$ (`laplacian`
-    at $r = 0$), which is $+\infty$ on the diagonal for a cusp.
+    At the origin the Hessian is :math:`\nabla^2\Phi(0)/3\,\delta_{ij}`
+    (:func:`laplacian` at :math:`r = 0`), which is :math:`+\infty` on the
+    diagonal for a cusp.
     """
     origin = jnp.sum(jnp.square(xyz), axis=-1, keepdims=True) == 0
     r1 = jnp.where(origin, 1.0, safe_vector_norm(xyz)[..., None])

@@ -202,10 +202,11 @@ class PowerLawCutoffPotential(LaplacianFromDensityMixin, AbstractSinglePotential
 
     Notes
     -----
-    The potential function is evaluated with the lower incomplete gamma
-    function of order :math:`1 - \alpha/2`, and it returns NaN for
-    :math:`\alpha \ge 2`. The density and the enclosed mass are valid for
-    :math:`0 \le \alpha < 3`.
+    The potential is the sum of the enclosed-mass term and the outer shell, which
+    is evaluated with the upper incomplete gamma function of order
+    :math:`1 - \alpha/2`. It is finite for the whole range
+    :math:`0 \le \alpha < 3`, including :math:`\alpha = 2`. The density and the
+    enclosed mass are valid on the same range.
 
     The parameters (total mass, power-law index, cutoff radius) are those of Gala's
     ``PowerLawCutoffPotential`` [PriceWhelan2017PowerLawCutoff]_. The functional form

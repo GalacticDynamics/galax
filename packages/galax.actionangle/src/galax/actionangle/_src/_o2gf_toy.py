@@ -39,6 +39,10 @@ _BISECT_STEPS = 20
 # orbit that does constrain them.
 _TIKHONOV = 1e-6
 _BRACKET = 1e3  # the isochrone seed searches b in [r0 / 1e3, 1e3 r0]
+# The next step of a fit that has converged to round-off is at most 3e-10 of
+# 1 + |y| on the test orbits, and that of a fit stopped early is above 2e-6.
+_STALL_STEP = 1e-7
+_MAX_STEPS = 256
 
 
 class IsochroneToy(eqx.Module):
@@ -105,14 +109,27 @@ def _kept_mean(x: Array, ok: Array) -> Array:
 
 
 def _lm_fit(residual: Any, y0: Array) -> tuple[Array, Bool[Array, ""]]:
+    """Solve the least-squares fit and say whether it converged.
+
+    The tight tolerance keeps the implicit gradient accurate, but it sits
+    below the round-off floor of the loss, so near the end whether a trial
+    step is accepted depends on round-off and can differ between platforms.
+    The fit also counts as converged when it runs out of steps while the next
+    step it would take is below ``_STALL_STEP`` relative to ``1 + |y|``.
+    """
     sol = optx.least_squares(
         residual,
         optx.LevenbergMarquardt(rtol=1e-10, atol=1e-10),
         y0,
-        max_steps=256,
+        max_steps=_MAX_STEPS,
         throw=False,
     )
-    return sol.value, sol.result == optx.RESULTS.successful
+    y = jax.lax.stop_gradient(sol.value)
+    step = jnp.abs(jax.lax.stop_gradient(sol.state.y_eval) - y) / (1 + jnp.abs(y))
+    stalled = (sol.result == optx.RESULTS.nonlinear_max_steps_reached) & jnp.all(
+        step <= _STALL_STEP
+    )
+    return sol.value, (sol.result == optx.RESULTS.successful) | stalled
 
 
 def _isochrone_seed(

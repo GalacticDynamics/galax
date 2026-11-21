@@ -1,5 +1,7 @@
 """Tests for the O2GF toy potentials and their fits."""
 
+import pathlib
+
 import diffrax as dfx
 import jax
 import numpy as np
@@ -7,6 +9,7 @@ import numpy as np
 import quaxed.numpy as jnp
 import unxt as u
 
+import galax.actionangle._src._o2gf_toy as _toy
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
@@ -146,6 +149,27 @@ def test_fit_not_converged_flag():
     assert bool(ok)
     q[:, 0] = np.nan
     _, ok = fit_oscillator(q, p, t)
+    assert not bool(ok)
+
+
+def test_fit_out_of_steps(monkeypatch):
+    # A fit that runs out of steps counts as converged only when its next step
+    # is round-off. With 10 steps the mw2022 loop's oscillator fit is there
+    # (next step 2e-12 of 1 + |omega|) and the random-normal fit is not (1e-2).
+    monkeypatch.setattr(_toy, "_MAX_STEPS", 10)
+
+    # A new function, so jit traces it again instead of reusing a cached trace.
+    @jax.jit
+    def fit(q, p, t):
+        return fit_oscillator.__wrapped__(q, p, t)
+
+    ref = np.load(pathlib.Path(__file__).parent / "data" / "o2gf_gala_refs.npz")
+    q, p, t = (ref[f"mw2022_loop__{k}"] for k in ("q", "p", "t"))
+    _, ok = fit(q, p, t)
+    assert bool(ok)
+    rng = np.random.default_rng(0)
+    q, p, t = rng.normal(size=(50, 3)), rng.normal(size=(50, 3)), np.arange(50.0)
+    _, ok = fit(q, p, t)
     assert not bool(ok)
 
 

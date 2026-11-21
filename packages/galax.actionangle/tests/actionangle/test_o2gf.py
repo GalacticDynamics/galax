@@ -341,8 +341,11 @@ def test_batched_toys_match_single():
         for a, s in zip(
             jax.tree.leaves(res.aaf), jax.tree.leaves(one.aaf), strict=True
         ):
-            # an angle near 0 needs an absolute tolerance
-            np.testing.assert_allclose(a[i], s, rtol=1e-12, atol=1e-13)
+            # Batching sums in a different order, so a small component is
+            # judged against the largest one in its array.
+            np.testing.assert_allclose(
+                a[i], s, rtol=1e-12, atol=1e-12 * np.max(np.abs(s))
+            )
         np.testing.assert_allclose(res.sn[i], one.sn, rtol=1e-10, atol=1e-14)
 
 

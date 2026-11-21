@@ -49,8 +49,8 @@ has shape ``(3,)``. To evaluate many points, use ``jax.vmap``.
       - ``(p, xyz, t)``
 
 Positions and parameters are bare arrays in the unit system of the potential,
-and the caller keeps track of the units. A module may export more than these
-functions, for example ``mass_total`` or ``rho0_of_m``.
+and the caller keeps track of the units (see `Units`_ below). A module may export
+more than these functions, for example ``mass_total`` or ``rho0_of_m``.
 
 :func:`galax.potential.plummer.potential` is a different function from
 :func:`galax.potential.potential`. The first takes ``(p, r)`` and returns a
@@ -108,6 +108,37 @@ x axis:
     >>> xyz = u.Quantity(jnp.stack([r, 0 * r, 0 * r], axis=-1), "kpc")
     >>> bool(jnp.allclose(phis, pot.potential(xyz, 0.0).value))
     True
+
+
+Units
+=====
+
+The module functions take bare arrays in the unit system of the potential,
+``pot.units``, so that they stay cheap under ``jit``, ``vmap`` and ``grad``.
+``pot.params(t)`` returns the parameters, and ``G``, in that system. For the
+galactic potential above the numbers are in kpc, Myr and Msun:
+
+    >>> float(p["r_s"])
+    5.0
+    >>> round(float(p["G"]) * 1e12, 3)
+    4.499
+
+Pass positions and times in the same system. A position in pc given to this
+potential would be read as kpc, and nothing checks it, so all the numbers need
+to come from one unit system. ``pot.params(t, ustrip=False)`` returns the same
+values as quantities, which is useful for inspection:
+
+    >>> str(pot.params(0.0, ustrip=False)["m_tot"].unit)
+    'solMass'
+
+If you build ``p`` by hand, pick one unit system and put ``G`` in it as well.
+For dimensionless N-body units that means ``G = 1`` and masses and lengths in
+those units.
+
+The class methods take quantities and coordinate objects and convert for you, so
+use them when the inputs carry units. The module functions are for code that
+already holds arrays in one system, such as integrators, fits and N-body
+kernels.
 
 
 The modules

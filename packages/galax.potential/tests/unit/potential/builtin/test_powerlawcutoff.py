@@ -286,3 +286,37 @@ def test_kernel_vmap_over_alpha_and_radius() -> None:
     )
     assert np.isfinite(np.asarray(grid)).all()
     assert (np.asarray(grid) < 0).all()
+
+
+# ==============================================================================
+# The origin. For alpha < 2 the potential is finite there,
+# Phi(0) = -G M Gamma(1 - alpha/2) / (r_c Gamma((3 - alpha)/2)); for alpha >= 2
+# it diverges, and the kernel returns the large finite value at the smallest
+# normal radius instead of NaN.
+
+
+@pytest.mark.parametrize("alpha", [0.0, 0.5, 1.0, 1.5])
+def test_kernel_origin_is_the_limit(alpha: float) -> None:
+    """``potential(p, 0)`` is Phi(0) for the profiles where it is finite."""
+    phi = potential(_params(alpha), np.float64(0.0))
+    a = mp.mpf(1.5) - mp.mpf(alpha) / 2
+    expect = -mp.mpf(G) * M_TOT * mp.gamma(a - mp.mpf(1) / 2) / (RC * mp.gamma(a))
+    assert _rel_err(phi, expect) < 1e-10
+
+
+@pytest.mark.parametrize("alpha", [0.0, 1.0, 1.9, 2.0, 2.5, 2.9])
+def test_origin_is_finite(alpha: float) -> None:
+    """The potential and gradient are not NaN at r = 0.
+
+    The Hessian, Phi'' ~ r^-alpha, diverges there; at the smallest normal radius
+    it overflows float64 for alpha above about 2, so it is checked up to 2.
+    """
+    pot = gp.PowerLawCutoffPotential(
+        m_tot=u.Q(1e12, "Msun"), alpha=alpha, r_c=u.Q(5.0, "kpc"), units="galactic"
+    )
+    origin, t = u.Q(jnp.zeros(3), "kpc"), u.Q(0.0, "Myr")
+    assert np.isfinite(pot.potential(origin, t).value)
+    assert pot.potential(origin, t).value < 0
+    assert np.isfinite(pot.gradient(origin, t).value).all()
+    if alpha <= 2:
+        assert np.isfinite(pot.hessian(origin, t).value).all()

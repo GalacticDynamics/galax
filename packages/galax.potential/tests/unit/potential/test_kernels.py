@@ -7,6 +7,7 @@ import jax
 import quaxed.numpy as jnp
 
 from galax.potential._src import kernels as k
+from galax.potential._src.utils import shell_d2phi_dr2, shell_dphi_dr
 
 p = {"G": 1.0, "m": 2.0, "a": 3.0}
 
@@ -97,6 +98,36 @@ def test_spherical_origin_cusp():
     )(p_, jnp.zeros(3))
     assert jnp.all(jnp.diag(h) == jnp.inf)
     assert jnp.all(h[~jnp.eye(3, dtype=bool)] == 0)
+
+
+def test_spherical_float32_si():
+    """float32 in SI units: no ``r**3`` forms under `jax.jit` (it overflows)."""
+    # Hernquist at SI scale: M = 1e7 Msun in kg, r_s = 0.3 kpc in m.
+    p64 = {"G": 6.674e-11, "m": 2e37, "r_s": 1e19}
+
+    def mass(p, r):
+        x = r / p["r_s"]
+        return p["m"] * x**2 / (1 + x) ** 2
+
+    def dmass(p, r):
+        x = r / p["r_s"]
+        return 2 * p["m"] / p["r_s"] * x / (1 + x) ** 3
+
+    dphi_si, d2phi_si = shell_dphi_dr(mass, dmass), shell_d2phi_dr2(mass, dmass)
+
+    def lap_si(p, r):
+        return p["G"] * dmass(p, r) / r / r
+
+    xyz64 = jnp.logspace(17, 19, 7)[:, None] * jnp.array([2.0, 3.0, 6.0]) / 7
+    p32 = {key: jnp.float32(v) for key, v in p64.items()}
+    xyz32 = xyz64.astype(jnp.float32)
+    grad = k.spherical_gradient(dphi_si)
+    hess = k.spherical_hessian(dphi_si, d2phi_si, lap_si)
+    for f in (grad, hess):
+        got, want = jax.jit(f)(p32, xyz32), f(p64, xyz64)
+        assert got.dtype == jnp.float32
+        assert jnp.all(got != 0)
+        assert jnp.allclose(got, want, rtol=1e-4, atol=0)
 
 
 def test_helper_signatures():

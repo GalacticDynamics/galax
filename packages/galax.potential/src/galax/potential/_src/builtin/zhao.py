@@ -550,7 +550,9 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
     # (as in `spherical_hessian`); the outer term is dropped, and the inner
     # `where` keeps every radius off 0 so that no inf * 0 = NaN arises.
     r0 = jnp.where(origin, 0.0, r1)
-    radial = jnp.where(origin, laplacian(p, r0) / 3, dpotential_dr(p, r1) / r1)
+    # `* (1 / r1)`: `/ r1` would fuse with the `/ r**2` in `dpotential_dr` into
+    # an r**3 that overflows float32 in SI (as in `spherical_hessian`).
+    radial = jnp.where(origin, laplacian(p, r0) / 3, dpotential_dr(p, r1) * (1 / r1))
     coef_outer = p["G"] * dmass_dr(p, r1) / r1 / r1 - 3 * radial
     coef_outer = jnp.where(origin, 0.0, coef_outer)
 

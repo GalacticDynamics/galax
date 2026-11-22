@@ -6,7 +6,7 @@ Per-potential function modules
 
 Each built-in potential has a module of plain functions next to its class. The
 module is named for the class in lower case, without ``Potential``, so
-:class:`~galax.potential.PlummerPotential` has :mod:`galax.potential.plummer`.
+``PlummerPotential`` has ``galax.potential.plummer``.
 The functions compute the same quantities as the class methods. They take bare
 arrays instead of quantities, so they can be used inside a ``jax.jit`` or
 ``jax.vmap`` of your own code. This page calls these functions kernels, and
@@ -52,8 +52,8 @@ Positions and parameters are bare arrays in the unit system of the potential,
 and the caller keeps track of the units (see `Units`_ below). A module may export
 more than these functions, for example ``mass_total`` or ``rho0_of_m``.
 
-:func:`galax.potential.plummer.potential` is a different function from
-:func:`galax.potential.potential`. The first takes ``(p, r)`` and returns a
+``galax.potential.plummer.potential`` is a different function from
+``galax.potential.potential``. The first takes ``(p, r)`` and returns a
 number. The second is dispatched on the potential and takes ``(pot, xyz, t)``
 with units.
 
@@ -69,7 +69,8 @@ is :math:`\Phi''(0)` times the identity for a cored profile. For a cusp the
 diagonal is ``+inf`` and the off-diagonal entries are 0. It is never NaN. The
 functions of ``r`` expect ``r > 0``, and several of them return NaN at exactly
 ``r = 0``. The class method ``pot.hessian`` at exactly the origin keeps its
-older values and can differ from the module function. To differentiate at the
+older values and can differ from the module function, except for
+``ZhaoPotential``, whose class methods call the module functions. To differentiate at the
 origin, differentiate the ``hessian``: ``jax.jacfwd`` of the ``gradient`` at 0
 is 0, because the gradient is set to 0 there. The non-spherical functions have
 no such rule, so evaluate them away from the origin.

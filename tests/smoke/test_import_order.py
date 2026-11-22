@@ -64,13 +64,13 @@ def test_portion_imports_alone(portion: str) -> None:
     assert proc.returncode == 0, proc.stderr
 
 
-# `fields` and `coordinates` are at the bottom and import no other galax
-# portion. `potential` sits above `coordinates`, and `orbits` above `fields`,
+# `setup` is below every portion and imports none of them. `fields` and
+# `coordinates` are the bottom portions and import no other galax portion.
+# `potential` sits above `coordinates`, and `orbits` above `fields`,
 # `coordinates` and `potential`. `nbody` is above `orbits`, `dynamics` above
 # `nbody`, and `actionangle` above `dynamics`. A portion may import the ones
 # below it, never the ones above.
 ABOVE = {
-    # `setup` is below every portion: it imports none of them.
     "setup": [
         "coordinates",
         "potential",

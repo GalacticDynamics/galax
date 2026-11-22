@@ -7,6 +7,7 @@ import operator
 from jaxtyping import Array, Bool, Float, Real
 from typing import Any, Final, final
 
+import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -15,6 +16,7 @@ from plum import dispatch
 import unxt as u
 from unxt.quantity import AllowValue
 
+import galax.fields as gf
 import galax.orbits.custom_types as gt
 import galax.potential as gp
 from .backend import AbstractForceBackend
@@ -357,3 +359,27 @@ def __call__(
     x = jnp.asarray(u.ustrip(AllowValue, units["length"], x), dtype=float)
     v = jnp.asarray(u.ustrip(AllowValue, units["speed"], v), dtype=float)
     return v, self.acceleration(t, x)
+
+
+@AbstractOrbitField.terms.dispatch
+def terms(
+    self: NBodyField, _: dfx.SemiImplicitEuler | gf.Leapfrog, /
+) -> tuple[dfx.ODETerm, dfx.ODETerm]:
+    """Return the position and velocity terms for the two-term solvers.
+
+    With these, `galax.fields.Leapfrog` and `diffrax.SemiImplicitEuler` run an
+    `NBodyField` through `diffrax.diffeqsolve`, `diffraxtra.DiffEqSolver` or
+    `galax.orbits.OrbitSolver`. Other solvers use the field's ``__call__``.
+
+    >>> import jax.numpy as jnp
+    >>> import galax.fields as gf
+    >>> import galax.nbody as gn
+    >>> import galax.potential as gp
+    >>> field = gn.NBodyField(jnp.ones(2), 0.1, gp.NullPotential(units="galactic"))
+    >>> field.terms(gf.Leapfrog())
+    (ODETerm(...), ODETerm(...))
+    """
+    return (
+        dfx.ODETerm(lambda t, p, args: p),  # noqa: ARG005
+        dfx.ODETerm(lambda t, q, args: self.acceleration(t, q)),  # noqa: ARG005
+    )

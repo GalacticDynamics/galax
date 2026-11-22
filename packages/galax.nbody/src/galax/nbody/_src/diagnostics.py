@@ -5,15 +5,20 @@ __all__ = ["total_energy"]
 from jaxtyping import Array, Float
 from typing import Any
 
+import diffrax as dfx
+import equinox as eqx
+import jax
 import jax.numpy as jnp
+from plum import dispatch
 
 import galax.potential as gp
 from .field import NBodyField, _sources_targets
 from .particles import Targets
 
 
+@dispatch
 def total_energy(
-    field: NBodyField, t: Any, q: Float[Array, "N 3"], p: Float[Array, "N 3"]
+    field: NBodyField, t: Any, q: Float[Array, "N 3"], p: Float[Array, "N 3"], /
 ) -> Float[Array, ""]:
     r"""Return the total energy of the active particles in ``field``.
 
@@ -25,6 +30,11 @@ def total_energy(
 
     The energy is conserved only with a static external potential, and
     leapfrog keeps it constant only to O(dt^2).
+
+    ``total_energy(field, solution)`` returns the (S,) energy at each save of a
+    `diffrax.Solution`, such as the one `evolve` returns. This is the
+    mass-weighted total of the system, not the energy per unit mass that
+    `galax.potential.total_energy` gives for each point.
     """
     nm = field.n_massive
     # Tracers are massless, so only the massive rows enter. They are dropped
@@ -49,3 +59,21 @@ def total_energy(
     self_pot = 0.5 * jnp.sum(m * phi_self)
     ext = m * phi_ext
     return kinetic + self_pot + jnp.sum(ext)
+
+
+@dispatch
+def total_energy(field: NBodyField, sol: dfx.Solution, /) -> Float[Array, " S"]:
+    """Return the (S,) total energy at each save of ``sol``.
+
+    ``sol.ys`` must be the ``(q, p)`` pair of (S, N, 3) arrays.
+    """
+    return _energies(field, sol.ts, *sol.ys)
+
+
+@eqx.filter_jit
+def _energies(field: NBodyField, ts: Array, q: Array, p: Array) -> Array:
+    # `lax.map`, not `vmap`: batching would widen the backend's chunked map by S
+    # and multiply its temp memory by S. Jitted at module level so eager calls
+    # reuse one compilation.
+    e: Array = jax.lax.map(lambda a: total_energy(field, *a), (ts, q, p))
+    return e

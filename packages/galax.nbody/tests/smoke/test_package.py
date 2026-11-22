@@ -28,7 +28,6 @@ def test_all() -> None:
         "NoGrad",
         "total_energy",
         "evolve",
-        "NBodyResult",
         "check_timestep",
     }
     for name in gn.__all__:

@@ -17,7 +17,6 @@ __all__ = [
     "NoGrad",
     "total_energy",
     "evolve",
-    "NBodyResult",
     "check_timestep",
 ]
 
@@ -27,7 +26,7 @@ with install_import_hook("galax.nbody"):
     from ._src.backend import AbstractForceBackend
     from ._src.diagnostics import total_energy
     from ._src.direct import DirectSum
-    from ._src.evolve import NBodyResult, check_timestep, evolve
+    from ._src.evolve import check_timestep, evolve
     from ._src.field import NBodyField
     from ._src.gradpolicy import AbstractGradPolicy, Autodiff, NoGrad, StopGrad
     from ._src.kernels import AbstractSofteningKernel, PlummerKernel

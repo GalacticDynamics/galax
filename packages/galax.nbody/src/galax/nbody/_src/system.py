@@ -6,6 +6,7 @@ from jaxtyping import Array, Float, Int, Real
 from typing import Any, Final, Literal
 
 import equinox as eqx
+import jax
 import jax.numpy as jnp
 import numpy as np
 from plum import dispatch
@@ -171,16 +172,22 @@ class System(eqx.Module):
             units=usys,
         )
 
-    def split(self, x: Array) -> dict[str, Array]:
-        """Split ``x`` along axis 0 into a dict keyed by component name.
+    def split(self, x: Array, /, *, axis: int = 0) -> dict[str, Array]:
+        """Split ``x`` along ``axis`` into a dict keyed by component name.
 
-        Axis 0 must have one row per particle. Raises `ValueError` otherwise.
+        ``axis`` must have one entry per particle. For saved states of shape
+        (..., S, N, 3), such as ``solution.ys[0]`` from `evolve`, pass
+        ``axis=-2``. Raises `ValueError` if ``axis`` has the wrong length.
         """
         n = self.slices[-1][1]
-        if x.shape[:1] != (n,):
-            msg = f"x must have {n} rows on axis 0, one per particle; got {x.shape}"
+        if x.ndim == 0 or not -x.ndim <= axis < x.ndim or x.shape[axis] != n:
+            msg = f"x must have {n} entries on axis {axis}, one per particle"
+            msg += f"; got shape {x.shape}"
             raise ValueError(msg)
-        return {k: x[a:b] for k, (a, b) in zip(self.names, self.slices, strict=True)}
+        return {
+            k: jax.lax.slice_in_dim(x, a, b, axis=axis)
+            for k, (a, b) in zip(self.names, self.slices, strict=True)
+        }
 
 
 def _strip(x: Any, unit: Any) -> Array:

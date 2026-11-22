@@ -71,6 +71,12 @@ def _rel_drift(energy) -> float:
     return float(np.max(np.abs(e - e[0]) / abs(e[0])))
 
 
+def _run(field, q0, p0, dt):
+    """Run N_TDYN dynamical times in steps of ``dt``, saving every T_DYN."""
+    per = round(T_DYN / dt)
+    return gn.evolve(field, q0, p0, 0.0, dt, N_TDYN * per, save_every=per)
+
+
 N_PLUMMER = 512
 N_EQUILIBRIUM = 2048
 N_TDYN = 50
@@ -87,20 +93,18 @@ def test_plummer_sphere_virial_equilibrium() -> None:
     within 6%. The dt vs dt/2 energy-drift ratio keeps N=512, so the dt/2 run
     stays cheap.
     """
-    ts = np.linspace(0, N_TDYN * T_DYN, 51)
-
     n = N_EQUILIBRIUM
     q0, p0 = _plummer(n, seed=0)
     field = _field(n)
-    res = gn.evolve(field, q0, p0, ts, dt=DT, energy=True)
+    res = _run(field, q0, p0, DT)
     m = np.asarray(field.masses)
-    kin = 0.5 * np.sum(m * np.sum(np.asarray(res.p) ** 2, -1), -1)
-    pot = np.asarray(res.energy) - kin
+    kin = 0.5 * np.sum(m * np.sum(np.asarray(res.ys[1]) ** 2, -1), -1)
+    pot = np.asarray(gn.total_energy(field, res)) - kin
     virial = 2 * kin / np.abs(pot)
     print(f"virial 2K/|W| in [{virial.min():.4f}, {virial.max():.4f}]")
     assert np.all((virial > 0.9) & (virial < 1.1))
 
-    lr = _lagrangian_radii(res.q)
+    lr = _lagrangian_radii(res.ys[0])
     change = np.abs(lr / lr[0] - 1)
     print(f"Lagrangian radii 10/50/90% max change over saves: {change.max(0)}")
     # The 10% radius holds only about 205 particles, and its finite-N noise
@@ -112,7 +116,7 @@ def test_plummer_sphere_virial_equilibrium() -> None:
     q0, p0 = _plummer(n, seed=0)
     field = _field(n)
     drift = [
-        _rel_drift(gn.evolve(field, q0, p0, ts, dt=dt, energy=True).energy)
+        _rel_drift(gn.total_energy(field, _run(field, q0, p0, dt)))
         for dt in (DT, DT / 2)
     ]
     ratio = drift[0] / drift[1]
@@ -132,11 +136,10 @@ def test_divergence_bounded_by_chaos_floor() -> None:
     nudged[0, 0] += 1e-14
     perm = np.random.default_rng(4).permutation(n)
     inv = np.argsort(perm)
-    ts = np.arange(N_TDYN + 1) * T_DYN
     field = _field(n)
-    base = np.asarray(gn.evolve(field, q0, p0, ts, dt=DT).q)
-    nudge = np.asarray(gn.evolve(field, nudged, p0, ts, dt=DT).q)
-    permuted = np.asarray(gn.evolve(field, q0[perm], p0[perm], ts, dt=DT).q)[:, inv]
+    base = np.asarray(_run(field, q0, p0, DT).ys[0])
+    nudge = np.asarray(_run(field, nudged, p0, DT).ys[0])
+    permuted = np.asarray(_run(field, q0[perm], p0[perm], DT).ys[0])[:, inv]
 
     d_nudge = np.max(np.abs(nudge - base), axis=(1, 2))[1:]
     d_perm = np.max(np.abs(permuted - base), axis=(1, 2))[1:]
@@ -161,12 +164,11 @@ def test_two_component_mass_ratio_heating_is_measured(record_property) -> None:
     dm = gn.Component(name="dm", q=q[n_star:], p=p[n_star:], m=30 * m_star, h=_EPS)
     system = gn.System.from_components(stars, dm, units="galactic")
     field = gn.NBodyField.from_system(system, _NULL)
-    ts = np.arange(N_TDYN + 1) * T_DYN
     ps = system.particles
     # The heavy particles pull harder, so the step guard needs a smaller dt.
-    res = gn.evolve(field, ps.q, ps.p, ts, dt=DT / 2, system=system)
+    res = _run(field, ps.q, ps.p, DT / 2)
 
-    q_star, _ = res.component("stars")
+    q_star = system.split(res.ys[0], axis=-2)["stars"]
     r_half = _lagrangian_radii(q_star, fracs=(0.5,))[:, 0]
     growth = float(r_half[-1] / r_half[0] - 1)
     record_property("stellar_r50_growth", growth)

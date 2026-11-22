@@ -9,17 +9,20 @@ import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from plum import dispatch
+import plum
 
 import galax.potential as gp
 from .field import NBodyField, _sources_targets
 from .particles import Targets
 
+# Its own dispatcher: plum's global one keys functions by name, which would
+# merge these methods into `galax.potential.total_energy`, the energy per unit
+# mass of a point.
+_dispatch = plum.Dispatcher()
 
-@dispatch
-def total_energy(
-    field: NBodyField, t: Any, q: Float[Array, "N 3"], p: Float[Array, "N 3"], /
-) -> Float[Array, ""]:
+
+@_dispatch
+def total_energy(field: NBodyField, t: Any, q: Any, p: Any, /) -> Float[Array, ""]:
     r"""Return the total energy of the active particles in ``field``.
 
     The energy is the kinetic energy ``1/2 sum m |p|^2``, plus the self
@@ -31,10 +34,11 @@ def total_energy(
     The energy is conserved only with a static external potential, and
     leapfrog keeps it constant only to O(dt^2).
 
-    ``total_energy(field, solution)`` returns the (S,) energy at each save of a
-    `diffrax.Solution`, such as the one `evolve` returns. This is the
-    mass-weighted total of the system, not the energy per unit mass that
-    `galax.potential.total_energy` gives for each point.
+    ``q`` and ``p`` are (N, 3). ``total_energy(field, solution)`` returns the
+    (S,) energy at each save of a `diffrax.Solution`, such as the one `evolve`
+    returns. The arguments are positional. This is the mass-weighted total of
+    the system, not the energy per unit mass that `galax.potential.total_energy`
+    gives for each point.
     """
     nm = field.n_massive
     # Tracers are massless, so only the massive rows enter. They are dropped
@@ -61,7 +65,7 @@ def total_energy(
     return kinetic + self_pot + jnp.sum(ext)
 
 
-@dispatch
+@_dispatch
 def total_energy(field: NBodyField, sol: dfx.Solution, /) -> Float[Array, " S"]:
     """Return the (S,) total energy at each save of ``sol``.
 

@@ -107,8 +107,11 @@ def evolve(
     the energy at each save, and ``system.split(sol.ys[0], axis=-2)`` splits
     the positions by component.
 
-    ``solver`` defaults to `galax.fields.Leapfrog`. Any diffrax solver works on
-    the grid; a solver with an error estimate just takes the fixed steps.
+    ``solver`` defaults to `galax.fields.Leapfrog`. Any explicit diffrax solver
+    works on the grid; a solver with an error estimate just takes the fixed
+    steps. An implicit solver needs its root finder's tolerances set, since no
+    step-size controller supplies them. Saves after ``t0`` are the solver's
+    interpolant at the step end, equal to the step's state up to rounding.
     ``adjoint`` defaults to `diffrax.RecursiveCheckpointAdjoint`, which needs
     about ``sqrt(2 n_steps)`` checkpoints of the state; `evolve` sets
     ``max_steps=n_steps`` so the checkpoint count follows the run. Forward-mode
@@ -136,7 +139,10 @@ def evolve(
 
     galax.nbody needs float64, so `evolve` raises `ValueError` unless
     ``jax_enable_x64`` is on. It also raises `ValueError` if ``n_steps`` is not
-    a positive int, or ``save_every`` is not a positive int dividing it.
+    a positive int, or ``save_every`` is not a positive int dividing it, and
+    `equinox.EquinoxRuntimeError` if ``dt`` is zero or not finite (also when
+    traced). A ``dt`` so small that ``t0 + k * dt`` repeats, near large
+    ``|t0|``, fails in diffrax with a "strictly increasing" error.
 
     >>> import jax
     >>> jax.config.update("jax_enable_x64", True)
@@ -177,6 +183,7 @@ def evolve(
     )
     t0 = jnp.asarray(u.ustrip(AllowValue, units["time"], t0), dtype=float)
     dt = jnp.asarray(u.ustrip(AllowValue, units["time"], dt), dtype=float)
+    dt = eqx.error_if(dt, ~jnp.isfinite(dt) | (dt == 0), "dt must be finite, not 0")
     solver = gf.Leapfrog() if solver is None else solver
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint
     return _solve(field, y0, t0, dt, int(n_steps), int(save_every), solver, adjoint)

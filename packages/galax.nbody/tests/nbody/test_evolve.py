@@ -67,21 +67,39 @@ def test_kepler_dt2_convergence() -> None:
     assert 3.6 < ratio < 4.4
 
 
-def test_tracers_match_compute_orbit() -> None:
-    """Tracers in an NFW potential follow `go.compute_orbit` with Leapfrog."""
-    pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+def _growing_kepler():
+    """Return a Kepler potential whose mass grows linearly in time."""
+    m = gp.params.LinearParameter(
+        slope=u.Q(1e9, "Msun/Myr"),
+        point_time=u.Q(0.0, "Myr"),
+        point_value=u.Q(1e11, "Msun"),
+    )
+    return gp.KeplerPotential(m_tot=m, units="galactic")
+
+
+@pytest.mark.parametrize(
+    ("pot", "t0"),
+    [
+        (gp.NFWPotential(m=1e11, r_s=10, units="galactic"), 0.0),
+        (_growing_kepler(), 3.0),
+    ],
+    ids=["nfw", "growing-kepler"],
+)
+def test_tracers_match_compute_orbit(pot, t0) -> None:
+    """Tracers follow `go.compute_orbit` with Leapfrog, also with forces that change."""
     q0 = jnp.asarray([[8.0, 0, 0], [0, 12, 1], [5, 5, 5]])
     p0 = jnp.asarray([[0.0, 0.2, 0], [-0.15, 0, 0.02], [0.1, -0.1, 0.05]])
     dt = 0.5
-    ts = dt * jnp.arange(0, 41, 10)
+    ts = t0 + dt * jnp.arange(0, 41, 10)
     field = gn.NBodyField(
         masses=jnp.zeros(3), eps=0.0, external_potential=pot, n_massive=0
     )
-    sol = gn.evolve(field, q0, p0, 0.0, dt, 40, save_every=10)
+    sol = gn.evolve(field, q0, p0, t0, dt, 40, save_every=10)
+    np.testing.assert_allclose(sol.ts, ts, rtol=1e-15)
 
     solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize())
     w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(p0, "kpc/Myr"), t=u.Q(0.0, "Myr")
+        q=u.Q(q0, "kpc"), p=u.Q(p0, "kpc/Myr"), t=u.Q(t0, "Myr")
     )
     orbit = go.compute_orbit(pot, w0, u.Q(ts, "Myr"), solver=solver, dt0=u.Q(dt, "Myr"))
     expect = jnp.stack(
@@ -215,7 +233,7 @@ def test_empty_field_evolves() -> None:
 
 
 def test_traced_t0_and_dt() -> None:
-    """``t0`` and ``dt`` work under jit, vmap and grad."""
+    """``t0`` and ``dt`` work under jit and vmap, and grad works over ``dt``."""
     field, q0, p0 = _cluster(n=4)
 
     def end(t0, dt):
@@ -234,6 +252,33 @@ def test_traced_t0_and_dt() -> None:
     eps = 1e-7
     fd = (loss(0.01 + eps) - loss(0.01 - eps)) / (2 * eps)
     np.testing.assert_allclose(g, fd, rtol=1e-6)
+
+
+def test_grad_over_t0_with_time_dependent_forces() -> None:
+    """With a growing external mass, d(loss)/d(t0) is nonzero and matches FD."""
+    field, q0, p0 = _cluster(n=4)
+    field = gn.NBodyField(
+        masses=field.masses,
+        softening=field.softening,
+        external_potential=_growing_kepler(),
+    )
+    q0 = q0 + jnp.asarray([8.0, 0.0, 0.0])
+
+    def loss(t0):
+        return jnp.sum(gn.evolve(field, q0, p0, t0, 0.01, 50).ys[0][-1] ** 2)
+
+    g = jax.jit(jax.grad(loss))(3.0)
+    eps = 1e-5
+    fd = (loss(3.0 + eps) - loss(3.0 - eps)) / (2 * eps)
+    assert abs(float(g)) > 1e-6
+    np.testing.assert_allclose(g, fd, rtol=1e-5)
+
+
+@pytest.mark.parametrize("dt", [0.0, float("nan"), float("inf")])
+def test_bad_dt_raises(dt) -> None:
+    field, q0, p0 = _cluster(n=4)
+    with pytest.raises(eqx.EquinoxRuntimeError, match="dt must be finite, not 0"):
+        gn.evolve(field, q0, p0, 0.0, dt, 10)
 
 
 def _compiles(caplog):
@@ -369,6 +414,36 @@ def test_component_split_and_energy_on_a_solution() -> None:
     for i in range(3):
         one = gn.total_energy(field, sol.ts[i], sol.ys[0][i], sol.ys[1][i])
         np.testing.assert_allclose(e[i], one, rtol=1e-14)
+
+
+def test_energy_on_a_solution_reads_each_save_time() -> None:
+    """With a time-dependent potential each save's energy uses its own time."""
+    field, q0, p0 = _cluster(n=4)
+    field = gn.NBodyField(
+        masses=field.masses,
+        softening=field.softening,
+        external_potential=_growing_kepler(),
+    )
+    q0 = q0 + jnp.asarray([8.0, 0.0, 0.0])
+    sol = gn.evolve(field, q0, p0, 3.0, 0.5, 20, save_every=5)
+    e = gn.total_energy(field, sol)
+    at_zero = [
+        gn.total_energy(field, 0.0, sol.ys[0][i], sol.ys[1][i]) for i in range(5)
+    ]
+    for i in range(5):
+        one = gn.total_energy(field, sol.ts[i], sol.ys[0][i], sol.ys[1][i])
+        np.testing.assert_allclose(e[i], one, rtol=1e-14)
+        assert abs(float(e[i] - at_zero[i])) > 1e-6 * abs(float(e[i]))
+
+
+def test_total_energy_is_its_own_function() -> None:
+    """``gn.total_energy`` is not merged into ``gp.total_energy``, and takes numpy."""
+    field, q0, p0 = _cluster(n=4)
+    assert gn.total_energy is not gp.total_energy
+    ref = gn.total_energy(field, 0.0, q0, p0)
+    np.testing.assert_allclose(
+        gn.total_energy(field, 0, np.asarray(q0), np.asarray(p0)), ref, rtol=1e-15
+    )
 
 
 def test_component_split_on_a_vmapped_solution() -> None:

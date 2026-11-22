@@ -6,6 +6,7 @@ This is private API.
 
 __all__ = ["align_circulation", "circulation"]
 
+import functools as ft
 from dataclasses import replace
 
 from jaxtyping import Array, ArrayLike, Bool, Int
@@ -39,33 +40,33 @@ def _value(x: Any) -> Array:
     return jnp.asarray(x.value if isinstance(x, u.AbstractQuantity) else x)  # type: ignore[no-any-return]
 
 
-def _circulation_one(q: Array, p: Array) -> Bool[Array, "3"]:
-    """Return which axes one orbit of shape (T, 3) circulates about."""
-    ok = jnp.isfinite(q).all(axis=1) & jnp.isfinite(p).all(axis=1)
+@ft.partial(jax.jit, inline=True)
+def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
+    """Return which axes orbits of shape (..., T, 3) circulate about."""
+    ok = (jnp.isfinite(q) & jnp.isfinite(p)).all(axis=-1, keepdims=True)
     L = jnp.cross(q, p)
-    same_sign = jnp.sign(L) == jnp.sign(L[jnp.argmax(ok)])
-    big = jnp.abs(L) >= _FLOOR * jnp.linalg.norm(L, axis=1, keepdims=True)
-    nonzero = L != 0
-    circ = jnp.all(same_sign & big & nonzero | ~ok[:, None], axis=0)
+    big = jnp.abs(L) >= _FLOOR * jnp.linalg.norm(L, axis=-1, keepdims=True)
+    big = big & (L != 0)
+    # An axis circulates if L_i keeps one sign, clear of the floor, at every
+    # finite sample.
+    pos = jnp.all((L > 0) & big | ~ok, axis=-2)
+    neg = jnp.all((L < 0) & big | ~ok, axis=-2)
     # An orbit with no finite samples circulates about no axis.
-    return circ & ok.any()  # type: ignore[no-any-return]
+    return (pos | neg) & ok.any(axis=-2)  # type: ignore[no-any-return]
 
 
 def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
-    """Vmap the single-orbit core over the batch axes of (..., T, 3) inputs."""
+    """Check the shapes of (..., T, 3) inputs and run the jitted core."""
     q, p = _value(q), _value(p)
-    q, p = jnp.broadcast_arrays(q, p)
-    if q.ndim < 2 or q.shape[-1] != 3 or q.shape[-2] == 0:
+    shape = jnp.broadcast_shapes(q.shape, p.shape)
+    if len(shape) < 2 or shape[-1] != 3 or shape[-2] == 0:
         msg = (
             f"circulation needs q and p of shape (..., T, 3) with T > 0, but "
-            f"they broadcast to shape {q.shape}."
+            f"they broadcast to shape {shape}."
         )
         raise ValueError(msg)
     q, p = jax.lax.stop_gradient(q), jax.lax.stop_gradient(p)
-    fn = _circulation_one
-    for _ in range(q.ndim - 2):
-        fn = jax.vmap(fn)
-    return fn(q, p)
+    return _circulation_core(q, p)  # type: ignore[no-any-return]
 
 
 def _circ_axis(circ: Bool[ArrayLike, "*batch 3"]) -> Int[Array, "*batch"]:
@@ -75,6 +76,7 @@ def _circ_axis(circ: Bool[ArrayLike, "*batch 3"]) -> Int[Array, "*batch"]:
     return jnp.where(keep, 2, jnp.where(c[..., 0], 0, 1))  # type: ignore[no-any-return]
 
 
+@ft.partial(jax.jit, inline=True)
 def _swap[QP: (Array, u.AbstractQuantity)](x: QP, axis: Int[Array, "*batch"]) -> QP:
     """Swap the last-axis component ``axis`` of ``x`` with z, per orbit."""
     a = jnp.reshape(axis, axis.shape + (1,) * (jnp.ndim(x) - axis.ndim))

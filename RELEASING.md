@@ -20,6 +20,7 @@ alone — but the usual case is a coordinated release of all of them.
 | `galax.nbody`              | `galax-nbody-v`              | `packages/galax.nbody`              |
 | `galax.orbits`             | `galax-orbits-v`             | `packages/galax.orbits`             |
 | `galax.potential`          | `galax-potential-v`          | `packages/galax.potential`          |
+| `galax.setup`              | `galax-setup-v`              | `packages/galax.setup`              |
 
 ## Release lines
 
@@ -28,7 +29,7 @@ Two branches release independently, and they do **not** share machinery:
 | line     | branch            | distributions | how CD fires                  |
 | -------- | ----------------- | ------------- | ----------------------------- |
 | `v0.1.x` | `versions/v0.1.x` | one (`galax`) | publish a GitHub release      |
-| `v0.2.x` | `main`            | twelve        | the coordinated fan-out below |
+| `v0.2.x` | `main`            | thirteen      | the coordinated fan-out below |
 
 `versions/v0.1.x` predates the namespace split: it carries only `cd.yml` and
 `ci.yml`, with no per-package CD workflows and no `create-package-tags.yml`, and
@@ -71,10 +72,14 @@ release tag pushed there builds nothing.
 `validate_tag.py` refuses a tag that does not belong to the package being built,
 so a mistyped prefix fails the build rather than publishing a wrong version.
 
+`galax.setup` is the bottom of the dependency graph: every portion depends on it
+once the portions use it, so its first release must be published no later than
+the first release of a portion that depends on it.
+
 ## What does not work yet
 
 - **The per-package CD workflows build; they do not publish.** Publishing needs
-  twenty-four trusted publishers (twelve distributions, each on PyPI and
+  twenty-six trusted publishers (thirteen distributions, each on PyPI and
   TestPyPI), which only the repository owner can create. That is deliberately
   out of scope for the split itself.
 - **The coordinator fan-out's dispatch step is untested.** Tags pushed with
@@ -114,6 +119,7 @@ the rest.
 | `galax.nbody`              | `cd-galax-nbody.yml`              |
 | `galax.orbits`             | `cd-galax-orbits.yml`             |
 | `galax.potential`          | `cd-galax-potential.yml`          |
+| `galax.setup`              | `cd-galax-setup.yml`              |
 
 ## Migration notes for users
 

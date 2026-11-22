@@ -22,6 +22,7 @@ members = [
     "galax-nbody",
     "galax-orbits",
     "galax-potential",
+    "galax-setup",
 ]
 
 [[package]]
@@ -833,6 +834,7 @@ dependencies = [
     { name = "galax-nbody" },
     { name = "galax-orbits" },
     { name = "galax-potential" },
+    { name = "galax-setup" },
 ]
 
 [package.optional-dependencies]
@@ -947,6 +949,7 @@ requires-dist = [
     { name = "galax-nbody", editable = "packages/galax.nbody" },
     { name = "galax-orbits", editable = "packages/galax.orbits" },
     { name = "galax-potential", editable = "packages/galax.potential" },
+    { name = "galax-setup", editable = "packages/galax.setup" },
 ]
 provides-extras = ["all", "interop-all", "interop-astropy", "interop-gala", "interop-galpy", "plot-all", "plot-matplotlib"]
 
@@ -1637,6 +1640,38 @@ requires-dist = [
 test = [
     { name = "galax-interop-astropy", editable = "packages/galax.interop.astropy" },
     { name = "mpmath", specifier = ">=1.3" },
+    { name = "optional-dependencies", specifier = ">=0.4.0" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-arraydiff", specifier = ">=0.6.1" },
+    { name = "pytest-cov", specifier = ">=5" },
+    { name = "pytest-env", specifier = ">=1.1.5" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "sybil", specifier = ">=9.0.0" },
+]
+
+[[package]]
+name = "galax-setup"
+source = { editable = "packages/galax.setup" }
+dependencies = [
+    { name = "jaxtyping" },
+]
+
+[package.dev-dependencies]
+test = [
+    { name = "optional-dependencies" },
+    { name = "pytest" },
+    { name = "pytest-arraydiff" },
+    { name = "pytest-cov" },
+    { name = "pytest-env" },
+    { name = "pytest-xdist" },
+    { name = "sybil" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "jaxtyping", specifier = ">=0.3.3" }]
+
+[package.metadata.requires-dev]
+test = [
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },

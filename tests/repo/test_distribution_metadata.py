@@ -117,6 +117,7 @@ def test_no_distribution_depends_on_the_root() -> None:
         "galax.fields",
         "galax.orbits",
         "galax.nbody",
+        "galax.setup",
         "galax.interop.astropy",
         "galax.interop.gala",
         "galax.interop.galpy",

@@ -55,6 +55,7 @@ def _within(name: str, packages: tuple[str, ...], /) -> bool:
         "nbody",
         "dynamics",
         "actionangle",
+        "setup",
     ],
 )
 def test_portion_imports_alone(portion: str) -> None:
@@ -69,6 +70,16 @@ def test_portion_imports_alone(portion: str) -> None:
 # `nbody`, and `actionangle` above `dynamics`. A portion may import the ones
 # below it, never the ones above.
 ABOVE = {
+    # `setup` is below every portion: it imports none of them.
+    "setup": [
+        "coordinates",
+        "potential",
+        "fields",
+        "orbits",
+        "nbody",
+        "dynamics",
+        "actionangle",
+    ],
     "coordinates": [
         "potential",
         "fields",

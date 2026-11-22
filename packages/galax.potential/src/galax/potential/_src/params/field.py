@@ -24,7 +24,7 @@ from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
 import unxt as u
 from dataclassish._src.converters import dataclass as dataclass_with_converter, field
-from dataclassish.converters import Optional
+from dataclassish.converters import Optional, Unless
 from is_annotated import isannotated
 from unxt.quantity import AbstractQuantity
 
@@ -125,7 +125,7 @@ class ParameterField:
     _: KW_ONLY
     default: AbstractParameter | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
-        converter=lambda v: v if v is Sentinel.MISSING else converter_parameter(v),
+        converter=Unless(Sentinel, converter=converter_parameter),
     )
     """The default value of the parameter."""
 

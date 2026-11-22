@@ -24,14 +24,14 @@ from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
 import unxt as u
 from dataclassish._src.converters import dataclass as dataclass_with_converter, field
-from dataclassish.converters import Optional
+from dataclassish.converters import Optional, Unless
 from is_annotated import isannotated
 from unxt.quantity import AbstractQuantity
 
 from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
 from .core import CustomParameter
-from galax.potential.dataclasses import Sentinel, sentineled
+from galax.potential.dataclasses import Sentinel
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotential
@@ -125,7 +125,7 @@ class ParameterField:
     _: KW_ONLY
     default: AbstractParameter | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
-        converter=sentineled(converter_parameter, sentinel=Sentinel.MISSING),
+        converter=Unless(Sentinel, converter=converter_parameter),
     )
     """The default value of the parameter."""
 

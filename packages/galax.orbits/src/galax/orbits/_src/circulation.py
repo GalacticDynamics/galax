@@ -123,7 +123,18 @@ def circulation(orbit: AbstractOrbit, /) -> Bool[Array, "*batch 3"]:
 
 
 @dispatch
+def circulation(orbit: AbstractOrbit, t: None, /) -> Bool[Array, "*batch 3"]:  # noqa: ARG001
+    return _circulation_qp(*_cartesian_qp(orbit))
+
+
+@dispatch
 def circulation(orbit: AbstractOrbit, t: Any, /) -> Bool[Array, "*batch 3"]:
+    if jnp.ndim(t) != 1:
+        msg = (
+            f"circulation(orbit, t) needs t of shape (T,), but t has shape "
+            f"{jnp.shape(t)}."
+        )
+        raise ValueError(msg)
     return _circulation_qp(*_cartesian_qp(orbit(t)))
 
 

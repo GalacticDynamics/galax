@@ -134,10 +134,12 @@ def circulation(*args: Any) -> Any:
     own, so the result does not depend on the order of the samples. An input
     with no samples raises a `ValueError`.
 
-    This follows :meth:`gala.dynamics.Orbit.circulation` with two differences.
-    The floor here is relative to :math:`|\mathbf{L}|`, so the result does not
-    depend on the units, while gala uses an absolute floor of ``1e-13``. And
-    this function returns booleans where gala returns integers.
+    This follows :meth:`gala.dynamics.Orbit.circulation` with three
+    differences. The floor here is relative to :math:`|\mathbf{L}|`, so the
+    result does not depend on the units, while gala uses an absolute floor of
+    ``1e-13``. Samples that are not finite are skipped here, while in gala a
+    single NaN sample makes the orbit circulate about no axis. And this
+    function returns booleans where gala returns integers.
 
     The overloads are:
 
@@ -146,8 +148,10 @@ def circulation(*args: Any) -> Any:
     - ``circulation(orbit, t)`` first evaluates the orbit's interpolant at the
       times ``t`` with ``orbit(t)`` and then checks those samples. This finds
       sign flips that fall between stored samples and lets you choose the time
-      window. ``t`` is a time Quantity or an array in the orbit's time unit, and
-      the orbit must have been computed with ``dense=True``.
+      window. ``t`` is a time Quantity or an array in the orbit's time unit,
+      with shape ``(T,)``, and the orbit must have been computed with
+      ``dense=True``. Any other shape raises a `ValueError`. ``t=None`` uses
+      the stored samples, as ``circulation(orbit)`` does.
     - ``circulation(w)`` checks a
       `~galax.coordinates.AbstractPhaseSpaceCoordinate` whose last batch axis
       is time. This includes composite coordinates, whose components are

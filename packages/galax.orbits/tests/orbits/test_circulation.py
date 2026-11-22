@@ -303,3 +303,20 @@ def test_composite(composite):
     aligned2, axis2 = go.align_circulation(composite, go.circulation(composite))
     np.testing.assert_array_equal(axis2, axis)
     assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)
+
+
+@pytest.mark.parametrize(
+    "t",
+    [u.Q(0.5, "Gyr"), u.Q(jnp.linspace(0, 1, 40).reshape(2, 20), "Gyr")],
+    ids=["scalar", "2d"],
+)
+def test_orbit_t_must_be_1d(orbit, t):
+    with pytest.raises(ValueError, match=r"needs t of shape \(T,\)"):
+        go.circulation(orbit, t)
+    with pytest.raises(ValueError, match=r"needs t of shape \(T,\)"):
+        jax.jit(go.circulation)(orbit, t)
+
+
+def test_orbit_t_none_uses_stored_samples(orbit):
+    np.testing.assert_array_equal(go.circulation(orbit, None), EXPECTED_ORBITS)
+    np.testing.assert_array_equal(orbit.circulation(None), EXPECTED_ORBITS)

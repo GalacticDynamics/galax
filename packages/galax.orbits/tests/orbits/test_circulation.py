@@ -425,3 +425,47 @@ def test_float32_p_with_float64_q():
         p = np.array([[0.77, 1.54, 2.31]] * 2, dtype=np.float32)
         assert not go.circulation(q, p).any()
         assert not go.circulation(q.astype(np.float32), p.astype(np.float64)).any()
+
+
+@pytest.mark.parametrize("rep", [cx.CartesianPos3D, cx.vecs.SphericalPos])
+@pytest.mark.parametrize("q_short", [True, False])
+@pytest.mark.parametrize("short", [(1,), ()])
+def test_coordinate_q_and_p_with_short_batch_shapes(rep, q_short, short):
+    """A (1,) or () vector broadcasts against a (T,) one, both ways."""
+    (q, p), _, _ = ORBITS["xy"]
+    i = slice(7, 8) if short == (1,) else 7
+    qa, pa = (q[i], p) if q_short else (q, p[i])
+    qv = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
+    pv = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
+    w = gc.PhaseSpaceCoordinate(q=cx.vconvert(rep, qv), p=pv, t=u.Q(T, "Myr"))
+    assert w.q.shape != w.p.shape
+    expected = go.circulation(
+        jnp.broadcast_to(qa, (T.size, 3)), jnp.broadcast_to(pa, (T.size, 3))
+    )
+    np.testing.assert_array_equal(go.circulation(w), expected)
+
+
+@pytest.mark.parametrize("dtype", [jnp.float16, jnp.bfloat16])
+@pytest.mark.parametrize("name", ["xy", "yz", "box"])
+def test_half_precision_matches_float32(name, dtype):
+    (q, p), expected, _ = ORBITS[name]
+    out = go.circulation(q.astype(dtype), p.astype(dtype))
+    np.testing.assert_array_equal(out, expected)
+    np.testing.assert_array_equal(
+        out, go.circulation(q.astype(jnp.float32), p.astype(jnp.float32))
+    )
+
+
+def test_half_precision_kepler_matches_float32():
+    """A tilted Kepler orbit in AU and km/s, which float16 rounds coarsely."""
+    pot = gp.KeplerPotential(m_tot=u.Q(1.0, "Msun"), units="solarsystem")
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([1.0, 0, 0.1], "AU"), p=u.Q([0, 20.0, 1.0], "km/s"), t=u.Q(0.0, "yr")
+    )
+    o = go.compute_orbit(pot, w0, u.Q(jnp.linspace(0, 5, 2001), "yr"))
+    q, p = (np.stack([getattr(v, c).value for c in "xyz"], -1) for v in (o.q, o.p))
+    ref = go.circulation(q.astype(np.float32), p.astype(np.float32))
+    for dtype in (jnp.float16, jnp.bfloat16):
+        np.testing.assert_array_equal(
+            go.circulation(q.astype(dtype), p.astype(dtype)), ref
+        )

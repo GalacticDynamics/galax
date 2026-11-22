@@ -52,7 +52,10 @@ def _unit_scale(x: Array) -> Array:
     Dividing by a power of 2 is exact, so the signs and zeros of ``q x p`` do
     not change unless a component underflows.
     """
-    if not jnp.issubdtype(x.dtype, jnp.floating):
+    # Ints become the default float, half precision becomes float32.
+    if jnp.issubdtype(x.dtype, jnp.floating):
+        x = x.astype(jnp.promote_types(x.dtype, jnp.float32))
+    else:
         x = x.astype(float)
     m = jnp.max(jnp.abs(x), axis=-1, keepdims=True)
     # Clearing the mantissa bits of m leaves the power of 2 at or below it.
@@ -136,7 +139,7 @@ def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
     # broadcast them first.
     shape = jnp.broadcast_shapes(w.q.shape, w.p.shape)
     wq, wp = w.q, w.p
-    if len(shape) > 1:
+    if len(shape) > 1 or wq.shape != wp.shape:
         bcast = ft.partial(jax.tree.map, lambda a: jnp.broadcast_to(a, shape))
         wq, wp = bcast(wq).reshape(-1), bcast(wp).reshape(-1)
     q: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianPos3D, wq), u.Quantity)

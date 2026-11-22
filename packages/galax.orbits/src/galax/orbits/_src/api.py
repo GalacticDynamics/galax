@@ -126,20 +126,25 @@ def circulation(*args: Any) -> Any:
 
     Axis ``i`` circulates when the angular momentum component
     :math:`L_i = (\mathbf{q} \times \mathbf{p})_i` keeps one sign at every
-    sample and never falls below ``1e-13`` times :math:`|\mathbf{L}|` at that
-    sample. A z-tube orbit gives ``[False, False, True]``, an x-tube orbit gives
-    ``[True, False, False]`` and a box orbit gives all `False`. Samples where
+    sample and never falls below ``1e-13`` times
+    :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample. A z-tube orbit gives
+    ``[False, False, True]``, an x-tube orbit gives ``[True, False, False]``
+    and a box orbit gives all `False`. Samples where
     ``q`` or ``p`` is not finite are left out of the check, and an orbit with
     no finite samples circulates about no axis. Each sample is checked on its
     own, so the result does not depend on the order of the samples. An input
     with no samples raises a `ValueError`.
 
-    This follows :meth:`gala.dynamics.Orbit.circulation` with three
-    differences. The floor here is relative to :math:`|\mathbf{L}|`, so the
-    result does not depend on the units, while gala uses an absolute floor of
-    ``1e-13``. Samples that are not finite are skipped here, while in gala a
-    single NaN sample makes the orbit circulate about no axis. And this
-    function returns booleans where gala returns integers.
+    This follows :meth:`gala.dynamics.Orbit.circulation` with these
+    differences. The floor here is relative to
+    :math:`|\mathbf{q}|\,|\mathbf{p}|`, so the result does not depend on the
+    units, while gala uses an absolute floor of ``1e-13``. A sample with ``q``
+    parallel to ``p`` therefore does not circulate, even when rounding leaves a
+    small nonzero :math:`\mathbf{L}`. gala skips the floor at the first sample,
+    so in gala an orbit with one sample circulates about every axis, while
+    here every sample is checked. Samples that are not finite are skipped
+    here, while in gala a single NaN sample makes the orbit circulate about no
+    axis. And this function returns booleans where gala returns integers.
 
     The overloads are:
 
@@ -164,8 +169,8 @@ def circulation(*args: Any) -> Any:
     An orbit or coordinate stores positions and velocities with shape
     ``(*batch, T)``, where the time axis is the last batch axis, and an
     orbit's ``t`` has shape ``(T,)``. Its Cartesian components therefore have
-    shape ``(*batch, T, 3)``. The check runs on one orbit at a time and is
-    vectorized over ``*batch``.
+    shape ``(*batch, T, 3)``, and the result has one row of 3 booleans per
+    orbit.
 
     Returns
     -------

@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
+import coordinax as cx
 import unxt as u
 
 import galax.coordinates as gc
@@ -124,6 +125,26 @@ def test_align_gradient_is_finite():
     # The x column was moved to z, so only it gets a gradient.
     assert jnp.allclose(gq[:, 0], 2 * q[:, 0])
     assert jnp.allclose(gq[:, 1:], 0)
+
+
+def test_float32_large_magnitudes():
+    """|L|^2 would overflow float32 here; the result must not change."""
+    (q, p), expected, _ = ORBITS["yz"]
+    q, p = q.astype(jnp.float32), p.astype(jnp.float32)
+    # A Milky Way orbit in m and m/s has |L| of about 5e25.
+    big = go.circulation(q * 3e20, p * 2e5)
+    np.testing.assert_array_equal(big, expected)
+    np.testing.assert_array_equal(go.circulation(q * 1e-20, p * 1e-20), expected)
+
+
+@pytest.mark.parametrize(
+    ("q", "p"),
+    [([[1.1, 1.1, 1.1]], [[0.3, 0.3, 0.3]]), ([[1.1, 2.2, 3.3]], [[0.77, 1.54, 2.31]])],
+)
+def test_radial_samples_do_not_circulate(q, p):
+    """The rounding residual of q x p for q parallel to p is not circulation."""
+    q, p = jnp.asarray(q), jnp.asarray(p)
+    np.testing.assert_array_equal(go.circulation(q, p), [False, False, False])
 
 
 # ===================================================================
@@ -303,6 +324,23 @@ def test_composite(composite):
     aligned2, axis2 = go.align_circulation(composite, go.circulation(composite))
     np.testing.assert_array_equal(axis2, axis)
     assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)
+
+
+def test_composite_mixed_representations(orbit):
+    """Components in different representations are joined as Cartesian."""
+    q, p, t = orbit.q[0], orbit.p[0], orbit.t
+    a = gc.PhaseSpaceCoordinate(q=q[:50], p=p[:50], t=t[:50])
+    b = gc.PhaseSpaceCoordinate(
+        q=cx.vconvert(cx.vecs.SphericalPos, q[50:]),
+        p=cx.vconvert(cx.vecs.SphericalVel, p[50:], q[50:]),
+        t=t[50:],
+    )
+    composite = gc.CompositePhaseSpaceCoordinate(a=a, b=b)
+    np.testing.assert_array_equal(go.circulation(composite), EXPECTED_ORBITS[0])
+
+    aligned, axis = go.align_circulation(composite)
+    assert int(axis) == 2
+    np.testing.assert_array_equal(go.circulation(aligned), EXPECTED_ORBITS[0])
 
 
 @pytest.mark.parametrize(

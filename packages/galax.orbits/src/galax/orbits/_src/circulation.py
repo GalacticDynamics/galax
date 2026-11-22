@@ -23,7 +23,7 @@ import unxt as u
 import galax.coordinates as gc
 from .base import AbstractOrbit
 
-# The smallest |L_i| that counts as circulation, relative to |L|.
+# The smallest |L_i| that counts as circulation, relative to |q| |p|.
 _FLOOR: Final = 1e-13
 
 # The permutations that swap x or y with z.
@@ -40,13 +40,40 @@ def _value(x: Any) -> Array:
     return jnp.asarray(x.value if isinstance(x, u.AbstractQuantity) else x)  # type: ignore[no-any-return]
 
 
+def _unit_scale(x: Array) -> Array:
+    """Divide each sample of ``x`` by a power of 2 near its largest component.
+
+    Dividing by a power of 2 is exact, so the signs and zeros of ``q x p`` do
+    not change unless a component underflows.
+    """
+    if not jnp.issubdtype(x.dtype, jnp.floating):
+        x = x.astype(float)
+    m = jnp.max(jnp.abs(x), axis=-1, keepdims=True)
+    # Clearing the mantissa bits of m leaves the power of 2 at or below it.
+    # jnp.frexp would do the same, but is several times slower.
+    info = jnp.finfo(x.dtype)
+    uint = jnp.dtype(f"uint{info.bits}")
+    mask = ((1 << (info.bits - 1)) - 1) & ~((1 << info.nmant) - 1)
+    bits = jax.lax.bitcast_convert_type(m, uint) & np.array(mask, dtype=uint)
+    s = jax.lax.bitcast_convert_type(bits, x.dtype)
+    return x / jnp.where(s == 0, 1, s)  # type: ignore[no-any-return]
+
+
 @ft.partial(jax.jit, inline=True)
 def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
     """Return which axes orbits of shape (..., T, 3) circulate about."""
     ok = (jnp.isfinite(q) & jnp.isfinite(p)).all(axis=-1, keepdims=True)
+    # Scale each sample to order 1 so that |L|^2 cannot overflow. A positive
+    # scale does not change the signs of L.
+    q, p = _unit_scale(q), _unit_scale(p)
     L = jnp.cross(q, p)
-    big = jnp.abs(L) >= _FLOOR * jnp.linalg.norm(L, axis=-1, keepdims=True)
-    big = big & (L != 0)
+    # The floor is relative to |q| |p|, not |L|, so the rounding residual of a
+    # radial sample (q parallel to p) does not count as circulation.
+    floor = _FLOOR * (
+        jnp.linalg.norm(q, axis=-1, keepdims=True)
+        * jnp.linalg.norm(p, axis=-1, keepdims=True)
+    )
+    big = jnp.abs(L) >= floor
     # An axis circulates if L_i keeps one sign, clear of the floor, at every
     # finite sample.
     pos = jnp.all((L > 0) & big | ~ok, axis=-2)
@@ -85,6 +112,16 @@ def _swap[QP: (Array, u.AbstractQuantity)](x: QP, axis: Int[Array, "*batch"]) ->
 
 def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
     """Return Cartesian q and p of a coordinate as Quantities of shape (..., 3)."""
+    if isinstance(w, gc.AbstractCompositePhaseSpaceCoordinate):
+        # Convert each component before joining them: the composite's own
+        # ``q`` joins the raw vectors, which fails when their representations
+        # differ.
+        qs, ps = zip(*(_cartesian_qp(v) for v in w.values()), strict=True)
+        order = w._time_sorter  # noqa: SLF001
+        return (
+            jnp.concat([jnp.atleast_2d(x) for x in qs], axis=-2)[..., order, :],
+            jnp.concat([jnp.atleast_2d(x) for x in ps], axis=-2)[..., order, :],
+        )
     q: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianPos3D, w.q), u.Quantity)
     p: u.AbstractQuantity = convert(
         cx.vconvert(cx.CartesianVel3D, w.p, w.q), u.Quantity

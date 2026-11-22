@@ -171,7 +171,7 @@ class System(eqx.Module):
             units=usys,
         )
 
-    def split(self, x: Array, /, *, axis: int = 0) -> dict[str, Array]:
+    def split(self, x: Any, /, *, axis: int = 0) -> dict[str, Any]:
         """Split ``x`` along ``axis`` into a dict keyed by component name.
 
         ``axis`` must have one entry per particle. For saved states of shape

@@ -85,9 +85,9 @@ def evolve(
     p0: Any,
     t0: Any,
     dt: Any,
-    n_steps: int,
+    n_steps: int | np.integer,
     *,
-    save_every: int | None = None,
+    save_every: int | np.integer | None = None,
     solver: dfx.AbstractSolver | None = None,
     adjoint: dfx.AbstractAdjoint | None = None,
 ) -> dfx.Solution:

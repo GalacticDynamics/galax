@@ -47,6 +47,8 @@ def total_energy(*args: Any, **kwargs: Any) -> Any:
 @_dispatch
 def total_energy(field: NBodyField, t: Any, q: Any, p: Any, /) -> Float[Array, ""]:
     """Return the total energy at time ``t`` of ``(q, p)``."""
+    q = jnp.asarray(q, dtype=float)
+    p = jnp.asarray(p, dtype=float)
     nm = field.n_massive
     # Tracers are massless, so only the massive rows enter. They are dropped
     # before any arithmetic, so a NaN or inf tracer cannot reach the value or

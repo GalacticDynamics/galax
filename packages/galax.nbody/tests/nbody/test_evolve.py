@@ -657,3 +657,26 @@ def test_numpy_integer_step_counts() -> None:
     field, q0, p0 = _cluster(n=4)
     sol = gn.evolve(field, q0, p0, 0.0, 0.01, np.int64(10), save_every=np.int32(5))
     assert sol.ts.shape == (3,)
+
+
+def test_quantity_t0_in_other_units_with_changing_forces() -> None:
+    """A Quantity ``t0`` and ``dt`` in Gyr are converted before the forces read them."""
+    field, q0, p0 = _cluster(n=4)
+    field = gn.NBodyField(
+        masses=field.masses,
+        softening=field.softening,
+        external_potential=_growing_kepler(),
+    )
+    q0 = q0 + jnp.asarray([8.0, 0.0, 0.0])
+    plain = gn.evolve(field, q0, p0, 3.0, 0.5, 20, save_every=10)
+    qty = gn.evolve(
+        field, q0, p0, u.Q(3e-3, "Gyr"), u.Q(5e-4, "Gyr"), 20, save_every=10
+    )
+    np.testing.assert_allclose(qty.ts, plain.ts, rtol=1e-14)
+    np.testing.assert_allclose(qty.ys[0], plain.ys[0], rtol=1e-12)
+
+
+def test_max_steps_is_the_step_count() -> None:
+    """``max_steps`` follows ``n_steps``, so the checkpoint memory follows the run."""
+    field, q0, p0 = _cluster(n=4)
+    assert gn.evolve(field, q0, p0, 0.0, 0.01, 37).stats["max_steps"] == 37

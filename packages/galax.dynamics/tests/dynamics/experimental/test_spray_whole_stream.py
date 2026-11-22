@@ -11,7 +11,6 @@ import pytest
 import diffraxtra as dfxtra
 import unxt as u
 
-import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.fields as gf
 import galax.potential as gp
@@ -235,25 +234,22 @@ def test_matches_legacy_generator() -> None:
     """The legacy generator's per-particle solves from our release states.
 
     It integrates each lead/trail pair from its release time to our ``t1`` (no
-    end-time bump) in its stream potential (the progenitor's orbit from our
-    first release state). The release at ``t1`` is left out.
+    end-time bump) with its own copy of the progenitor, started from our
+    progenitor state at that release, with its default adaptive integrator.
+    The release at ``t1`` is left out.
     """
     sched, res, ws, lead0, trail0 = _legacy_setup()
-    ts = u.Q(sched.release_times(), "Myr")
     t1 = u.Q(sched.t1, "Myr")
     gen = gd.MockStreamGenerator(
         gd.ChenStreamDF(), HOST, progenitor_potential=plummer(MSAT)
     )
-    w_first = gc.PhaseSpaceCoordinate(
-        q=u.Q(ws[0, :3], "kpc"), p=u.Q(ws[0, 3:], "kpc/Myr"), t=ts[0]
-    )
-    pot = gen._stream_potential(w_first, ts)
 
-    def pair(w0, t0):
-        return gen._integrate_to(w0, u.Q(t0, "Myr"), t1, pot)
+    def pair(w0, t0, prog_w0):
+        return gen._integrate_to(w0, u.Q(t0, "Myr"), t1, prog_w0)
 
     w0s = jnp.stack([lead0, trail0], axis=1)[:-1]
-    lead, trail = jax.jit(jax.vmap(pair))(w0s, sched.release_times()[:-1])
+    prog_w0s = ws[sched.release_index()][:-1]
+    lead, trail = jax.jit(jax.vmap(pair))(w0s, sched.release_times()[:-1], prog_w0s)
     d = jnp.linalg.norm(
         jnp.concat([lead - res.lead[:-1], trail - res.trail[:-1]])[:, :3], axis=1
     )

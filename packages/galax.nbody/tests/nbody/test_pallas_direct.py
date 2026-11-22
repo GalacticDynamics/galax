@@ -466,6 +466,51 @@ def test_vmap_over_targets_shares_sources(interpret) -> None:
     _close(jax.grad(f, 1)(b, s.m), jax.grad(f, 1)(DirectSum(), s.m))
 
 
+def test_shard_map_targets_sharded(interpret) -> None:
+    """Targets split over a mesh, sources gathered; `check_vma` stays on."""
+    from jax.sharding import Mesh, PartitionSpec as P
+
+    mesh = Mesh(np.array(jax.devices()), ("d",))
+    s, _ = massive(8 * mesh.size)
+
+    def sharded(backend):
+        def body(q, m, h):
+            idx = jax.lax.axis_index("d") * q.shape[0] + jnp.arange(q.shape[0])
+            g = lambda x: jax.lax.all_gather(x, "d", tiled=True)
+            src = Sources(g(q), g(m), g(h))
+            return backend.accelerations(src, Targets(q, h, idx), G=G)
+
+        return jax.shard_map(body, mesh=mesh, in_specs=P("d"), out_specs=P("d"))
+
+    fp = sharded(backend(interpret, block_targets=8, block_sources=8))
+    fd = sharded(DirectSum())
+    args = (s.q, s.m, s.h)
+    _close(fp(*args), fd(*args))
+    loss = lambda f: lambda *a: jnp.sum(jnp.sin(f(*a)))
+    _close(jax.grad(loss(fp), (0, 1))(*args), jax.grad(loss(fd), (0, 1))(*args))
+    tan = _tangents((s.q,))[0]
+    jv = lambda f: jax.jvp(lambda q: f(q, s.m, s.h), (s.q,), (tan,))[1]
+    _close(jv(fp), jv(fd))
+
+    # Independent systems: the batch is split over the mesh, vmapped inside.
+    def batched(backend):
+        def one(q, m, h):
+            t = Targets(q, h, jnp.arange(q.shape[0]))
+            return backend.accelerations(Sources(q, m, h), t, G=G)
+
+        return jax.shard_map(
+            jax.vmap(one), mesh=mesh, in_specs=P("d"), out_specs=P("d")
+        )
+
+    k = 2 * mesh.size
+    bargs = (
+        s.q * jnp.linspace(0.5, 1.5, k)[:, None, None],
+        jnp.broadcast_to(s.m, (k, *s.m.shape)),
+        jnp.broadcast_to(s.h, (k, *s.h.shape)),
+    )
+    _close(batched(backend(interpret))(*bargs), batched(DirectSum())(*bargs))
+
+
 @pytest.mark.parametrize("name", ["accelerations", "potential"])
 def test_non_finite_target_isolated_in_forward_mode(interpret, name) -> None:
     src_q = jnp.asarray([[0.0, 0.0, 0.0], [2.0, 1.0, 0.0]])

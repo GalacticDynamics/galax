@@ -19,6 +19,7 @@ Tested on NVIDIA GPUs (Ampere, Ada). TPU lowers but is untested on hardware.
 
 __all__ = ["PallasDirectSum", "pair_sum", "pallas_accelerations", "pallas_potential"]
 
+import contextlib
 import dataclasses
 import functools as ft
 
@@ -42,8 +43,20 @@ from .particles import Sources, Targets
 _Arrs = tuple[Array, ...]
 
 
-def _sds(shape: tuple[int, ...], dtype: Any) -> Any:
-    return jax.ShapeDtypeStruct(shape, dtype)  # type: ignore[no-untyped-call]
+def _sds(shape: tuple[int, ...], dtype: Any, vma: frozenset[str] = frozenset()) -> Any:
+    return jax.ShapeDtypeStruct(shape, dtype, vma=vma)  # type: ignore[no-untyped-call]
+
+
+def _no_check_vma() -> Any:
+    from jax._src import config  # private: no public switch
+
+    state = getattr(config, "_check_vma", None)
+    return contextlib.nullcontext() if state is None else state(False)  # noqa: FBT003
+
+
+def _vma(avals: Sequence[Any]) -> frozenset[str]:
+    """Mesh axes an output varies over under `shard_map`: any operand's."""
+    return frozenset().union(*(getattr(x, "vma", frozenset()) for x in avals))
 
 
 def _undef(x: Any) -> bool:
@@ -280,6 +293,7 @@ def _call(
     """Run ``fn``'s pair sum. Operands are (L, N) with L = 1 or the batch size."""
     a, b = ops[:n_a], ops[n_a:]
     lead = max(x.shape[0] for x in ops)
+    vma = _vma([jax.typeof(x) for x in ops])
     na, nb = a[0].shape[1], b[0].shape[1]
     na_p, nb_p = _pad_to(na, lc.block_a), _pad_to(nb, lc.block_b)
     a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
@@ -300,7 +314,7 @@ def _call(
         grid=(lead, na_p // lc.block_a),
         in_specs=[col(x) for x in a] + [row(x) for x in b],
         out_specs=[out_spec] * len(dts),
-        out_shape=[_sds((lead, na_p, 1), dt) for dt in dts],
+        out_shape=[_sds((lead, na_p, 1), dt, vma) for dt in dts],
         compiler_params=compiler_params,
         interpret=lc.interpret,
         name="nbody_pair_sum",
@@ -354,7 +368,14 @@ def _abstract_eval(*ops: Any, fn: Any, n_a: int, **_: Any) -> list[Any]:
         raise ValueError(msg)
     lead = max(x.shape[0] for x in ops)
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
-    return [jax.core.ShapedArray((lead, a[0].shape[1]), dt) for dt in dts]
+    vma = _vma(ops)
+    sharding = None
+    if vma:  # the operands' (manual) mesh
+        mesh = next(x.sharding.mesh for x in ops if x.vma)
+        spec = jax.sharding.PartitionSpec()  # type: ignore[no-untyped-call]
+        sharding = jax.sharding.NamedSharding(mesh, spec)
+    shape = (lead, a[0].shape[1])
+    return [jax.core.ShapedArray(shape, dt, sharding=sharding, vma=vma) for dt in dts]
 
 
 def _gpu_params(lc: _Launch) -> Any:
@@ -367,7 +388,10 @@ def _lowering(*, gpu: bool) -> Callable[..., Any]:
     def rule(ctx: Any, *ops: Any, fn: Any, n_a: int, lc: _Launch, **_: Any) -> Any:
         params = _gpu_params(lc) if gpu and not lc.interpret else None
         f = ft.partial(_call, fn=fn, n_a=n_a, lc=lc, compiler_params=params)
-        return mlir.lower_fun(f, multiple_results=True)(ctx, *ops)
+        # The Pallas interpreter loses `vma` on refs carried through loops, so
+        # `shard_map`'s check fails inside it; lowering doesn't need it.
+        with _no_check_vma() if lc.interpret else contextlib.nullcontext():
+            return mlir.lower_fun(f, multiple_results=True)(ctx, *ops)
 
     return rule
 

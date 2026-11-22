@@ -73,8 +73,8 @@ dtypes only; array shapes that must agree across arguments are checked only
 under jaxtyping's hook.
 
 Some calls do fail under the hook today, for example in :mod:`galax.potential`,
-so expect failures from the full test suite. Those are wrong annotations, and
-worth reporting.
+so expect failures from the full test suite. A failure like that usually points
+at an annotation that is wrong, and is worth reporting.
 
 .. _galax-comparison-libs:
 

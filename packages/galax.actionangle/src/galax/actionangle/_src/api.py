@@ -379,7 +379,15 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     actions of tubes about the long axis of a triaxial potential are
     sensitive to the toy fit, and can move by up to 10 percent as ``n_max``
     changes without being flagged: on one x-tube J_r moved by 10 percent
-    across ``n_max`` = 6, 8 and 10.
+    across ``n_max`` = 6, 8 and 10. Regular box orbits can be sensitive too:
+    on an LMJ09 box J_x moved by about 4 percent across ``n_max`` = 4 to 10
+    without a flag, while staying stable with orbit length.
+
+    Very small actions carry an absolute error of a few parts in 1e7 to 1e5
+    of the sum of the actions, with an arbitrary sign, on unflagged orbits
+    as well. On near-planar Miyamoto-Nagai loops J_z came out at -2.45e-7
+    against a true value between 3.7e-12 and 3.7e-8, and boxes just above
+    the thin-box cutoff had offsets of up to 8e-6 of the sum.
 
     The fitted toy differs from gala's (Powell) at the fit tolerance, so
     pass ``toy`` to compare with gala exactly. At odd ``n_max`` the

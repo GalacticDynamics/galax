@@ -5,8 +5,7 @@ __all__: tuple[str, ...] = ()
 import functools as ft
 
 from collections.abc import Callable, Sequence
-from typing import NotRequired, TypedDict, TypeVar, Unpack
-from typing_extensions import ParamSpec
+from typing import NotRequired, ParamSpec, TypedDict, TypeVar, Unpack
 
 import quaxed.numpy as jnp
 

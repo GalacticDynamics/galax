@@ -361,6 +361,40 @@ def _tangents(args, seed=2):
     return tuple(jnp.asarray(rng.normal(size=x.shape)) for x in args)
 
 
+@pytest.mark.parametrize("slices", [2, 3, 8])
+@pytest.mark.parametrize("name", ["accelerations", "potential"])
+def test_source_slices_match_direct_sum(interpret, name, slices) -> None:
+    """Split source loops (4 full tiles + a padded one; 8 > tiles is allowed)."""
+    s, t = massive(37)
+    args = (s.q, s.m, s.h)
+    b = backend(interpret, block_targets=8, block_sources=8, source_slices=slices)
+    fp, lp = _fns(b, name, t)
+    fd, ld = _fns(DirectSum(), name, t)
+    _close(fp(*args), fd(*args))
+    _close(jax.grad(lp, (0, 1, 2))(*args), jax.grad(ld, (0, 1, 2))(*args))
+    tan = _tangents(args)
+    _close(jax.jvp(fp, args, tan), jax.jvp(fd, args, tan))
+
+
+def test_source_slices_auto_rule(monkeypatch) -> None:
+    """Split small grids on GPU only; a vmapped batch counts toward the grid."""
+    from galax.nbody._src import pallas_direct as pd
+
+    monkeypatch.setattr(pd, "_sm_count", lambda: 100)
+    lc = pd._Launch(16, 64, 4, None, interpret=False)
+
+    def slices(lead, n, lc=lc, *, gpu=True):
+        avals = [jax.ShapeDtypeStruct((lead, n), jnp.float32)] * 11
+        return pd._slices(lc, avals, 6, gpu=gpu)
+
+    assert slices(1, 4096) == pd._SPLIT_MAX  # 256 programs, 64 tiles
+    assert slices(1, 1024) == 2  # 16 tiles: at least 8 per slice
+    assert slices(1, 1 << 16) == 1  # grid already full
+    assert slices(64, 4096) == 1  # vmapped batch fills it
+    assert slices(1, 4096, lc._replace(slices=3)) == 3  # explicit
+    assert slices(1, 4096, lc._replace(slices=3), gpu=False) == 1  # TPU
+
+
 @pytest.mark.parametrize("name", ["accelerations", "potential"])
 def test_forward_mode_matches_direct_sum(interpret, name) -> None:
     s, t = massive(13)

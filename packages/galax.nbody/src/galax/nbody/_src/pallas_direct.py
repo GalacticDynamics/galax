@@ -16,6 +16,9 @@ When a transpose needs cotangents on both sides, `pair_sum_ab_p` can compute
 them in one kernel: ``A``'s summed in registers, ``B``'s added atomically
 (GPU only; ``_Launch.fused``). Elsewhere it lowers to the two pair sums.
 
+Small grids on GPU also split the source loop over a third grid axis
+(``_Launch.slices``); the slices' partial sums are added in plain JAX.
+
 Padding, NaN targets and ``G`` are handled in plain JAX outside.
 
 Tested on NVIDIA GPUs (Ampere, Ada). TPU lowers but is untested on hardware.
@@ -84,6 +87,7 @@ class _Config(NamedTuple):
     precision: str | None = None
     compensated: bool = False
     fused_grad: bool | None = None
+    source_slices: int | None = None
 
 
 class _Launch(NamedTuple):
@@ -97,6 +101,7 @@ class _Launch(NamedTuple):
     compensated: bool = False
     fused: bool = False
     split: bool = False  # set at lowering: skip masking off the self tiles
+    slices: int | None = None  # source slices S; None: chosen at lowering
 
 
 # ---------------------------------------------------------------------------
@@ -327,6 +332,8 @@ def _exact_tiles(fn: Any, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | No
 def _loop(
     fn: Any,
     a: _Arrs,
+    k0: Array,
+    k1: Array,
     n: int,
     bb: int,
     step: Callable[..., Any],
@@ -334,21 +341,52 @@ def _loop(
     *,
     split: bool,
 ) -> Any:
-    """Run ``step(k, carry, exact=...)`` over tiles ``k < n``, exact only where needed.
+    """Run ``step(k, carry, exact=...)`` over tiles ``k0 <= k < k1`` of ``n``.
 
-    Three plain loops rather than a branch per tile: a ``cond`` in the loop
-    body slows the Triton kernel down more than the masking costs. Off on TPU:
-    Mosaic fails to lower the data-dependent loop bounds.
+    Exact only where needed, in three plain loops rather than a branch per
+    tile: a ``cond`` in the loop body slows the Triton kernel down more than
+    the masking costs. Off on TPU: Mosaic fails to lower the data-dependent
+    loop bounds.
     """
     rng = _exact_tiles(fn, a, bb, n) if split else None
     if rng is None:
-        return jax.lax.fori_loop(
-            _i32(0), _i32(n), lambda k, c: step(k, c, exact=True), carry
-        )
-    lo, hi = (x.astype(jnp.int32) for x in rng)
-    carry = jax.lax.fori_loop(_i32(0), lo, lambda k, c: step(k, c, exact=False), carry)
+        return jax.lax.fori_loop(k0, k1, lambda k, c: step(k, c, exact=True), carry)
+    lo, hi = (jnp.clip(x.astype(jnp.int32), k0, k1) for x in rng)
+    carry = jax.lax.fori_loop(k0, lo, lambda k, c: step(k, c, exact=False), carry)
     carry = jax.lax.fori_loop(lo, hi, lambda k, c: step(k, c, exact=True), carry)
-    return jax.lax.fori_loop(hi, _i32(n), lambda k, c: step(k, c, exact=False), carry)
+    return jax.lax.fori_loop(hi, k1, lambda k, c: step(k, c, exact=False), carry)
+
+
+def _sweep(
+    fn: Any, a: _Arrs, nb: int, lc: _Launch, step: Callable[..., Any], carry: Any
+) -> Any:
+    """Run ``step(j0, carry, masked=..., exact=...)`` over this program's tiles.
+
+    Source slice ``s = program_id(2)`` of ``S`` takes a contiguous run of the
+    full tiles; the last slice also takes the padded last tile.
+    """
+    bb, n_s = lc.block_b, lc.slices or 1
+    n_full, rem = divmod(nb, bb)
+    s = pl.program_id(2) if n_s > 1 else None
+    k0, k1 = (
+        (_i32(0), _i32(n_full))
+        if s is None
+        else (s * n_full // n_s, (s + 1) * n_full // n_s)
+    )
+
+    def full(k: Array, c: Any, *, exact: bool) -> Any:
+        return step(k * bb, c, masked=False, exact=exact)
+
+    carry = _loop(fn, a, k0, k1, n_full, bb, full, carry, split=lc.split)
+    if not rem:
+        return carry
+
+    def last(c: Any) -> Any:  # static start
+        return step(n_full * bb, c, masked=True, exact=True)
+
+    if s is None:
+        return last(carry)
+    return jax.lax.cond(s == n_s - 1, last, lambda c: c, carry)
 
 
 def _i32(x: int) -> Array:
@@ -387,18 +425,14 @@ def _kernel(*refs: Any, fn: Any, n_a: int, n_b: int, nb: int, lc: _Launch) -> No
     # Accumulate per pair; reduce across lanes once at the end.
     zero = tuple(jnp.zeros(shape, o.dtype) for o in out_refs)
     carry = (zero, zero if lc.compensated else ())
-    n_full, rem = divmod(nb, bb)
-    carry = _loop(
+    carry = _sweep(
         fn,
         a,
-        n_full,
-        bb,
-        lambda k, c, exact: add(c, tile(k * bb, masked=False, exact=exact)),
+        nb,
+        lc,
+        lambda j0, c, masked, exact: add(c, tile(j0, masked=masked, exact=exact)),
         carry,
-        split=lc.split,
     )
-    if rem:
-        carry = add(carry, tile(n_full * bb, masked=True))  # static start
     acc, comp = carry
     if lc.compensated:
         acc = tuple(x - c for x, c in zip(acc, comp, strict=True))
@@ -422,27 +456,46 @@ def _call(
     a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
     b = tuple(jnp.pad(x, ((0, 0), (0, nb_p - nb)))[:, None, :] for x in b)
 
-    def col(x: Array) -> Any:
-        one = x.shape[0] == 1
-        return pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (0 if one else g, i, 0))
-
-    def row(x: Array) -> Any:
-        one = x.shape[0] == 1
-        return pl.BlockSpec((None, 1, nb_p), lambda g, _: (0 if one else g, 0, 0))
-
+    col, row = _specs(lc, nb_p)
+    n_s = lc.slices or 1
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
-    out_spec = pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (g, i, 0))
     out = pl.pallas_call(
         ft.partial(_kernel, fn=fn, n_a=n_a, n_b=len(b), nb=nb, lc=lc),
-        grid=(lead, na_p // lc.block_a),
+        grid=(lead, na_p // lc.block_a, n_s),
         in_specs=[col(x) for x in a] + [row(x) for x in b],
-        out_specs=[out_spec] * len(dts),
-        out_shape=[_sds((lead, na_p, 1), dt, vma) for dt in dts],
+        out_specs=[_part_spec(lc)] * len(dts),
+        out_shape=[_sds((n_s, lead, na_p, 1), dt, vma) for dt in dts],
         compiler_params=compiler_params,
         interpret=lc.interpret,
         name="nbody_pair_sum",
     )(*a, *b)
-    return [x[:, :na, 0] for x in out]
+    return [_join(x)[:, :na, 0] for x in out]
+
+
+def _specs(lc: _Launch, nb_p: int) -> tuple[Callable[..., Any], Callable[..., Any]]:
+    """BlockSpecs of column (``A``) and row (``B``) operands on the grid (g, i, s)."""
+
+    def col(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec(
+            (None, lc.block_a, 1), lambda g, i, _: (0 if one else g, i, 0)
+        )
+
+    def row(x: Array) -> Any:
+        one = x.shape[0] == 1
+        return pl.BlockSpec((None, 1, nb_p), lambda g, *_: (0 if one else g, 0, 0))
+
+    return col, row
+
+
+def _part_spec(lc: _Launch) -> Any:
+    """Per-target partial sums, one per source slice: (S, L, Na, 1)."""
+    return pl.BlockSpec((None, None, lc.block_a, 1), lambda g, i, s: (s, g, i, 0))
+
+
+def _join(x: Array) -> Array:
+    """Add the source slices' partial sums (in a fixed order)."""
+    return x[0] if x.shape[0] == 1 else jnp.sum(x, axis=0)
 
 
 def _kernel_ab(
@@ -480,18 +533,14 @@ def _kernel_ab(
         return tuple(s + x for s, x in zip(acc, ga, strict=True))
 
     acc = tuple(jnp.zeros(shape, o.dtype) for o in out_a)
-    n_full, rem = divmod(nb, bb)
-    acc = _loop(
+    acc = _sweep(
         fn,
         a,
-        n_full,
-        bb,
-        lambda k, c, exact: tile(k * bb, c, masked=False, exact=exact),
+        nb,
+        lc,
+        lambda j0, c, masked, exact: tile(j0, c, masked=masked, exact=exact),
         acc,
-        split=lc.split,
     )
-    if rem:
-        acc = tile(n_full * bb, acc, masked=True)
     for o, x in zip(out_a, acc, strict=True):
         o[...] = jnp.sum(x, axis=1, keepdims=True)
 
@@ -508,34 +557,28 @@ def _call_ab(
     a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
     b = tuple(jnp.pad(x, ((0, 0), (0, nb_p - nb)))[:, None, :] for x in b)
 
-    def col(x: Array) -> Any:
-        one = x.shape[0] == 1
-        return pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (0 if one else g, i, 0))
-
-    def row(x: Array) -> Any:
-        one = x.shape[0] == 1
-        return pl.BlockSpec((None, 1, nb_p), lambda g, _: (0 if one else g, 0, 0))
-
+    col, row = _specs(lc, nb_p)
+    n_s = lc.slices or 1
     n_ga = len(fn.wrt_a)
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
     zeros = [jnp.zeros((lead, 1, nb_p), dt) for dt in dts[n_ga:]]
     if vma:  # aliased to outputs, so they must vary like them
         zeros = [jax.lax.pvary(z, tuple(sorted(vma))) for z in zeros]  # type: ignore[no-untyped-call]
-    out_a = pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (g, i, 0))
     n_in = len(a) + len(b)
     out = pl.pallas_call(
         ft.partial(_kernel_ab, fn=fn, n_a=n_a, n_b=len(b), na=na, nb=nb, lc=lc),
-        grid=(lead, na_p // lc.block_a),
+        grid=(lead, na_p // lc.block_a, n_s),
         in_specs=[col(x) for x in a] + [row(x) for x in (*b, *zeros)],
-        out_specs=[out_a] * n_ga + [row(z) for z in zeros],
-        out_shape=[_sds((lead, na_p, 1), dt, vma) for dt in dts[:n_ga]]
+        out_specs=[_part_spec(lc)] * n_ga + [row(z) for z in zeros],
+        out_shape=[_sds((n_s, lead, na_p, 1), dt, vma) for dt in dts[:n_ga]]
         + [_sds(z.shape, z.dtype, vma) for z in zeros],
         input_output_aliases={n_in + k: n_ga + k for k in range(len(zeros))},
         compiler_params=compiler_params,
         interpret=lc.interpret,
         name="nbody_pair_sum_fused",
     )(*a, *b, *zeros)
-    return [x[:, :na, 0] for x in out[:n_ga]] + [x[:, 0, :nb] for x in out[n_ga:]]
+    ga = [_join(x)[:, :na, 0] for x in out[:n_ga]]
+    return ga + [x[:, 0, :nb] for x in out[n_ga:]]
 
 
 # ---------------------------------------------------------------------------
@@ -609,10 +652,44 @@ def _gpu_params(lc: _Launch) -> Any:
     return pltr.CompilerParams(num_warps=lc.num_warps, num_stages=lc.num_stages)
 
 
+# Source split, on GPU when the grid is small: split while it has fewer than
+# _SPLIT_FILL programs per SM, into at most _SPLIT_MAX slices of at least
+# _SPLIT_MIN_TILES source tiles each.
+_SPLIT_FILL = 8
+_SPLIT_MAX = 4
+_SPLIT_MIN_TILES = 8
+
+
+@ft.cache
+def _sm_count() -> int:
+    try:
+        return int(jax.devices("gpu")[0].core_count)
+    except (RuntimeError, AttributeError):
+        return 0
+
+
+def _slices(lc: _Launch, avals: Sequence[Any], n_a: int, *, gpu: bool) -> int:
+    """Source slices S for one launch: ``lc.slices``, else automatic on GPU."""
+    if not gpu and not lc.interpret:
+        return 1  # TPU: Mosaic can't lower the per-slice loop bounds
+    if lc.slices is not None or lc.interpret:
+        return max(1, lc.slices or 1)
+    lead = max(x.shape[0] for x in avals)
+    programs = lead * -(-avals[0].shape[1] // lc.block_a)
+    target = _SPLIT_FILL * _sm_count()
+    if programs >= target:
+        return 1
+    tiles = avals[n_a].shape[1] // lc.block_b
+    return int(
+        max(1, min(-(-target // programs), tiles // _SPLIT_MIN_TILES, _SPLIT_MAX))
+    )
+
+
 def _lowering(*, gpu: bool) -> Callable[..., Any]:
     def rule(ctx: Any, *ops: Any, fn: Any, n_a: int, lc: _Launch, **_: Any) -> Any:
         params = _gpu_params(lc) if gpu and not lc.interpret else None
-        lc = lc._replace(split=gpu or lc.interpret)
+        n_s = _slices(lc, ctx.avals_in, n_a, gpu=gpu)
+        lc = lc._replace(split=gpu or lc.interpret, slices=n_s)
         f = ft.partial(_call, fn=fn, n_a=n_a, lc=lc, compiler_params=params)
         # The Pallas interpreter loses `vma` on refs carried through loops, so
         # `shard_map`'s check fails inside it; lowering doesn't need it.
@@ -844,11 +921,13 @@ def _ab_lowering(*, gpu: bool) -> Callable[..., Any]:
     def rule(ctx: Any, *ops: Any, **params: Any) -> Any:
         lc = params["lc"]
         if gpu and lc.fused and not lc.interpret:
+            n_a = params["n_fa"] + params["n_ct"]
+            n_s = _slices(lc, ctx.avals_in, n_a, gpu=gpu)
             f: Any = ft.partial(
                 _call_ab,
                 fn=params["fn"],
-                n_a=params["n_fa"] + params["n_ct"],
-                lc=lc._replace(split=True),
+                n_a=n_a,
+                lc=lc._replace(split=True, slices=n_s),
                 compiler_params=_gpu_params(lc),
             )
         else:
@@ -955,6 +1034,7 @@ def _run(sources: Sources, targets: Targets, cfg: _Config) -> tuple[Array, Array
         fused=jnp.dtype(dtype) == jnp.float64
         if cfg.fused_grad is None
         else cfg.fused_grad,
+        slices=cfg.source_slices,
     )
     out = pair_sum(
         _Base(cfg.kernel, cfg.potential), [x[None] for x in a], [x[None] for x in b], lc
@@ -997,6 +1077,12 @@ class PallasDirectSum(AbstractForceBackend):
     float64; their summation order, so the last bits, can vary between runs).
     ``None`` (default) turns it on when the pair sum runs in float64.
 
+    ``source_slices``: split each program's loop over sources into this many
+    slices, run in parallel and added in a fixed order (deterministic). Helps
+    when there are too few targets to fill the GPU. ``None`` (default) picks it
+    per launch from the grid size (vmapped batches included) and the GPU's SM
+    count; ``1`` turns it off. Not used on TPU.
+
     Untested: TPU hardware and AMD GPUs.
 
     Examples
@@ -1022,6 +1108,7 @@ class PallasDirectSum(AbstractForceBackend):
     precision: str | None = eqx.field(default=None, static=True)
     compensated: bool = eqx.field(default=False, static=True)
     fused_grad: bool | None = eqx.field(default=None, static=True)
+    source_slices: int | None = eqx.field(default=None, static=True)
 
     def _use_pallas(self) -> bool:
         return self.interpret or jax.default_backend() in ("gpu", "tpu")
@@ -1040,6 +1127,7 @@ class PallasDirectSum(AbstractForceBackend):
             precision=self.precision or ("float32" if tpu else None),
             compensated=self.compensated,
             fused_grad=self.fused_grad,
+            source_slices=self.source_slices,
         )
 
     def prepare(self, sources: Sources) -> Sources:

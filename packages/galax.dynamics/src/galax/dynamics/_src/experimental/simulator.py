@@ -72,8 +72,9 @@ class WholeStream(eqx.Module):
 class SharedTrack(eqx.Module):
     """Per-particle progenitor model: one shared track of the progenitor.
 
-    Exact, with one progenitor for every particle, like `WholeStream`; the
-    gradient's cost grows with ``len(theta)`` (below).
+    One progenitor shared by every particle, like `WholeStream`: exact on the
+    fixed-step lattice, Hermite-interpolated between knots with an adaptive
+    progenitor solver. The gradient's cost grows with ``len(theta)`` (below).
 
     Every particle feels the progenitor potential centred on the same track:
     the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
@@ -115,7 +116,7 @@ class SharedTrack(eqx.Module):
 class Copies(eqx.Module):
     """Per-particle progenitor model: each particle carries its own copy.
 
-    Unlike `SharedTrack`'s, its gradient's cost doesn't grow with the number
+    Its gradient's cost, unlike `SharedTrack`'s, doesn't grow with the number
     of inputs differentiated, and its forward run needs the least memory.
 
     A copy starts from the progenitor's state at the release (from
@@ -131,8 +132,8 @@ class PerParticle(eqx.Module):
     The lead and trail of a release are vmapped; ``loop`` (`jaxmore` `VMap` or
     `Scan`) maps over the releases. A failed solve gives NaN for its particle.
     Pick it for adaptive steps chosen per particle, or for a gradient with less
-    memory than `WholeStream`'s; `Scan` cuts that memory further, at several
-    times the run time of `VMap`.
+    memory than `WholeStream`'s; `Scan` cuts that memory further, at about 10
+    times the gradient's run time with `VMap`.
     """
 
     progenitor: SharedTrack | Copies

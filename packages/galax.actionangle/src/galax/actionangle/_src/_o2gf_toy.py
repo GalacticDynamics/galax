@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 from jaxtyping import Array, Bool
-from typing import Any
+from typing import Any, Final
 
 import equinox as eqx
 import jax
@@ -35,14 +35,14 @@ from ._utils import G_in_units, fill_masked
 from .harmonic_oscillator import _ho_aaf
 from .isochrone import _isochrone_aaf
 
-_BISECT_STEPS = 20
+_BISECT_STEPS: Final = 20
 # Weight of the pull toward the seed, with the energies in units of the mean
 # |H| at the seed and the parameters in log m, log b or omega over its seed. It
 # makes the least-squares problem full rank where H is flat in the parameters
 # (circular orbits, an oscillator axis at rest) and is far too small to bias an
 # orbit that does constrain them.
-_TIKHONOV = 1e-6
-_BRACKET = 1e3  # the isochrone seed searches b in [r0 / 1e3, 1e3 r0]
+_TIKHONOV: Final = 1e-6
+_BRACKET: Final = 1e3  # the isochrone seed searches b in [r0 / 1e3, 1e3 r0]
 # A small next step does not show that a fit has converged. In its first few
 # steps a fit can move very little while it is still far off: on a near-circular
 # MW2022 orbit the next step after iterations 0 and 1 was 1.9e-8 and 6.7e-8 of
@@ -51,8 +51,8 @@ _BRACKET = 1e3  # the isochrone seed searches b in [r0 / 1e3, 1e3 r0]
 # _MAX_STEPS is far past that phase. On 23 audit orbits with both toys, a fit
 # that converged had a next step of at most 1.3e-11, and the 4 fits still out
 # of steps at 256 had next steps of 1.9e-3 to 4.1e-3.
-_STALL_STEP = 1e-7
-_MAX_STEPS = 256
+_STALL_STEP: Final = 1e-7
+_MAX_STEPS: Final = 256
 
 
 class IsochroneToy(eqx.Module):

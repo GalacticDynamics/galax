@@ -11,12 +11,12 @@ __all__ = [
 
 import functools as ft
 
-from typing import Any
+from typing import Any, Final
 
 import jax
 import jax.numpy as jnp
 
-TWO_PI = 2 * jnp.pi
+TWO_PI: Final = 2 * jnp.pi
 
 
 @ft.partial(jax.jit, inline=True)

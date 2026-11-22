@@ -3,10 +3,11 @@
 __all__ = ["align_circulation", "circulation", "is_loop"]
 
 from jaxtyping import Array, Bool, Int
+from typing import Final
 
 import jax.numpy as jnp
 
-_FLOOR = 1e-13
+_FLOOR: Final = 1e-13
 
 
 def circulation(

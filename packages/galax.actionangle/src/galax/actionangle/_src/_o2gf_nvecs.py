@@ -2,10 +2,12 @@
 
 __all__ = ["BOX_STEPS", "LOOP_STEPS", "n_vectors"]
 
+from typing import Final
+
 import numpy as np
 
-LOOP_STEPS = (1, 2, 2)
-BOX_STEPS = (2, 2, 2)
+LOOP_STEPS: Final = (1, 2, 2)
+BOX_STEPS: Final = (2, 2, 2)
 
 
 def n_vectors(n_max: int, steps: tuple[int, int, int]) -> np.ndarray:

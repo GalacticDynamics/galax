@@ -13,7 +13,7 @@ import functools as ft
 import warnings
 
 from jaxtyping import Array
-from typing import Any, NamedTuple
+from typing import Any, Final, NamedTuple
 
 import equinox as eqx
 import jax
@@ -41,12 +41,12 @@ from .result import ActionsAnglesFrequencies
 
 # An orbit with more masked (non-finite) toy samples than this is flagged. gala
 # drops the NaN samples and allows one.
-NAN_MAX = 1
+NAN_MAX: Final = 1
 
 # An axis is at rest when its toy action is below this fraction of the total
 # at every sample.
-_REST = 1e-12
-_FAMILIES = (None, "loop", "box")
+_REST: Final = 1e-12
+_FAMILIES: Final = (None, "loop", "box")
 
 
 class O2GFResult(eqx.Module):

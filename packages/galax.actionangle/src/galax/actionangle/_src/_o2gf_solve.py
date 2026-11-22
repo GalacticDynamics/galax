@@ -7,6 +7,8 @@ weighted sum, so a sample with weight 0 drops out exactly.
 
 __all__ = ["action_system", "angle_system", "solve_o2gf"]
 
+from typing import Final
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -14,7 +16,7 @@ import numpy as np
 from ._utils import fill_masked, safe_div
 
 # Floor (rad) of the threshold on the span of n . theta for a resonant n-vector.
-_RESONANT = 1e-6
+_RESONANT: Final = 1e-6
 
 
 def action_system(

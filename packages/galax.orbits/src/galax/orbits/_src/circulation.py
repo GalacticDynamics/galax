@@ -9,7 +9,7 @@ __all__ = ["align_circulation", "circulation"]
 from dataclasses import replace
 
 from jaxtyping import Array, ArrayLike, Bool, Int
-from typing import Any, Final
+from typing import Any, Final, TypeAlias
 
 import jax
 import numpy as np
@@ -46,13 +46,21 @@ def _circulation_one(q: Array, p: Array) -> Bool[Array, "3"]:
     same_sign = jnp.sign(L) == jnp.sign(L[jnp.argmax(ok)])
     big = jnp.abs(L) >= _FLOOR * jnp.linalg.norm(L, axis=1, keepdims=True)
     nonzero = L != 0
-    return jnp.all(same_sign & big & nonzero | ~ok[:, None], axis=0)  # type: ignore[no-any-return]
+    circ = jnp.all(same_sign & big & nonzero | ~ok[:, None], axis=0)
+    # An orbit with no finite samples circulates about no axis.
+    return circ & ok.any()  # type: ignore[no-any-return]
 
 
 def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
     """Vmap the single-orbit core over the batch axes of (..., T, 3) inputs."""
     q, p = _value(q), _value(p)
     q, p = jnp.broadcast_arrays(q, p)
+    if q.ndim < 2 or q.shape[-1] != 3 or q.shape[-2] == 0:
+        msg = (
+            f"circulation needs q and p of shape (..., T, 3) with T > 0, but "
+            f"they broadcast to shape {q.shape}."
+        )
+        raise ValueError(msg)
     q, p = jax.lax.stop_gradient(q), jax.lax.stop_gradient(p)
     fn = _circulation_one
     for _ in range(q.ndim - 2):
@@ -69,7 +77,7 @@ def _circ_axis(circ: Bool[ArrayLike, "*batch 3"]) -> Int[Array, "*batch"]:
 
 def _swap[QP: (Array, u.AbstractQuantity)](x: QP, axis: Int[Array, "*batch"]) -> QP:
     """Swap the last-axis component ``axis`` of ``x`` with z, per orbit."""
-    a = axis[..., None, None]
+    a = jnp.reshape(axis, axis.shape + (1,) * (jnp.ndim(x) - axis.ndim))
     return jnp.where(a == 0, x[..., _PERM_X], jnp.where(a == 1, x[..., _PERM_Y], x))  # type: ignore[no-any-return]
 
 
@@ -85,9 +93,11 @@ def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
 # ===================================================================
 # circulation
 
+QPLike: TypeAlias = ArrayLike | u.AbstractQuantity
+
 
 @dispatch
-def circulation(q: Any, p: Any, /) -> Bool[Array, "*batch 3"]:
+def circulation(q: QPLike, p: QPLike, /) -> Bool[Array, "*batch 3"]:
     return _circulation_qp(q, p)
 
 
@@ -121,28 +131,50 @@ def circulation(orbit: AbstractOrbit, t: Any, /) -> Bool[Array, "*batch 3"]:
 # align_circulation
 
 
+def _align_axis(q: Any, p: Any, circ: Any) -> Int[Array, "*batch"]:
+    """Return the axis to swap with z, computing and checking ``circ``."""
+    if circ is None:
+        return _circ_axis(_circulation_qp(q, p))
+    batch = jnp.broadcast_shapes(jnp.shape(q), jnp.shape(p))[:-2]
+    if jnp.shape(circ) != (*batch, 3):
+        msg = (
+            f"circ has shape {jnp.shape(circ)}, but the orbits need shape "
+            f"{(*batch, 3)}: one row of 3 booleans per orbit."
+        )
+        raise ValueError(msg)
+    return _circ_axis(circ)
+
+
+def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
+    """Rebuild a coordinate with its circulation axis swapped with z."""
+    if isinstance(w, gc.AbstractCompositePhaseSpaceCoordinate):
+        # The components share the composite's batch axes, so each one is
+        # swapped with the same axis.
+        parts = {k: _aligned(v, axis) for k, v in w.items()}
+        return type(w)(parts, frame=w.frame)
+    q, p = _cartesian_qp(w)
+    changes: dict[str, Any] = {
+        "q": cx.CartesianPos3D.from_(_swap(q, axis)),
+        "p": cx.CartesianVel3D.from_(_swap(p, axis)),
+    }
+    if isinstance(w, AbstractOrbit):
+        # The interpolant still describes the unswapped axes, so drop it.
+        changes["interpolant"] = None
+    return replace(w, **changes)
+
+
 @dispatch
 def align_circulation(
-    q: Any, p: Any, circ: Any = None, /
+    q: QPLike, p: QPLike, circ: Any = None, /
 ) -> tuple[Any, Any, Int[Array, "*batch"]]:
-    if circ is None:
-        circ = _circulation_qp(q, p)
-    axis = _circ_axis(circ)
+    axis = _align_axis(q, p, circ)
     q, p = jnp.broadcast_arrays(q, p)
     return _swap(q, axis), _swap(p, axis), axis
 
 
 @dispatch
 def align_circulation(
-    w: gc.AbstractBasicPhaseSpaceCoordinate, circ: Any = None, /
-) -> tuple[gc.AbstractBasicPhaseSpaceCoordinate, Int[Array, "*batch"]]:
-    q, p = _cartesian_qp(w)
-    q2, p2, axis = align_circulation(q, p, circ)
-    changes: dict[str, Any] = {
-        "q": cx.CartesianPos3D.from_(q2),
-        "p": cx.CartesianVel3D.from_(p2),
-    }
-    if isinstance(w, AbstractOrbit):
-        # The interpolant still describes the unswapped axes, so drop it.
-        changes["interpolant"] = None
-    return replace(w, **changes), axis
+    w: gc.AbstractPhaseSpaceCoordinate, circ: Any = None, /
+) -> tuple[gc.AbstractPhaseSpaceCoordinate, Int[Array, "*batch"]]:
+    axis = _align_axis(*_cartesian_qp(w), circ)
+    return _aligned(w, axis), axis

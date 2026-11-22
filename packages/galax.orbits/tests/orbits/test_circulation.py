@@ -237,3 +237,69 @@ def test_align_orbit_and_coordinate(orbit, as_coordinate):
     aligned2, axis2 = go.align_circulation(obj, go.circulation(obj))
     np.testing.assert_array_equal(axis2, axis)
     assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)
+
+
+# ===================================================================
+# Edge cases
+
+
+def test_all_masked_orbit_circulates_about_no_axis():
+    (q, p), _, _ = ORBITS["xy"]
+    q = jnp.full_like(q, jnp.nan)
+    np.testing.assert_array_equal(go.circulation(q, p), [False, False, False])
+    # A batch with one masked orbit leaves the others alone.
+    (q2, p2), expected, _ = ORBITS["yz"]
+    circ = go.circulation(jnp.stack([q, q2]), jnp.stack([p, p2]))
+    np.testing.assert_array_equal(circ, [[False, False, False], expected])
+
+
+def test_zero_samples_raise():
+    (q, p), _, _ = ORBITS["xy"]
+    with pytest.raises(ValueError, match="T > 0"):
+        go.circulation(q[:0], p[:0])
+
+
+def test_circ_shape_is_checked(orbit):
+    (q, p), _, _ = ORBITS["yz"]
+    bad = jnp.array([[True, False, False], [False, False, True]])
+    with pytest.raises(ValueError, match="circ has shape"):
+        go.align_circulation(q, p, bad)
+    with pytest.raises(ValueError, match="circ has shape"):
+        jax.jit(go.align_circulation)(q, p, bad)
+    with pytest.raises(ValueError, match="circ has shape"):
+        go.align_circulation(orbit, jnp.array([True, False, False]))
+
+
+def test_aligned_orbit_has_no_interpolant(orbit):
+    aligned, _ = go.align_circulation(orbit)
+    with pytest.raises(Exception, match="rebuilt by align_circulation"):
+        aligned(orbit.t)
+
+
+# ===================================================================
+# Composite coordinates
+
+
+@pytest.fixture(scope="module")
+def composite(orbit):
+    """Two halves of the orbits, joined along time."""
+    a = gc.PhaseSpaceCoordinate(q=orbit.q[:, :50], p=orbit.p[:, :50], t=orbit.t[:50])
+    b = gc.PhaseSpaceCoordinate(q=orbit.q[:, 50:], p=orbit.p[:, 50:], t=orbit.t[50:])
+    return gc.CompositePhaseSpaceCoordinate(a=a, b=b)
+
+
+def test_composite(composite):
+    np.testing.assert_array_equal(go.circulation(composite), EXPECTED_ORBITS)
+
+    aligned, axis = go.align_circulation(composite)
+    assert type(aligned) is type(composite)
+    assert set(aligned.keys()) == {"a", "b"}
+    np.testing.assert_array_equal(axis, [2, 0, 1])
+    np.testing.assert_array_equal(go.circulation(aligned), [[False, False, True]] * 3)
+    L = jnp.cross(*_cart(aligned))
+    assert jnp.allclose(L[..., :2], 0, atol=1e-10 * float(jnp.abs(L).max()))
+
+    # An explicit circ reaches the coordinate overload, not the array one.
+    aligned2, axis2 = go.align_circulation(composite, go.circulation(composite))
+    np.testing.assert_array_equal(axis2, axis)
+    assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)

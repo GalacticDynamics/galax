@@ -129,7 +129,10 @@ def circulation(*args: Any) -> Any:
     sample and never falls below ``1e-13`` times :math:`|\mathbf{L}|` at that
     sample. A z-tube orbit gives ``[False, False, True]``, an x-tube orbit gives
     ``[True, False, False]`` and a box orbit gives all `False`. Samples where
-    ``q`` or ``p`` is not finite are left out of the check.
+    ``q`` or ``p`` is not finite are left out of the check, and an orbit with
+    no finite samples circulates about no axis. Each sample is checked on its
+    own, so the result does not depend on the order of the samples. An input
+    with no samples raises a `ValueError`.
 
     This follows :meth:`gala.dynamics.Orbit.circulation` with two differences.
     The floor here is relative to :math:`|\mathbf{L}|`, so the result does not
@@ -147,11 +150,12 @@ def circulation(*args: Any) -> Any:
       the orbit must have been computed with ``dense=True``.
     - ``circulation(w)`` checks a
       `~galax.coordinates.AbstractPhaseSpaceCoordinate` whose last batch axis
-      is time. A coordinate has no interpolant, so ``circulation(w, t)`` raises
-      a `TypeError`.
+      is time. This includes composite coordinates, whose components are
+      joined along the time axis. A coordinate has no interpolant, so
+      ``circulation(w, t)`` raises a `TypeError`.
     - ``circulation(q, p)`` checks arrays or Quantities of Cartesian positions
-      and velocities with shape ``(..., T, 3)``. Axis ``-2`` holds the samples
-      in time order.
+      and velocities with shape ``(..., T, 3)``. Axis ``-2`` is the sample
+      (time) axis.
 
     An orbit or coordinate stores positions and velocities with shape
     ``(*batch, T)``, where the time axis is the last batch axis, and an
@@ -218,9 +222,10 @@ def align_circulation(*args: Any) -> Any:
 
     The circulation ``circ`` is a boolean array of shape ``(*batch, 3)`` from
     `galax.orbits.circulation`. If it is omitted, it is computed from the
-    stored samples. An orbit that circulates about z, or about no axis, is
-    left unchanged. Otherwise the circulating axis is swapped with z in both
-    the positions and velocities, and x is chosen over y when both circulate.
+    stored samples. A ``circ`` of any other shape raises a `ValueError`. An
+    orbit that circulates about z, or about no axis, is left unchanged.
+    Otherwise the circulating axis is swapped with z in both the positions
+    and velocities, and x is chosen over y when both circulate.
     This follows :meth:`gala.dynamics.Orbit.align_circulation_with_z`.
 
     The swap is a selection between permuted copies of the inputs, so it is
@@ -229,10 +234,13 @@ def align_circulation(*args: Any) -> Any:
     The overloads are:
 
     - ``align_circulation(orbit, circ=None)`` returns ``(orbit', axis)``,
-      where ``orbit'`` has the same type as ``orbit``. Its interpolant is
-      dropped because it describes the unswapped axes.
+      where ``orbit'`` has the same type as ``orbit``. The returned orbit has
+      no interpolant, because the interpolant describes the unswapped axes,
+      so calling ``orbit'(t)`` raises an error.
     - ``align_circulation(w, circ=None)`` returns ``(w', axis)`` for a
-      `~galax.coordinates.AbstractBasicPhaseSpaceCoordinate` with a time axis.
+      `~galax.coordinates.AbstractPhaseSpaceCoordinate` with a time axis,
+      where ``w'`` has the same type as ``w``. Each component of a composite
+      coordinate is swapped with the same axis.
     - ``align_circulation(q, p, circ=None)`` returns ``(q', p', axis)`` for
       Cartesian arrays or Quantities of shape ``(..., T, 3)``.
 

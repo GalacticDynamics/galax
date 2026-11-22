@@ -56,7 +56,9 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
         interpolant = eqx.error_if(
             self.interpolant,
             self.interpolant is None,
-            f"{self.__class__.__name__} was not integrated with interpolation.",
+            f"this {self.__class__.__name__} has no interpolant (it was not "
+            "integrated with dense output, or it was rebuilt by "
+            "align_circulation).",
         )
         qp = interpolant(t)
         return replace(self, q=qp.q, p=qp.p, t=qp.t, interpolant=None, frame=self.frame)

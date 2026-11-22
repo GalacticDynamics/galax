@@ -282,6 +282,9 @@ def test_bad_dt_raises(dt) -> None:
     field, q0, p0 = _cluster(n=4)
     with pytest.raises(eqx.EquinoxRuntimeError, match="dt must be finite, not 0"):
         gn.evolve(field, q0, p0, 0.0, dt, 10)
+    run = jax.jit(lambda dt: gn.evolve(field, q0, p0, 0.0, dt, 10).ys[0])
+    with pytest.raises(jax.errors.JaxRuntimeError, match="dt must be finite, not 0"):
+        run(dt)
 
 
 def _compiles(caplog):

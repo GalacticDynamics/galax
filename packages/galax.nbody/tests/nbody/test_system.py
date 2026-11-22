@@ -205,6 +205,8 @@ def test_split_rejects_wrong_row_count() -> None:
         s.split(jnp.zeros((5, 4, 3)), axis=-2)
     with pytest.raises(ValueError, match="5 entries on axis 3"):
         s.split(jnp.zeros((5, 3)), axis=3)
+    with pytest.raises(ValueError, match="5 entries on axis -3"):
+        s.split(jnp.zeros((5, 3)), axis=-3)
 
 
 def test_split_on_another_axis() -> None:

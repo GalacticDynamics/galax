@@ -49,9 +49,16 @@ NAN_MAX: Final = 1
 _REST: Final = 1e-12
 # The oscillator toy has collapsed when a fitted omega_i on an axis not at rest
 # is below this fraction of its seed. On 137 random triaxial-NFW and LMJ09 box
-# orbits the unflagged good fits had omega/seed >= 0.23 and the collapsed ones
-# <= 9.5e-4 (flagged or not).
+# orbits and 898 box runs of a near-planar sweep (triaxial NFW, triaxial
+# Hernquist, LMJ09), the toys that did not collapse had omega/seed >= 0.12 and
+# the collapsed ones <= 5.4e-3.
 _COLLAPSE: Final = 0.02
+# A box orbit is thin when the smallest mean toy action on an axis not at rest
+# is below this fraction of the sum. In the sweep the near-planar boxes with
+# bad actions reached 5.8e-5 and one borderline orbit sat at 1.7e-4. The
+# smallest unflagged random 3-D box was at 1.6e-3, and a good LMJ09 box with a
+# thin in-plane axis at 6.4e-4. None of 79 random 3-D boxes fell below it.
+_THIN_BOX: Final = 3e-4
 _FAMILIES: Final = (None, "loop", "box")
 
 
@@ -99,10 +106,14 @@ class O2GFResult(eqx.Module):
     on many triaxial box orbits, where the best variance fit wants a
     negative omega_i^2 and the fit stops at omega_i = 0 with the solver
     converged. The actions are then wrong by orders of magnitude, often
-    with coverage that passes. It is always False on the loop path. An
+    with coverage that passes. It is always False on the loop path.
+    ``thin_box`` is True when a box orbit is nearly planar or nearly linear:
+    the smallest mean toy action on an axis not at rest is below 3e-4 of the
+    sum. The fit then moves every action, by up to a few percent in plane
+    and up to the whole J_z. It is always False on the loop path. An
     orbit is ``flagged`` when ``n_bad_cover > 0``, more than `NAN_MAX`
     samples were dropped, the fit did not converge, ``toy_degenerate`` is
-    True, or ``family_mismatch`` is True. A flagged
+    True, ``thin_box`` is True, or ``family_mismatch`` is True. A flagged
     orbit keeps its values, so check ``flagged`` before using them.
     """
 
@@ -117,6 +128,7 @@ class O2GFResult(eqx.Module):
     n_nan: Array
     fit_converged: Array
     toy_degenerate: Array
+    thin_box: Array
     family_mismatch: Array
     flagged: Array
     nvecs: np.ndarray | tuple[np.ndarray, np.ndarray] = eqx.field(static=True)
@@ -138,6 +150,7 @@ class _Out(NamedTuple):
     n_res: Array
     loop: Array
     degenerate: Array
+    thin: Array
     mismatch: Any = None
 
 
@@ -187,6 +200,8 @@ def _path(
     theta = jnp.where(keep[:, None], theta, jnp.nan)
     # An axis whose toy action stays 0 (a planar orbit) has no angle to fit.
     aJ = jnp.abs(J)
+    # The mean toy action per axis, for the thin-box check below.
+    mJ = jax.lax.stop_gradient(jnp.nanmean(aJ, axis=0))
     tiny = (aJ <= _REST * aJ.sum(axis=1, keepdims=True)) | ~jnp.isfinite(aJ)
     rest = jax.lax.stop_gradient(jnp.all(tiny, axis=0))
     # Solve about the mean time, which conditions the angle system far better
@@ -199,8 +214,12 @@ def _path(
     th0 = jnp.where(rest, jnp.nan, th0)
     Om = jnp.where(rest, jnp.nan, Om)
     if loop:
-        degenerate = jnp.asarray(False)  # noqa: FBT003
+        degenerate = thin = jnp.asarray(False)  # noqa: FBT003
     else:
+        # On a thin box the n_z != 0 modes absorb the in-plane fit residual,
+        # which moves every action. Use the toy actions, which do not depend
+        # on that solve.
+        thin = jnp.min(jnp.where(rest, jnp.inf, mJ)) < _THIN_BOX * mJ.sum()
         # A small negative J_i is not a sign of collapse: a near-planar box
         # carries a J_z offset of arbitrary sign with a good toy.
         degenerate = jnp.asarray(False)  # noqa: FBT003
@@ -223,6 +242,7 @@ def _path(
         n_res,
         jnp.asarray(loop),
         degenerate,
+        thin,
     )
 
 
@@ -343,11 +363,13 @@ def _run(
             n_nan=out.n_nan,
             fit_converged=out.ok,
             toy_degenerate=out.degenerate,
+            thin_box=out.thin,
             family_mismatch=out.mismatch,
             flagged=(out.n_bad > 0)
             | (out.n_nan > NAN_MAX)
             | ~out.ok
             | out.degenerate
+            | out.thin
             | out.mismatch,
             nvecs=nvecs,
         )

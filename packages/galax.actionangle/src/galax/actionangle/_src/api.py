@@ -303,26 +303,35 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           below 0.02 of its seed. On many triaxial box orbits the fit drives one omega_i
           to about 0, and the actions on that axis come out wrong by orders
           of magnitude. Always False on the loop path.
+        - ``thin_box``: whether a box orbit is thin, that is, the smallest
+          mean toy action on an axis not at rest is below 3e-4 of the sum
+          (see Notes). Always False on the loop path.
         - ``family_mismatch``: whether the path forced by ``family`` or by
           the type of ``toy`` disagrees with the orbit's classification, in
           either direction. Always False with ``family=None`` and no ``toy``.
         - ``flagged``: ``n_bad_cover > 0``, or ``n_nan > NAN_MAX`` (with
           ``NAN_MAX = 1``), or the fit did not converge, or
-          ``toy_degenerate``, or ``family_mismatch``.
+          ``toy_degenerate``, or ``thin_box``, or ``family_mismatch``.
 
     Notes
     -----
     An orbit is ``flagged`` when its angles cover the n-vectors badly (the
     orbit is too short or too coarsely sampled), when more than one sample
     has non-finite toy values, when the toy fit did not converge, when a box
-    orbit's oscillator toy has collapsed, or when a forced family does not
-    match the orbit. A
+    orbit's oscillator toy has collapsed, when a box orbit is thin, or when
+    a forced family does not match the orbit. A
     flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
     floats (``jax_enable_x64``) for precision.
 
-    Very small actions, such as J_z on a nearly planar box, carry an
-    absolute error of about 1e-6 to 1e-5 of the sum of |J|, whose sign is
-    arbitrary, so a small negative value can come out.
+    Thin box orbits are flagged. On a nearly planar box the fit modes that
+    involve J_z absorb the in-plane fit error, which can move the in-plane
+    actions by a few percent and J_z by up to the whole of it. A box is
+    flagged as thin when its smallest mean toy action on an axis not at
+    rest is below 3e-4 of the sum. In tests on triaxial NFW, triaxial
+    Hernquist and LMJ09 boxes, the near-planar ones with bad actions
+    reached 5.8e-5, and no random 3-D box was below 1.6e-3. The flag also
+    catches thin boxes whose actions are right. A planar orbit, with J_z at
+    rest, is not affected by this.
 
     On eccentric orbits in a spherical NFW potential, J_r can be off by
     about 1e-3 (1.05e-3 to 1.3e-3 on two orbits with J_r/L of about 4 to 7,

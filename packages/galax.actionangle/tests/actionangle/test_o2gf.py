@@ -429,10 +429,8 @@ def test_collapsed_box_toy_flagged():
     assert bool(auto.flagged)
 
 
-def test_near_planar_box_not_flagged():
-    # A near-planar box has a J_z offset of arbitrary sign (here 1e-6 to 1e-5
-    # of the sum of |J|) while its toy is fine, so it must not be flagged.
-    pot = gp.LMJ09LogarithmicPotential(
+def _lmj():
+    return gp.LMJ09LogarithmicPotential(
         v_c=u.Q(200.0, "km/s"),
         r_s=u.Q(3.0, "kpc"),
         q1=1.0,
@@ -441,24 +439,66 @@ def test_near_planar_box_not_flagged():
         phi=u.Q(0.0, "rad"),
         units="galactic",
     )
-    # Run as a batch with the planar orbit, as in the audit: the fitted omega_z
-    # of a single z0 = 1e-4 orbit is sensitive to 1e-10 changes in the samples.
-    zs = np.array([0.0, 1e-5, 1e-4])
+
+
+def _batch(pot, q0, v0, tmax, n):
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(len(q0)), "Myr")
+    )
+    ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
+    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
+    return tuple(np.asarray(x) for x in parse_w(pot, orb))
+
+
+def test_thin_box_flagged():
+    # Near-planar boxes, with z0 = 1e-5 and 1e-4 kpc, and a 3-D box from the
+    # same in-plane start. On the thin ones the n_z != 0 modes absorb the
+    # in-plane fit residual, and the fitted toy collapses or not depending on
+    # round-off, so they must be flagged whatever the round-off. The 3-D box
+    # has a smallest toy action fraction of 4e-2 and must stay unflagged.
+    pot = _lmj()
+    zs = np.array([1e-5, 1e-4, 1.0])
     q0 = np.tile([4.78033055, 0.120120631, 0.0], (3, 1))
     q0[:, 2] = zs
     v0 = np.tile([0.06884186, -0.09733735, 0.0], (3, 1))
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(3), "Myr")
+    want = np.array([True, True, False])
+    for n in (3999, 4000, 4001):
+        q, p, t = _batch(pot, q0, v0, 12000.0, n)
+        res = o2gf(pot, q, p, t, n_max=6)
+        assert not np.any(np.asarray(res.is_loop))
+        np.testing.assert_array_equal(np.asarray(res.flagged), want, err_msg=str(n))
+        thin = np.asarray(res.thin_box) | np.asarray(res.toy_degenerate)
+        np.testing.assert_array_equal(thin, want, err_msg=str(n))
+    # 16 draws of 1e-14 relative noise on the 4001-sample orbits.
+    rng = np.random.default_rng(0)
+    qn = q * (1 + 1e-14 * rng.standard_normal((16, *q.shape)))
+    pn = p * (1 + 1e-14 * rng.standard_normal((16, *p.shape)))
+    res = o2gf(pot, qn, pn, np.broadcast_to(t, (16, *t.shape)), n_max=6)
+    np.testing.assert_array_equal(
+        np.asarray(res.flagged), np.broadcast_to(want, (16, 3))
     )
-    ts = u.Q(jnp.linspace(0.0, 12000.0, 4000), "Myr")
-    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
-    q, p, t = (np.asarray(x) for x in parse_w(pot, orb))
-    res = o2gf(pot, q, p, t, n_max=6)
-    assert not np.any(np.asarray(res.is_loop))
-    assert not np.any(np.asarray(res.toy_degenerate))
-    assert not np.any(np.asarray(res.flagged))
-    # J_z is at its round-off level, with an arbitrary sign.
-    assert abs(float(res.aaf.actions[2, 2])) < 1e-4 * float(res.aaf.actions[2].sum())
+    # The thin-box check is on the box path only, so a near-planar loop is
+    # not flagged by it.
+    q, p, t = _orbit(ISO, [6.0, 0.0, 1e-5], [0.0, 0.13, 0.0], ISO_TMAX)
+    for kw in ({}, {"family": "loop"}):
+        res = o2gf(ISO, q, p, t, n_max=N_MAX, **kw)
+        assert not bool(res.thin_box), kw
+        assert not bool(res.flagged), kw
+
+
+def test_thin_box_audit_reproducers_flagged():
+    # The audit's near-planar boxes, which came out with J_z at 2e-3 to 1e-2
+    # of the sum of |J| and in-plane actions 4 to 9 percent off, unflagged.
+    for pot, q0, v0, tmax in (
+        (_tnfw(), [-5.27204, -3.44235, 1.11e-5], [0.0089927, -0.0156182, 0.0], 20000.0),
+        (_lmj(), [1.63905, 7.60687, 1.047e-4], [0.0245734, -0.0044446, 0.0], 12000.0),
+    ):
+        q, p, t = _batch(pot, np.array([q0]), np.array([v0]), tmax, 5000)
+        for n_max in (6, 8):
+            res = o2gf(pot, q, p, t, n_max=n_max)
+            assert not bool(res.is_loop[0])
+            assert bool(res.thin_box[0] | res.toy_degenerate[0]), (pot, n_max)
+            assert bool(res.flagged[0]), (pot, n_max)
 
 
 @pytest.mark.slow

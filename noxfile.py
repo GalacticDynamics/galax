@@ -61,18 +61,6 @@ def tests_all(session: nox.Session) -> None:
 
 
 @nox.session
-def typecheck(session: nox.Session) -> None:
-    """Run the tests with runtime type checking on. Not part of the default run."""
-    session.install("-e", ".[test]")
-    session.run(
-        "pytest",
-        "--jaxtyping-packages=galax,beartype.beartype",
-        *_xdist_args(session.posargs),
-        *session.posargs,
-    )
-
-
-@nox.session
 def doctests(session: nox.Session) -> None:
     """Run the regular tests and doctests."""
     session.install(".[test]")

@@ -29,6 +29,9 @@ def test_every_portion_imports_under_the_hook() -> None:
         "from jaxtyping import install_import_hook\n"
         "with install_import_hook('galax', 'beartype.beartype'):\n"
         + "".join(f"    import galax.{portion}\n" for portion in PORTIONS)
+        # The import succeeding is not enough: the hook must have wrapped galax.
+        + "import galax.fields\n"
+        + "assert hasattr(galax.fields.parse_time_specification, '__wrapped__')\n"
     )
     proc = subprocess.run(  # noqa: S603
         [sys.executable, "-c", code], capture_output=True, text=True, check=False

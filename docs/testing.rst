@@ -63,18 +63,18 @@ wrapping the first import of :mod:`galax` in jaxtyping's import hook:
 
 Only modules imported inside the ``with`` block are checked, so the hook has to
 come before any other import of :mod:`galax`. To run the tests this way, pass the
-same two names to pytest, or run the ``typecheck`` nox session:
+same two names to pytest:
 ::
 
     pytest --jaxtyping-packages=galax,beartype.beartype
-    nox -s typecheck
 
 ``beartype.claw.beartype_package("galax")`` also works, but it checks types and
 dtypes only; array shapes that must agree across arguments are checked only
 under jaxtyping's hook.
 
-A call can still fail under the hook when an annotation is wrong. Those are bugs
-in the annotation, and worth reporting.
+Some calls do fail under the hook today, for example in :mod:`galax.potential`,
+so expect failures from the full test suite. Those are wrong annotations, and
+worth reporting.
 
 .. _galax-comparison-libs:
 

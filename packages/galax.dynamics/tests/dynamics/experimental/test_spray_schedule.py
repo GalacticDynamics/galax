@@ -56,3 +56,9 @@ def test_traced_t_age_vmap() -> None:
     batched = jax.vmap(lambda a: Uniform(a, 4, 3).lattice())(ages)
     for i, a in enumerate(ages):
         np.testing.assert_array_equal(batched[i], Uniform(a, 4, 3).lattice())
+
+
+@pytest.mark.parametrize(("n_release", "steps"), [(0, 1), (-2, 1), (3, 0), (3, -1)])
+def test_rejects_nonpositive_counts(n_release: int, steps: int) -> None:
+    with pytest.raises(ValueError, match="must be at least 1"):
+        Uniform(jnp.asarray(100.0), n_release, steps)

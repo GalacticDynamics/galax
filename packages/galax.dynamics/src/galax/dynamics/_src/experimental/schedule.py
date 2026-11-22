@@ -34,6 +34,14 @@ class Uniform(eqx.Module):
     steps_per_release: int = eqx.field(default=1, static=True)
     t1: Array = eqx.field(default_factory=lambda: jnp.asarray(0.0))
 
+    def __check_init__(self) -> None:
+        if self.n_release < 1:
+            msg = f"n_release must be at least 1, got {self.n_release}"
+            raise ValueError(msg)
+        if self.steps_per_release < 1:
+            msg = f"steps_per_release must be at least 1, got {self.steps_per_release}"
+            raise ValueError(msg)
+
     def n_steps(self) -> int:
         """Return the number of lattice steps (one step for a single release)."""
         return (

@@ -75,60 +75,25 @@ def test_every_published_extra_still_exists(extra: str) -> None:
     assert extra in provided
 
 
-def test_coordinates_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the coordinates portion.
+@pytest.mark.parametrize(
+    "portion",
+    [
+        "coordinates",
+        "potential",
+        "fields",
+        "orbits",
+        "nbody",
+        "dynamics",
+        "actionangle",
+    ],
+)
+def test_portion_is_required_not_an_extra(portion: str) -> None:
+    """`pip install galax` must still bring every portion.
 
-    Demoting it to an extra would leave `import galax.coordinates` failing on a
+    Demoting one to an extra would leave `import galax.<portion>` failing on a
     default install, with nothing in the metadata to say why.
     """
-    assert "galax-coordinates" in _required_names()
-
-
-def test_dynamics_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the dynamics portion.
-
-    Same reasoning as the two portions below: demoting it to an extra would
-    leave `import galax.dynamics` failing on a default install, with nothing in
-    the metadata to say why.
-    """
-    assert "galax-dynamics" in _required_names()
-
-
-def test_actionangle_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the action-angle portion.
-
-    Same reasoning as the dynamics portion above: demoting it to an extra would
-    leave `import galax.actionangle` failing on a default install, with nothing
-    in the metadata to say why.
-    """
-    assert "galax-actionangle" in _required_names()
-
-
-def test_fields_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the fields portion.
-
-    `galax.dynamics` builds on it, so demoting it to an extra would leave
-    `import galax.dynamics` failing on a default install.
-    """
-    assert "galax-fields" in _required_names()
-
-
-def test_orbits_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the orbits portion.
-
-    `galax.dynamics` builds on it, so demoting it to an extra would leave
-    `import galax.dynamics` failing on a default install.
-    """
-    assert "galax-orbits" in _required_names()
-
-
-def test_nbody_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the nbody portion.
-
-    `galax.dynamics` builds on it, so demoting it to an extra would leave
-    `import galax.dynamics` failing on a default install.
-    """
-    assert "galax-nbody" in _required_names()
+    assert f"galax-{portion}" in _required_names()
 
 
 def test_no_distribution_depends_on_the_root() -> None:
@@ -173,13 +138,3 @@ def test_no_distribution_depends_on_the_root() -> None:
         if "galax" in named:
             offenders[dist] = sorted(n for n in named if n.startswith("galax"))
     assert not offenders, f"these depend on the root distribution: {offenders}"
-
-
-def test_potential_is_required_not_an_extra() -> None:
-    """`pip install galax` must still bring the potential portion.
-
-    Same reasoning as the coordinates portion above: demoting it to an extra
-    would leave `import galax.potential` failing on a default install, with
-    nothing in the metadata to say why.
-    """
-    assert "galax-potential" in _required_names()

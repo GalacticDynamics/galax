@@ -1,7 +1,7 @@
 """Tests for the per-portion `setup_package` helpers.
 
 Each portion ships its own copy (see the design doc), so these run against all
-of them.
+of them. `load_interop_plugins` ships only with the portions that call it.
 """
 
 import importlib
@@ -19,6 +19,8 @@ PORTIONS = [
     "dynamics",
     "actionangle",
 ]
+# Only these call `load_interop_plugins`, so only they ship it.
+LOADING_PORTIONS = ["coordinates", "potential", "dynamics"]
 
 
 def fake_entry_point(missing: str) -> Any:
@@ -32,7 +34,7 @@ def fake_entry_point(missing: str) -> Any:
     return EntryPoint()
 
 
-@pytest.mark.parametrize("portion", PORTIONS)
+@pytest.mark.parametrize("portion", LOADING_PORTIONS)
 def test_missing_third_party_is_skipped(portion: str, monkeypatch: Any) -> None:
     """A plugin whose third-party target isn't installed is skipped quietly."""
     mod = importlib.import_module(f"galax.{portion}.setup_package")
@@ -41,7 +43,7 @@ def test_missing_third_party_is_skipped(portion: str, monkeypatch: Any) -> None:
     mod.load_interop_plugins(f"galax.{portion}.interop")  # must not raise
 
 
-@pytest.mark.parametrize("portion", PORTIONS)
+@pytest.mark.parametrize("portion", LOADING_PORTIONS)
 def test_missing_galax_module_propagates(portion: str, monkeypatch: Any) -> None:
     """A missing `galax` module is a real bug, not an absent optional dep."""
     mod = importlib.import_module(f"galax.{portion}.setup_package")

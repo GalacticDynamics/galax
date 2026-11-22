@@ -85,6 +85,7 @@ def test_every_published_extra_still_exists(extra: str) -> None:
         "nbody",
         "dynamics",
         "actionangle",
+        "setup",
     ],
 )
 def test_portion_is_required_not_an_extra(portion: str) -> None:

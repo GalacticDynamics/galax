@@ -38,6 +38,7 @@ TIGHT = gd.integrate.Integrator(
 )
 RTOL_NEAR_CIRC = 1e-3  # measured 1.1e-4, with margin
 G = ISO.constants["G"].ustrip("kpc3 / (Msun Myr2)")
+KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
 
 
 def _orbit(pot, q0, p0, tmax, n):
@@ -170,6 +171,10 @@ def test_fit_out_of_steps(monkeypatch):
     rng = np.random.default_rng(0)
     q, p, t = rng.normal(size=(50, 3)), rng.normal(size=(50, 3)), np.arange(50.0)
     _, ok = fit(q, p, t)
+    assert not bool(ok)
+    # In SI omega is about 1e-15 s^-1. The fit is in omega over its seed, so the verdict
+    # does not depend on the units.
+    _, ok = fit(q * KPC, p * KPC / MYR, t * MYR)
     assert not bool(ok)
 
 

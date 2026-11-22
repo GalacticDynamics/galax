@@ -293,7 +293,9 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
         - ``n_resonant``: the number of exactly resonant n-vectors left out
           of the fit (see Notes).
         - ``fit_converged``: whether the toy fit converged (True for a given
-          toy).
+          toy). In float32 the fitted toy can be far from the best one on
+          near-circular orbits even when ``fit_converged`` is True, and the
+          actions are still checked through the coverage flags.
         - ``family_mismatch``: whether the path forced by ``family`` or by
           the type of ``toy`` disagrees with the orbit's classification, in
           either direction. Always False with ``family=None`` and no ``toy``.

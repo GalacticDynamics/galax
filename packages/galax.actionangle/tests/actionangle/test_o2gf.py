@@ -465,3 +465,40 @@ def test_units():
     fromw = o2gf(ISO, orb, n_max=N_MAX).aaf
     assert fromw.actions.unit == u.unit("kpc2 / Myr")
     np.testing.assert_allclose(fromw.actions.value, plain.aaf.actions, rtol=1e-10)
+
+
+KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
+
+
+def _mn(units):
+    return gp.MiyamotoNagaiPotential(
+        m_tot=u.Q(6.8e10, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.28, "kpc"), units=units
+    )
+
+
+def _nfw(units):
+    return gp.NFWPotential(m=u.Q(5.4e11, "Msun"), r_s=u.Q(15.0, "kpc"), units=units)
+
+
+@pytest.mark.parametrize(
+    ("mk", "q0", "v0", "tmax"),
+    [
+        # near Omega_r : Omega_z = 2 : 3, and its fit does not converge
+        (_mn, [4.0, 0.0, 1.5], [30.0, 150.0, 60.0], 4000.0),
+        (_nfw, [15.0, 0.0, 5.0], [30.0, 120.0, 40.0], 10000.0),
+    ],
+    ids=["mn", "nfw"],
+)
+def test_si_matches_galactic(mk, q0, v0, tmax):
+    # The toy fit divides the energies by their mean at the seed. Without
+    # that, in SI the damping could not shorten the first step and the fit
+    # stopped at its seed.
+    p0 = u.Q(v0, "km/s").ustrip("kpc/Myr")
+    q, p, t = _orbit(mk("galactic"), q0, p0, tmax)
+    gal = o2gf(mk("galactic"), q, p, t, n_max=N_MAX)
+    si = o2gf(mk("si"), q * KPC, p * KPC / MYR, t * MYR, n_max=N_MAX)
+    assert bool(si.flagged) == bool(gal.flagged)
+    assert bool(si.fit_converged) == bool(gal.fit_converged)
+    np.testing.assert_allclose(
+        np.asarray(si.aaf.actions) / (KPC**2 / MYR), gal.aaf.actions, rtol=1e-8
+    )

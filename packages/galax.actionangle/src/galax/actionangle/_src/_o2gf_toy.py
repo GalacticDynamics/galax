@@ -3,7 +3,10 @@
 A toy is an analytic potential whose actions, angles and frequencies are known.
 `fit_isochrone` and `fit_oscillator` choose the toy that makes the toy energy
 as constant as possible along one orbit, by minimising
-``sum_t (H_toy(t) - mean H_toy)^2`` with Levenberg-Marquardt. Samples with a
+``sum_t (H_toy(t) - mean H_toy)^2`` with Levenberg-Marquardt. The isochrone
+fit works in ``log m`` and ``log b`` and the oscillator fit in ``omega`` over
+its seed, and both divide the energies by the mean ``|H|`` at the seed, so the
+problem and its tolerances do not depend on the unit system. Samples with a
 non-finite position, velocity or time are left out of the fit and its seed,
 as they are in the linear solves. Everything is a
 bare array in the units of the potential, so the functions vmap and jit, and
@@ -33,14 +36,21 @@ from .harmonic_oscillator import _ho_aaf
 from .isochrone import _isochrone_aaf
 
 _BISECT_STEPS = 20
-# Weight of the pull toward the seed, relative to the mean |H| at the seed. It
+# Weight of the pull toward the seed, with the energies in units of the mean
+# |H| at the seed and the parameters in log m, log b or omega over its seed. It
 # makes the least-squares problem full rank where H is flat in the parameters
 # (circular orbits, an oscillator axis at rest) and is far too small to bias an
 # orbit that does constrain them.
 _TIKHONOV = 1e-6
 _BRACKET = 1e3  # the isochrone seed searches b in [r0 / 1e3, 1e3 r0]
-# The next step of a fit that has converged to round-off is at most 3e-10 of
-# 1 + |y| on the test orbits, and that of a fit stopped early is above 2e-6.
+# A small next step does not show that a fit has converged. In its first few
+# steps a fit can move very little while it is still far off: on a near-circular
+# MW2022 orbit the next step after iterations 0 and 1 was 1.9e-8 and 6.7e-8 of
+# 1 + |y| (1.0e-6 and 3.5e-6 once the energies were scaled), with the fit still
+# about 1 from its optimum in log m and log b. The rule is only safe because
+# _MAX_STEPS is far past that phase. On 23 audit orbits with both toys, a fit
+# that converged had a next step of at most 1.3e-11, and the 4 fits still out
+# of steps at 256 had next steps of 1.9e-3 to 4.1e-3.
 _STALL_STEP = 1e-7
 _MAX_STEPS = 256
 
@@ -189,16 +199,17 @@ def fit_isochrone(
     def energy(y: Array) -> Array:
         return _isochrone_energy(jnp.exp(y[0]), jnp.exp(y[1]), G, q, p)
 
-    lam = _TIKHONOV * _kept_mean(jnp.abs(energy(y0)), keep)
+    scale = jax.lax.stop_gradient(_kept_mean(jnp.abs(energy(y0)), keep))
 
     def residual(y: Array, _: None) -> Array:
-        H = energy(y)
+        H = energy(y) / scale
         return jnp.concat(
-            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), lam * (y - y0)]
+            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), _TIKHONOV * (y - y0)]
         )
 
     y, ok = _lm_fit(residual, y0)
-    return IsochroneToy(m=jnp.exp(y[0]), b=jnp.exp(y[1])), ok
+    # With no kept sample the energy residuals are all zero but scale is NaN.
+    return IsochroneToy(m=jnp.exp(y[0]), b=jnp.exp(y[1])), ok & jnp.isfinite(scale)
 
 
 def _oscillator_seed(q: Array, t: Array, ok: Array) -> Array:
@@ -232,15 +243,20 @@ def fit_oscillator(
     toy, with ``omega = |omega|``, and whether the solver converged.
     """
     keep, q, p, t = _kept(q, p, t, ok)
-    y0 = jax.lax.stop_gradient(_oscillator_seed(q, t, keep))
+    omega0 = jax.lax.stop_gradient(_oscillator_seed(q, t, keep))
+    y0 = jnp.ones_like(omega0)
 
-    lam = _TIKHONOV * _kept_mean(jnp.abs(_oscillator_energy(y0, q, p)), keep)
+    def energy(y: Array) -> Array:
+        return _oscillator_energy(y * omega0, q, p)
 
-    def residual(omega: Array, _: None) -> Array:
-        H = _oscillator_energy(omega, q, p)
+    scale = jax.lax.stop_gradient(_kept_mean(jnp.abs(energy(y0)), keep))
+
+    def residual(y: Array, _: None) -> Array:
+        H = energy(y) / scale
         return jnp.concat(
-            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), lam * (omega - y0)]
+            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), _TIKHONOV * (y - y0)]
         )
 
-    omega, ok = _lm_fit(residual, y0)
-    return OscillatorToy(omega=jnp.abs(omega)), ok
+    y, ok = _lm_fit(residual, y0)
+    # With no kept sample the energy residuals are all zero but scale is NaN.
+    return OscillatorToy(omega=jnp.abs(y * omega0)), ok & jnp.isfinite(scale)

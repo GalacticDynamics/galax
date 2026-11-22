@@ -65,7 +65,6 @@ def _solve(
     terms: Any,
     y0: Any,
     step_ts: Array,
-    release_ts: Array | None,
     saveat: dfx.SaveAt,
     args: Any = None,
 ) -> Any:
@@ -86,10 +85,11 @@ def _solve(
                 "integer `max_steps`, got None"
             )
             raise ValueError(msg)
-        controller = solver.stepsize_controller
-        if release_ts is not None:
-            controller = dfx.ClipStepSizeController(controller, step_ts=release_ts)
-        kw = {"dt0": None, "stepsize_controller": controller, "max_steps": max_steps}
+        kw = {
+            "dt0": None,
+            "stepsize_controller": solver.stepsize_controller,
+            "max_steps": max_steps,
+        }
 
     sol = dfx.diffeqsolve(
         terms,
@@ -113,17 +113,15 @@ def solve_on(
     y0: Any,
     step_ts: Array,
     *,
-    release_ts: Array | None = None,
     args: Any = None,
 ) -> Any:
     """Return the final state after solving along ``step_ts``.
 
     A fixed-step solver takes exactly the steps ``step_ts``. An adaptive one
-    runs from ``step_ts[0]`` to ``step_ts[-1]``, clipped to land on
-    ``release_ts`` when given. ``args`` go to the terms. A failed solve returns
-    NaN, it never raises.
+    runs from ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A
+    failed solve returns NaN, it never raises.
     """
-    ys = _solve(solver, terms, y0, step_ts, release_ts, dfx.SaveAt(t1=True), args)
+    ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args)
     return jax.tree.map(lambda y: y[0], ys)
 
 
@@ -148,5 +146,5 @@ def progenitor_states(
         saveat = dfx.SaveAt(t0=True, steps=True)
     else:
         saveat = dfx.SaveAt(ts=lattice)
-    ys = _solve(solver, terms, y_start, lattice, None, saveat)
+    ys = _solve(solver, terms, y_start, lattice, saveat)
     return jnp.concat(ys, axis=-1) if split else ys

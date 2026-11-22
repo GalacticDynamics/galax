@@ -49,9 +49,8 @@ def test_copies_match_whole_stream(loop, prog) -> None:
 
 
 def test_unknown_loop_raises() -> None:
-    sim = gde.SpraySimulator(gde.Fardal2015DF(), gde.PerParticle(gde.Copies(), object))
     with pytest.raises(TypeError, match="VMap or Scan"):
-        sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(jnp.asarray(300.0), 4, 5))
+        gde.PerParticle(gde.Copies(), object)
 
 
 @pytest.mark.parametrize("loop", LOOPS)

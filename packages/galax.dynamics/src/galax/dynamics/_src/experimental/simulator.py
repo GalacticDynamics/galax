@@ -72,9 +72,11 @@ class WholeStream(eqx.Module):
 class SharedTrack(eqx.Module):
     """Per-particle progenitor model: one shared track of the progenitor.
 
-    One progenitor shared by every particle, like `WholeStream`: exact on the
-    fixed-step lattice, Hermite-interpolated between knots with an adaptive
-    progenitor solver. The gradient's cost grows with ``len(theta)`` (below).
+    One progenitor shared by every particle, like `WholeStream`: exact at the
+    lattice points with `Leapfrog` (a fixed-step Runge-Kutta solver's stages
+    read the Hermite interpolant between knots), Hermite-interpolated between
+    knots with an adaptive progenitor solver. The gradient's cost grows with
+    ``len(theta)`` (below).
 
     Every particle feels the progenitor potential centred on the same track:
     the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
@@ -101,13 +103,14 @@ class SharedTrack(eqx.Module):
         ``(w_today, pot, schedule)``, it returns the leaves or subtrees to
         differentiate, e.g. ``lambda w, pot, s: (w, pot["halo"].m, s.t_age)``.
         Every inexact array under them goes into ``theta``. `None` (the
-        default) means every inexact array leaf. A selection with no inexact
-        leaves gives an empty ``theta``, so the track gets no gradient. Leaves
-        outside ``theta`` get no gradient through the track: the part of their
-        gradient from moving the progenitor that the particles orbit is
-        dropped, not approximated. Their effect on the release states and on
-        the host's force on the particles is kept. Left out, ``t_age`` and
-        ``t1`` still move the knot times; only the knots' values are held.
+        default) means every inexact array leaf. The schedule's inexact
+        leaves (``t_age``, ``t1``) are always in ``theta``, whatever ``wrt``
+        returns: they move the knot times, so holding the knots' values would
+        shift the track spuriously in time. Leaves outside ``theta`` get no
+        gradient through the track: the part of their gradient from moving the
+        progenitor that the particles orbit is dropped, not approximated.
+        Their effect on the release states and on the host's force on the
+        particles is kept.
     """
 
     wrt: Callable[..., Any] | None = None
@@ -138,6 +141,11 @@ class PerParticle(eqx.Module):
 
     progenitor: SharedTrack | Copies
     loop: type[lstrat.Scan | lstrat.VMap] = eqx.field(default=lstrat.VMap, static=True)
+
+    def __check_init__(self) -> None:
+        if self.loop not in (lstrat.Scan, lstrat.VMap):
+            msg = f"loop must be jaxmore's VMap or Scan, not {self.loop!r}"
+            raise TypeError(msg)
 
 
 class SprayResult(eqx.Module):
@@ -308,7 +316,7 @@ def evolve_whole_stream(
         y, failed = carry
         grid, on = xs
         y1 = solve_on(solver, terms, y, grid, args={"active": on})
-        bad = jnp.any(jnp.isnan(jnp.concat(jax.tree.leaves(y1), axis=None)))
+        bad = jnp.any(~jnp.isfinite(jnp.concat(jax.tree.leaves(y1), axis=None)))
         y1 = jax.tree.map(lambda a, b: jnp.where(bad, a, b), y, y1)
         return (y1, failed | bad), None
 
@@ -375,10 +383,7 @@ def evolve_per_particle(
     if loop is lstrat.Scan:
         w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0))
         return w
-    if loop is lstrat.VMap:
-        return jax.vmap(pair)(w0, t0)
-    msg = f"loop must be jaxmore's VMap or Scan, not {loop!r}"
-    raise TypeError(msg)
+    return jax.vmap(pair)(w0, t0)
 
 
 @dispatch.abstract
@@ -401,7 +406,11 @@ def _evolve(
     # The tracers orbit the progenitor row, so it must start from (and its
     # release states come from) the same solver.
     psolver = sim.progenitor_solver
-    if psolver is not None and eqx.tree_equal(psolver, sim.solver) is not True:
+    if (
+        psolver is not None
+        and psolver is not sim.solver
+        and eqx.tree_equal(psolver, sim.solver) is not True
+    ):
         msg = (
             "WholeStream integrates the progenitor with the stream: "
             "progenitor_solver must be None or equal to solver"

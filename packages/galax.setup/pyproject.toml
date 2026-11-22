@@ -16,9 +16,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
   "Typing :: Typed",
 ]
-# No galax dependency: this distribution sits below every portion and is
-# depended on by each of them. Not `galax` -- depending on the root would
-# recreate the `galax` <-> portion cycle.
+# No galax dependency: this distribution sits below every portion, which are to
+# depend on it. Not `galax` -- depending on the root would recreate the `galax`
+# <-> portion cycle.
 dependencies = ["jaxtyping>=0.3.3"]
 description = "Shared package setup helpers for galax"
 dynamic = ["version"]

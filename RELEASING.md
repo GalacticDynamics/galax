@@ -73,8 +73,8 @@ release tag pushed there builds nothing.
 so a mistyped prefix fails the build rather than publishing a wrong version.
 
 `galax.setup` is the bottom of the dependency graph: every portion depends on it
-once the portions use it, so its first release must be published no later than
-the first release of a portion that depends on it.
+once the portions use it, so a portion that depends on it must not be released
+without it: publish it first, or in the same coordinated release.
 
 ## What does not work yet
 

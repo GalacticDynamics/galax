@@ -100,7 +100,7 @@ the first release of a portion that depends on it.
 ## Trusted publishers
 
 **Each distribution needs its own trusted publisher on both PyPI and TestPyPI,
-keyed to its own workflow filename.** Twenty-four configurations. A publisher
+keyed to its own workflow filename.** Twenty-six configurations. A publisher
 registered against the wrong filename fails with `invalid-publisher` at publish
 time, after the tag exists — so verify one end to end on TestPyPI before tagging
 the rest.

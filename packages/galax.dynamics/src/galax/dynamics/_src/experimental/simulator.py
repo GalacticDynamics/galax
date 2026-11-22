@@ -52,6 +52,9 @@ ProgenitorPotential: TypeAlias = (
 class WholeStream(eqx.Module):
     """Integrate the whole stream and the progenitor as one system.
 
+    The fastest mode, with one progenitor shared by every tracer; the default
+    choice for fits. Its gradient needs the most memory of the modes.
+
     The state holds the progenitor and every tracer. A tracer is frozen at its
     release state until its release time, then moves in the host plus the
     progenitor potential centred on the progenitor row. Each stretch between
@@ -68,6 +71,9 @@ class WholeStream(eqx.Module):
 
 class SharedTrack(eqx.Module):
     """Per-particle progenitor model: one shared track of the progenitor.
+
+    Exact, with one progenitor for every particle, like `WholeStream`; the
+    gradient's cost grows with ``len(theta)`` (below).
 
     Every particle feels the progenitor potential centred on the same track:
     the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
@@ -109,6 +115,9 @@ class SharedTrack(eqx.Module):
 class Copies(eqx.Module):
     """Per-particle progenitor model: each particle carries its own copy.
 
+    Unlike `SharedTrack`'s, its gradient's cost doesn't grow with the number
+    of inputs differentiated, and its forward run needs the least memory.
+
     A copy starts from the progenitor's state at the release (from
     ``progenitor_solver``) and moves with ``solver``. With the same fixed-step
     solver it equals the progenitor to round-off; with different solvers it
@@ -121,6 +130,9 @@ class PerParticle(eqx.Module):
 
     The lead and trail of a release are vmapped; ``loop`` (`jaxmore` `VMap` or
     `Scan`) maps over the releases. A failed solve gives NaN for its particle.
+    Pick it for adaptive steps chosen per particle, or for a gradient with less
+    memory than `WholeStream`'s; `Scan` cuts that memory further, at several
+    times the run time of `VMap`.
     """
 
     progenitor: SharedTrack | Copies
@@ -143,6 +155,23 @@ class SprayResult(eqx.Module):
 class SpraySimulator(eqx.Module):
     """Spray a stellar stream from a progenitor's state today.
 
+    Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
+    `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
+    ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
+    release. A failed solve gives NaN, for the whole result in `WholeStream`
+    and for that particle in `PerParticle`; it never raises. ``lead[i]`` and
+    ``trail[i]`` share ``release_times[i]``. All inputs and outputs are raw
+    arrays in the host potential's units. The call is jitted: pass ``Msat`` as
+    a JAX array, since a Python float is static and retraces for each value.
+
+    Gradients: the default adjoint, `diffrax.RecursiveCheckpointAdjoint`,
+    supports reverse mode (`jax.grad`). For `jax.jvp` or `jax.jacfwd` use
+    `diffrax.ForwardMode` in ``solver`` (and ``progenitor_solver``); it can't
+    be reverse-differentiated, and the default adjoint can't be
+    forward-differentiated. `diffrax.DirectAdjoint` supports both, e.g. for
+    `jax.hessian`, at a higher cost. Second derivatives through a
+    `SharedTrack` are not exact.
+
     Parameters
     ----------
     df : AbstractKinematicDF
@@ -161,13 +190,28 @@ class SpraySimulator(eqx.Module):
         means ``solver``. `WholeStream` integrates the progenitor with the
         stream, so there it must be `None` or equal to ``solver``.
 
-    Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
-    `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
-    ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
-    release. A failed solve gives NaN, for the whole result in `WholeStream`
-    and for that particle in `PerParticle`; it never raises. ``lead[i]`` and
-    ``trail[i]`` share ``release_times[i]``. All inputs and outputs are raw
-    arrays in the host potential's units.
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import jax.random as jr
+    >>> import galax.potential as gp
+    >>> import galax.dynamics as gd
+
+    A whole stream of 4 releases over 300 Myr, 5 Leapfrog steps apart, in
+    kpc, Myr and Msun:
+
+    >>> pot = gp.NFWPotential(m=1e12, r_s=15.0, units="galactic")
+    >>> w_today = jnp.array([30.0, 10.0, 20.0, 0.01, -0.15, -0.02])
+    >>> schedule = gd.experimental.Uniform(jnp.asarray(300.0), 4, 5)
+    >>> sim = gd.experimental.SpraySimulator(
+    ...     gd.experimental.Fardal2015DF(), gd.experimental.WholeStream()
+    ... )
+    >>> res = sim(jr.key(0), pot, w_today, jnp.asarray(1e5), schedule)
+    >>> res.lead.shape, res.trail.shape
+    ((4, 6), (4, 6))
+    >>> res.release_times
+    Array([-300., -200., -100.,    0.], dtype=float64)
+
     """
 
     df: AbstractKinematicDF

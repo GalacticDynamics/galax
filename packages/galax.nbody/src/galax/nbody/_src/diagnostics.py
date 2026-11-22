@@ -21,25 +21,32 @@ from .particles import Targets
 _dispatch = plum.Dispatcher()
 
 
-@_dispatch
-def total_energy(field: NBodyField, t: Any, q: Any, p: Any, /) -> Float[Array, ""]:
-    r"""Return the total energy of the active particles in ``field``.
+@_dispatch.abstract
+def total_energy(*args: Any, **kwargs: Any) -> Any:
+    r"""Return the total energy of the active particles in a field.
+
+    ``total_energy(field, t, q, p)`` returns the energy at time ``t`` of the
+    (N, 3) positions ``q`` and velocities ``p``, plain arrays in the field's
+    units. ``total_energy(field, solution)`` returns the (S,) energy at each
+    save of a `diffrax.Solution`, such as the one `evolve` returns. The
+    arguments are positional.
 
     The energy is the kinetic energy ``1/2 sum m |p|^2``, plus the self
     potential energy ``1/2 sum_i m_i Phi_self,i``, plus the external energy
-    ``sum m_i Phi_ext(q_i, t)``. Here ``p`` is the velocity. ``t``, ``q`` and
-    ``p`` are plain arrays in the field's units. Massless tracers and inactive
-    particles contribute nothing.
+    ``sum m_i Phi_ext(q_i, t)``. Here ``p`` is the velocity. Massless tracers
+    and inactive particles contribute nothing. This is the mass-weighted total
+    of the system, not the energy per unit mass that
+    `galax.potential.total_energy` gives for each point.
 
     The energy is conserved only with a static external potential, and
     leapfrog keeps it constant only to O(dt^2).
-
-    ``q`` and ``p`` are (N, 3). ``total_energy(field, solution)`` returns the
-    (S,) energy at each save of a `diffrax.Solution`, such as the one `evolve`
-    returns. The arguments are positional. This is the mass-weighted total of
-    the system, not the energy per unit mass that `galax.potential.total_energy`
-    gives for each point.
     """
+    raise NotImplementedError  # pragma: no cover
+
+
+@_dispatch
+def total_energy(field: NBodyField, t: Any, q: Any, p: Any, /) -> Float[Array, ""]:
+    """Return the total energy at time ``t`` of ``(q, p)``."""
     nm = field.n_massive
     # Tracers are massless, so only the massive rows enter. They are dropped
     # before any arithmetic, so a NaN or inf tracer cannot reach the value or

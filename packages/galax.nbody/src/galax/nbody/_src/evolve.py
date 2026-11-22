@@ -132,17 +132,21 @@ def evolve(
     running forward is the same only when the external potential is static.
 
     A tracer that is NaN or inf from the start, or whose position becomes so,
-    leaves the other particles' values and gradients unchanged. A tracer that
+    leaves the other particles' values and their gradients with respect to the
+    field and the initial state unchanged, but makes gradients with respect
+    to ``t0`` and ``dt`` NaN: the step size is shared by every row. A tracer that
     reaches a finite point where the external force or its derivative is not
     finite (outside a user potential's valid region, or exactly at a singular
     point) makes reverse-mode gradients NaN; forward results are unaffected.
 
     galax.nbody needs float64, so `evolve` raises `ValueError` unless
     ``jax_enable_x64`` is on. It also raises `ValueError` if ``n_steps`` is not
-    a positive int, or ``save_every`` is not a positive int dividing it, and
-    `equinox.EquinoxRuntimeError` if ``dt`` is zero or not finite (also when
-    traced). A ``dt`` so small that ``t0 + k * dt`` repeats, near large
-    ``|t0|``, fails in diffrax with a "strictly increasing" error.
+    a positive int, ``save_every`` is not a positive int dividing it, or
+    ``t0`` or ``dt`` is not a scalar. A ``dt`` that is zero or not finite
+    raises at run time, also when traced (`equinox.EquinoxRuntimeError`, or
+    `jax.errors.JaxRuntimeError` under `jax.jit`). A ``dt`` so small that
+    ``t0 + k * dt`` repeats, near large ``|t0|``, fails in diffrax with a
+    "strictly increasing" error.
 
     >>> import jax
     >>> jax.config.update("jax_enable_x64", True)
@@ -183,6 +187,9 @@ def evolve(
     )
     t0 = jnp.asarray(u.ustrip(AllowValue, units["time"], t0), dtype=float)
     dt = jnp.asarray(u.ustrip(AllowValue, units["time"], dt), dtype=float)
+    if t0.ndim or dt.ndim:
+        msg = f"t0 and dt must be scalars, got shapes {t0.shape} and {dt.shape}"
+        raise ValueError(msg)
     dt = eqx.error_if(dt, ~jnp.isfinite(dt) | (dt == 0), "dt must be finite, not 0")
     solver = gf.Leapfrog() if solver is None else solver
     adjoint = dfx.RecursiveCheckpointAdjoint() if adjoint is None else adjoint

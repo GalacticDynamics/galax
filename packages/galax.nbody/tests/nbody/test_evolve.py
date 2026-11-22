@@ -632,3 +632,28 @@ def test_check_timestep_nan_position_is_reported(eps) -> None:
     q0 = jnp.asarray([[8.0, 0.0, 0.0], [jnp.nan, 0.0, 0.0]])
     with pytest.raises(ValueError, match="dt_max is NaN"):
         gn.check_timestep(field, q0, 0.0, 1.0, strict=True)
+
+
+def test_total_energy_of_a_solution_under_filter_jit() -> None:
+    field, q0, p0 = _cluster(n=4)
+    sol = gn.evolve(field, q0, p0, 0.0, 0.01, 10, save_every=5)
+    np.testing.assert_allclose(
+        eqx.filter_jit(gn.total_energy)(field, sol),
+        gn.total_energy(field, sol),
+        rtol=1e-14,
+    )
+
+
+@pytest.mark.parametrize(
+    ("t0", "dt"), [(0.0, jnp.asarray([0.01, 0.02])), (jnp.zeros(2), 0.01)]
+)
+def test_nonscalar_t0_or_dt_raises(t0, dt) -> None:
+    field, q0, p0 = _cluster(n=4)
+    with pytest.raises(ValueError, match="t0 and dt must be scalars"):
+        gn.evolve(field, q0, p0, t0, dt, 2)
+
+
+def test_numpy_integer_step_counts() -> None:
+    field, q0, p0 = _cluster(n=4)
+    sol = gn.evolve(field, q0, p0, 0.0, 0.01, np.int64(10), save_every=np.int32(5))
+    assert sol.ts.shape == (3,)

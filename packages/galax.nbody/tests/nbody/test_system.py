@@ -226,3 +226,12 @@ def test_bad_softening_and_policy_inputs_name_the_argument() -> None:
         gn.DirectSum(grad=["stop"])
     with pytest.raises(ValueError, match="wrt must be a set of names"):
         gn.StopGrad(wrt=None)
+
+
+def test_split_keeps_quantities_and_numpy() -> None:
+    s = gn.System.from_(_comp("a", 2), _comp("t", 3, kind="tracer"), units="galactic")
+    q = u.Q(np.asarray(s.particles.q), "kpc")
+    parts = s.split(q)
+    assert isinstance(parts["t"], u.AbstractQuantity)
+    assert parts["t"].shape == (3, 3)
+    assert isinstance(s.split(np.zeros((5, 3)))["a"], np.ndarray)

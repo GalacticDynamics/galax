@@ -6,7 +6,6 @@ from jaxtyping import Array, Float, Int, Real
 from typing import Any, Final, Literal
 
 import equinox as eqx
-import jax
 import jax.numpy as jnp
 import numpy as np
 from plum import dispatch
@@ -180,12 +179,15 @@ class System(eqx.Module):
         ``axis=-2``. Raises `ValueError` if ``axis`` has the wrong length.
         """
         n = self.slices[-1][1]
-        if x.ndim == 0 or not -x.ndim <= axis < x.ndim or x.shape[axis] != n:
+        shape = np.shape(x)
+        if not -len(shape) <= axis < len(shape) or shape[axis] != n:
             msg = f"x must have {n} entries on axis {axis}, one per particle"
-            msg += f"; got shape {x.shape}"
+            msg += f"; got shape {shape}"
             raise ValueError(msg)
+        # Plain indexing, so Quantities and numpy arrays keep their type.
+        lead = (slice(None),) * (axis % len(shape))
         return {
-            k: jax.lax.slice_in_dim(x, a, b, axis=axis)
+            k: x[(*lead, slice(a, b))]
             for k, (a, b) in zip(self.names, self.slices, strict=True)
         }
 

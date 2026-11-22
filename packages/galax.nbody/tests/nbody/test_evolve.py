@@ -155,12 +155,13 @@ def test_quantity_inputs() -> None:
     qty = gn.evolve(
         field,
         u.Q(q0 * 1e3, "pc"),
-        u.Q(p0, "kpc/Myr"),
+        u.Q(p0, "kpc/Myr").uconvert("km/s"),
         u.Q(0.0, "kyr"),
         u.Q(10.0, "kyr"),
         10,
     )
     np.testing.assert_allclose(qty.ys[0], plain.ys[0], rtol=1e-12)
+    np.testing.assert_allclose(qty.ys[1], plain.ys[1], rtol=1e-12)
 
 
 @pytest.mark.parametrize(

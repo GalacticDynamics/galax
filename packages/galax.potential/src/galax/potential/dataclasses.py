@@ -7,13 +7,10 @@ import functools as ft
 import inspect
 from enum import Enum, auto
 
-from collections.abc import Callable
-from typing import Any, cast, overload
+from typing import Any
 
 import optype as op
 from equinox._module._module import _has_dataclass_init, _ModuleMeta
-
-from dataclassish.converters import AbstractConverter
 
 ##############################################################################
 # Converter
@@ -21,53 +18,6 @@ from dataclassish.converters import AbstractConverter
 
 class Sentinel(Enum):
     MISSING = auto()
-
-
-@dataclasses.dataclass(frozen=True, slots=True, eq=False)
-class sentineled[ArgT, RetT, SenT: Enum](AbstractConverter[ArgT, RetT]):
-    """Optional converter with a defined sentinel value.
-
-    This converter allows for a field to be optional, i.e., it can be set to
-    some sentinel value.  This is useful when a field is required in some
-    contexts but not in others.
-
-    See Also
-    --------
-    :class:`optional`
-
-    Examples
-    --------
-    >>> from typing import Literal
-    >>> import equinox as eqx
-    >>> from galax.potential.dataclasses import sentineled, Sentinel
-
-    >>> class Class(eqx.Module):
-    ...     a: int | Literal[Sentinel.MISSING] = eqx.field(
-    ...         default=Sentinel.MISSING, converter=sentineled(int, Sentinel.MISSING))
-
-    >>> obj = Class()
-    >>> obj.a
-    <Sentinel.MISSING: 1>
-
-    >>> obj = Class(a=1)
-    >>> obj.a
-    1
-
-    """
-
-    converter: Callable[[ArgT], RetT]
-    sentinel: SenT
-
-    @overload
-    def __call__(self, value: SenT, /) -> SenT: ...
-
-    @overload
-    def __call__(self, value: ArgT, /) -> RetT: ...
-
-    def __call__(self, value: ArgT | SenT, /) -> RetT | SenT:
-        if value is self.sentinel:
-            return cast("SenT", value)
-        return self.converter(cast("ArgT", value))
 
 
 ##############################################################################

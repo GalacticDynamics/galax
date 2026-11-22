@@ -31,7 +31,7 @@ from unxt.quantity import AbstractQuantity
 from .base import AbstractParameter, ParameterCallable
 from .constant import ConstantParameter
 from .core import CustomParameter
-from galax.potential.dataclasses import Sentinel, sentineled
+from galax.potential.dataclasses import Sentinel
 
 if TYPE_CHECKING:
     from galax.potential import AbstractPotential
@@ -125,7 +125,7 @@ class ParameterField:
     _: KW_ONLY
     default: AbstractParameter | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
-        converter=sentineled(converter_parameter, sentinel=Sentinel.MISSING),
+        converter=lambda v: v if v is Sentinel.MISSING else converter_parameter(v),
     )
     """The default value of the parameter."""
 

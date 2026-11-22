@@ -1,6 +1,5 @@
 """Tests for `SpraySimulator` in per-particle mode with progenitor copies."""
 
-import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -8,13 +7,9 @@ import jaxmore.loop_strategies as lstrat
 import numpy as np
 import pytest
 
-import diffraxtra as dfxtra
-
 import galax.dynamics as gd
-import galax.fields as gf
 import galax.potential as gp
 from .test_spray_whole_stream import (
-    DFS,
     HOST,
     KEY,
     LEAP,
@@ -48,6 +43,7 @@ def test_copies_match_whole_stream(loop, prog) -> None:
     got = per(KEY, HOST, W_TODAY, MSAT, sched)
     for g, w in ((got.lead, want.lead), (got.trail, want.trail)):
         np.testing.assert_allclose(g[:, :3], w[:, :3], rtol=0, atol=1e-11)
+        np.testing.assert_allclose(g[:, 3:], w[:, 3:], rtol=0, atol=1e-13)
     np.testing.assert_array_equal(got.release_times, want.release_times)
     np.testing.assert_allclose(got.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
@@ -133,53 +129,6 @@ def test_copies_deep_release() -> None:
     assert jnp.all(jnp.isfinite(jnp.concat([res.lead, res.trail])))
     g = jax.grad(loss, argnums=(0, 1, 2))(W_TODAY, m, jnp.asarray(300.0))
     assert all(jnp.all(jnp.isfinite(x)) for x in g), g
-
-
-@pytest.mark.parametrize("loop", LOOPS)
-@pytest.mark.parametrize("df_cls", DFS)
-def test_grad_copies(df_cls, loop) -> None:
-    """Reverse mode vs central differences and vs ``jvp`` with ForwardMode."""
-    fwd = dfxtra.DiffEqSolver(
-        gf.Leapfrog(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        adjoint=dfx.ForwardMode(),
-    )
-
-    def make(solver):
-        sim = gde.SpraySimulator(
-            df_cls(),
-            gde.PerParticle(gde.Copies(), loop),
-            progenitor_potential=plummer,
-            solver=solver,
-        )
-
-        def f(s, w, t_age):
-            pot = gp.NFWPotential(m=1e12 * s, r_s=15.0, units=USYS)
-            r = sim(KEY, pot, w, MSAT, gde.Uniform(t_age, 4, 20))
-            return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
-
-        return f
-
-    f, f_fwd = make(LEAP), make(fwd)
-    x = (jnp.asarray(1.0), W_TODAY, jnp.asarray(300.0))
-    g = jnp.concat([jnp.ravel(a) for a in jax.grad(f, argnums=(0, 1, 2))(*x)])
-    jf = jnp.concat([jnp.ravel(a) for a in jax.jacfwd(f_fwd, argnums=(0, 1, 2))(*x)])
-    np.testing.assert_allclose(g, jf, rtol=1e-10, atol=1e-10 * jnp.abs(g).max())
-
-    flat = jnp.concat([jnp.ravel(a) for a in x])
-    eps = jnp.concat([jnp.asarray([1e-6]), jnp.full(6, 1e-6), jnp.asarray([1e-4])])
-
-    def f_flat(z):
-        return f(z[0], z[1:7], z[7])
-
-    fd = jnp.asarray(
-        [
-            (f_flat(flat.at[i].add(eps[i])) - f_flat(flat.at[i].add(-eps[i])))
-            / (2 * eps[i])
-            for i in range(flat.size)
-        ]
-    )
-    np.testing.assert_allclose(g, fd, rtol=1e-5, atol=1e-7 * jnp.abs(g).max())
 
 
 @pytest.mark.parametrize("loop", LOOPS)

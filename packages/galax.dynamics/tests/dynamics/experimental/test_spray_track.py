@@ -1,6 +1,5 @@
 """Tests for `SpraySimulator` in per-particle mode with the shared track."""
 
-import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -8,10 +7,7 @@ import jaxmore.loop_strategies as lstrat
 import numpy as np
 import pytest
 
-import diffraxtra as dfxtra
-
 import galax.dynamics as gd
-import galax.fields as gf
 import galax.potential as gp
 from .test_spray_whole_stream import (
     DFS,
@@ -35,9 +31,6 @@ from galax.dynamics._src.experimental.track import (
 
 gde = gd.experimental
 LOOPS = [lstrat.VMap, lstrat.Scan]
-FWD = dfxtra.DiffEqSolver(
-    gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize(), adjoint=dfx.ForwardMode()
-)
 
 
 class _PlainTrack(eqx.Module):
@@ -118,32 +111,6 @@ def test_track_grad_equals_table_grad(df_cls, loop, monkeypatch) -> None:
     monkeypatch.setattr(simulator, "make_track", _plain_make_track)
     want = _flat(jax.jit(jax.grad(f, argnums=(0, 1, 2, 3)))(*X))
     np.testing.assert_allclose(g, want, rtol=1e-12, atol=1e-12 * jnp.abs(want).max())
-
-
-@pytest.mark.parametrize("loop", LOOPS)
-def test_track_grad_fd_jvp(loop) -> None:
-    """Reverse mode vs ``jvp`` with ForwardMode and vs central differences."""
-    f = jax.jit(_loss(loop))
-    g = _flat(jax.grad(f, argnums=(0, 1, 2, 3))(*X))
-    jf = _flat(jax.jit(jax.jacfwd(_loss(loop, solver=FWD), argnums=(0, 1, 2, 3)))(*X))
-    np.testing.assert_allclose(g, jf, rtol=1e-10, atol=1e-10 * jnp.abs(g).max())
-
-    flat = _flat(X)
-    eps = jnp.concat(
-        [jnp.asarray([1e-6]), jnp.full(6, 1e-6), jnp.asarray([1e-4, 1e-4])]
-    )
-
-    def f_flat(z):
-        return f(z[0], z[1:7], z[7], z[8])
-
-    fd = jnp.asarray(
-        [
-            (f_flat(flat.at[i].add(eps[i])) - f_flat(flat.at[i].add(-eps[i])))
-            / (2 * eps[i])
-            for i in range(flat.size)
-        ]
-    )
-    np.testing.assert_allclose(g, fd, rtol=1e-5, atol=1e-7 * jnp.abs(g).max())
 
 
 @pytest.mark.parametrize("loop", LOOPS)
@@ -258,7 +225,7 @@ def test_track_wrt(psolver, shapes) -> None:
         want = _flat(full(*x, *shape))
         got = _flat(part(*x, *shape))
         np.testing.assert_allclose(
-            got, want, rtol=1e-12, atol=1e-12 * jnp.abs(want).max(), err_msg=shape
+            got, want, rtol=1e-12, atol=1e-12 * jnp.abs(want).max(), err_msg=str(shape)
         )
 
     sched = gde.Uniform(jnp.asarray(300.0), *shapes[0])

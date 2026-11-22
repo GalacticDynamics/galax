@@ -58,6 +58,51 @@ def test_module_functions_match_mpmath() -> None:
         assert abs(closed - phi) <= mp.mpf("1e-20") * abs(phi), x
 
 
+def test_potential_at_origin_matches_mpmath() -> None:
+    """``Phi(0) = -4 pi G int_0^inf rho s ds``, on the module and the class.
+
+    The module substitutes the 0/0 limit ``-G m sqrt(2/pi) / r_s`` at r = 0
+    exactly; the quadrature does not use it. Measured error 1.5e-16, a margin
+    of 600 at rtol 1e-13.
+    """
+    pot = gp.GaussianPotential(
+        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
+    )
+    p = pot.params(0.0)
+    g, m_tot, r_s = (mp.mpf(float(p[k])) for k in ("G", "m_tot", "r_s"))
+
+    mp.mp.dps = 30
+    rho0 = m_tot / ((2 * mp.pi) ** mp.mpf("1.5") * r_s**3)
+    outer = mp.quad(
+        lambda s: 4 * mp.pi * s * rho0 * mp.exp(-(s**2) / (2 * r_s**2)), [0, mp.inf]
+    )
+    want = float(-g * outer)
+
+    np.testing.assert_allclose(gaussian.potential(p, 0.0), want, rtol=1e-13)
+    got = pot.potential(jnp.zeros(3), 0.0)
+    np.testing.assert_allclose(got, want, rtol=1e-13)
+
+
+def test_rho0_of_m_and_m_of_rho0_match_mpmath() -> None:
+    """``m_tot = int_0^inf 4 pi s^2 rho0 exp(-s^2 / 2 r_s^2) ds`` at r_s != 1.
+
+    At r_s = 1 (the doctests) an error in the power of r_s would not show.
+    Measured error <= 1.6e-16, a margin of 600 at rtol 1e-13.
+    """
+    mp.mp.dps = 30
+    rho0, r_s = 3.7e8, 2.3
+    rs = mp.mpf(r_s)
+    mass = mp.quad(
+        lambda s: 4 * mp.pi * s**2 * rho0 * mp.exp(-(s**2) / (2 * rs**2)), [0, mp.inf]
+    )
+    np.testing.assert_allclose(
+        gaussian.m_of_rho0({"rho0": rho0, "r_s": r_s}), float(mass), rtol=1e-13
+    )
+    np.testing.assert_allclose(
+        gaussian.rho0_of_m({"m_tot": float(mass), "r_s": r_s}), rho0, rtol=1e-13
+    )
+
+
 class TestGaussianPotential(
     AbstractSinglePotential_Test,
     # Parameters

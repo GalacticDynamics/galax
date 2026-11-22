@@ -1,6 +1,7 @@
 from typing import Any, ClassVar
 
 import jax
+import mpmath as mp
 import numpy as np
 import pytest
 from unxts.parametric import ParametricQuantity
@@ -13,6 +14,7 @@ import galax.potential.custom_types as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMMixin, ParameterRSMixin
+from galax.potential import zhao
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -241,3 +243,54 @@ def test_laplacian_is_poisson(abg, r: float) -> None:
     lap = pot.laplacian(xyz, t=0)
     expect = 4 * jnp.pi * pot.constants["G"].value * pot.density(xyz, t=0)
     np.testing.assert_allclose(np.asarray(lap), np.asarray(expect), rtol=1e-10)
+
+
+# ===================================================================
+# `from_m_tot`
+
+FINITE_MASS_ABG = [
+    (1.0, 4.0, 1.0),  # Hernquist
+    (0.5, 5.0, 0.0),  # Plummer
+    (0.9, 4.31, 1.2),
+    (2.0, 3.5, 0.5),
+]
+
+
+@pytest.mark.parametrize("abg", FINITE_MASS_ABG)
+def test_from_m_tot_matches_mpmath(abg) -> None:
+    """``from_m_tot`` gives ``M(inf) = m_tot``, by mpmath quadrature of Eq. 1.
+
+    With ``s(u) = u^-gamma (1 + u^(1/alpha))^(-(beta - gamma) alpha)`` and
+    ``I(a, b) = int_a^b 4 pi u^2 s(u) du``, ``m = M(<r_s)`` must be
+    ``m_tot I(0, 1) / I(0, inf)``, and the density's own normalisation
+    ``rho_s = rho(r_s) / s(1)`` must give ``rho_s r_s^3 I(0, inf) = m_tot``.
+    Measured error <= 1.5e-15, a margin of 700 at rtol 1e-12.
+    """
+    alpha, beta, gamma = abg
+    m_tot, r_s = 1e12, 8.0
+    pot = gp.ZhaoPotential.from_m_tot(
+        m_tot=u.Quantity(m_tot, "Msun"),
+        r_s=u.Quantity(r_s, "kpc"),
+        alpha=alpha,
+        beta=beta,
+        gamma=gamma,
+        units="galactic",
+    )
+    p = pot.params(0.0)
+
+    mp.mp.dps = 30
+    a, b, g = mp.mpf(alpha), mp.mpf(beta), mp.mpf(gamma)
+
+    def shape(x):
+        return x**-g * (1 + x ** (1 / a)) ** (-(b - g) * a)
+
+    def dm(x):
+        return 4 * mp.pi * x**2 * shape(x)
+
+    inner = mp.quad(dm, [0, 1])
+    total = inner + mp.quad(dm, [1, mp.inf])
+    np.testing.assert_allclose(p["m"], float(m_tot * inner / total), rtol=1e-12)
+
+    rho_s = mp.mpf(float(zhao.density(p, r_s))) / shape(mp.mpf(1))
+    m_inf = float(rho_s * mp.mpf(r_s) ** 3 * total)
+    np.testing.assert_allclose(m_inf, m_tot, rtol=1e-12)

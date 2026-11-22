@@ -27,10 +27,14 @@ G = "galactic"
 M = u.Q(1e12, "Msun")
 RS = u.Q(5, "kpc")
 
-# One instance per module. Constructor arguments follow `test_symmetry.BUILTINS`.
+# At least one instance per module. Constructor arguments follow
+# `test_symmetry.BUILTINS`. Length parameters avoid 1 kpc, where an exponent
+# error (b**2 -> b**2.002) would not show.
 INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
     gp.ZhaoPotential(m=M, r_s=RS, alpha=0.5, beta=4.0, gamma=1.0, units=G),
+    # Cored: its origin hessian is the finite `laplacian(p, 0) / 3`.
+    gp.ZhaoPotential(m=M, r_s=RS, alpha=0.5, beta=4.0, gamma=0.0, units=G),
     gp.BurkertPotential(m=M, r_s=RS, units=G),
     gp.GaussianPotential(m_tot=M, r_s=RS, units=G),
     gp.HardCutoffNFWPotential(m=M, r_s=RS, r_t=u.Q(20, "kpc"), units=G),
@@ -40,8 +44,10 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.KeplerPotential(m_tot=M, units=G),
     gp.NFWPotential(m=M, r_s=RS, units=G),
     gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
-    gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
+    gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(0.8, "kpc"), r_h=RS, units=G),
     gp.gNFWPotential(m=M, r_s=RS, gamma=0.5, units=G),
+    # gamma > 1: the gradient's jvp at the origin must still be 0.
+    gp.gNFWPotential(m=M, r_s=RS, gamma=1.5, units=G),
     gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
     gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
     gp.LongMuraliBarPotential(
@@ -52,7 +58,7 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
         alpha=u.Q(0.3, "rad"),
         units=G,
     ),
-    gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
+    gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.MonariEtAl2016BarPotential(
         alpha=u.Q(0.01, ""),
         R0=u.Q(8.0, "kpc"),
@@ -61,7 +67,7 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
         Omega=u.Q(52.2, "km/(s kpc)"),
         units=G,
     ),
-    gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
+    gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
 ]
 
@@ -117,7 +123,9 @@ def point_fn(pot, name):
 
 
 def ids(pots):
-    return [module_name(pot) for pot in pots]
+    """Return module names, a count appended to the second and later of one."""
+    names = [module_name(pot) for pot in pots]
+    return [f"{n}{names[:i].count(n) or ''}" for i, n in enumerate(names)]
 
 
 @pytest.fixture(params=INSTANCES, ids=ids(INSTANCES))

@@ -5,7 +5,7 @@ __all__ = ["AbstractOrbit"]
 from dataclasses import KW_ONLY, replace
 
 from jaxtyping import Array, Bool, Int
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import equinox as eqx
 from numpy import ndarray
@@ -60,6 +60,32 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
         )
         qp = interpolant(t)
         return replace(self, q=qp.q, p=qp.p, t=qp.t, interpolant=None, frame=self.frame)
+
+    # ==========================================================================
+    # Circulation
+
+    def circulation(self, t: Any = None) -> Bool[Array, "*batch 3"]:
+        """Return which axes the orbit circulates about.
+
+        This calls `galax.orbits.circulation`, which documents the arguments.
+        """
+        from .api import circulation
+
+        out = circulation(self) if t is None else circulation(self, t)
+        return cast("Bool[Array, '*batch 3']", out)
+
+    def align_circulation(
+        self, circ: Any = None
+    ) -> tuple["AbstractOrbit", Int[Array, "*batch"]]:
+        """Swap the orbit's circulation axis with z.
+
+        This calls `galax.orbits.align_circulation`, which documents the
+        arguments.
+        """
+        from .api import align_circulation
+
+        out = align_circulation(self, circ)
+        return cast("tuple[AbstractOrbit, Int[Array, '*batch']]", out)
 
     # ==========================================================================
     # Array properties

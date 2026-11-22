@@ -321,7 +321,7 @@ def _out_dtypes(fn: Any, da: tuple[Any, ...], db: tuple[Any, ...]) -> tuple[Any,
 
 def _exact_tiles(fn: Any, a: _Arrs, bb: int, n: int) -> tuple[Array, Array] | None:
     get = getattr(fn, "exact_tiles", None)
-    return None if get is None else get(a, bb, n)  # type: ignore[no-any-return]
+    return None if get is None else get(a, bb, n)
 
 
 def _loop(
@@ -502,6 +502,7 @@ def _call_ab(
     """Run `_kernel_ab`. Operands as for `_call`."""
     a, b = ops[:n_a], ops[n_a:]
     lead = max(x.shape[0] for x in ops)
+    vma = _vma([jax.typeof(x) for x in ops])
     na, nb = a[0].shape[1], b[0].shape[1]
     na_p, nb_p = _pad_to(na, lc.block_a), _pad_to(nb, lc.block_b)
     a = tuple(jnp.pad(x, ((0, 0), (0, na_p - na)))[:, :, None] for x in a)
@@ -518,6 +519,8 @@ def _call_ab(
     n_ga = len(fn.wrt_a)
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
     zeros = [jnp.zeros((lead, 1, nb_p), dt) for dt in dts[n_ga:]]
+    if vma:  # aliased to outputs, so they must vary like them
+        zeros = [jax.lax.pvary(z, tuple(sorted(vma))) for z in zeros]  # type: ignore[no-untyped-call]
     out_a = pl.BlockSpec((None, lc.block_a, 1), lambda g, i: (g, i, 0))
     n_in = len(a) + len(b)
     out = pl.pallas_call(
@@ -525,8 +528,8 @@ def _call_ab(
         grid=(lead, na_p // lc.block_a),
         in_specs=[col(x) for x in a] + [row(x) for x in (*b, *zeros)],
         out_specs=[out_a] * n_ga + [row(z) for z in zeros],
-        out_shape=[_sds((lead, na_p, 1), dt) for dt in dts[:n_ga]]
-        + [_sds(z.shape, z.dtype) for z in zeros],
+        out_shape=[_sds((lead, na_p, 1), dt, vma) for dt in dts[:n_ga]]
+        + [_sds(z.shape, z.dtype, vma) for z in zeros],
         input_output_aliases={n_in + k: n_ga + k for k in range(len(zeros))},
         compiler_params=compiler_params,
         interpret=lc.interpret,
@@ -581,14 +584,23 @@ def _abstract_eval(*ops: Any, fn: Any, n_a: int, **_: Any) -> list[Any]:
         raise ValueError(msg)
     lead = max(x.shape[0] for x in ops)
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
+    return _out_avals(ops, [(lead, a[0].shape[1])] * len(dts), dts)
+
+
+def _out_avals(
+    ops: Sequence[Any], shapes: Sequence[tuple[int, ...]], dts: Sequence[Any]
+) -> list[Any]:
+    """Output avals, varying over every mesh axis an operand varies over."""
     vma = _vma(ops)
     sharding = None
     if vma:  # the operands' (manual) mesh
         mesh = next(x.sharding.mesh for x in ops if x.vma)
         spec = jax.sharding.PartitionSpec()  # type: ignore[no-untyped-call]
         sharding = jax.sharding.NamedSharding(mesh, spec)
-    shape = (lead, a[0].shape[1])
-    return [jax.core.ShapedArray(shape, dt, sharding=sharding, vma=vma) for dt in dts]
+    return [
+        jax.core.ShapedArray(s, dt, sharding=sharding, vma=vma)
+        for s, dt in zip(shapes, dts, strict=True)
+    ]
 
 
 def _gpu_params(lc: _Launch) -> Any:
@@ -814,10 +826,8 @@ def _ab_abstract_eval(*ops: Any, fn: _Both, n_fa: int, n_ct: int, **_: Any) -> A
     lead = max(x.shape[0] for x in ops)
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
     n_ga = len(fn.wrt_a)
-    return [
-        jax.core.ShapedArray((lead, (a if k < n_ga else b)[0].shape[1]), dt)
-        for k, dt in enumerate(dts)
-    ]
+    shapes = [(lead, (a if k < n_ga else b)[0].shape[1]) for k in range(len(dts))]
+    return _out_avals(ops, shapes, dts)
 
 
 @ft.lru_cache(maxsize=256)
@@ -880,7 +890,9 @@ def _ab_transpose(cts: Sequence[Any], *ops: Any, **params: Any) -> list[Any]:
             full[k] = x
         return _ab_two_pass(*full, **params)
 
-    avals = [_sds(ops[k].aval.shape, ops[k].aval.dtype) for k in und]
+    avals = [
+        _sds(ops[k].aval.shape, ops[k].aval.dtype, _vma([ops[k].aval])) for k in und
+    ]
     g = jax.linear_transpose(f, *avals)(
         [ad.instantiate_zeros(c) for c in cts]  # type: ignore[no-untyped-call]
     )

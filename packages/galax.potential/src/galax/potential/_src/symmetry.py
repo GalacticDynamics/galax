@@ -7,6 +7,7 @@ import functools as ft
 import operator
 
 from collections.abc import Iterable
+from typing import Final
 
 
 class Symmetry(enum.StrEnum):
@@ -100,7 +101,7 @@ class Symmetry(enum.StrEnum):
 # z-rotation invariant potential is a function of (R, z), so it is also
 # invariant under x -> -x and y -> -y. This is the bookkeeping a flag type
 # (see the note on `Symmetry`) would do for us.
-_INVARIANCES: dict[Symmetry, frozenset[str]] = {
+_INVARIANCES: Final[dict[Symmetry, frozenset[str]]] = {
     Symmetry.NONE: frozenset(),
     Symmetry.SPHERICAL: frozenset(
         {"rotation", "z_rotation", "x_reflection", "y_reflection", "z_reflection"}

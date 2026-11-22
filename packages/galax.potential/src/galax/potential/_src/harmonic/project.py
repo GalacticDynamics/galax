@@ -13,7 +13,7 @@ import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Float
-from typing import Any, assert_never, cast
+from typing import Any, Final, assert_never, cast
 
 import jax
 from jax.extend.core import (  # type: ignore[attr-defined,unused-ignore]
@@ -29,7 +29,7 @@ from .ylm import iter_Ylm
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import gauss_legendre_nodes
 
-SQRT2: float = math.sqrt(2.0)
+SQRT2: Final[float] = math.sqrt(2.0)
 """Real-harmonic normalization for ``m != 0``."""
 
 
@@ -212,10 +212,10 @@ def _hoist_consts(
     return converted, list(closed.consts)
 
 
-_MAX_PARAMS = 128
+_MAX_PARAMS: Final = 128
 """Most differentiable scalars `harmonic_coeffs` forms derivative columns for."""
 
-_FD_CHUNK = 32
+_FD_CHUNK: Final = 32
 """Rows the central-difference fallback evaluates at a time."""
 
 
@@ -474,7 +474,7 @@ class LogDensity:
     """``(xyz, t) -> log(rho)``, broadcasting over the leading axes of ``xyz``."""
 
 
-_LOG_MARGIN = 12.0
+_LOG_MARGIN: Final = 12.0
 """Natural-log head-room below the dtype's range that a row must leave.
 
 It keeps ``exp(m) * (quadrature sum)`` finite, and it keeps a forward-mode

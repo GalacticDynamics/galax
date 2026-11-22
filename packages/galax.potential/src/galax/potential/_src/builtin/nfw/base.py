@@ -14,7 +14,7 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from typing import final
+from typing import Final, final
 
 import equinox as eqx
 import jax
@@ -318,7 +318,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return p["m"] * _log1p_minus_x_over_1px(x)
 
 
-_ATANH_TAIL = tuple(1.0 / (2 * k + 1) for k in range(18, 0, -1))
+_ATANH_TAIL: Final = tuple(1.0 / (2 * k + 1) for k in range(18, 0, -1))
 """(atanh(w) - w) / w^3 as a polynomial in w^2, highest degree first."""
 
 

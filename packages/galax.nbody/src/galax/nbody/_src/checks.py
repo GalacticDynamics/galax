@@ -3,14 +3,15 @@
 __all__: list[str] = []
 
 from jaxtyping import Array
+from typing import Final
 
 import equinox as eqx
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-MASS_MSG = "masses must be finite and non-negative"
-SOFT_MSG = "softening must be finite and non-negative"
+MASS_MSG: Final = "masses must be finite and non-negative"
+SOFT_MSG: Final = "softening must be finite and non-negative"
 
 
 def tracer_msg(n_massive: int) -> str:

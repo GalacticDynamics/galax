@@ -12,7 +12,7 @@ __all__: list[str] = []
 import functools as ft
 
 from jaxtyping import Array
-from typing import Any
+from typing import Any, Final
 
 import jax
 import jax.numpy as jnp
@@ -27,20 +27,20 @@ from ._utils import safe_sqrt
 from .result import ActionsAnglesFrequencies
 from galax.potential import IsochronePotential
 
-_HALF_PI = jnp.pi / 2
-_TWO_PI = 2 * jnp.pi
+_HALF_PI: Final = jnp.pi / 2
+_TWO_PI: Final = 2 * jnp.pi
 # Angles need c > _C_TOL b, with c = GM / (-2E) - b (c = 0 only at the origin
 # at rest), and 1 - e^2 > _Q_TOL for the orbital plane (L > 0).
-_C_TOL = 1e-30
-_Q_TOL = 1e-30
+_C_TOL: Final = 1e-30
+_Q_TOL: Final = 1e-30
 # eta = atan2(ey, ex) needs (ex, ey) = c e (cos, sin)(eta) with e > 1e-12.
-_ETA_TOL = 1e-24
+_ETA_TOL: Final = 1e-24
 # Planar orbits: inclination < 1e-10, i.e. sin^2(i) = L_xy^2 / L^2 <= 1e-20.
-_PLANAR_TOL = 1e-20
+_PLANAR_TOL: Final = 1e-20
 # Stand-in for lanes outside the domain of the angle formulas (unbound, or the
 # origin at rest): a generic bound point in units of b and sqrt(GM / b).
-_X0 = np.array([1.0, 0.5, 0.3])
-_V0 = np.array([0.1, 0.4, 0.2])
+_X0: Final = np.array([1.0, 0.5, 0.3])
+_V0: Final = np.array([0.1, 0.4, 0.2])
 
 
 def _F(x: Array, y: Array) -> Array:

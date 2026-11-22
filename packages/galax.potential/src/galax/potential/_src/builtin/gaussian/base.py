@@ -15,7 +15,7 @@ import functools as ft
 import math
 from dataclasses import KW_ONLY
 
-from typing import final
+from typing import Final, final
 
 import equinox as eqx
 import jax
@@ -252,7 +252,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return p["m_tot"] * jnp.where(small, core, direct)  # type: ignore[no-any-return]
 
 
-_GAMMA_SERIES = tuple(
+_GAMMA_SERIES: Final = tuple(
     1 / math.prod(j + 1.5 for j in range(k + 1)) for k in range(14, -1, -1)
 )
 r"""$1 / ((3/2)(5/2) \cdots (k + 3/2))$ for $k \leq 14$, highest degree first."""

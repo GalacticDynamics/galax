@@ -4,7 +4,7 @@ __all__ = [
     "time_interpolated_parameter",
 ]
 
-from typing import Any
+from typing import Any, Final
 
 import equinox as eqx
 
@@ -17,7 +17,7 @@ import galax.potential.custom_types as gt
 from galax.potential._src.harmonic import eval_log_spline, fit_log_spline
 from galax.potential._src.params.core import CustomParameter
 
-_Q = Unless(u.AbstractQuantity, u.Q.from_)
+_Q: Final = Unless(u.AbstractQuantity, u.Q.from_)
 
 
 def _as_quantity(x: Any, name: str, example: str) -> Any:

@@ -85,7 +85,7 @@ __all__: tuple[str, ...] = ()
 
 
 from jaxtyping import Array, Float
-from typing import Any
+from typing import Any, Final
 
 import jax
 import numpy as np
@@ -95,7 +95,7 @@ import quaxed.numpy as jnp
 import galax.potential.custom_types as gt
 from .spline import fit_log_spline
 
-_ANCHOR_MARGIN: int = 8
+_ANCHOR_MARGIN: Final[int] = 8
 r"""Knots between the last untrustworthy density sample and the tail's anchor.
 
 `fit_log_spline` is a global solve, so a zeroed band leaves a perturbed
@@ -181,7 +181,7 @@ def _log_floor(x: Float[Array, "..."], /) -> float:
     return 16.0 * float(np.finfo(x.dtype).tiny)
 
 
-_SLOPE_TOL: float = 1e-6
+_SLOPE_TOL: Final[float] = 1e-6
 """Floor on the magnitude of a tail's exponent denominator.
 
 The tail integrals divide by an exponent that passes through zero as the

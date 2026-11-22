@@ -6,7 +6,7 @@ from dataclasses import KW_ONLY
 
 from collections.abc import Mapping
 from jaxtyping import PyTree
-from typing import Any, override
+from typing import Any, Final, override
 
 import diffrax as dfx
 import equinox as eqx
@@ -23,7 +23,7 @@ from .events import MassBelowThreshold
 from galax.fields import AbstractSolver, SolveState
 from galax.fields.utils import parse_saveat
 
-_DEFAULT_CONTROLLER = dfx.PIDController(rtol=1e-6, atol=1e-6)
+_DEFAULT_CONTROLLER: Final = dfx.PIDController(rtol=1e-6, atol=1e-6)
 
 
 class MassSolver(AbstractSolver):

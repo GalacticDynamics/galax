@@ -19,6 +19,7 @@ from plum import convert, dispatch
 import coordinax as cx
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 
 import galax.coordinates as gc
 from .base import AbstractOrbit
@@ -32,6 +33,13 @@ from .base import AbstractOrbit
 _FLOOR: Final = 1e-13
 _FLOOR_EPS: Final = 64
 
+# The units q and p are stripped into. The result depends only on the signs of
+# q x p and on a floor relative to |q| |p|, so it does not depend on this choice.
+# Quantities of the wrong dimension raise; plain arrays are taken to be in a
+# consistent system and pass through unchanged.
+_Q_UNIT: Final = "kpc"
+_P_UNIT: Final = "kpc/Myr"
+
 # The permutations that swap x or y with z.
 _PERM_X: Final = np.array([2, 1, 0])
 _PERM_Y: Final = np.array([0, 2, 1])
@@ -39,11 +47,6 @@ _PERM_Y: Final = np.array([0, 2, 1])
 
 # ===================================================================
 # Array cores
-
-
-def _value(x: Any) -> Array:
-    """Return the numbers of an array or a Quantity."""
-    return jnp.asarray(x.value if isinstance(x, u.AbstractQuantity) else x)  # type: ignore[no-any-return]
 
 
 def _unit_scale(x: Array) -> Array:
@@ -95,7 +98,8 @@ def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
 
 def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
     """Check the shapes of (..., T, 3) inputs and run the jitted core."""
-    q, p = _value(q), _value(p)
+    q = jnp.asarray(u.ustrip(AllowValue, _Q_UNIT, q))
+    p = jnp.asarray(u.ustrip(AllowValue, _P_UNIT, p))
     shape = jnp.broadcast_shapes(q.shape, p.shape)
     if len(shape) < 2 or shape[-1] != 3 or shape[-2] == 0:
         msg = (

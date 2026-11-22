@@ -469,3 +469,41 @@ def test_half_precision_kepler_matches_float32():
         np.testing.assert_array_equal(
             go.circulation(q.astype(dtype), p.astype(dtype)), ref
         )
+
+
+# ===================================================================
+# Units
+
+
+@pytest.mark.parametrize("name", list(ORBITS))
+def test_units_do_not_change_the_answer(name):
+    (q, p), expected, _ = ORBITS[name]
+    for qu, pu in [("kpc", "kpc/Myr"), ("m", "m/s"), ("pc", "km/s")]:
+        out = go.circulation(u.Q(q, qu), u.Q(p, pu))
+        np.testing.assert_array_equal(out, expected)
+    np.testing.assert_array_equal(go.circulation(q, p), expected)
+
+
+def test_wrong_dimensions_raise():
+    (q, p), _, _ = ORBITS["xy"]
+    with pytest.raises(Exception, match=r"(?i)unit|dimension|convert"):
+        go.circulation(u.Q(q, "deg"), u.Q(p, "kpc/Myr"))
+    with pytest.raises(Exception, match=r"(?i)unit|dimension|convert"):
+        go.circulation(u.Q(q, "kpc"), u.Q(p, "kpc"))
+
+
+@pytest.mark.parametrize("q_quantity", [True, False])
+def test_align_keeps_the_input_units(q_quantity):
+    (q, p), _, _ = ORBITS["yz"]
+    qi = u.Q(q, "pc") if q_quantity else q
+    pi = p if q_quantity else u.Q(p, "km/s")
+    q2, p2, axis = go.align_circulation(qi, pi)
+    assert int(axis) == 0
+    assert isinstance(q2, u.AbstractQuantity) == q_quantity
+    assert isinstance(p2, u.AbstractQuantity) != q_quantity
+    if q_quantity:
+        assert q2.unit == u.unit("pc")
+        np.testing.assert_array_equal(q2.value, q[:, [2, 1, 0]])
+    else:
+        assert p2.unit == u.unit("km/s")
+        np.testing.assert_array_equal(p2.value, p[:, [2, 1, 0]])

@@ -151,6 +151,10 @@ def circulation(*args: Any) -> Any:
     here, while in gala a single NaN sample makes the orbit circulate about no
     axis. And this function returns booleans where gala returns integers.
 
+    Quantities are checked to be a length (``q``) and a speed (``p``), and a
+    wrong dimension raises. Plain arrays are taken to be in a consistent unit
+    system. The result does not depend on the units.
+
     The overloads are:
 
     - ``circulation(orbit)`` checks the stored samples of an

@@ -77,7 +77,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
     _: KW_ONLY
 
     alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(0.01, ""),
+        default=u.StaticQuantity(0.01, ""),
         dimensions="dimensionless",
         doc="""The amplitude.
 
@@ -105,7 +105,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
     )
 
     Omega: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(52.2, "km/(s kpc)"),
+        default=u.StaticQuantity(52.2, "km/(s kpc)"),
         dimensions="frequency",
         doc="Bar pattern speed.",
     )

@@ -2,6 +2,7 @@
 
 __all__ = ["NBodyField", "nbody_acceleration"]
 
+import functools as ft
 import operator
 
 from jaxtyping import Array, Bool, Float, Real
@@ -24,8 +25,23 @@ from .particles import Sources, Targets
 from .system import System
 from galax.orbits import AbstractOrbitField
 
-_NULL: Final = gp.NullPotential(units="galactic")
 _DIRECT: Final = DirectSum()
+
+
+@ft.cache
+def _null_potential(dtype: Any, /) -> gp.NullPotential:
+    """Return the default external potential, built once per float precision.
+
+    Built when first needed rather than at import, so its ``G`` has the JAX
+    precision in effect then. ``dtype`` is only the cache key. Built under
+    `jax.ensure_compile_time_eval`, so a first call inside a trace caches
+    concrete arrays, not tracers.
+    """
+    del dtype  # only the cache key
+    with jax.ensure_compile_time_eval():
+        return gp.NullPotential(units="galactic")
+
+
 # Inactive rows and non-finite tracers are parked at multiples of this, in the
 # field's length unit.
 # ponytail: assumes the external potential and its gradient are finite out
@@ -98,14 +114,14 @@ class NBodyField(AbstractOrbitField):
     softening: Float[Array, " N"]
     active: Bool[Array, " N"]
     n_massive: int = eqx.field(static=True)
-    external_potential: gp.AbstractPotential = _NULL
+    external_potential: gp.AbstractPotential
     backend: AbstractForceBackend = _DIRECT
 
     def __init__(
         self,
         masses: Any,
         eps: Any = None,
-        external_potential: gp.AbstractPotential = _NULL,
+        external_potential: gp.AbstractPotential | None = None,
         *,
         softening: Any = None,
         active: Any = None,
@@ -115,6 +131,8 @@ class NBodyField(AbstractOrbitField):
         if (eps is None) == (softening is None):
             msg = "pass exactly one of eps and softening"
             raise ValueError(msg)
+        if external_potential is None:
+            external_potential = _null_potential(jax.dtypes.canonicalize_dtype(float))
         units = external_potential.units
         # Concrete inputs stay concrete here even inside a jit trace, so
         # `_check` sees their values and raises now. Traced inputs stay traced

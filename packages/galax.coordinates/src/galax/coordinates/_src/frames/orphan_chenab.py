@@ -5,11 +5,11 @@ __all__ = ["OrphanChenab"]
 
 from typing import final
 
+import numpy as np
 from plum import dispatch
 
 import coordinax as cx
 import coordinax.frames as cxf
-import quaxed.numpy as jnp
 from coordinax.frames import AbstractReferenceFrame
 
 
@@ -130,7 +130,7 @@ class OrphanChenab(AbstractReferenceFrame):  # type: ignore[misc]
 # ===============================================================
 # Base transform
 
-R_icrs_to_oc = jnp.array(
+R_icrs_to_oc = np.array(
     [
         [-0.44761231, -0.08785756, -0.88990128],
         [-0.84246097, 0.37511331, 0.38671632],

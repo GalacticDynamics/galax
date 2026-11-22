@@ -14,6 +14,7 @@ from typing import Final, final
 
 import equinox as eqx
 import jax
+import numpy as np
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -32,7 +33,7 @@ from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 
-MN3_K_POS_DENS: Final = jnp.array(
+MN3_K_POS_DENS: Final = np.array(
     [
         [0.0036, -0.0330, 0.1117, -0.1335, 0.1749],
         [-0.0131, 0.1090, -0.3035, 0.2921, -5.7976],
@@ -42,7 +43,7 @@ MN3_K_POS_DENS: Final = jnp.array(
         [-0.0326, 0.1816, -0.2943, -0.6329, 2.3193],
     ]
 )
-MN3_K_NEG_DENS: Final = jnp.array(
+MN3_K_NEG_DENS: Final = np.array(
     [
         [-0.0090, 0.0640, -0.1653, 0.1164, 1.9487],
         [0.0173, -0.0903, 0.0877, 0.2029, -1.3077],
@@ -52,8 +53,8 @@ MN3_K_NEG_DENS: Final = jnp.array(
         [-0.0247, 0.1718, -0.4124, -0.5944, 0.7333],
     ]
 )
-MN3_B_COEFFS_EXP: Final = jnp.array([-0.269, 1.08, 1.092])
-MN3_B_COEFFS_SECH2: Final = jnp.array([-0.033, 0.262, 0.659])
+MN3_B_COEFFS_EXP: Final = np.array([-0.269, 1.08, 1.092])
+MN3_B_COEFFS_SECH2: Final = np.array([-0.033, 0.262, 0.659])
 
 
 class AbstractMN3Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
@@ -167,7 +168,7 @@ class MN3ExponentialPotential(AbstractMN3Potential):
 
     @property
     def _b_coeffs(self) -> Array:
-        return MN3_B_COEFFS_EXP  # type: ignore[no-any-return]
+        return jnp.asarray(MN3_B_COEFFS_EXP)  # type: ignore[no-any-return]
 
 
 @final
@@ -191,4 +192,4 @@ class MN3Sech2Potential(AbstractMN3Potential):
 
     @property
     def _b_coeffs(self) -> Array:
-        return MN3_B_COEFFS_SECH2  # type: ignore[no-any-return]
+        return jnp.asarray(MN3_B_COEFFS_SECH2)  # type: ignore[no-any-return]

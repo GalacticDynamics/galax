@@ -56,7 +56,11 @@ class ModuleMeta(_ModuleMeta):
     This metaclass extends Equinox's :class:`equinox._module._ModuleMeta` to
     support the following features:
 
-    - Application of ``converter`` to default values on fields.
+    - Application of ``converter`` to default values on fields, unless the
+      default has a true ``convert_per_instance`` attribute. Such a default is
+      left as is on the class and converted only by ``__init__``, for each
+      instance (``galax.potential``'s default constants use this so that no
+      class holds a JAX array built at import).
     - Application of ``converter`` to values passed to ``__init__``.
 
     Examples
@@ -88,10 +92,16 @@ class ModuleMeta(_ModuleMeta):
         for k, v in namespace.items():
             if not isinstance(v, dataclasses.Field):
                 continue
-            # Apply the converter to the default value.
-            if "converter" in v.metadata and not isinstance(
-                v.default,
-                dataclasses._MISSING_TYPE,  # noqa: SLF001
+            # Apply the converter to the default value, unless the default asks
+            # to be converted per instance (as `default_constants` does, so the
+            # class never holds a JAX array built at import).
+            if (
+                "converter" in v.metadata
+                and not isinstance(
+                    v.default,
+                    dataclasses._MISSING_TYPE,  # noqa: SLF001
+                )
+                and not getattr(v.default, "convert_per_instance", False)
             ):
                 setattr(cls, k, v.metadata["converter"](v.default))
 

@@ -248,10 +248,33 @@ def replace(
 ##############################################################################
 
 
+@ft.cache
+def _component_default(
+    cls: "type[AbstractPreCompositedPotential]", name: str, dtype: Any, /
+) -> Any:
+    """Return the default of field ``name`` of ``cls`` for floats of ``dtype``.
+
+    A ``default_factory`` runs once per class, field and float precision, and
+    the component it builds is shared by the instances. ``dtype`` is only the
+    cache key. The factory runs under `jax.ensure_compile_time_eval`, so a
+    first call inside a trace caches concrete arrays, not tracers.
+    """
+    del dtype  # only the cache key
+    f = cls.__dataclass_fields__[name]
+    if f.default_factory is MISSING:
+        return f.default
+    with jax.ensure_compile_time_eval():
+        return f.default_factory()
+
+
 class AbstractPreCompositedPotential(AbstractCompositePotential):
     """Base class for pre-defined composite potentials.
 
-    Here the component potentials are defined as fields of the class.
+    Here the component potentials are defined as fields of the class. Give each
+    one a ``default_factory`` (or a ``default``) that returns the default
+    component. A factory runs the first time the class is constructed under
+    each JAX float precision, so the component's arrays take the precision in
+    effect then; a ``default`` is built once, when the class is defined.
 
     For examples, see:
 
@@ -297,22 +320,24 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         # TODO: more robust detection using the annotations: AbstractParameter
         # or Annotated[AbstractParameter, ...]
         # 1. Check the kwargs vs the fields
+        dtype = jax.dtypes.canonicalize_dtype(float)  # the float precision now
+        defaults = {k: _component_default(type(self), k, dtype) for k in fields}
         self._keys = tuple(
-            k for k, f in fields.items() if isinstance(f.default, AbstractPotential)
+            k for k, d in defaults.items() if isinstance(d, AbstractPotential)
         )
         extra_keys = set(kwargs) - set(self._keys)
         if extra_keys:
             msg = f"invalid keys {extra_keys}"
             raise ValueError(msg)
         # 2. Iterate over the fields and set the values
-        v: Any
-        for k, v in kwargs.items():
-            # Either update from the default or try more general conversion.
-            pot = (
-                replace(fields[k].default, **v)
-                if isinstance(v, dict | ImmutableMap)  # type: ignore[redundant-expr]
-                else fields[k].metadata["converter"](v)
-            )
+        for k in self._keys:
+            # `Any`: a component may be given as a dict of updates.
+            v: Any = kwargs.get(k, MISSING)
+            if v is MISSING or isinstance(v, dict | ImmutableMap):
+                # Either the default or an update of it.
+                pot = defaults[k] if v is MISSING else replace(defaults[k], **v)
+            else:  # mypy's hook env lacks xmmutablemap, so sees this as unreachable
+                pot = fields[k].metadata["converter"](v)  # type: ignore[unreachable]
             setattr(self, k, pot)
 
     @property

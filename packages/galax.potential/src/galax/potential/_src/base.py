@@ -4,10 +4,10 @@ import abc
 import functools as ft
 from dataclasses import KW_ONLY, fields, replace
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from jaxtyping import Array
 from types import MappingProxyType
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Final
 
 import equinox as eqx
 import jax
@@ -31,7 +31,63 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
 
-default_constants = ImmutableMap({"G": u.Q.from_(_CONST_G)})
+_CONSTANTS: Final = MappingProxyType({"G": _CONST_G})
+
+
+@ft.cache
+def _constant(key: str, dtype: Any, /) -> u.AbstractQuantity:
+    """Build constant ``key`` as a Quantity, once per float precision.
+
+    ``dtype`` is only the cache key. Built under `jax.ensure_compile_time_eval`,
+    so a first call inside a trace caches a concrete array, not a tracer.
+    """
+    del dtype  # only the cache key
+    with jax.ensure_compile_time_eval():
+        return u.Q.from_(_CONSTANTS[key])
+
+
+class _DefaultConstants(Mapping[str, u.AbstractQuantity]):
+    """The default constants, built as `unxt.Quantity` objects when read.
+
+    Each is built the first time it is read under each JAX float precision.
+
+    Why deferred: while ``jax_enable_x64`` is off, JAX has no float64 at all.
+    Every array it makes is float32, even one asked for as float64, and it
+    stays float32 after x64 is turned on. Building the Quantities at import
+    would therefore leave ``G`` float32 for the whole process whenever galax
+    is imported first. Until a constant is first read, its full value lives
+    outside JAX, in astropy's NumPy float64, and each potential gets the
+    constants at the precision in effect when it is constructed.
+
+    Why strong: the value comes from NumPy float64, so with x64 on ``G`` is a
+    strongly typed float64 and promotes float32 inputs to float64. That is
+    what galax did when x64 was turned on before import. A weakly typed ``G``
+    (built from a Python float) would instead let float32 inputs stay
+    float32; that would change results for float32 users, so it is not done.
+    """
+
+    def __getitem__(self, key: str, /) -> u.AbstractQuantity:
+        return _constant(key, jax.dtypes.canonicalize_dtype(float))
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(_CONSTANTS)
+
+    def __len__(self) -> int:
+        return len(_CONSTANTS)
+
+    def __repr__(self) -> str:
+        return "default_constants"
+
+    # A dataclass field default must be hashable, and `Mapping` sets
+    # `__hash__ = None`. There is one instance, so identity is enough.
+    __hash__ = object.__hash__
+
+    #: Tells `galax.potential.dataclasses.ModuleMeta` not to convert this
+    #: default when a class is defined, which would build ``G`` then.
+    convert_per_instance: ClassVar[bool] = True
+
+
+default_constants: Final = _DefaultConstants()
 DimL = u.dimension("length")
 DimT = u.dimension("time")
 

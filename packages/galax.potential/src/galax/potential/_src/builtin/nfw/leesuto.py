@@ -3,6 +3,7 @@
 __all__ = ["LeeSutoTriaxialNFWPotential"]
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from collections.abc import Callable
@@ -25,7 +26,7 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import safe_vector_norm, with_r_derivative
 
-LOG2: Final = jnp.log(jnp.asarray(2.0))
+LOG2: Final = math.log(2.0)
 
 
 @final

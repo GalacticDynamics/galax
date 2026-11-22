@@ -12,6 +12,7 @@ __all__ = (
 )
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from typing import Any, Final, final
@@ -34,7 +35,7 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import r_spherical, radial_derivatives
 
-CONST_BURKER: Final = 3 * jnp.log(jnp.asarray(2.0)) - jnp.pi / 2
+CONST_BURKER: Final = 3 * math.log(2.0) - math.pi / 2
 
 
 @final
@@ -179,7 +180,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     where $m$ is the characteristic mass and $r_s$ is the scale radius.
     """
     x = r / p["r_s"]
-    return p["m"] / CONST_BURKER * _mass_bracket(x)  # type: ignore[no-any-return]
+    return p["m"] / CONST_BURKER * _mass_bracket(x)
 
 
 # Minimax fit, highest degree first, of the bracket below over 4x^3 on
@@ -230,7 +231,7 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""$dM/dr = 4\pi r^2 \rho$, for `radial_derivatives`."""
     x = r / p["r_s"]
     dbracket = 4 * x**2 / ((1 + x) * (1 + x**2))
-    return p["m"] / (CONST_BURKER * p["r_s"]) * dbracket  # type: ignore[no-any-return]
+    return p["m"] / (CONST_BURKER * p["r_s"]) * dbracket
 
 
 @ft.partial(jax.jit)

@@ -24,7 +24,12 @@ class TestBovyMWPotential2014(AbstractSpecialCompositePotential_Test):
         self, pot_cls: type[gp.BovyMWPotential2014]
     ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
-        return {"disk": pot_cls.disk, "bulge": pot_cls.bulge, "halo": pot_cls.halo}
+        defaults = pot_cls()  # built lazily, so not on the class
+        return {
+            "disk": defaults["disk"],
+            "bulge": defaults["bulge"],
+            "halo": defaults["halo"],
+        }
 
     # ==========================================================================
 

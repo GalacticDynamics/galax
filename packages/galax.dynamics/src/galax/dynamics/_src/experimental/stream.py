@@ -38,9 +38,6 @@ default_solver = dfxtra.DiffEqSolver(
     adjoint=dfx.ForwardMode(),
 )
 
-default_kinematic_df = Fardal2015DF()
-
-
 ##############################################################################
 
 
@@ -205,7 +202,7 @@ class StreamSimulator:
             solver_kwargs=solver_kwargs,
         ).ys
 
-        w0_df = default_kinematic_df if kinematic_df is None else kinematic_df
+        w0_df = Fardal2015DF() if kinematic_df is None else kinematic_df
 
         # Define the scan function for generating the stream particle's initial
         # conditions given the release time, position, velocity, and Msat.

@@ -285,7 +285,6 @@ def _sigma_fn(_: gt.Sz0, /) -> gt.Sz0:
     return u.Q(130, "km/s").ustrip("kpc/Myr")  # type: ignore[no-any-return]
 
 
-t_interp = u.Q(jnp.linspace(0, -14, 10_000), "Gyr")
 b_coulomb_min_default = u.Q(1, "kpc")
 
 
@@ -296,7 +295,7 @@ def make_mw_lmc_potential(
     lmc_w0: gdt.QP | gdt.QParr,  # LMC present-day phase-space position
     sigma_func: Callable[[gt.Sz0], gt.Sz0] = _sigma_fn,
     b_coulomb_min: u.Quantity["length"] = b_coulomb_min_default,
-    t_interp: u.Quantity["time"] = t_interp,
+    t_interp: u.Quantity["time"] | None = None,
     solver_kwargs: dict[str, Any] | None = None,
 ) -> gp.CompositePotential:
     """Build a MW + LMC potential.
@@ -322,6 +321,9 @@ def make_mw_lmc_potential(
         center. Maps (Array[float, ()]) -> Array[float, ()].
     b_coulomb_min
         Minimum impact parameter for Coulomb logarithm.
+    t_interp
+        Times at which to save the MW and LMC orbits. `None` (the default) is
+        10,000 times from 0 to -14 Gyr.
 
     Examples
     --------
@@ -367,6 +369,8 @@ def make_mw_lmc_potential(
         b_coulomb_min=b_coulomb_min,
     )
     y0 = (mw_w0, lmc_w0)
+    if t_interp is None:
+        t_interp = u.Q(jnp.linspace(0, -14, 10_000), "Gyr")
 
     soln = integrate_field(mw_lmc_field, y0, t_interp, **(solver_kwargs or {}))
 

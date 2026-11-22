@@ -20,6 +20,7 @@ from galax.actionangle import (
     o2gf_actions_angles_freqs as o2gf,
 )
 from galax.actionangle._src._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
+from galax.actionangle._src._o2gf_toy import _oscillator_seed
 from galax.actionangle._src._parse import parse_w
 
 ISO = gp.IsochronePotential(
@@ -112,6 +113,7 @@ def test_box_orbit_oscillator():
     np.testing.assert_allclose(res.aaf.freqs, ref.freqs, rtol=1e-10)
     np.testing.assert_allclose(_angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-10)
     assert not bool(res.is_loop)
+    assert not bool(res.toy_degenerate)
     assert not bool(res.flagged)
     np.testing.assert_array_equal(res.nvecs, n_vectors(N_MAX, BOX_STEPS))
 
@@ -393,6 +395,73 @@ def test_loop_forced_to_box_mismatch():
         res = o2gf(HO, qh, ph, th, n_max=N_MAX, **kw)
         assert not bool(res.family_mismatch), kw
         assert not bool(res.flagged), kw
+
+
+def _tnfw():
+    return gp.TriaxialNFWPotential(
+        m=u.Q(5.4e11, "Msun"),
+        r_s=u.Q(15.0, "kpc"),
+        q1=u.Q(0.9, ""),
+        q2=u.Q(0.75, ""),
+        units="galactic",
+    )
+
+
+def test_collapsed_box_toy_flagged():
+    # On this thin box orbit the best variance fit wants omega_z^2 < 0, so the
+    # oscillator fit stops at omega_z ~ 0 with the solver converged and the
+    # coverage passing. J_z came back as -2e6 kpc^2/Myr, unflagged, while
+    # <E_z> / Omega_z is about 2e-3.
+    pot = _tnfw()
+    kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
+    q, p, t = _orbit(
+        pot, [10.0, 6.0, 1.0], [5 * kms, 3 * kms, 0.5 * kms], 15000.0, n=4000
+    )
+    res = o2gf(pot, q, p, t, n_max=8, family="box")
+    assert bool(res.fit_converged)
+    assert int(res.n_bad_cover) == 0
+    assert float(res.toy.omega[2]) < 1e-6
+    assert bool(res.toy_degenerate)
+    assert bool(res.flagged)
+    auto = o2gf(pot, q, p, t, n_max=8)
+    assert not bool(auto.is_loop)
+    assert bool(auto.toy_degenerate)
+    assert bool(auto.flagged)
+
+
+@pytest.mark.slow
+def test_box_scan_collapsed_flagged():
+    # The audit's random boxes released near rest in a triaxial NFW: about
+    # half collapse an axis. Truth is <E_i> / omega_i at the seed frequency,
+    # and a collapsed orbit has some |J_i| more than 30 times its largest.
+    pot = _tnfw()
+    rng = np.random.default_rng(3)
+    n, rmax = 16, 12.0
+    q0 = rng.uniform(-rmax, rmax, (n, 3)) * rng.choice([0.03, 0.1, 0.3, 1.0], (n, 3))
+    q0[:, 0] = rng.uniform(0.5, 1.0, n) * rmax
+    v0 = rng.normal(0, 3, (n, 3)) * u.Q(1.0, "km/s").ustrip("kpc/Myr")
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(n), "Myr")
+    )
+    ts = u.Q(jnp.linspace(0.0, 15000.0, 4000), "Myr")
+    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
+    q, p, t = (np.asarray(x) for x in parse_w(pot, orb))
+    res = o2gf(pot, q, p, t, n_max=6, family="box")
+    J = np.asarray(res.aaf.actions)
+    om = np.stack(
+        [
+            np.asarray(_oscillator_seed(*x, jnp.ones(len(x[1]), bool)))
+            for x in zip(q, t, strict=True)
+        ]
+    )
+    est = np.mean(0.5 * p**2 + 0.5 * (om[:, None] * q) ** 2, axis=1) / om
+    collapsed = np.any(np.abs(J) > 30 * est.max(axis=1, keepdims=True), axis=1)
+    degenerate = np.asarray(res.toy_degenerate)
+    assert collapsed.sum() >= 5
+    assert (~collapsed).sum() >= 5
+    np.testing.assert_array_equal(degenerate, collapsed)
+    assert np.all(np.asarray(res.flagged)[collapsed])
+    assert not np.any(np.asarray(res.flagged)[~collapsed])
 
 
 def test_nan_input_row_fitted_toy():

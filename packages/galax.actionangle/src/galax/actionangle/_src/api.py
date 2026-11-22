@@ -292,23 +292,32 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           classification and the toy fit.
         - ``n_resonant``: the number of exactly resonant n-vectors left out
           of the fit (see Notes).
-        - ``fit_converged``: whether the toy fit converged (True for a given
-          toy). In float32 the fitted toy can be far from the best one on
-          near-circular orbits even when ``fit_converged`` is True, and the
-          actions are still checked through the coverage flags.
+        - ``fit_converged``: whether the toy fit's solver converged (True
+          for a given toy). It does not show that the toy is a good one. In
+          float32 the fitted isochrone can be far from the best one on
+          near-circular orbits with ``fit_converged`` True, and the
+          oscillator fit can collapse an axis with it True (see
+          ``toy_degenerate``). Coverage does not catch every bad toy either.
+        - ``toy_degenerate``: whether a box orbit's oscillator toy has
+          collapsed. That is, a fitted omega_i on an axis not at rest is
+          below 0.02 of its seed, or a solved action J_i is negative beyond
+          round-off. On many triaxial box orbits the fit drives one omega_i
+          to about 0, and the actions on that axis come out wrong by orders
+          of magnitude. Always False on the loop path.
         - ``family_mismatch``: whether the path forced by ``family`` or by
           the type of ``toy`` disagrees with the orbit's classification, in
           either direction. Always False with ``family=None`` and no ``toy``.
         - ``flagged``: ``n_bad_cover > 0``, or ``n_nan > NAN_MAX`` (with
           ``NAN_MAX = 1``), or the fit did not converge, or
-          ``family_mismatch``.
+          ``toy_degenerate``, or ``family_mismatch``.
 
     Notes
     -----
     An orbit is ``flagged`` when its angles cover the n-vectors badly (the
     orbit is too short or too coarsely sampled), when more than one sample
-    has non-finite toy values, when the toy fit did not converge, or when a
-    forced family does not match the orbit. A
+    has non-finite toy values, when the toy fit did not converge, when a box
+    orbit's oscillator toy has collapsed, or when a forced family does not
+    match the orbit. A
     flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
     floats (``jax_enable_x64``) for precision.
 

@@ -31,6 +31,7 @@ from ._o2gf_solve import solve_o2gf
 from ._o2gf_toy import (
     IsochroneToy,
     OscillatorToy,
+    _oscillator_seed,
     fit_isochrone,
     fit_oscillator,
     toy_aaf,
@@ -46,6 +47,14 @@ NAN_MAX: Final = 1
 # An axis is at rest when its toy action is below this fraction of the total
 # at every sample.
 _REST: Final = 1e-12
+# The oscillator toy has collapsed when a fitted omega_i on an axis not at rest
+# is below this fraction of its seed. On 137 random triaxial-NFW and LMJ09 box
+# orbits the unflagged good fits had omega/seed >= 0.23 and the collapsed ones
+# <= 9.5e-4 (flagged or not).
+_COLLAPSE: Final = 0.02
+# A box action below -max(_NEG_J, 100 eps) times sum |J| is negative beyond
+# round-off.
+_NEG_J: Final = 1e-10
 _FAMILIES: Final = (None, "loop", "box")
 
 
@@ -87,9 +96,16 @@ class O2GFResult(eqx.Module):
     with a non-finite input are also left out of the classification and of
     the toy fit.
     ``fit_converged`` says whether the toy fit converged (True for a given
-    toy). An orbit is ``flagged`` when ``n_bad_cover > 0``, more than
-    `NAN_MAX` samples were dropped, the fit did not converge, or
-    ``family_mismatch`` is True. A flagged
+    toy). ``toy_degenerate`` is True when a box orbit's oscillator toy has
+    collapsed: a fitted omega_i on an axis not at rest is below 0.02 of its
+    seed, or a solved action J_i is negative beyond round-off. This happens
+    on many triaxial box orbits, where the best variance fit wants a
+    negative omega_i^2 and the fit stops at omega_i = 0 with the solver
+    converged. The actions are then wrong by orders of magnitude, often
+    with coverage that passes. It is always False on the loop path. An
+    orbit is ``flagged`` when ``n_bad_cover > 0``, more than `NAN_MAX`
+    samples were dropped, the fit did not converge, ``toy_degenerate`` is
+    True, or ``family_mismatch`` is True. A flagged
     orbit keeps its values, so check ``flagged`` before using them.
     """
 
@@ -103,6 +119,7 @@ class O2GFResult(eqx.Module):
     n_resonant: Array
     n_nan: Array
     fit_converged: Array
+    toy_degenerate: Array
     family_mismatch: Array
     flagged: Array
     nvecs: np.ndarray | tuple[np.ndarray, np.ndarray] = eqx.field(static=True)
@@ -123,6 +140,7 @@ class _Out(NamedTuple):
     n_nan: Array
     n_res: Array
     loop: Array
+    degenerate: Array
     mismatch: Any = None
 
 
@@ -151,7 +169,8 @@ def _path(
         q, p, axis = align_circulation(q, p, circulation(q, p, keep))
     else:
         axis = jnp.asarray(2)
-    if toy is None:
+    fitted = toy is None
+    if fitted:
         # Fit in the default float: optimistix's Levenberg-Marquardt mixes in
         # float64 under jax_enable_x64, which a float32 problem rejects.
         f = jnp.result_type(float)
@@ -182,8 +201,32 @@ def _path(
     J = jnp.where(rest, 0.0, J)
     th0 = jnp.where(rest, jnp.nan, th0)
     Om = jnp.where(rest, jnp.nan, Om)
+    if loop:
+        degenerate = jnp.asarray(False)  # noqa: FBT003
+    else:
+        # A box action is never negative. The collapsed toy gives large J_i
+        # of either sign, and a fitted omega_i far below its seed.
+        tol = max(_NEG_J, 100 * float(np.finfo(J.dtype).eps))
+        degenerate = jnp.any(J + tol * jnp.sum(jnp.abs(J)) < 0)
+        if fitted:
+            omega0 = _oscillator_seed(
+                fill_masked(qf, keep), fill_masked(tf, keep), keep
+            )
+            degenerate |= jnp.any(~rest & (toy.omega < _COLLAPSE * omega0))
     return _Out(
-        toy, ok, axis, J, th0, Om, sn, dsn, n_bad, n_nan, n_res, jnp.asarray(loop)
+        toy,
+        ok,
+        axis,
+        J,
+        th0,
+        Om,
+        sn,
+        dsn,
+        n_bad,
+        n_nan,
+        n_res,
+        jnp.asarray(loop),
+        degenerate,
     )
 
 
@@ -303,8 +346,13 @@ def _run(
             n_resonant=out.n_res,
             n_nan=out.n_nan,
             fit_converged=out.ok,
+            toy_degenerate=out.degenerate,
             family_mismatch=out.mismatch,
-            flagged=(out.n_bad > 0) | (out.n_nan > NAN_MAX) | ~out.ok | out.mismatch,
+            flagged=(out.n_bad > 0)
+            | (out.n_nan > NAN_MAX)
+            | ~out.ok
+            | out.degenerate
+            | out.mismatch,
             nvecs=nvecs,
         )
 

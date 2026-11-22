@@ -429,6 +429,38 @@ def test_collapsed_box_toy_flagged():
     assert bool(auto.flagged)
 
 
+def test_near_planar_box_not_flagged():
+    # A near-planar box has a J_z offset of arbitrary sign (here 1e-6 to 1e-5
+    # of the sum of |J|) while its toy is fine, so it must not be flagged.
+    pot = gp.LMJ09LogarithmicPotential(
+        v_c=u.Q(200.0, "km/s"),
+        r_s=u.Q(3.0, "kpc"),
+        q1=1.0,
+        q2=0.85,
+        q3=0.7,
+        phi=u.Q(0.0, "rad"),
+        units="galactic",
+    )
+    # Run as a batch with the planar orbit, as in the audit: the fitted omega_z
+    # of a single z0 = 1e-4 orbit is sensitive to 1e-10 changes in the samples.
+    zs = np.array([0.0, 1e-5, 1e-4])
+    q0 = np.tile([4.78033055, 0.120120631, 0.0], (3, 1))
+    q0[:, 2] = zs
+    v0 = np.tile([0.06884186, -0.09733735, 0.0], (3, 1))
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(3), "Myr")
+    )
+    ts = u.Q(jnp.linspace(0.0, 12000.0, 4000), "Myr")
+    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
+    q, p, t = (np.asarray(x) for x in parse_w(pot, orb))
+    res = o2gf(pot, q, p, t, n_max=6)
+    assert not np.any(np.asarray(res.is_loop))
+    assert not np.any(np.asarray(res.toy_degenerate))
+    assert not np.any(np.asarray(res.flagged))
+    # J_z is at its round-off level, with an arbitrary sign.
+    assert abs(float(res.aaf.actions[2, 2])) < 1e-4 * float(res.aaf.actions[2].sum())
+
+
 @pytest.mark.slow
 def test_box_scan_collapsed_flagged():
     # The audit's random boxes released near rest in a triaxial NFW: about

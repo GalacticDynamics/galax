@@ -52,9 +52,6 @@ _REST: Final = 1e-12
 # orbits the unflagged good fits had omega/seed >= 0.23 and the collapsed ones
 # <= 9.5e-4 (flagged or not).
 _COLLAPSE: Final = 0.02
-# A box action below -max(_NEG_J, 100 eps) times sum |J| is negative beyond
-# round-off.
-_NEG_J: Final = 1e-10
 _FAMILIES: Final = (None, "loop", "box")
 
 
@@ -98,7 +95,7 @@ class O2GFResult(eqx.Module):
     ``fit_converged`` says whether the toy fit converged (True for a given
     toy). ``toy_degenerate`` is True when a box orbit's oscillator toy has
     collapsed: a fitted omega_i on an axis not at rest is below 0.02 of its
-    seed, or a solved action J_i is negative beyond round-off. This happens
+    seed. This happens
     on many triaxial box orbits, where the best variance fit wants a
     negative omega_i^2 and the fit stops at omega_i = 0 with the solver
     converged. The actions are then wrong by orders of magnitude, often
@@ -204,10 +201,9 @@ def _path(
     if loop:
         degenerate = jnp.asarray(False)  # noqa: FBT003
     else:
-        # A box action is never negative. The collapsed toy gives large J_i
-        # of either sign, and a fitted omega_i far below its seed.
-        tol = max(_NEG_J, 100 * float(np.finfo(J.dtype).eps))
-        degenerate = jnp.any(J + tol * jnp.sum(jnp.abs(J)) < 0)
+        # A small negative J_i is not a sign of collapse: a near-planar box
+        # carries a J_z offset of arbitrary sign with a good toy.
+        degenerate = jnp.asarray(False)  # noqa: FBT003
         if fitted:
             omega0 = _oscillator_seed(
                 fill_masked(qf, keep), fill_masked(tf, keep), keep

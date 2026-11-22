@@ -300,8 +300,7 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           ``toy_degenerate``). Coverage does not catch every bad toy either.
         - ``toy_degenerate``: whether a box orbit's oscillator toy has
           collapsed. That is, a fitted omega_i on an axis not at rest is
-          below 0.02 of its seed, or a solved action J_i is negative beyond
-          round-off. On many triaxial box orbits the fit drives one omega_i
+          below 0.02 of its seed. On many triaxial box orbits the fit drives one omega_i
           to about 0, and the actions on that axis come out wrong by orders
           of magnitude. Always False on the loop path.
         - ``family_mismatch``: whether the path forced by ``family`` or by
@@ -320,6 +319,15 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     match the orbit. A
     flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
     floats (``jax_enable_x64``) for precision.
+
+    Very small actions, such as J_z on a nearly planar box, carry an
+    absolute error of about 1e-6 to 1e-5 of the sum of |J|, whose sign is
+    arbitrary, so a small negative value can come out.
+
+    On eccentric orbits in a spherical NFW potential, J_r can be off by
+    about 1e-3 (1.05e-3 to 1.3e-3 on two orbits with J_r/L of about 4 to 7,
+    measured against quadrature) without a flag, and a higher ``n_max`` or
+    a longer orbit does not reduce it.
 
     In a spherical or nearly spherical potential, numerical noise in the
     samples of about 1e-7 relative or larger can keep a resonant mode just

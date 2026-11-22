@@ -110,7 +110,9 @@ class SharedTrack(eqx.Module):
         gradient through the track: the part of their gradient from moving the
         progenitor that the particles orbit is dropped, not approximated.
         Their effect on the release states and on the host's force on the
-        particles is kept.
+        particles is kept. The dropped part can dominate: leaving out a host
+        mass scale can make its gradient wrong by a large factor, so leave a
+        leaf out only if the progenitor's orbit doesn't depend on it.
     """
 
     wrt: Callable[..., Any] | None = None
@@ -168,7 +170,9 @@ class SpraySimulator(eqx.Module):
     `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
     ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
     release. A failed solve gives NaN, for the whole result in `WholeStream`
-    and for that particle in `PerParticle`; it never raises. ``lead[i]`` and
+    and for that particle in `PerParticle`; it never raises. Gradients at a
+    failed point are not meaningful: some come out NaN and some finite, so
+    test the outputs, not the gradients, for failure. ``lead[i]`` and
     ``trail[i]`` share ``release_times[i]``. All inputs and outputs are raw
     arrays in the host potential's units. The call is jitted: pass ``Msat`` as
     a JAX array, since a Python float is static and retraces for each value.
@@ -303,26 +307,29 @@ def evolve_whole_stream(
     """Evolve the rows ``w0`` (R, 6) over the segments ``grids`` (S, L + 1).
 
     Segment ``s`` is one solve along ``grids[s]`` with the tracers ``active[s]``
-    (S, R - 1) moving and the rest frozen. If a segment fails, the later ones
-    go on from the state before it (a NaN state would make an adaptive solve
-    run to ``max_steps``) and every row comes out NaN.
+    (S, R - 1) moving and the rest frozen. If ``w0`` is not finite or a segment
+    fails, every row comes out NaN. After that, an adaptive solver's later
+    segments span zero time: a NaN state would make it run to ``max_steps``.
     """
     terms = field.terms(solver)
     split = isinstance(solver.solver, gf.Leapfrog)
+    adaptive = not is_lattice(solver)
 
     def segment(
         carry: tuple[Any, Array], xs: tuple[Array, Array]
     ) -> tuple[tuple[Any, Array], None]:
         y, failed = carry
         grid, on = xs
+        if adaptive:
+            grid = jnp.where(failed, grid[0], grid)
         y1 = solve_on(solver, terms, y, grid, args={"active": on})
         bad = jnp.any(~jnp.isfinite(jnp.concat(jax.tree.leaves(y1), axis=None)))
         y1 = jax.tree.map(lambda a, b: jnp.where(bad, a, b), y, y1)
         return (y1, failed | bad), None
 
     y0: Any = (w0[:, :3], w0[:, 3:]) if split else w0
-    no = jnp.zeros((), bool)
-    (y, failed), _ = jax.lax.scan(segment, (y0, no), (grids, active))
+    bad0 = jnp.any(~jnp.isfinite(w0))
+    (y, failed), _ = jax.lax.scan(segment, (y0, bad0), (grids, active))
     w = jnp.concat(y, axis=-1) if split else y
     return jnp.where(failed, jnp.nan, w)
 

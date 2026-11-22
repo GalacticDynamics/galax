@@ -373,3 +373,28 @@ def test_failed_segment_is_nan_and_cheap() -> None:
     )(jnp.stack([grids(1.0), grids(1000.0)]))
     np.testing.assert_allclose(both[0], good, rtol=1e-13, atol=1e-13)
     assert jnp.all(jnp.isnan(both[1]))
+
+
+def test_nan_start_is_nan_and_cheap() -> None:
+    """A NaN start (a failed progenitor solve) costs less than a good run.
+
+    Every segment would otherwise run from NaN to ``max_steps``.
+    """
+    solver = adaptive(1e-10, 30)
+    ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
+    w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
+    field = _Counted(_WholeStreamField(HOST, plummer(MSAT)))
+    ends = jnp.arange(0.0, 7.0)
+    grids = jnp.stack([ends[:-1], ends[1:]], axis=1)
+    active = jnp.ones((6, 1), bool)
+    run = jax.jit(lambda w: evolve_whole_stream(field, solver, w, grids, active))
+
+    COUNT.clear()
+    assert jnp.all(jnp.isfinite(run(w0)))
+    jax.effects_barrier()
+    n_good = len(COUNT)
+
+    COUNT.clear()
+    assert jnp.all(jnp.isnan(run(w0.at[0, 0].set(jnp.nan))))
+    jax.effects_barrier()
+    assert len(COUNT) < n_good, (len(COUNT), n_good)

@@ -330,7 +330,10 @@ def evolve_per_particle(
     if loop is lstrat.Scan:
         w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0))
         return w
-    return jax.vmap(pair)(w0, t0)
+    if loop is lstrat.VMap:
+        return jax.vmap(pair)(w0, t0)
+    msg = f"loop must be jaxmore's VMap or Scan, not {loop!r}"
+    raise TypeError(msg)
 
 
 @dispatch.abstract

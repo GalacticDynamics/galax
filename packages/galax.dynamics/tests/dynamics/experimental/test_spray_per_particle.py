@@ -48,6 +48,12 @@ def test_copies_match_whole_stream(loop, prog) -> None:
     np.testing.assert_allclose(got.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
 
+def test_unknown_loop_raises() -> None:
+    sim = gde.SpraySimulator(gde.Fardal2015DF(), gde.PerParticle(gde.Copies(), object))
+    with pytest.raises(TypeError, match="VMap or Scan"):
+        sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(jnp.asarray(300.0), 4, 5))
+
+
 @pytest.mark.parametrize("loop", LOOPS)
 def test_copies_end_at_progenitor(loop) -> None:
     """Each copy takes the progenitor's lattice steps, so it ends at w_today."""

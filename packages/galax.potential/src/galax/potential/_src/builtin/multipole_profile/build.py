@@ -27,7 +27,7 @@ import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Float
-from typing import Any
+from typing import Any, Final
 
 import jax
 import numpy as np
@@ -113,7 +113,7 @@ def subtract_inner_cusp(
     return rho_lm - background, alpha, amplitude
 
 
-_GL_NODES: int = 5
+_GL_NODES: Final[int] = 5
 r"""Gauss-Legendre nodes per radial interval in the Poisson solve.
 
 Four reaches round-off on the *monopole*, which is what an earlier table here
@@ -147,7 +147,7 @@ Cost is one density evaluation per node per interval, paid once at build
 time, and `_PAD_KNOTS` caps the number of intervals it applies to.
 """
 
-_PAD_KNOTS: int = 128
+_PAD_KNOTS: Final[int] = 128
 r"""Cap on padded knots per side.
 
 The pad only has to carry a smooth power law out to `_PAD_MULTIPLE` spans,
@@ -162,7 +162,7 @@ The cap and `_GL_NODES` were raised together: coarsening the pad puts more
 weight on each interval's rule, which is what five nodes pay for.
 """
 
-_PAD_MULTIPLE: int = 2
+_PAD_MULTIPLE: Final[int] = 2
 r"""Knots added beyond each end of the grid, as ``n_r * _PAD_MULTIPLE``.
 
 The Poisson solve models the mass outside ``[r_min, r_max]`` as a single
@@ -336,7 +336,7 @@ def _drop_nonfinite(rho: Float[Array, "..."], /) -> Float[Array, "..."]:
     return out
 
 
-_MIN_ORDER = 2
+_MIN_ORDER: Final = 2
 """Lowest derivative order `_first_ok` allows headroom for.
 
 A first derivative with one entry lost is missing a term nothing cancels, so it
@@ -344,7 +344,7 @@ errs by that sample's own small share. From the second order on the orders
 cancel against one another and a lost one leaves a large error.
 """
 
-_MAX_ORDER = 3
+_MAX_ORDER: Final = 3
 """Highest derivative order `_first_ok` allows headroom for."""
 
 

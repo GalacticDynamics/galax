@@ -6,7 +6,7 @@ import functools as ft
 from dataclasses import KW_ONLY
 
 from jaxtyping import Array, Float
-from typing import final
+from typing import Final, final
 
 import equinox as eqx
 import jax
@@ -27,7 +27,7 @@ from galax.potential._src.builtin.sph_expansion import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
-SQRT_FOURPI = 3.544907701811031
+SQRT_FOURPI: Final = 3.544907701811031
 """``sqrt(4 * pi)``, matching the literal in gala's ``bfe_helper.cpp``."""
 
 

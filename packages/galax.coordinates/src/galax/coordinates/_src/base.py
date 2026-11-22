@@ -6,7 +6,7 @@ import functools as ft
 from abc import abstractmethod
 
 from jaxtyping import Real, Shaped
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 import equinox as eqx
 import equinox.internal as eqxi
@@ -31,7 +31,7 @@ else:
 
 # Options for the Wadler-Lindig repr. ``Any`` values: wadler-lindig types
 # ``short_arrays`` as ``bool`` but also accepts ``"compact"``.
-_WL_KW: dict[str, Any] = {
+_WL_KW: Final[dict[str, Any]] = {
     "short_arrays": "compact",
     "use_short_name": True,
     "named_unit": False,

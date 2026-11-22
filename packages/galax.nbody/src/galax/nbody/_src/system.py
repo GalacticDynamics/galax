@@ -3,7 +3,7 @@
 __all__ = ["Component", "Particles", "System"]
 
 from jaxtyping import Array, Float, Int, Real
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 import equinox as eqx
 import jax.numpy as jnp
@@ -16,7 +16,7 @@ from unxt.quantity import AllowValue
 from .checks import input_oks
 
 AnyReal = Real[Array, "..."] | Real[u.AbstractQuantity, "..."] | float
-_KINDS = ("massive", "tracer")
+_KINDS: Final = ("massive", "tracer")
 
 
 class Component(eqx.Module):

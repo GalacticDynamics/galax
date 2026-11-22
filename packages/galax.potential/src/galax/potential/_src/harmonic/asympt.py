@@ -41,6 +41,7 @@ import functools as ft
 
 from collections.abc import Callable
 from jaxtyping import Array, Bool, Float
+from typing import Final
 
 import jax
 import numpy as np
@@ -51,7 +52,7 @@ from .spline import eval_log_spline, eval_log_spline_quintic
 
 _Fn = Callable[[Float[Array, "*s"]], Float[Array, "*s"]]
 
-_SERIES_TOL_F64: float = 1e-2
+_SERIES_TOL_F64: Final[float] = 1e-2
 """Series/quotient seam at float64. See `_series_tol`."""
 
 
@@ -82,13 +83,13 @@ def _series_tol(x: Float[Array, "..."], /) -> float:
     return float(_SERIES_TOL_F64 * ratio ** (1.0 / 9.0))
 
 
-_SAFETY: float = 100.0
+_SAFETY: Final[float] = 100.0
 """Round-off guard, in units of the working epsilon. Matches ``agama``."""
 
-_LN_HUGE_FRAC: float = 0.985
+_LN_HUGE_FRAC: Final[float] = 0.985
 """Fraction of the overflow exponent that `_ln_huge` allows through."""
 
-_MIN_EXPONENT: float = 2.0
+_MIN_EXPONENT: Final[float] = 2.0
 r"""Floor on the exponent magnitude the clamp is sized against.
 
 The ``Q`` term carries :math:`x^2`, so 2 is the smallest exponent that can
@@ -109,10 +110,10 @@ def _ln_huge(x: Float[Array, "..."], /) -> float:
     return _LN_HUGE_FRAC * float(np.log(np.finfo(x.dtype).max))
 
 
-_N_BISECT: int = 60
+_N_BISECT: Final[int] = 60
 """Bisection steps. A bracket of width 9 shrinks to ``8e-18``, below eps."""
 
-_S_INNER: tuple[float, float, float] = (-1.0, 8.0, 2.0)
+_S_INNER: Final[tuple[float, float, float]] = (-1.0, 8.0, 2.0)
 r"""Bracket for the inward slope.
 
 The lower end is ``agama``'s convergence guard: the density may not grow
@@ -123,7 +124,7 @@ is the fallback slope used when the boundary data does not determine one --
 ``agama``'s own, a constant-density core.
 """
 
-_S_OUTER: tuple[float, float, float] = (-8.0, 0.0, -2.0)
+_S_OUTER: Final[tuple[float, float, float]] = (-8.0, 0.0, -2.0)
 r"""Bracket for the outward slope.
 
 The upper end is ``agama``'s convergence guard: the density must fall faster

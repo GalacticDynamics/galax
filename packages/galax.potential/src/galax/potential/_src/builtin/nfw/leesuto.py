@@ -241,7 +241,7 @@ def _F3_far(s: gt.BtFloatSz0, /) -> gt.BtFloatSz0:
     return (s**2 - 3 * s - 6) / (2 * s**2 * (1 + s)) + 3 * jnp.log1p(s) / s**3  # type: ignore[no-any-return]
 
 
-_F2 = _series_or_far(_F2_series, _F2_far)
+_F2: Final = _series_or_far(_F2_series, _F2_far)
 r"""Lee & Suto's $F_2(s) = -\frac13 + \frac{2s^2 - 3s + 6}{6s^2}
 + \left(\frac1s - \frac1{s^3}\right)\ln(1+s)$, without cancellation.
 
@@ -256,7 +256,7 @@ every term positive. Beyond, $F_2 = (\ln(1+s) - \tfrac12)/s
 + (1 - \ln(1+s)/s)/s^2$, also positive.
 """
 
-_F3 = _series_or_far(_F3_series, _F3_far)
+_F3: Final = _series_or_far(_F3_series, _F3_far)
 r"""Lee & Suto's $F_3(s) = \frac{s^2 - 3s - 6}{2s^2(1+s)}
 + \frac{3\ln(1+s)}{s^3}$, without cancellation.
 

@@ -5,7 +5,7 @@ __all__ = ["NBodyField", "nbody_acceleration"]
 import operator
 
 from jaxtyping import Array, Bool, Float, Real
-from typing import Any, final
+from typing import Any, Final, final
 
 import equinox as eqx
 import jax
@@ -24,14 +24,14 @@ from .particles import Sources, Targets
 from .system import System
 from galax.orbits import AbstractOrbitField
 
-_NULL = gp.NullPotential(units="galactic")
-_DIRECT = DirectSum()
+_NULL: Final = gp.NullPotential(units="galactic")
+_DIRECT: Final = DirectSum()
 # Inactive rows and non-finite tracers are parked at multiples of this, in the
 # field's length unit.
 # ponytail: assumes the external potential and its gradient are finite out
 # there. True for the built-in potentials in float64; in float32
 # LeeSutoTriaxialNFWPotential overflows. Make it per-potential if that matters.
-_SAFE = 1e10
+_SAFE: Final = 1e10
 
 
 @final

@@ -7,7 +7,7 @@ import math
 
 from collections.abc import Callable
 from jaxtyping import Array, Bool, Shaped
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Final, TypeAlias, cast
 
 import equinox as eqx
 import jax
@@ -245,7 +245,7 @@ def radial_derivatives(
     return decorator
 
 
-_POLE_BAND = 1e-3
+_POLE_BAND: Final = 1e-3
 """Half-width of the band around ``b + m == 0`` where `incomplete_beta_zw`
 expands; `spexial`'s value, for the same reason (its ``_large_z``)."""
 

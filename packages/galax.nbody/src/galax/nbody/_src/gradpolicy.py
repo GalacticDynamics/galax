@@ -7,7 +7,7 @@ import dataclasses
 
 from collections.abc import Callable, Iterable
 from jaxtyping import Array
-from typing import Any, TypeVar
+from typing import Any, Final, TypeVar
 
 import equinox as eqx
 import jax
@@ -15,8 +15,8 @@ import jax
 from .particles import Sources, Targets
 
 _T = TypeVar("_T", Sources, Targets)
-_FIELDS = frozenset({"q", "m", "h"})
-_NOGRAD_MSG = (
+_FIELDS: Final = frozenset({"q", "m", "h"})
+_NOGRAD_MSG: Final = (
     "This force backend has gradient policy NoGrad, so it can't be "
     "differentiated. Use Autodiff or StopGrad."
 )
@@ -130,7 +130,7 @@ class NoGrad(AbstractGradPolicy):
         return run(sources, targets)
 
 
-_POLICIES: dict[str, type[AbstractGradPolicy]] = {
+_POLICIES: Final[dict[str, type[AbstractGradPolicy]]] = {
     "autodiff": Autodiff,
     "stop": StopGrad,
     "none": NoGrad,

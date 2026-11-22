@@ -4,6 +4,8 @@ __all__ = ["StoneOstriker15Potential"]
 
 import functools as ft
 
+from typing import Final
+
 import jax
 
 import quaxed.numpy as jnp
@@ -131,7 +133,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     return A * _atan_difference(p, r)  # type: ignore[no-any-return]
 
 
-_ATAN_TAIL = tuple((-1) ** k / (2 * k + 3) for k in range(16, -1, -1))
+_ATAN_TAIL: Final = tuple((-1) ** k / (2 * k + 3) for k in range(16, -1, -1))
 """(y - atan(y)) / y^3 as a polynomial in y^2, highest degree first."""
 
 

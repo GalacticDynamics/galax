@@ -19,9 +19,11 @@ __all__ = ["GALA_VERSION", "GSL_ENABLED"]
 
 from importlib.metadata import version
 
+from typing import Final
+
 from packaging.version import Version
 
-GALA_VERSION = Version(version("gala"))
+GALA_VERSION: Final = Version(version("gala"))
 
 
 GSL_ENABLED: bool

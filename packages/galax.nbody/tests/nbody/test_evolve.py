@@ -379,8 +379,18 @@ def test_other_solvers_on_the_grid_and_adaptive() -> None:
     assert isinstance(field.terms(dfx.SemiImplicitEuler()), tuple)
     ref = gn.evolve(field, q0, p0, 0.0, 0.001, 1000)
     semi = gn.evolve(field, q0, p0, 0.0, 0.001, 1000, solver=dfx.SemiImplicitEuler())
-    # First order, so close but not equal.
-    np.testing.assert_allclose(semi.ys[0][-1], ref.ys[0][-1], atol=1e-3)
+    # First order, so close but not equal: about 1e-4 apart here.
+    gap = float(jnp.max(jnp.abs(semi.ys[0][-1] - ref.ys[0][-1])))
+    assert 1e-5 < gap < 1e-3
+    # A solver on the default `__call__` path runs on the same grid as diffrax.
+    tsit = gn.evolve(field, q0, p0, 0.0, 0.001, 1000, solver=dfx.Tsit5())
+    grid = 0.001 * jnp.arange(1001)
+    direct = dfx.diffeqsolve(
+        field.terms(dfx.Tsit5()), dfx.Tsit5(), 0.0, grid[-1], None, (q0, p0),
+        stepsize_controller=dfx.StepTo(ts=grid), max_steps=1000,
+    )  # fmt: skip
+    np.testing.assert_allclose(tsit.ys[0][-1], direct.ys[0][-1], rtol=1e-13)
+    assert float(jnp.max(jnp.abs(tsit.ys[0][-1] - ref.ys[0][-1]))) > 1e-9
     solver = dfxtra.DiffEqSolver(
         dfx.Dopri8(),
         stepsize_controller=dfx.PIDController(rtol=1e-11, atol=1e-11),

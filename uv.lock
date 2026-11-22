@@ -1658,6 +1658,7 @@ dependencies = [
 
 [package.dev-dependencies]
 test = [
+    { name = "astropy" },
     { name = "optional-dependencies" },
     { name = "pytest" },
     { name = "pytest-arraydiff" },
@@ -1672,6 +1673,7 @@ requires-dist = [{ name = "jaxtyping", specifier = ">=0.3.3" }]
 
 [package.metadata.requires-dev]
 test = [
+    { name = "astropy", specifier = ">=7.0.0" },
     { name = "optional-dependencies", specifier = ">=0.4.0" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-arraydiff", specifier = ">=0.6.1" },

@@ -40,7 +40,13 @@ requires = ["hatch-vcs", "hatchling"]
 # `--arraydiff` and `env` come from `[tool.pytest.ini_options]`, and the root
 # `conftest.py` imports `sybil` and `optional_dependencies` at module level, so
 # every run rooted at the repo loads them whatever it collects.
+#
+# `astropy` is not imported by this distribution. The root `filterwarnings`
+# names an `astropy` warning class, which pytest must import to apply the
+# filter; every other portion gets `astropy` through `unxt`, this one has no
+# such dependency.
 test = [
+  "astropy>=7.0.0",
   "optional-dependencies>=0.4.0",
   "pytest>=8.3",
   "pytest-arraydiff>=0.6.1",

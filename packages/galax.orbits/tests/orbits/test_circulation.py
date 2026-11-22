@@ -366,7 +366,6 @@ def test_orbit_t_none_uses_stored_samples(orbit):
 
 
 def _check_float32():
-    (q, p), _, _ = ORBITS["xy"]
     rad_q = np.array([[1.1, 1.1, 1.1], [1.1, 2.2, 3.3]], dtype=np.float32)
     rad_p = np.array([[0.3, 0.3, 0.3], [0.77, 1.54, 2.31]], dtype=np.float32)
     for name, ((qq, pp), expected, _) in ORBITS.items():
@@ -403,3 +402,26 @@ def test_nd_non_cartesian_coordinate():
     np.testing.assert_array_equal(go.circulation(w), [expected, expected])
     _, axis = go.align_circulation(w)
     np.testing.assert_array_equal(axis, [2, 2])
+
+
+@pytest.mark.parametrize("rep", [cx.CartesianPos3D, cx.vecs.SphericalPos])
+@pytest.mark.parametrize("q_batched", [False, True])
+def test_coordinate_q_and_p_with_different_batch_shapes(rep, q_batched):
+    """Q of shape (T,) with p of shape (B, T), or the reverse, broadcast."""
+    (q, p), expected, _ = ORBITS["xy"]
+    q, p = jnp.stack([q, q]) if q_batched else q, p if q_batched else jnp.stack([p, p])
+    qv = cx.CartesianPos3D.from_(u.Q(q, "kpc"))
+    pv = cx.CartesianVel3D.from_(u.Q(p, "kpc/Myr"))
+    qr = cx.vconvert(rep, qv)
+    w = gc.PhaseSpaceCoordinate(q=qr, p=pv, t=u.Q(T, "Myr"))
+    assert w.q.shape != w.p.shape
+    np.testing.assert_array_equal(go.circulation(w), [expected, expected])
+
+
+def test_float32_p_with_float64_q():
+    """The floor follows the coarser of the two dtypes."""
+    with jax.enable_x64(True):  # noqa: FBT003
+        q = np.array([[1.1, 2.2, 3.3]] * 2, dtype=np.float64)
+        p = np.array([[0.77, 1.54, 2.31]] * 2, dtype=np.float32)
+        assert not go.circulation(q, p).any()
+        assert not go.circulation(q.astype(np.float32), p.astype(np.float64)).any()

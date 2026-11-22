@@ -268,6 +268,13 @@ def simulate(
     /,
 ) -> SprayResult:
     """Sample the releases on the progenitor's orbit and integrate them."""
+    if jnp.shape(w_today) != (6,) or jnp.ndim(schedule.t_age) != 0:
+        msg = (
+            "w_today must have shape (6,) and t_age be a scalar, got "
+            f"{jnp.shape(w_today)} and {jnp.shape(schedule.t_age)}; vmap over "
+            "a batch"
+        )
+        raise ValueError(msg)
     psolver = sim.solver if sim.progenitor_solver is None else sim.progenitor_solver
     ws = progenitor_states(pot, w_today, schedule, psolver)
     idx = schedule.release_index()

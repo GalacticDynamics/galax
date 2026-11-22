@@ -77,13 +77,9 @@ def _solve(
         }
     else:
         max_steps = solver.max_steps
-        if max_steps is None and isinstance(
-            solver.adjoint, dfx.RecursiveCheckpointAdjoint
-        ):
-            msg = (
-                "an adaptive solve with RecursiveCheckpointAdjoint needs an "
-                "integer `max_steps`, got None"
-            )
+        if max_steps is None:
+            # Unbounded, a NaN state would loop forever instead of giving NaN.
+            msg = "an adaptive solve needs an integer `max_steps`, got None"
             raise ValueError(msg)
         kw = {
             "dt0": None,

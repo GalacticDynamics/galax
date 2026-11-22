@@ -89,11 +89,16 @@ def test_lattice_steps_exact() -> None:
     np.testing.assert_allclose(jnp.concat(out), ws[-1], rtol=0, atol=1e-12)
 
 
-def test_rca_needs_int_max_steps() -> None:
+@pytest.mark.parametrize(
+    "adjoint",
+    [dfx.RecursiveCheckpointAdjoint(), dfx.ForwardMode(), dfx.DirectAdjoint()],
+)
+def test_adaptive_needs_int_max_steps(adjoint) -> None:
+    """Unbounded, a NaN state would hang instead of giving NaN."""
     solver = dfxtra.DiffEqSolver(
         dfx.Dopri5(),
         stepsize_controller=dfx.PIDController(rtol=1e-6, atol=1e-6),
-        adjoint=dfx.RecursiveCheckpointAdjoint(),
+        adjoint=adjoint,
         max_steps=None,
     )
     with pytest.raises(ValueError, match="max_steps"):

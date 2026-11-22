@@ -302,6 +302,15 @@ def test_callable_progenitor_needs_scalar_msat() -> None:
     assert jnp.all(jnp.isfinite(res.lead))
 
 
+def test_batched_inputs_raise() -> None:
+    sim = gde.SpraySimulator(gde.Fardal2015DF(), gde.WholeStream())
+    sched = gde.Uniform(jnp.asarray(300.0), 4, 5)
+    with pytest.raises(ValueError, match="vmap"):
+        sim(KEY, HOST, jnp.stack([W_TODAY, W_TODAY]), MSAT, sched)
+    with pytest.raises(ValueError, match="vmap"):
+        sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(jnp.full(2, 300.0), 4, 5))
+
+
 def test_whole_stream_needs_one_solver() -> None:
     sched = gde.Uniform(jnp.asarray(300.0), 4, 5)
     sim = gde.SpraySimulator(

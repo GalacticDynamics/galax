@@ -50,7 +50,6 @@ def pylint(session: nox.Session) -> None:
 def tests(session: nox.Session) -> None:
     """Run the unit and regular tests."""
     session.install("-e", ".[test]")
-    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
     session.run("pytest", *_xdist_args(session.posargs), *session.posargs)
 
 
@@ -58,8 +57,19 @@ def tests(session: nox.Session) -> None:
 def tests_all(session: nox.Session) -> None:
     """Run the unit and regular tests."""
     session.install("-e", ".[test-all]")
-    os.environ["GALAX_ENABLE_RUNTIME_TYPECHECKS"] = "1"  # TODO: set in a better way
     session.run("pytest", *_xdist_args(session.posargs), *session.posargs)
+
+
+@nox.session
+def typecheck(session: nox.Session) -> None:
+    """Run the tests with runtime type checking on. Not part of the default run."""
+    session.install("-e", ".[test]")
+    session.run(
+        "pytest",
+        "--jaxtyping-packages=galax,beartype.beartype",
+        *_xdist_args(session.posargs),
+        *session.posargs,
+    )
 
 
 @nox.session

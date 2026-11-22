@@ -41,6 +41,41 @@ Then you can run the tests with:
 
     pytest galax
 
+.. _galax-runtime-typechecking:
+
+Runtime type checking
+=====================
+
+:mod:`galax` annotates its functions with `jaxtyping
+<https://docs.kidger.site/jaxtyping/>`_ array types, and `beartype
+<https://beartype.readthedocs.io/>`_ can check those annotations as the code
+runs, including array shapes. It is switched on from outside :mod:`galax`, by
+wrapping the first import of :mod:`galax` in jaxtyping's import hook:
+
+.. skip: next
+
+.. code-block:: python
+
+    from jaxtyping import install_import_hook
+
+    with install_import_hook("galax", "beartype.beartype"):
+        import galax.potential as gp
+
+Only modules imported inside the ``with`` block are checked, so the hook has to
+come before any other import of :mod:`galax`. To run the tests this way, pass the
+same two names to pytest, or run the ``typecheck`` nox session:
+::
+
+    pytest --jaxtyping-packages=galax,beartype.beartype
+    nox -s typecheck
+
+``beartype.claw.beartype_package("galax")`` also works, but it checks types and
+dtypes only; array shapes that must agree across arguments are checked only
+under jaxtyping's hook.
+
+A call can still fail under the hook when an annotation is wrong. Those are bugs
+in the annotation, and worth reporting.
+
 .. _galax-comparison-libs:
 
 Comparison libraries

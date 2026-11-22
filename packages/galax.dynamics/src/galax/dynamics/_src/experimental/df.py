@@ -244,7 +244,9 @@ class Chen2024DF(AbstractKinematicDF):
             # "svd": "cholesky" fails on the singular covariance.
             posvel = jr.multivariate_normal(key, self.mean, self.cov, method="svd")
             Dr = posvel[0] * r_tidal  # type: ignore[operator]
-            Dv = posvel[3] * jnp.sqrt(2 * GM / Dr)  # v_esc at Dr
+            # v_esc at |Dr|: Dr < 0 (a 4.6-sigma tail, ~2.4e-6 per draw) would
+            # give NaN, and a fixed key repeats it at every parameter point.
+            Dv = posvel[3] * jnp.sqrt(2 * GM / jnp.abs(Dr))
             phi, theta, alpha, beta = jnp.deg2rad(posvel[jnp.array([1, 2, 4, 5])])
             dx = Dr * jnp.stack(
                 [

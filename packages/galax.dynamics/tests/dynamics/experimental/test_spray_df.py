@@ -166,3 +166,13 @@ def test_draws_independent_of_parameters(df_cls: type) -> None:
         # Fardal's velocity offsets scale as omega r_t exactly; Chen's
         # standardized Dv carries 1/sqrt(Dr/r_t), also parameter independent.
         np.testing.assert_allclose(a, b, rtol=0, atol=1e-9)
+
+
+def test_chen_negative_radial_draw_finite() -> None:
+    """A draw with ``Dr < 0`` reflects into ``|Dr|`` for ``v_esc``, not NaN."""
+    mean = jnp.asarray([-1.6, -30.0, 0.0, 1.0, 20.0, 0.0])
+    df = Chen2024DF(mean=mean, cov=jnp.zeros((6, 6)))
+    _, x, v = orbit(2, nfw())
+    out = df.sample(jr.key(0), nfw(), 0.0, jnp.asarray(x[0]), jnp.asarray(v[0]), MSAT)
+    for a in out:
+        assert np.all(np.isfinite(a))

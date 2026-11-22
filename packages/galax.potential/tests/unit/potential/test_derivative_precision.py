@@ -32,7 +32,7 @@ import unxt as u
 
 import galax.potential as gp
 
-mp.mp.dps = 50
+MP_DPS = 50  # read by the autouse fixture in conftest.py
 EPS = float(np.finfo(np.float64).eps)
 TOL = 16
 r"""Allowed error, in ulp of the magnitude.

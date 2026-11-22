@@ -1,5 +1,7 @@
 from typing import Any, ClassVar
 
+import mpmath as mp
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
@@ -8,6 +10,59 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
+from galax.potential import monarietal2016bar as monari
+
+
+def _mp_potential(p: dict[str, float], t: float, x: Any, y: Any, z: Any) -> Any:
+    """Monari et al. (2016) eq. 1-2 with Dehnen (2000) eq. 3 for ``U``."""
+    a, v0, r0, rb, pb, om = (
+        mp.mpf(p[k]) for k in ("alpha", "v0", "R0", "Rb", "phi_b", "Omega")
+    )
+    r = mp.sqrt(x**2 + y**2 + z**2)
+    s = r / rb
+    u_ = s**3 - 2 if s < 1 else -(s**-3)
+    gamma = 2 * (mp.atan2(y, x) - pb - om * mp.mpf(t))
+    return a * v0**2 / 3 * (r0 / rb) ** 3 * u_ * (x**2 + y**2) / r**2 * mp.cos(gamma)
+
+
+@pytest.mark.parametrize(
+    "xyz",
+    [
+        (0.3, 0.5, 0.2),
+        (-0.9, 0.4, -0.7),
+        (1.0, -0.6, 0.5),  # r = 1.3 < R_b
+        (-0.2, -1.5, 0.9),  # r = 1.76 > R_b, where the density is 0
+        (2.0, 1.5, 0.8),
+    ],
+)
+def test_density_and_laplacian_match_mpmath(xyz: tuple[float, float, float]) -> None:
+    """``4 pi G rho = laplacian(Phi)`` with Phi transcribed independently.
+
+    The reference is ``mpmath.diff`` of the potential at 40 digits, so it does
+    not use the radial ``L(r)`` of the code. Measured error < 1e-13.
+    """
+    p = {
+        "G": 1.3,
+        "alpha": 0.3,
+        "v0": 1.1,
+        "R0": 2.0,
+        "Rb": 1.7,
+        "phi_b": 0.4,
+        "Omega": 0.6,
+    }
+    t = 0.7
+    with mp.workdps(40):
+        pt = tuple(map(mp.mpf, xyz))
+        lap = sum(
+            mp.diff(lambda x, y, z: _mp_potential(p, t, x, y, z), pt, order)
+            for order in ((2, 0, 0), (0, 2, 0), (0, 0, 2))
+        )
+        rho = float(lap / (4 * mp.pi * p["G"]))
+    q = np.asarray(xyz, dtype=np.float64)
+    np.testing.assert_allclose(monari.density(p, q, t), rho, rtol=1e-11, atol=1e-13)
+    np.testing.assert_allclose(
+        monari.laplacian(p, q, t), float(lap), rtol=1e-11, atol=1e-13
+    )
 
 
 class TestMonariEtAl2016BarPotential(

@@ -75,7 +75,6 @@ def test_potential_matches_mpmath(r_t: float) -> None:
         m=u.Q(1e12, "Msun"), r_s=u.Q(5.0, "kpc"), r_t=u.Q(r_t, "kpc"), units="galactic"
     )
     p = pot.params(0.0)
-    mp.mp.dps = 30
     g, m, r_s, rt = (mp.mpf(float(p[k])) for k in ("G", "m", "r_s", "r_t"))
 
     def rho(s: mp.mpf) -> mp.mpf:

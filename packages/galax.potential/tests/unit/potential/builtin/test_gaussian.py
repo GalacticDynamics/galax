@@ -37,7 +37,6 @@ def test_module_functions_match_mpmath() -> None:
     p = pot.params(0.0)
     g, m_tot, r_s = (float(p[k]) for k in ("G", "m_tot", "r_s"))
 
-    mp.mp.dps = 30
     rho0 = mp.mpf(m_tot) / ((2 * mp.pi) ** mp.mpf("1.5") * mp.mpf(r_s) ** 3)
 
     def rho(s: mp.mpf) -> mp.mpf:
@@ -71,7 +70,6 @@ def test_potential_at_origin_matches_mpmath() -> None:
     p = pot.params(0.0)
     g, m_tot, r_s = (mp.mpf(float(p[k])) for k in ("G", "m_tot", "r_s"))
 
-    mp.mp.dps = 30
     rho0 = m_tot / ((2 * mp.pi) ** mp.mpf("1.5") * r_s**3)
     outer = mp.quad(
         lambda s: 4 * mp.pi * s * rho0 * mp.exp(-(s**2) / (2 * r_s**2)), [0, mp.inf]
@@ -89,7 +87,6 @@ def test_rho0_of_m_and_m_of_rho0_match_mpmath() -> None:
     At r_s = 1 (the doctests) an error in the power of r_s would not show.
     Measured error <= 1.6e-16, a margin of 600 at rtol 1e-13.
     """
-    mp.mp.dps = 30
     rho0, r_s = 3.7e8, 2.3
     rs = mp.mpf(r_s)
     mass = mp.quad(

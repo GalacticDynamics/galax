@@ -11,7 +11,11 @@ import unxt as u
 import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterFieldMixin, ParameterMTotMixin
+from .test_common import (
+    ParameterFieldMixin,
+    ParameterMTotMixin,
+    mp_spherical_potential,
+)
 from galax.potential._src.builtin import stoneostriker15
 
 
@@ -21,7 +25,6 @@ def test_rhoc_of_mtot_matches_mpmath() -> None:
     r_c != 1: at r_c = 1 (the class fixture) an error in the power of r_c would
     not show. Measured error 0 (rtol 1e-13).
     """
-    mp.mp.dps = 30
     for r_c, r_h in ((0.8, 5.0), (2.5, 0.7)):
         p = {"m_tot": 1e11, "r_c": r_c, "r_h": r_h}
         rho_c = mp.mpf(float(stoneostriker15.rhoc_of_mtot(p)))
@@ -34,6 +37,26 @@ def test_rhoc_of_mtot_matches_mpmath() -> None:
 
         mass = mp.quad(dm, [0, rc, rh, mp.inf])
         np.testing.assert_allclose(float(mass), p["m_tot"], rtol=1e-13)
+
+
+@pytest.mark.parametrize(("r_c", "r_h"), [(0.8, 5.0), (2.5, 0.7)])
+@pytest.mark.parametrize("r", [0.01, 0.3, 1.0, 3.0, 30.0, 1000.0])
+def test_potential_matches_mpmath(r_c: float, r_h: float, r: float) -> None:
+    """Phi(r) from the quadrature of S&O15 Eq. 1, at 1e-11 relative.
+
+    Both orders of r_c and r_h, and r far outside both. Measured error < 1e-13.
+    """
+    m, g = 1e11, 1.3
+    rc, rh = mp.mpf(r_c), mp.mpf(r_h)
+    ref = mp_spherical_potential(
+        lambda s: 1 / ((1 + (s / rc) ** 2) * (1 + (s / rh) ** 2)),
+        min(r_c, r_h),
+        m,
+        g,
+        r,
+    )
+    got = stoneostriker15.potential({"G": g, "m_tot": m, "r_c": r_c, "r_h": r_h}, r)
+    np.testing.assert_allclose(got, ref, rtol=1e-11)
 
 
 class ParameterRCMixin(ParameterFieldMixin):

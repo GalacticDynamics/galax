@@ -112,8 +112,6 @@ class ShapeA3ParameterMixin(ParameterFieldMixin):
 # Laplacian over 4 pi G, in mpmath at 30 digits. Nothing of the module's code
 # (series, autodiff, Poisson kernel) is shared with it.
 
-mp.mp.dps = 30
-
 G_GAL = 4.498502151469554e-12  # kpc^3 / (Msun Myr^2); a literal, so the test is
 # independent of the constants of the installed astropy.
 M_LS, RS_LS = 1e11, 15.0  # Msun, kpc

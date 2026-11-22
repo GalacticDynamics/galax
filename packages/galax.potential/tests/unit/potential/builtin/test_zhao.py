@@ -278,7 +278,6 @@ def test_from_m_tot_matches_mpmath(abg) -> None:
     )
     p = pot.params(0.0)
 
-    mp.mp.dps = 30
     a, b, g = mp.mpf(alpha), mp.mpf(beta), mp.mpf(gamma)
 
     def shape(x):

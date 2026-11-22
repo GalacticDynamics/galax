@@ -1,5 +1,6 @@
 from typing import Any, ClassVar
 
+import mpmath as mp
 import numpy as np
 import pytest
 
@@ -10,7 +11,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..optional_deps import OptDeps
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterRSMixin
+from .test_common import ParameterMMixin, ParameterRSMixin, mp_spherical_potential
 from galax.potential import burkert
 
 
@@ -26,6 +27,27 @@ def test_rho0() -> None:
     np.testing.assert_allclose(got, expect, rtol=1e-12)
     np.testing.assert_allclose(got, burkert.density(pot.params(0.0), 0.0), rtol=1e-12)
     np.testing.assert_allclose(pot.rho0(0.0).ustrip("Msun / kpc3"), got, rtol=1e-12)
+
+
+@pytest.mark.parametrize("r_s", [0.7, 3.0])
+@pytest.mark.parametrize("x", [0.01, 0.3, 1.0, 3.0, 30.0, 1000.0])
+def test_potential_matches_mpmath(r_s: float, x: float) -> None:
+    """Phi(r) from the quadrature of the Burkert density, at 1e-11 relative.
+
+    The shape is ``1 / ((1 + x)(1 + x^2))`` (Burkert 1995, eq. 2) and the
+    normalisation comes from its own mass integral. Measured error < 1e-13.
+    """
+    m, g = 1e11, 1.3
+    ref = mp_spherical_potential(
+        lambda s: 1 / ((1 + s / mp.mpf(r_s)) * (1 + (s / mp.mpf(r_s)) ** 2)),
+        r_s,
+        m,
+        g,
+        x * r_s,
+        r_norm=r_s,
+    )
+    got = burkert.potential({"G": g, "m": m, "r_s": r_s}, x * r_s)
+    np.testing.assert_allclose(got, ref, rtol=1e-11)
 
 
 class TestBurkertPotential(

@@ -1,6 +1,8 @@
+from collections.abc import Callable
 from typing import Any
 
 import astropy.units as apyu
+import mpmath as mp
 import numpy as np
 import pytest
 from plum import convert
@@ -14,8 +16,44 @@ import galax.potential.custom_types as gt
 import galax.potential.params as gpp
 from ..param.test_field import ParameterFieldMixin
 
-# =============================================================================
-# Mass
+
+def mp_spherical_potential(
+    shape: Callable[[Any], Any],
+    scale: float,
+    m_norm: float,
+    g: float,
+    r: float,
+    r_norm: float = float("inf"),
+) -> float:
+    r"""Potential of a spherical profile, by quadrature of its density.
+
+    ``shape(s)`` is the density up to a constant. It is normalised so that the
+    mass within ``r_norm`` (default: all of it) is ``m_norm``, so no formula of
+    the code under test is used. Then
+    :math:`\Phi = -G (M(<r) / r + \int_r^\infty 4 \pi s \rho ds)`, at the
+    precision of the caller's ``mpmath`` context. ``scale`` places the
+    quadrature knots.
+    """
+    decades = [mp.mpf(scale) * mp.mpf(10) ** k for k in range(-6, 8)]
+
+    def mass(a: Any) -> Any:
+        knots = [mp.mpf(0), *(d for d in decades if d < a), a]
+        return 4 * mp.pi * mp.quad(lambda s: s**2 * shape(s), knots)
+
+    r_ = mp.mpf(r)
+    norm = (
+        mass(mp.mpf(r_norm))
+        if r_norm != float("inf")
+        else 4
+        * mp.pi
+        * mp.quad(lambda s: s**2 * shape(s), [mp.mpf(0), *decades, mp.inf])
+    )
+    outer = (
+        4
+        * mp.pi
+        * mp.quad(lambda s: s * shape(s), [r_, *(d for d in decades if d > r_), mp.inf])
+    )
+    return float(-mp.mpf(g) * mp.mpf(m_norm) / norm * (mass(r_) / r_ + outer))
 
 
 class ParameterMTotMixin(ParameterFieldMixin):

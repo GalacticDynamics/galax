@@ -31,8 +31,6 @@ from galax.potential import longmuralibar as lm
 # gradient is a central difference of the integral (step 1e-8, so a truncation
 # error of ~1e-16 of the third derivative, and a round-off of 1e-22).
 
-mp.mp.dps = 30
-
 G_GAL = 4.498502151469554e-12  # kpc^3 / (Msun Myr^2), a literal like the units
 M_BAR, A_BAR, B_BAR, C_BAR, ALPHA_BAR = 1e10, 4.0, 1.2, 0.7, 0.3  # Msun, kpc, kpc, rad
 
@@ -98,6 +96,23 @@ def test_matches_needle_integral(xyz: tuple[float, float, float]) -> None:
     np.testing.assert_allclose(lm.potential(p, q), float(ref), rtol=1e-10)
     grad = [float(g) for g in _needle_gradient(xyz)]
     np.testing.assert_allclose(lm.gradient(p, q), grad, rtol=1e-8)
+
+
+# Far down the bar axis, in the bar frame (x', y', z), where the potential switches to
+# the log1p form (the ratio of the two logarithm arguments is above 0.5). None of
+# LM_POINTS gets there: their largest ratio is 0.49.
+LM_FAR_POINTS_BAR_FRAME = ((30.0, 0.0, 0.0), (-25.0, 6.0, 4.0), (60.0, -15.0, 9.0))
+
+
+@pytest.mark.parametrize("xyz_bar", LM_FAR_POINTS_BAR_FRAME)
+def test_far_field_matches_needle_integral(xyz_bar: tuple[float, float, float]) -> None:
+    """Potential to 1e-11 of the integral in the far branch, rotated by alpha."""
+    xp, yp, z = xyz_bar
+    ca, sa = np.cos(ALPHA_BAR), np.sin(ALPHA_BAR)
+    xyz = (xp * ca - yp * sa, xp * sa + yp * ca, z)
+    ref = _needle_integral(tuple(map(mp.mpf, xyz)))
+    got = lm.potential(_params(), np.asarray(xyz, dtype=np.float64))
+    np.testing.assert_allclose(got, float(ref), rtol=1e-11)
 
 
 @pytest.mark.parametrize("xyz", LM_POINTS)

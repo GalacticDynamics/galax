@@ -166,8 +166,6 @@ class TestPowerLawCutoffPotential(
 # integrals by `mpmath.quad` of the density, so nothing of the closed form
 # (incomplete gamma functions) is shared with the code under test.
 
-mp.mp.dps = 30
-
 RC, M_TOT, G = 1.7, 3.0, 1.3  # generic values, so a stray factor shows up
 ALPHAS = (0.0, 0.5, 1.0, 1.5, 1.9, 1.999, 2.0, 2.001, 2.5, 2.9)
 NEAR_TWO = (2 - 1e-9, 2 + 1e-9)  # where the incomplete gamma terms cancel

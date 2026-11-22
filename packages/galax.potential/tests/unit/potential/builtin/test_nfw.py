@@ -24,7 +24,6 @@ def test_rho0_of_m_and_m_of_rho0_match_mpmath() -> None:
     of r_s would not show. Measured error <= 1.6e-16, a margin of 600 at
     rtol 1e-13.
     """
-    mp.mp.dps = 30
     rho_s, r_s = 3.7e8, 2.3
     rs = mp.mpf(r_s)
     mass = mp.quad(

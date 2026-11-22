@@ -101,7 +101,8 @@ def make_track(
     ``solver`` (``ws``, from `progenitor_states` with ``solver``, not solved
     again), else ``max(20 n_release, 2**14)`` uniform knots. ``theta`` is
     the inexact array leaves under what ``wrt(w_today, pot, schedule)``
-    returns (every inexact leaf for `None`), raveled; the sensitivity is
+    returns (every inexact leaf for `None`), plus the schedule's inexact
+    leaves always, raveled; the sensitivity is
     `jax.jacfwd` of the knots with a `diffrax.ForwardMode` copy of
     ``solver``. Knots and sensitivity are constants (`stop_gradient`).
     """
@@ -114,6 +115,9 @@ def make_track(
         if not ids <= {id(x) for x in jax.tree.leaves(tree)}:
             msg = "wrt must return leaves or subtrees of (w_today, pot, schedule)"
             raise ValueError(msg)
+        # The schedule's leaves move the knot times (t0, dt), so their knot
+        # values must move with them: holding those gives a spurious time shift.
+        ids |= {id(x) for x in jax.tree.leaves(schedule) if eqx.is_inexact_array(x)}
 
         def pick(x: Any) -> bool:
             return eqx.is_inexact_array(x) and id(x) in ids

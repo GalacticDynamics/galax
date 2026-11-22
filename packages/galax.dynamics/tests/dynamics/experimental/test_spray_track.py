@@ -236,8 +236,37 @@ def test_track_wrt(psolver, shapes) -> None:
         track = eqx.filter_jit(make_track)(_mw(1.0), W_TODAY, sched, solver, ws, wrt)
         return track.Sx.shape[-1]
 
-    assert n_theta(_wrt) == 8  # w_today, the halo mass, t_age
-    assert n_theta(None) == 22  # + 15 host leaves, t1
+    assert n_theta(_wrt) == 9  # w_today, the halo mass, t_age, t1 (always)
+    assert n_theta(None) == 22  # + 13 other host leaves
+
+
+@pytest.mark.filterwarnings("ignore:Chen2024DF without a progenitor:RuntimeWarning")
+def test_track_wrt_keeps_schedule() -> None:
+    """A ``wrt`` without ``t_age``/``t1`` still gives their gradient (R19).
+
+    The schedule's leaves move the knot times, so they're always in theta;
+    holding their knot values shifted the track in time (about -1.18 vs 0.0051).
+    """
+
+    def grad(progenitor):
+        sim = gde.SpraySimulator(
+            gde.Fardal2015DF(),
+            gde.PerParticle(progenitor),
+            progenitor_potential=plummer,
+        )
+
+        def f(t_age, t1):
+            r = sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(t_age, 5, 20, t1))
+            return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
+
+        return jax.jit(jax.grad(f, argnums=(0, 1)))(
+            jnp.asarray(500.0), jnp.asarray(0.0)
+        )
+
+    want = jnp.stack(grad(gde.Copies()))
+    got = jnp.stack(grad(gde.SharedTrack(wrt=lambda w, *_: (w,))))
+    # d/dt1 is round-off: a static host is invariant under time translation.
+    np.testing.assert_allclose(got, want, rtol=1e-10, atol=1e-10 * jnp.abs(want).max())
 
 
 def test_track_wrt_must_select_inputs() -> None:

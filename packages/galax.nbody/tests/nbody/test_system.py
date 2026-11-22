@@ -213,6 +213,10 @@ def test_split_on_another_axis() -> None:
     parts = s.split(x, axis=-2)
     assert bool(jnp.all(parts["a"] == x[:, :2]))
     assert bool(jnp.all(parts["t"] == x[:, 2:]))
+    y = jnp.arange(5 * 5 * 3.0).reshape(5, 5, 3)
+    first = s.split(y, axis=0)
+    assert first["a"].shape == (2, 5, 3)
+    assert bool(jnp.all(first["t"] == y[2:]))
 
 
 def test_bad_softening_and_policy_inputs_name_the_argument() -> None:

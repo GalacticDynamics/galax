@@ -209,6 +209,9 @@ def test_evolve_under_runtime_type_checking() -> None:
         sol = gn.evolve(field, q0, jnp.zeros((2, 3)), 0.0, 0.05, 6, save_every=2)
         assert sol.ys[0].shape == (4, 2, 3)
         assert gn.total_energy(field, sol).shape == (4,)
+        import numpy as np
+        e = gn.total_energy(field, 0.0, np.asarray(q0), np.zeros((2, 3)))
+        assert e.shape == ()
     """)
     env = os.environ | {"GALAX_ENABLE_RUNTIME_TYPECHECKING": "beartype.beartype"}
     proc = subprocess.run(  # noqa: S603

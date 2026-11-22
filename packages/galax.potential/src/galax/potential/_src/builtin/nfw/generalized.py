@@ -41,6 +41,7 @@ from galax.potential._src.jax import vectorize_method
 from galax.potential._src.kernels import (
     poisson_laplacian,
     radial_second_derivative,
+    spherical_gradient,
     spherical_hessian,
 )
 from galax.potential._src.params.base import AbstractParameter
@@ -50,7 +51,6 @@ from galax.potential._src.utils import (
     incomplete_beta_zw,
     r_spherical,
     radial_derivatives,
-    safe_vector_norm,
     shell_dphi_dr,
 )
 
@@ -397,6 +397,9 @@ Hessian.
 """
 
 
+_spherical_gradient = spherical_gradient(dpotential_dr)
+
+
 @ft.partial(jax.jit)
 def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     r"""Gradient of the potential for the gNFW model.
@@ -406,7 +409,8 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
         \nabla \Phi(r) = \frac{G M(<r)}{r^2} \hat{r}
 
     where :math:`M(<r)` is the enclosed mass, by :func:`dpotential_dr`: its jvp is
-    the exact Hessian, and it is 0 rather than NaN at the origin.
+    the exact Hessian away from the origin, and the gradient is exactly 0 at the
+    origin, as for the other spherical modules.
 
     Examples
     --------
@@ -426,8 +430,7 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     Array(True, dtype=bool)
 
     """
-    r = safe_vector_norm(xyz)[..., None]
-    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+    return _spherical_gradient(p, xyz)
 
 
 # Derived quantities, built from the kernels above. `dpotential_dr` and

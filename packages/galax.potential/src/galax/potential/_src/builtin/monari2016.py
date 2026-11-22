@@ -120,7 +120,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
 
     Equation 3 of [Monari2016]_ as printed gives :math:`U = +(r / R_b)^{-3}` for
     :math:`r \geq R_b`, which is discontinuous at :math:`r = R_b`. This class
-    uses :math:`-(r / R_b)^{-3}`, which is the sign of Dehnen's equation 3.
+    uses :math:`-(r / R_b)^{-3}`, which is the sign of Dehnen's equation 4.
 
     References
     ----------
@@ -139,7 +139,7 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
        `ADS <https://ui.adsabs.harvard.edu/abs/2000AJ....119..800D>`__;
        `doi:10.1086/301226 <https://doi.org/10.1086/301226>`__;
        `arXiv:astro-ph/9911161 <https://arxiv.org/abs/astro-ph/9911161>`__.
-       The planar quadrupole bar is his eq. 3 and the strength his eq. 7.
+       The planar quadrupole bar is his eq. 4 and the strength his eq. 8.
 
     Examples
     --------
@@ -227,7 +227,7 @@ def U_of_r(s: gt.Sz0, /) -> gt.Sz0:
 
     which is continuous at :math:`s = 1` together with its first derivative. The
     printed eq. 3 of Monari et al. (2016) has :math:`+s^{-3}` for :math:`s \geq 1`;
-    the minus sign is the one of Dehnen (2000, eq. 3).
+    the minus sign is the one of Dehnen (2000, eq. 4).
     """
 
     # M+2016 eq.3, modified to work on s=r/Rb

@@ -126,8 +126,11 @@ def circulation(*args: Any) -> Any:
 
     Axis ``i`` circulates when the angular momentum component
     :math:`L_i = (\mathbf{q} \times \mathbf{p})_i` keeps one sign at every
-    sample and never falls below ``1e-13`` times
-    :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample. A z-tube orbit gives
+    sample and never falls below
+    :math:`\max(10^{-13}, 64\,\epsilon)` times
+    :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample, where :math:`\epsilon`
+    is the machine epsilon of the float dtype in use (``1e-13`` for float64,
+    about ``7.6e-6`` for float32). A z-tube orbit gives
     ``[False, False, True]``, an x-tube orbit gives ``[True, False, False]``
     and a box orbit gives all `False`. Samples where
     ``q`` or ``p`` is not finite are left out of the check, and an orbit with

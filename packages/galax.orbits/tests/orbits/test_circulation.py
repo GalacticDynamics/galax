@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import coordinax as cx
+import quaxed.numpy as qnp
 import unxt as u
 
 import galax.coordinates as gc
@@ -358,3 +359,47 @@ def test_orbit_t_must_be_1d(orbit, t):
 def test_orbit_t_none_uses_stored_samples(orbit):
     np.testing.assert_array_equal(go.circulation(orbit, None), EXPECTED_ORBITS)
     np.testing.assert_array_equal(orbit.circulation(None), EXPECTED_ORBITS)
+
+
+# ===================================================================
+# float32 and N-D coordinates
+
+
+def _check_float32():
+    (q, p), _, _ = ORBITS["xy"]
+    rad_q = np.array([[1.1, 1.1, 1.1], [1.1, 2.2, 3.3]], dtype=np.float32)
+    rad_p = np.array([[0.3, 0.3, 0.3], [0.77, 1.54, 2.31]], dtype=np.float32)
+    for name, ((qq, pp), expected, _) in ORBITS.items():
+        out = go.circulation(np.asarray(qq, np.float32), np.asarray(pp, np.float32))
+        assert out.tolist() == list(expected), name
+    # Radial samples, one at a time and as orbits, do not circulate.
+    for a, b in zip(rad_q, rad_p, strict=True):
+        assert not go.circulation(a[None], b[None]).any()
+
+
+def test_float32_inputs():
+    _check_float32()
+
+
+def test_float32_without_x64():
+    with jax.enable_x64(False):  # noqa: FBT003
+        assert jnp.asarray(1.0).dtype == jnp.float32
+        _check_float32()
+
+
+def test_nd_non_cartesian_coordinate():
+    """Two batch axes survive the conversion to Cartesian."""
+    (q, p), expected, _ = ORBITS["xy"]
+    qc = cx.CartesianPos3D.from_(u.Q(q, "kpc"))
+    pc = cx.CartesianVel3D.from_(u.Q(p, "kpc/Myr"))
+    qs = cx.vconvert(cx.vecs.SphericalPos, qc)
+    ps = cx.vconvert(cx.vecs.SphericalVel, pc, qc)
+    st = lambda a: qnp.stack([a, a])
+    w = gc.PhaseSpaceCoordinate(
+        q=cx.vecs.SphericalPos(r=st(qs.r), theta=st(qs.theta), phi=st(qs.phi)),
+        p=cx.vecs.SphericalVel(r=st(ps.r), theta=st(ps.theta), phi=st(ps.phi)),
+        t=u.Q(T, "Myr"),
+    )
+    np.testing.assert_array_equal(go.circulation(w), [expected, expected])
+    _, axis = go.align_circulation(w)
+    np.testing.assert_array_equal(axis, [2, 2])

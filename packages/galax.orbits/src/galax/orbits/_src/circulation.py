@@ -23,8 +23,13 @@ import unxt as u
 import galax.coordinates as gc
 from .base import AbstractOrbit
 
-# The smallest |L_i| that counts as circulation, relative to |q| |p|.
+# The smallest |L_i| that counts as circulation, relative to |q| |p|, is
+# max(_FLOOR, _FLOOR_EPS * eps), where eps is the machine epsilon of the working
+# float dtype. Round-off in q x p for a radial sample is about eps (measured at
+# most 0.65 eps in float32), so the second term keeps float32 radial samples
+# from circulating; for float64 _FLOOR_EPS * eps is below _FLOOR.
 _FLOOR: Final = 1e-13
+_FLOOR_EPS: Final = 64
 
 # The permutations that swap x or y with z.
 _PERM_X: Final = np.array([2, 1, 0])
@@ -69,7 +74,7 @@ def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
     L = jnp.cross(q, p)
     # The floor is relative to |q| |p|, not |L|, so the rounding residual of a
     # radial sample (q parallel to p) does not count as circulation.
-    floor = _FLOOR * (
+    floor = max(_FLOOR, _FLOOR_EPS * float(jnp.finfo(q.dtype).eps)) * (
         jnp.linalg.norm(q, axis=-1, keepdims=True)
         * jnp.linalg.norm(p, axis=-1, keepdims=True)
     )
@@ -122,11 +127,13 @@ def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
             jnp.concat([jnp.atleast_2d(x) for x in qs], axis=-2)[..., order, :],
             jnp.concat([jnp.atleast_2d(x) for x in ps], axis=-2)[..., order, :],
         )
-    q: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianPos3D, w.q), u.Quantity)
-    p: u.AbstractQuantity = convert(
-        cx.vconvert(cx.CartesianVel3D, w.p, w.q), u.Quantity
-    )
-    return q, p
+    # coordinax's velocity vconvert fails to broadcast with 2 or more batch
+    # axes, so flatten them around the conversion.
+    shape = w.q.shape
+    wq, wp = (w.q, w.p) if len(shape) < 2 else (w.q.reshape(-1), w.p.reshape(-1))
+    q: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianPos3D, wq), u.Quantity)
+    p: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianVel3D, wp, wq), u.Quantity)
+    return q.reshape(*shape, 3), p.reshape(*shape, 3)
 
 
 # ===================================================================

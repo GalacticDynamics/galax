@@ -6,7 +6,7 @@ import abc
 import functools as ft
 
 from jaxtyping import PRNGKeyArray
-from typing import Any, Final, Self, final
+from typing import Any, Final, final
 
 import jax
 import jax.random as jr
@@ -49,7 +49,9 @@ class AbstractKinematicDF(metaclass=abc.ABCMeta):
         return (dict(field_items(self)), None)  # type: ignore[call-overload]
 
     @classmethod
-    def tree_unflatten(cls, _: Any, children: dict[str, gt.Sz0]) -> Self:
+    def tree_unflatten(
+        cls, _: Any, children: dict[str, gt.Sz0]
+    ) -> "AbstractKinematicDF":
         return cls(**children, _skip_convert=True)  # type: ignore[call-arg]
 
 

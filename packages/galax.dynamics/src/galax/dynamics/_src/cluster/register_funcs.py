@@ -25,7 +25,7 @@ from .radius import tidal_radius_king1962
 @ft.partial(jax.jit)
 def lagrange_points(
     potential: gp.AbstractPotential, x: gt.Sz3, v: gt.Sz3, /, *, mass: gt.Sz0, t: gt.Sz0
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     r_t = tidal_radius_king1962(potential, x, v, mass=mass, t=t)
     r_hat = cx.vecs.normalize_vector(x)
@@ -44,7 +44,7 @@ def lagrange_points(
     *,
     mass: gt.QuSz0,
     t: gt.QuSz0,
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     x = convert(x, u.Quantity)
     v = convert(v, u.Quantity)
@@ -63,7 +63,7 @@ def lagrange_points(
     *,
     mass: gt.QuSz0,
     t: gt.QuSz0,
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, space["length"], space["speed"], mass=mass, t=t)
 
@@ -76,7 +76,7 @@ def lagrange_points(
     *,
     mass: gt.QuSz0,
     t: gt.QuSz0,
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, coord.data, mass=mass, t=t)
 
@@ -89,7 +89,7 @@ def lagrange_points(
     *,
     mass: gt.QuSz0,
     t: gt.QuSz0 | None = None,
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     t = eqx.error_if(
         wt.t,
@@ -108,6 +108,6 @@ def lagrange_points(
     *,
     mass: gt.QuSz0,
     t: gt.QuSz0,
-) -> L1L2LagrangePoints:  # type: ignore[type-arg]  # TODO: when beartype permits
+) -> L1L2LagrangePoints:
     """Compute the lagrange points of a cluster in a host potential."""
     return lagrange_points(pot, w.q, w.p, mass=mass, t=t)

@@ -31,15 +31,20 @@ import galax.potential as gp
 # Lagrange points
 
 
-class L1L2LagrangePoints[T](NamedTuple):
-    l1: T
-    l2: T
+# Not generic: beartype cannot check a generic `NamedTuple`
+# (`BeartypeDecorHintPepUnsupportedException`), which stopped `galax.dynamics`
+# importing under runtime type checking.
+class L1L2LagrangePoints(NamedTuple):
+    """The L1 and L2 Lagrange points, each an array or a quantity."""
+
+    l1: Any
+    l2: Any
 
 
 @dispatch.abstract
 def lagrange_points(
     potential: gp.AbstractPotential, x: Any, v: Any, /, mass: Any, t: Any
-) -> L1L2LagrangePoints[Any]:
+) -> L1L2LagrangePoints:
     """Compute the L1, L2 lagrange points of a cluster in a host potential.
 
     Examples

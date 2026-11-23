@@ -56,10 +56,8 @@ def _unit_scale(x: Array) -> Array:
     not change unless a component underflows.
     """
     # Ints become the default float, half precision becomes float32.
-    if jnp.issubdtype(x.dtype, jnp.floating):
-        x = x.astype(jnp.promote_types(x.dtype, jnp.float32))
-    else:
-        x = x.astype(float)
+    floating = jnp.issubdtype(x.dtype, jnp.floating)
+    x = x.astype(jnp.promote_types(x.dtype, jnp.float32) if floating else float)
     m = jnp.max(jnp.abs(x), axis=-1, keepdims=True)
     # Clearing the mantissa bits of m leaves the power of 2 at or below it.
     # jnp.frexp would do the same, but is several times slower.
@@ -81,12 +79,11 @@ def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
     L = jnp.cross(q, p)
     # The floor is relative to |q| |p|, not |L|, so the rounding residual of a
     # radial sample (q parallel to p) does not count as circulation.
-    floor = max(
-        _FLOOR, _FLOOR_EPS * max(jnp.finfo(q.dtype).eps, jnp.finfo(p.dtype).eps)
-    ) * (
-        jnp.linalg.norm(q, axis=-1, keepdims=True)
-        * jnp.linalg.norm(p, axis=-1, keepdims=True)
+    eps = max(jnp.finfo(q.dtype).eps, jnp.finfo(p.dtype).eps)
+    qp = jnp.linalg.norm(q, axis=-1, keepdims=True) * jnp.linalg.norm(
+        p, axis=-1, keepdims=True
     )
+    floor = max(_FLOOR, _FLOOR_EPS * eps) * qp
     big = jnp.abs(L) >= floor
     # An axis circulates if L_i keeps one sign, clear of the floor, at every
     # finite sample.
@@ -191,17 +188,9 @@ def circulation(w: gc.AbstractPhaseSpaceCoordinate, t: Any, /) -> Any:  # noqa: 
 
 
 @dispatch
-def circulation(orbit: AbstractOrbit, /) -> Bool[Array, "*batch 3"]:
-    return _circulation_qp(*_cartesian_qp(orbit))
-
-
-@dispatch
-def circulation(orbit: AbstractOrbit, t: None, /) -> Bool[Array, "*batch 3"]:  # noqa: ARG001
-    return _circulation_qp(*_cartesian_qp(orbit))
-
-
-@dispatch
 def circulation(orbit: AbstractOrbit, t: Any, /) -> Bool[Array, "*batch 3"]:
+    if t is None:
+        return _circulation_qp(*_cartesian_qp(orbit))
     if jnp.ndim(t) != 1:
         msg = (
             f"circulation(orbit, t) needs t of shape (T,), but t has shape "
@@ -235,12 +224,12 @@ def _vconvert(rep: Any, v: Any, at: Any = None, **kwargs: Any) -> Any:
     coordinax's velocity ``vconvert`` fails to broadcast with 2 or more batch
     axes.
     """
-    shape = v.shape
-    if len(shape) >= 2:
+    shape, flat = v.shape, v.ndim >= 2
+    if flat:
         v = v.reshape(-1)
         at = None if at is None else at.reshape(-1)
     out = cx.vconvert(rep, v, **kwargs) if at is None else cx.vconvert(rep, v, at)
-    return out if len(shape) < 2 else out.reshape(shape)
+    return out.reshape(shape) if flat else out
 
 
 def _like(old: Any, new: Any, keep: Any) -> Any:
@@ -255,8 +244,7 @@ def _like(old: Any, new: Any, keep: Any) -> Any:
         o = getattr(old, c)
         n = u.uconvert(u.unit_of(o), getattr(new, c))
         # Keep a floating dtype; an integer one would truncate the result.
-        if jnp.issubdtype(o.dtype, jnp.floating):
-            n = n.astype(o.dtype)
+        n = n.astype(o.dtype) if jnp.issubdtype(o.dtype, jnp.floating) else n
         comps[c] = jnp.where(keep, o, n)
     return replace(old, **comps)
 

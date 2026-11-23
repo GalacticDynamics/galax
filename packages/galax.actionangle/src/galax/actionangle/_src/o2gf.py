@@ -230,7 +230,9 @@ def _path(
     mean_rate = safe_div(jnp.nansum(dth, axis=0), dt.sum())
     rate = jnp.fmax(jnp.abs(Om_toy[1:]), mean_rate)
     step = jnp.where(rest, 0.0, rate * dt[:, None])
-    coarse = jax.lax.stop_gradient(jnp.nanmax(step, initial=0.0) > jnp.pi / 2)
+    # Equal sample times leave the frequencies undetermined.
+    coarse = (jnp.nanmax(step, initial=0.0) > jnp.pi / 2) | (dt.sum() == 0)
+    coarse = jax.lax.stop_gradient(coarse)
     J, sn, th0, Om, dsn, n_bad, n_nan, n_res = solve_o2gf(
         J, theta, t - tc, nvecs, rest, coarse
     )
@@ -420,6 +422,13 @@ def o2gf_actions_angles_freqs(
     family: str | None = None,
 ) -> O2GFResult:
     """O2GF from positions and velocities (..., T, 3) and times (..., T)."""
+    if jnp.ndim(t) == 0 or jnp.shape(t)[-1] != jnp.shape(q)[-2]:
+        msg = (
+            f"t needs a time axis of length T: q has shape {jnp.shape(q)}, "
+            f"so t needs shape (..., {jnp.shape(q)[-2]}), but t has shape "
+            f"{jnp.shape(t)}."
+        )
+        raise ValueError(msg)
     q, p, t, as_quantity = parse_qpt(pot, q, p, t)
     return _run(pot, q, p, t, as_quantity, n_max, toy, family)
 

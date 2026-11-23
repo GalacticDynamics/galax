@@ -707,3 +707,13 @@ def test_gap_flags_on_disk_loop():
     r = o2gf(pot, q[keep], p[keep], t[keep], n_max=6)
     assert bool(r.flagged)
     assert int(r.n_bad_cover) > 0
+
+
+def test_t_without_time_axis_raises_and_equal_times_flag():
+    """A scalar t raises; equal sample times leave Omega undetermined, flagged."""
+    q, p, t = _iso_orbit()
+    for bad in (0.0, np.array([0.0])):
+        with pytest.raises(ValueError, match="time axis"):
+            o2gf(ISO, q, p, bad, n_max=6)
+    r = o2gf(ISO, q, p, np.full_like(t, 5.0), n_max=6)
+    assert bool(r.flagged)

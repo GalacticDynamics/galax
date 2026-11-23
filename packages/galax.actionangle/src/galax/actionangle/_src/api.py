@@ -237,8 +237,11 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
         Cartesian positions and velocities along the orbits. Bare arrays are
         in ``pot.units``.
     t : Quantity[time] or Array, shape (..., T)
-        The sample times, broadcast against ``q`` and ``p``. The samples
-        should be in time order with no long gaps; see ``n_bad_cover``.
+        The sample times, broadcast against ``q`` and ``p``. The last axis
+        must be the time axis of length T; a scalar ``t`` raises
+        `ValueError`. The samples should be in time order with no long gaps;
+        see ``n_bad_cover``. An orbit whose sample times are all equal is
+        flagged.
     w : `galax.coordinates.AbstractPhaseSpaceCoordinate`
         An orbit, e.g. from `galax.dynamics.evaluate_orbit`. It must have a
         time axis, which is its last batch axis. A single phase-space point,

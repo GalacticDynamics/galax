@@ -524,7 +524,7 @@ def _units_of(v):
     return {c: str(u.unit_of(getattr(v, c))) for c in v.components}
 
 
-def _cart(v, at=None):
+def _vcart(v, at=None):
     if at is None:
         return cx.vconvert(cx.CartesianPos3D, v)
     return cx.vconvert(cx.CartesianVel3D, v, at)
@@ -563,8 +563,8 @@ def test_align_coordinate_keeps_component_units(rep):
     assert int(axis) == 0
     _check_keeps_units(w, aligned)
     # The values are those of the Cartesian swap.
-    qc, pc = _cart(w.q), _cart(w.p, w.q)
-    qa, pa = _cart(aligned.q), _cart(aligned.p, aligned.q)
+    qc, pc = _vcart(w.q), _vcart(w.p, w.q)
+    qa, pa = _vcart(aligned.q), _vcart(aligned.p, aligned.q)
     for a, b in [(qa.x, qc.z), (qa.y, qc.y), (qa.z, qc.x)]:
         np.testing.assert_allclose(
             u.ustrip("kpc", a), u.ustrip("kpc", b), rtol=1e-5, atol=1e-5

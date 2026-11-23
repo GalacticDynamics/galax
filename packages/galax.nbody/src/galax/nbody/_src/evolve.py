@@ -39,8 +39,9 @@ def check_timestep(
     acceleration. For all active particles it is
     ``eta_rho / sqrt(G rho_ext)``, with ``rho_ext`` the external density;
     particles where that density is not positive are skipped. With no limit
-    at all ``dt_max`` is infinite. An active particle with a non-finite
-    position, or a softened one with a NaN acceleration, makes ``dt_max`` NaN.
+    at all ``dt_max`` is infinite. It is a float in the field's time unit. An
+    active particle with a non-finite position, or a softened one with a NaN
+    acceleration, makes ``dt_max`` NaN.
 
     Raises `ValueError` if ``dt`` is a number that is not a finite scalar,
     and `TypeError` if it is not a real number. A negative ``dt``, for a

@@ -633,6 +633,24 @@ def test_timestep_guard_warns() -> None:
     assert rec[0].filename == __file__
 
 
+@pytest.mark.parametrize("eps", [0.1, 0.0])
+def test_check_timestep_matches_its_formula(eps) -> None:
+    """``dt_max`` is the softening limit when it binds, else the tidal limit."""
+    pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+    field = gn.NBodyField(masses=jnp.full(2, 1e9), eps=eps, external_potential=pot)
+    q = jnp.asarray([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]])
+    a = jnp.linalg.norm(field.acceleration(0.0, q), axis=-1)
+    rho = gp.density(pot, q, 0.0)
+    soft = 0.025 * jnp.sqrt(2 * eps / a) if eps > 0 else jnp.inf
+    tidal = 0.1 / jnp.sqrt(field._G * rho)
+    expected = float(jnp.min(jnp.minimum(soft, tidal)))
+    # The softening limit binds with eps=0.1; with no softening only the
+    # tidal limit is left.
+    assert (expected < float(jnp.min(tidal))) == (eps > 0)
+    dt_max = gn.check_timestep(field, q, 0.0, 0.0)
+    np.testing.assert_allclose(dt_max, expected, rtol=1e-12)
+
+
 def test_timestep_guard_checks_a_negative_dt_by_its_size() -> None:
     """A backward step is checked like the forward step of the same size."""
     field, q0, _ = _cluster(n=4)

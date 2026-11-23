@@ -12,10 +12,21 @@ are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
 
 Accuracy: `spexial.incomplete_beta` loses digits when $\alpha(\beta - 3)$ is
-large. Against `mpmath`, with $\alpha \leq 2$ and $\beta \leq 9$ every
-quantity is good to 1e-13. At $(\alpha, \beta, \gamma) = (4, 12, 0.5)$ the
-potential is off by 1.4e-3, and at $(5, 10, 0)$ every quantity is off by 3e-4
-and the potential by up to 8e-2.
+large. Measured against `mpmath` (its own density, normalized to $m$ inside
+$r_s$, and quadrature), over 9 to 34 radii between $10^{-3} r_s$ and
+$7 \times 10^4 r_s$, as the worst relative error over those radii (for
+`d2potential_dr2` and `hessian`, relative to the sum of the magnitudes of the
+terms they are made of):
+
+- 17 parameter sets with $\alpha \leq 2$ and $\beta \leq 9$, among them
+  $(2, 9, 0)$: the potential is good to 4e-12 and every other quantity to
+  2e-13.
+- $(3, 8, 0)$: the potential 1.1e-10, every other quantity 4.2e-12.
+- $(4, 12, 0.5)$: the potential 1.4e-3, every other quantity 3.2e-5.
+- $(5, 10, 0)$: the potential 8.0e-2, every other quantity 3.4e-4.
+
+Every quantity uses `incomplete_beta` through the normalization, so all are
+affected; the potential, which also uses it at $\chi$ and $1 - \chi$, most.
 """
 
 __all__ = [

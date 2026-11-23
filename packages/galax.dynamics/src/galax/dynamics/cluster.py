@@ -23,25 +23,19 @@ __all__ = [
     "relaxation_time",
 ]
 
-from .setup_package import install_import_hook
-
-with install_import_hook("galax.dynamics.cluster"):
-    from ._src.cluster import (
-        AbstractMassRateField,
-        Baumgardt1998MassLossRate,
-        ConstantMassRate,
-        CustomMassRateField,
-        MassBelowThreshold,
-        MassSolver,
-        MassVectorField,
-        ReleaseTimeSampler,
-        ZeroMassRate,
-        lagrange_points,
-        radius,
-        relax_time,
-        relaxation_time,
-        tidal_radius,
-    )
-
-# Cleanup
-del install_import_hook
+from ._src.cluster import (
+    AbstractMassRateField,
+    Baumgardt1998MassLossRate,
+    ConstantMassRate,
+    CustomMassRateField,
+    MassBelowThreshold,
+    MassSolver,
+    MassVectorField,
+    ReleaseTimeSampler,
+    ZeroMassRate,
+    lagrange_points,
+    radius,
+    relax_time,
+    relaxation_time,
+    tidal_radius,
+)

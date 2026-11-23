@@ -61,8 +61,7 @@ def parse_qpt(
     """
     if isinstance(q, gc.AbstractPhaseSpaceCoordinate):
         msg = (
-            "q is a phase-space coordinate: it already carries its times; "
-            "pass (pot, w)"
+            "q is a phase-space coordinate: it already carries its times; pass (pot, w)"
         )
         raise TypeError(msg)
     given = (q, t) if p is None else (q, p, t)

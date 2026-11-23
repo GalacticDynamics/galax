@@ -71,3 +71,18 @@ Folding the terms instead removed a cost that scaled with `lmax` and not with
 The lesson generalizes past this table: a speedup that grows with a parameter is
 not evidence that the parameter is what the algorithm is good at. Here it was
 evidence of a fixed overhead being amortized.
+
+## `spray_stream.py`
+
+Time and `memory_analysis` temp of `galax.dynamics.experimental.SpraySimulator`
+in each mode, forward and gradient: 1002 particles over 5 Gyr, Leapfrog with h =
+0.5 Myr, Chen+24 with a 4 pc Plummer progenitor.
+
+```bash
+uv run python benchmarks/spray_stream.py --host nfw
+uv run python benchmarks/spray_stream.py --host mw
+```
+
+The timed reps are interleaved across modes and the median is reported, so a
+change in machine load hits every mode alike. The temp sizes don't depend on
+load.

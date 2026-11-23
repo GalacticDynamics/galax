@@ -178,3 +178,124 @@ class Fardal2015DF(AbstractKinematicDF):
         v_trail = v + v_circ * (kvphi_samp[0] * phi_hat + kvz_samp[0] * z_hat)
 
         return x_lead, v_lead, x_trail, v_trail
+
+
+##############################################################################
+
+# Chen+24 Eq. 4: (Dr / r_t, phi, theta, Dv / v_esc, alpha, beta), angles in deg.
+default_chen_mean: Final = (1.6, -30.0, 0.0, 1.0, 20.0, 0.0)
+default_chen_cov: Final = (
+    (0.1225, 0.0, 0.0, 0.0, -4.9, 0.0),
+    (0.0, 529.0, 0.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 144.0, 0.0, 0.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+    (-4.9, 0.0, 0.0, 0.0, 400.0, 0.0),
+    (0.0, 0.0, 0.0, 0.0, 0.0, 484.0),
+)
+
+
+@final
+@ft.partial(register_dataclass, data_fields=["mean", "cov"], meta_fields=[])
+@dataclass
+class Chen2024DF(AbstractKinematicDF):
+    """Chen Stream Distribution Function.
+
+    The Chen+2024 distribution function for generating stellar streams
+    https://ui.adsabs.harvard.edu/abs/2024arXiv240801496C/abstract
+    Each arm is its own independent draw.
+
+    Examples
+    --------
+    >>> import jax.random as jr
+    >>> import galax.potential as gp
+
+    >>> df = Chen2024DF()
+    >>> pot = gp.NFWPotential(m=1e12, r_s=15, units="galactic")
+    >>> x = jnp.array([15.0, 0.0, 0.0])
+    >>> v = jnp.array([0.0, 220.0, 0.0])
+    >>> x_lead, v_lead, x_trail, v_trail = df.sample(jr.key(0), pot, 0, x, v, 1e5)
+    >>> x_lead.shape
+    (3,)
+
+    """
+
+    mean: jax.Array = field(default=default_chen_mean, converter=array_unless_jitting)
+    cov: jax.Array = field(default=default_chen_cov, converter=array_unless_jitting)
+
+    @ft.partial(jax.jit)
+    def sample(
+        self: "Chen2024DF",
+        key: PRNGKeyArray,
+        pot: gp.AbstractPotential,
+        /,
+        t: gt.LikeSz0,
+        x: gt.Sz3,
+        v: gt.Sz3,
+        Msat: gt.LikeSz0,
+    ) -> tuple[gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]:
+        # Release frame: x_new along r, z_new along L, y_new in-plane.
+        x_hat = cx.vecs.normalize_vector(x)
+        z_hat = cx.vecs.normalize_vector(jnp.linalg.cross(x, v))
+        y_hat = cx.vecs.normalize_vector(v - jnp.sum(v * x_hat) * x_hat)
+
+        r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)
+        GM = pot.constants["G"].value * Msat
+
+        def offsets(key: PRNGKeyArray, /) -> tuple[gt.Sz3, gt.Sz3]:
+            """Position and velocity offsets (along x_new, y_new, z_new)."""
+            # "svd": "cholesky" fails on the singular covariance.
+            posvel = jr.multivariate_normal(key, self.mean, self.cov, method="svd")
+            Dr = posvel[0] * r_tidal  # type: ignore[operator]
+            # v_esc at |Dr|: Dr < 0 (a 4.6-sigma tail, ~2.4e-6 per draw) would
+            # give NaN, and a fixed key repeats it at every parameter point.
+            Dv = posvel[3] * jnp.sqrt(2 * GM / jnp.abs(Dr))
+            phi, theta, alpha, beta = jnp.deg2rad(posvel[jnp.array([1, 2, 4, 5])])
+            dx = Dr * jnp.stack(
+                [
+                    jnp.cos(theta) * jnp.cos(phi),
+                    jnp.cos(theta) * jnp.sin(phi),
+                    jnp.sin(theta),
+                ]
+            )
+            dv = Dv * jnp.stack(
+                [
+                    jnp.cos(beta) * jnp.cos(alpha),
+                    jnp.cos(beta) * jnp.sin(alpha),
+                    jnp.sin(beta),
+                ]
+            )
+            return dx, dv
+
+        key_trail, key_lead = jr.split(key)
+        frame = jnp.stack([x_hat, y_hat, z_hat])  # (3, 3)
+
+        dx, dv = offsets(key_trail)
+        x_trail, v_trail = x + dx @ frame, v + dv @ frame
+
+        # Leading arm: the same DF rotated by 180 deg about z_new.
+        dx, dv = offsets(key_lead)
+        flip = jnp.array([-1.0, -1.0, 1.0])
+        x_lead, v_lead = x + (flip * dx) @ frame, v + (flip * dv) @ frame
+
+        return x_lead, v_lead, x_trail, v_trail
+
+
+def sample_releases(
+    df: AbstractKinematicDF,
+    key: PRNGKeyArray,
+    pot: gp.AbstractPotential,
+    ts: jax.Array,
+    xs: gt.Sz3,
+    vs: gt.Sz3,
+    Msat: jax.Array,
+) -> tuple[gt.Sz3, gt.Sz3, gt.Sz3, gt.Sz3]:
+    """Sample ``n`` releases at once, one key per release (``jr.split(key, n)``).
+
+    ``ts`` and ``Msat`` have shape ``(n,)``; ``xs`` and ``vs`` have shape
+    ``(n, 3)``. Returns ``(x_lead, v_lead, x_trail, v_trail)``, each ``(n, 3)``.
+    The key-to-draws map depends only on ``n``, never on parameter values.
+    """
+    keys = jr.split(key, jnp.shape(ts)[0])
+    return jax.vmap(df.sample, in_axes=(0, None, 0, 0, 0, 0))(
+        keys, pot, ts, xs, vs, Msat
+    )

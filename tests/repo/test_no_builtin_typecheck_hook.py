@@ -18,6 +18,27 @@ def test_the_scan_finds_sources() -> None:
     assert len(SOURCES) > 100
 
 
+def test_no_test_sets_the_removed_variable() -> None:
+    """Nothing sets `GALAX_ENABLE_RUNTIME_TYPECHECKING`: it would check nothing now.
+
+    A test that sets it to turn type checking on keeps passing after the variable
+    stopped being read, and stops testing what it says it tests.
+    """
+    tests = [
+        *ROOT.glob("packages/*/tests/**/*.py"),
+        *ROOT.glob("tests/**/*.py"),
+    ]
+    offenders = [
+        str(path.relative_to(ROOT))
+        for path in sorted(tests)
+        if path != pathlib.Path(__file__)
+        and "GALAX_ENABLE_RUNTIME_TYPECHECKING" in path.read_text(encoding="utf-8")
+    ]
+    assert (
+        not offenders
+    ), f"these tests set a variable galax no longer reads: {offenders}"
+
+
 def test_no_source_uses_the_builtin_hook() -> None:
     """No module under `packages/*/src` mentions the removed hook or variable."""
     offenders = [

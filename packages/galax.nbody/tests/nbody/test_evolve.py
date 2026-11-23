@@ -1,7 +1,6 @@
 """Tests for `galax.nbody.evolve` and running an `NBodyField` through diffrax."""
 
 import logging
-import os
 import subprocess
 import sys
 import textwrap
@@ -199,8 +198,11 @@ def test_evolve_under_runtime_type_checking() -> None:
         import jax
         jax.config.update("jax_enable_x64", True)
         import jax.numpy as jnp
-        import galax.nbody as gn
-        import galax.potential as gp
+        from jaxtyping import install_import_hook
+        with install_import_hook("galax", "beartype.beartype"):
+            import galax.nbody as gn
+            import galax.potential as gp
+        assert hasattr(gn.evolve, "__wrapped__")  # the hook wrapped galax
         field = gn.NBodyField(
             masses=jnp.full(2, 1e9),
             eps=0.1,
@@ -214,13 +216,8 @@ def test_evolve_under_runtime_type_checking() -> None:
         e = gn.total_energy(field, 0.0, np.asarray(q0), np.zeros((2, 3)))
         assert e.shape == ()
     """)
-    env = os.environ | {"GALAX_ENABLE_RUNTIME_TYPECHECKING": "beartype.beartype"}
     proc = subprocess.run(  # noqa: S603
-        [sys.executable, "-c", code],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
     assert proc.returncode == 0, proc.stderr[-3000:]
 

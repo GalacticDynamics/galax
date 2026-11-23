@@ -78,6 +78,10 @@ Some calls do fail under the hook today, for example in :mod:`galax.potential`,
 so expect failures from the full test suite. A failure like that can point at a
 wrong annotation, or at a wrong call, and is worth reporting.
 
+Earlier versions read the environment variable
+``GALAX_ENABLE_RUNTIME_TYPECHECKING`` to do the same thing from inside
+:mod:`galax`. It is gone; use the import hook above.
+
 .. _galax-comparison-libs:
 
 Comparison libraries

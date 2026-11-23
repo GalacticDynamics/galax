@@ -23,27 +23,22 @@ __all__ = [
     "PhaseSpaceObjectInterpolant",
 ]
 
-from .setup_package import install_import_hook, load_interop_plugins
-
-with install_import_hook("galax.coordinates"):
-    from . import frames, ops
-    from ._src.base import AbstractPhaseSpaceObject
-    from ._src.interp import PhaseSpaceObjectInterpolant
-    from ._src.pscs import (
-        AbstractBasicPhaseSpaceCoordinate,
-        AbstractCompositePhaseSpaceCoordinate,
-        AbstractPhaseSpaceCoordinate,
-        ComponentShapeTuple,
-        CompositePhaseSpaceCoordinate,
-        PhaseSpaceCoordinate,
-    )
-    from ._src.psps import (
-        ComponentShapeTuple as PSPComponentShapeTuple,
-        PhaseSpacePosition,
-    )
-
-# Clean up the namespace
-del install_import_hook
+from . import frames, ops
+from ._src.base import AbstractPhaseSpaceObject
+from ._src.interp import PhaseSpaceObjectInterpolant
+from ._src.pscs import (
+    AbstractBasicPhaseSpaceCoordinate,
+    AbstractCompositePhaseSpaceCoordinate,
+    AbstractPhaseSpaceCoordinate,
+    ComponentShapeTuple,
+    CompositePhaseSpaceCoordinate,
+    PhaseSpaceCoordinate,
+)
+from ._src.psps import (
+    ComponentShapeTuple as PSPComponentShapeTuple,
+    PhaseSpacePosition,
+)
+from .setup_package import load_interop_plugins
 
 # Interoperability with third-party libraries. Importing a registered module is
 # what performs its `plum` dispatch registration; entry points let separately

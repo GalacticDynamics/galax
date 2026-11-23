@@ -12,18 +12,12 @@ __all__ = [
     "ConstantMassProtenitor",
 ]
 
-from .setup_package import install_import_hook
-
-with install_import_hook("galax.dynamics.mockstream"):
-    from ._src.legacy.mockstream import MockStreamGenerator
-    from ._src.legacy.mockstream.df import (
-        AbstractStreamDF,
-        ChenStreamDF,
-        ConstantMassProtenitor,
-        FardalStreamDF,
-        ProgenitorMassCallable,
-    )
-    from ._src.mockstream import MockStream, MockStreamArm
-
-# Cleanup
-del install_import_hook
+from ._src.legacy.mockstream import MockStreamGenerator
+from ._src.legacy.mockstream.df import (
+    AbstractStreamDF,
+    ChenStreamDF,
+    ConstantMassProtenitor,
+    FardalStreamDF,
+    ProgenitorMassCallable,
+)
+from ._src.mockstream import MockStream, MockStreamArm

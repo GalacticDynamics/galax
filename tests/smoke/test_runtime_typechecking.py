@@ -6,7 +6,6 @@ cannot handle makes the import itself fail. Only modules imported inside the
 hook are checked, so the seven portions are imported in a fresh interpreter.
 """
 
-import os
 import subprocess
 import sys
 
@@ -34,15 +33,10 @@ def test_every_portion_imports_under_the_hook() -> None:
         + "import galax.fields\n"
         + "assert hasattr(galax.fields.parse_time_specification, '__wrapped__')\n"
     )
-    # Galax's own hook reads this variable, and would wrap the modules by itself.
-    env = {
-        k: v for k, v in os.environ.items() if k != "GALAX_ENABLE_RUNTIME_TYPECHECKING"
-    }
     proc = subprocess.run(  # noqa: S603
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,
         check=False,
-        env=env,
     )
     assert proc.returncode == 0, proc.stderr

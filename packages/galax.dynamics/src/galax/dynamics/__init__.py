@@ -44,36 +44,33 @@ __all__ = [
 ]
 
 
-from .setup_package import install_import_hook, load_interop_plugins
+from diffraxtra import DiffEqSolver
 
-with install_import_hook("galax.dynamics"):
-    from diffraxtra import DiffEqSolver
+from . import cluster, examples, fields, integrate, mockstream, nbody, plot
+from ._src.api import omega, specific_angular_momentum
+from ._src.cluster import lagrange_points, tidal_radius
+from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField
+from .integrate import evaluate_orbit
+from .mockstream import (
+    AbstractStreamDF,
+    ChenStreamDF,
+    FardalStreamDF,
+    MockStream,
+    MockStreamArm,
+    MockStreamGenerator,
+)
+from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
+from .setup_package import load_interop_plugins
+from galax.fields import SolveState, integrate_field, parse_time_specification
 
-    from . import cluster, examples, fields, integrate, mockstream, nbody, plot
-    from ._src.api import omega, specific_angular_momentum
-    from ._src.cluster import lagrange_points, tidal_radius
-    from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField
-    from .integrate import evaluate_orbit
-    from .mockstream import (
-        AbstractStreamDF,
-        ChenStreamDF,
-        FardalStreamDF,
-        MockStream,
-        MockStreamArm,
-        MockStreamGenerator,
-    )
-    from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
-    from galax.fields import SolveState, integrate_field, parse_time_specification
+# isort: split
+from ._src import experimental  # noqa: F401
 
-    # isort: split
-    from ._src import experimental  # noqa: F401
-
-    # isort: split
-    from ._src import register_api
-
+# isort: split
+from ._src import register_api
 
 # Cleanup
-del install_import_hook, register_api
+del register_api
 
 # Interoperability with third-party libraries. Importing a registered module is
 # what performs its `plum` dispatch registration; entry points let separately

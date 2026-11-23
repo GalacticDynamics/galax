@@ -651,6 +651,20 @@ def test_check_timestep_matches_its_formula(eps) -> None:
     np.testing.assert_allclose(dt_max, expected, rtol=1e-12)
 
 
+def test_check_timestep_skips_inactive_rows() -> None:
+    """An inactive particle, even at a NaN position, does not set ``dt_max``."""
+    pot = gp.NFWPotential(m=1e11, r_s=10, units="galactic")
+    kw = {"eps": 0.0, "external_potential": pot, "n_massive": 0}
+    one = gn.NBodyField(masses=jnp.zeros(1), **kw)
+    two = gn.NBodyField(masses=jnp.zeros(2), active=[True, False], **kw)
+    # The inactive row sits in the dense centre, where the tidal limit is small.
+    q = jnp.asarray([[8.0, 0.0, 0.0], [0.01, 0.0, 0.0]])
+    expected = gn.check_timestep(one, q[:1], 0.0, 0.0)
+    assert gn.check_timestep(two, q, 0.0, 0.0) == expected
+    q_nan = q.at[1].set(jnp.nan)
+    assert gn.check_timestep(two, q_nan, 0.0, 0.0, strict=True) == expected
+
+
 def test_timestep_guard_checks_a_negative_dt_by_its_size() -> None:
     """A backward step is checked like the forward step of the same size."""
     field, q0, _ = _cluster(n=4)

@@ -2,6 +2,7 @@
 
 import jax
 import jax.numpy as jnp
+import pytest
 
 import unxt as u
 
@@ -55,9 +56,17 @@ def test_energy_with_kepler_external_potential() -> None:
     assert jnp.allclose(gn.total_energy(field, 0.0, q, p), expect, rtol=1e-12)
 
 
-def test_inactive_nonfinite_rows_are_ignored() -> None:
-    """NaN or inf positions and velocities on an inactive row leave E finite."""
-    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+@pytest.mark.parametrize(
+    "pot",
+    [
+        gp.KeplerPotential(m_tot=1e11, units="galactic"),
+        # Grows without bound, so a parked row's mass would show.
+        gp.HarmonicOscillatorPotential(omega=0.1, units="galactic"),
+    ],
+    ids=["kepler", "harmonic"],
+)
+def test_inactive_nonfinite_rows_are_ignored(pot) -> None:
+    """NaN or inf positions and velocities on an inactive row add nothing to E."""
     kw = {"eps": u.Q(0.1, "kpc"), "external_potential": pot}
     two = gn.NBodyField(masses=u.Q([2.0, 3.0], "Msun"), **kw)
     three = gn.NBodyField(
@@ -69,7 +78,7 @@ def test_inactive_nonfinite_rows_are_ignored() -> None:
     for bad in (jnp.nan, jnp.inf):
         q3 = jnp.concat([q, jnp.full((1, 3), bad)])
         p3 = jnp.concat([p, jnp.full((1, 3), bad)])
-        assert jnp.allclose(gn.total_energy(three, 0.0, q3, p3), expect)
+        assert jnp.allclose(gn.total_energy(three, 0.0, q3, p3), expect, rtol=1e-12)
 
 
 def test_total_energy_ignores_non_finite_tracer() -> None:

@@ -7,6 +7,7 @@ import operator
 from jaxtyping import Array, Bool, Float, Real
 from typing import Any, Final, final
 
+import diffrax as dfx
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -15,6 +16,7 @@ from plum import dispatch
 import unxt as u
 from unxt.quantity import AllowValue
 
+import galax.fields as gf
 import galax.orbits.custom_types as gt
 import galax.potential as gp
 from .backend import AbstractForceBackend
@@ -269,6 +271,36 @@ def from_(
     return cls.from_system(system, external_potential, backend=backend)
 
 
+def _use_rows(field: NBodyField, q: Float[Array, "N 3"]) -> Array:
+    """Return which rows (N,) are evaluated where they are.
+
+    Inactive rows and non-finite tracers are not. A non-finite massive row is,
+    so its NaN reaches every particle, as its force does.
+    """
+    idx = jnp.arange(q.shape[0])
+    finite = jnp.all(jnp.isfinite(q), axis=-1)
+    return field.active & (finite | (idx < field.n_massive))
+
+
+def _sources_targets(
+    field: NBodyField, q: Float[Array, "N 3"]
+) -> tuple[Float[Array, "N 3"], Sources, Targets]:
+    """Return ``q`` with unused rows moved away, and the sources and targets."""
+    nm = field.n_massive
+    idx = jnp.arange(q.shape[0])
+    # Inactive rows and non-finite tracers are moved to distinct far-away
+    # points, so the pair sum and the external force are evaluated there.
+    # Neither their forward values nor their gradients (0 * NaN is NaN) can
+    # then reach the other rows.
+    safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
+    q = jnp.where(_use_rows(field, q)[:, None], q, safe)
+    sources = Sources(
+        q=q[:nm], m=(field.masses * field.active)[:nm], h=field.softening[:nm]
+    )
+    targets = Targets(q=q, h=field.softening, self_index=jnp.where(idx < nm, idx, -1))
+    return q, sources, targets
+
+
 def nbody_acceleration(
     field: NBodyField, t: Any, q: Float[Array, "N 3"]
 ) -> Float[Array, "N 3"]:
@@ -284,25 +316,22 @@ def nbody_acceleration(
     non-finite position makes every active particle's acceleration NaN, since
     its force reaches them all; inactive rows still get 0.
 
+    A tracer at a finite position where the external potential's force, or
+    its derivative, is not finite (outside a user potential's valid region,
+    or exactly at a singular point) gets that non-finite force. Values of the
+    other particles are unaffected, but reverse-mode gradients through such a
+    step are NaN, because a zero cotangent times a NaN Jacobian is NaN.
+    Parked rows are also evaluated far away (`_SAFE`), so a potential that is
+    not finite there does the same.
+
     Traced masses and softening are checked here on the result, so the checks
     run whenever the acceleration is used, even when the inputs themselves
     never reach it (for example with ``n_massive=0``).
     """
     nm = field.n_massive
-    idx = jnp.arange(q.shape[0])
-    # Inactive rows and non-finite tracers are moved to distinct far-away
-    # points, so the pair sum and the external force are evaluated there.
-    # Neither their forward values nor their gradients (0 * NaN is NaN) can
-    # then reach the other rows, and a NaN cotangent on a non-finite tracer
-    # stops at the final `where` below.
-    finite = jnp.all(jnp.isfinite(q), axis=-1)
-    use = field.active & (finite | (idx < nm))
-    safe = jnp.zeros_like(q).at[:, 0].set(_SAFE * (1.0 + idx))
-    q = jnp.where(use[:, None], q, safe)
-    sources = Sources(
-        q=q[:nm], m=(field.masses * field.active)[:nm], h=field.softening[:nm]
-    )
-    targets = Targets(q=q, h=field.softening, self_index=jnp.where(idx < nm, idx, -1))
+    # A NaN cotangent on a non-finite tracer stops at the final `where` below.
+    use = _use_rows(field, q)
+    q, sources, targets = _sources_targets(field, q)
     backend = field.backend
     # G multiplies outside the gradient policy, so StopGrad on m keeps dG and
     # NoGrad's custom_jvp never closes over a traced G.
@@ -330,3 +359,27 @@ def __call__(
     x = jnp.asarray(u.ustrip(AllowValue, units["length"], x), dtype=float)
     v = jnp.asarray(u.ustrip(AllowValue, units["speed"], v), dtype=float)
     return v, self.acceleration(t, x)
+
+
+@AbstractOrbitField.terms.dispatch
+def terms(
+    self: NBodyField, _: dfx.SemiImplicitEuler | gf.Leapfrog, /
+) -> tuple[dfx.ODETerm, dfx.ODETerm]:
+    """Return the position and velocity terms for the two-term solvers.
+
+    With these, `galax.fields.Leapfrog` and `diffrax.SemiImplicitEuler` run an
+    `NBodyField` through `diffrax.diffeqsolve`, `diffraxtra.DiffEqSolver` or
+    `galax.orbits.OrbitSolver`. Other solvers use the field's ``__call__``.
+
+    >>> import jax.numpy as jnp
+    >>> import galax.fields as gf
+    >>> import galax.nbody as gn
+    >>> import galax.potential as gp
+    >>> field = gn.NBodyField(jnp.ones(2), 0.1, gp.NullPotential(units="galactic"))
+    >>> field.terms(gf.Leapfrog())
+    (ODETerm(...), ODETerm(...))
+    """
+    return (
+        dfx.ODETerm(lambda t, p, args: p),  # noqa: ARG005
+        dfx.ODETerm(lambda t, q, args: self.acceleration(t, q)),  # noqa: ARG005
+    )

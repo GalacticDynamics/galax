@@ -171,16 +171,25 @@ class System(eqx.Module):
             units=usys,
         )
 
-    def split(self, x: Array) -> dict[str, Array]:
-        """Split ``x`` along axis 0 into a dict keyed by component name.
+    def split(self, x: Any, /, *, axis: int = 0) -> dict[str, Any]:
+        """Split ``x`` along ``axis`` into a dict keyed by component name.
 
-        Axis 0 must have one row per particle. Raises `ValueError` otherwise.
+        ``axis`` must have one entry per particle. For saved states of shape
+        (..., S, N, 3), such as ``solution.ys[0]`` from `evolve`, pass
+        ``axis=-2``. Raises `ValueError` if ``axis`` has the wrong length.
         """
         n = self.slices[-1][1]
-        if x.shape[:1] != (n,):
-            msg = f"x must have {n} rows on axis 0, one per particle; got {x.shape}"
+        shape = np.shape(x)
+        if not -len(shape) <= axis < len(shape) or shape[axis] != n:
+            msg = f"x must have {n} entries on axis {axis}, one per particle"
+            msg += f"; got shape {shape}"
             raise ValueError(msg)
-        return {k: x[a:b] for k, (a, b) in zip(self.names, self.slices, strict=True)}
+        # Plain indexing, so Quantities and numpy arrays keep their type.
+        lead = (slice(None),) * (axis % len(shape))
+        return {
+            k: x[(*lead, slice(a, b))]
+            for k, (a, b) in zip(self.names, self.slices, strict=True)
+        }
 
 
 def _strip(x: Any, unit: Any) -> Array:

@@ -197,10 +197,30 @@ def test_constructor_converts_units_and_from_checks_them() -> None:
 
 def test_split_rejects_wrong_row_count() -> None:
     s = gn.System.from_(_comp("a", 2), _comp("t", 3, kind="tracer"), units="galactic")
-    with pytest.raises(ValueError, match="5 rows on axis 0"):
+    with pytest.raises(ValueError, match="5 entries on axis 0"):
         s.split(jnp.zeros((10, 5, 3)))
-    with pytest.raises(ValueError, match="5 rows on axis 0"):
+    with pytest.raises(ValueError, match="5 entries on axis 0"):
         s.split(jnp.zeros((3, 3)))
+    with pytest.raises(ValueError, match="5 entries on axis -2"):
+        s.split(jnp.zeros((5, 4, 3)), axis=-2)
+    with pytest.raises(ValueError, match="5 entries on axis 3"):
+        s.split(jnp.zeros((5, 3)), axis=3)
+    with pytest.raises(ValueError, match="5 entries on axis -3"):
+        s.split(jnp.zeros((5, 3)), axis=-3)
+
+
+def test_split_on_another_axis() -> None:
+    s = gn.System.from_(_comp("a", 2), _comp("t", 3, kind="tracer"), units="galactic")
+    x = jnp.arange(4 * 5 * 3.0).reshape(4, 5, 3)
+    parts = s.split(x, axis=-2)
+    assert bool(jnp.all(parts["a"] == x[:, :2]))
+    assert bool(jnp.all(parts["t"] == x[:, 2:]))
+    flat = s.split(x[0], axis=-2)  # axis == -ndim
+    assert bool(jnp.all(flat["t"] == x[0, 2:]))
+    y = jnp.arange(5 * 5 * 3.0).reshape(5, 5, 3)
+    first = s.split(y, axis=0)
+    assert first["a"].shape == (2, 5, 3)
+    assert bool(jnp.all(first["t"] == y[2:]))
 
 
 def test_bad_softening_and_policy_inputs_name_the_argument() -> None:
@@ -214,3 +234,12 @@ def test_bad_softening_and_policy_inputs_name_the_argument() -> None:
         gn.DirectSum(grad=["stop"])
     with pytest.raises(ValueError, match="wrt must be a set of names"):
         gn.StopGrad(wrt=None)
+
+
+def test_split_keeps_quantities_and_numpy() -> None:
+    s = gn.System.from_(_comp("a", 2), _comp("t", 3, kind="tracer"), units="galactic")
+    q = u.Q(np.asarray(s.particles.q), "kpc")
+    parts = s.split(q)
+    assert isinstance(parts["t"], u.AbstractQuantity)
+    assert parts["t"].shape == (3, 3)
+    assert isinstance(s.split(np.zeros((5, 3)))["a"], np.ndarray)

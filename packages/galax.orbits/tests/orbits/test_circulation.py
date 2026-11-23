@@ -25,13 +25,12 @@ def _orbit(x, y, z):
 
 
 ORBITS = {
-    "xy": (_orbit(C, S, Z), (False, False, True), 2),
-    "yz": (_orbit(Z, C, S), (True, False, False), 0),
-    "xz": (_orbit(C, Z, S), (False, True, False), 1),
+    "xy": (_orbit(C, S, Z), (False, False, True)),
+    "yz": (_orbit(Z, C, S), (True, False, False)),
+    "xz": (_orbit(C, Z, S), (False, True, False)),
     "box": (
         _orbit(C, 0.7 * jnp.cos(1.3 * T), 0.5 * jnp.cos(1.7 * T)),
         (False, False, False),
-        2,
     ),
 }
 
@@ -43,7 +42,7 @@ ORBITS = {
 @pytest.mark.parametrize("name", list(ORBITS))
 @pytest.mark.parametrize("jit", [False, True])
 def test_arrays(name, jit):
-    (q, p), expected, _ = ORBITS[name]
+    (q, p), expected = ORBITS[name]
     circ_f = jax.jit(go.circulation) if jit else go.circulation
 
     circ = circ_f(q, p)
@@ -70,13 +69,13 @@ def test_batch_and_vmap():
 
 
 def test_skips_nonfinite_samples():
-    (q, p), expected, _ = ORBITS["xy"]
+    (q, p), expected = ORBITS["xy"]
     q = q.at[0].set(jnp.nan).at[200].set(jnp.nan)
     assert tuple(np.asarray(go.circulation(q, p))) == expected
 
 
 def test_quantities():
-    (q, p), expected, _ = ORBITS["yz"]
+    (q, p), expected = ORBITS["yz"]
     qq, pq = u.Q(q, "kpc"), u.Q(p, "km/s")
     assert tuple(np.asarray(go.circulation(qq, pq))) == expected
     # The floor is relative, so tiny units do not change the answer.
@@ -85,7 +84,7 @@ def test_quantities():
 
 def test_float32_large_magnitudes():
     """|L|^2 would overflow float32 here; the result must not change."""
-    (q, p), expected, _ = ORBITS["yz"]
+    (q, p), expected = ORBITS["yz"]
     q, p = q.astype(jnp.float32), p.astype(jnp.float32)
     # A Milky Way orbit in m and m/s has |L| of about 5e25.
     big = go.circulation(q * 3e20, p * 2e5)
@@ -195,17 +194,17 @@ def test_coordinate_rejects_times(orbit):
 
 
 def test_all_masked_orbit_circulates_about_no_axis():
-    (q, p), _, _ = ORBITS["xy"]
+    (q, p), _ = ORBITS["xy"]
     q = jnp.full_like(q, jnp.nan)
     np.testing.assert_array_equal(go.circulation(q, p), [False, False, False])
     # A batch with one masked orbit leaves the others alone.
-    (q2, p2), expected, _ = ORBITS["yz"]
+    (q2, p2), expected = ORBITS["yz"]
     circ = go.circulation(jnp.stack([q, q2]), jnp.stack([p, p2]))
     np.testing.assert_array_equal(circ, [[False, False, False], expected])
 
 
 def test_zero_samples_raise():
-    (q, p), _, _ = ORBITS["xy"]
+    (q, p), _ = ORBITS["xy"]
     with pytest.raises(ValueError, match="T > 0"):
         go.circulation(q[:0], p[:0])
 
@@ -263,7 +262,7 @@ def test_orbit_t_none_uses_stored_samples(orbit):
 def _check_float32():
     rad_q = np.array([[1.1, 1.1, 1.1], [1.1, 2.2, 3.3]], dtype=np.float32)
     rad_p = np.array([[0.3, 0.3, 0.3], [0.77, 1.54, 2.31]], dtype=np.float32)
-    for name, ((qq, pp), expected, _) in ORBITS.items():
+    for name, ((qq, pp), expected) in ORBITS.items():
         out = go.circulation(np.asarray(qq, np.float32), np.asarray(pp, np.float32))
         assert out.tolist() == list(expected), name
     # Radial samples, one at a time and as orbits, do not circulate.
@@ -283,7 +282,7 @@ def test_float32_without_x64():
 
 def test_nd_non_cartesian_coordinate():
     """Two batch axes survive the conversion to Cartesian."""
-    (q, p), expected, _ = ORBITS["xy"]
+    (q, p), expected = ORBITS["xy"]
     qc = cx.CartesianPos3D.from_(u.Q(q, "kpc"))
     pc = cx.CartesianVel3D.from_(u.Q(p, "kpc/Myr"))
     qs = cx.vconvert(cx.vecs.SphericalPos, qc)
@@ -301,7 +300,7 @@ def test_nd_non_cartesian_coordinate():
 @pytest.mark.parametrize("q_batched", [False, True])
 def test_coordinate_q_and_p_with_different_batch_shapes(rep, q_batched):
     """Q of shape (T,) with p of shape (B, T), or the reverse, broadcast."""
-    (q, p), expected, _ = ORBITS["xy"]
+    (q, p), expected = ORBITS["xy"]
     q, p = jnp.stack([q, q]) if q_batched else q, p if q_batched else jnp.stack([p, p])
     qv = cx.CartesianPos3D.from_(u.Q(q, "kpc"))
     pv = cx.CartesianVel3D.from_(u.Q(p, "kpc/Myr"))
@@ -325,7 +324,7 @@ def test_float32_p_with_float64_q():
 @pytest.mark.parametrize("short", [(1,), ()])
 def test_coordinate_q_and_p_with_short_batch_shapes(rep, q_short, short):
     """A (1,) or () vector broadcasts against a (T,) one, both ways."""
-    (q, p), _, _ = ORBITS["xy"]
+    (q, p), _ = ORBITS["xy"]
     i = slice(7, 8) if short == (1,) else 7
     qa, pa = (q[i], p) if q_short else (q, p[i])
     qv = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
@@ -341,7 +340,7 @@ def test_coordinate_q_and_p_with_short_batch_shapes(rep, q_short, short):
 @pytest.mark.parametrize("dtype", [jnp.float16, jnp.bfloat16])
 @pytest.mark.parametrize("name", ["xy", "yz", "box"])
 def test_half_precision_matches_float32(name, dtype):
-    (q, p), expected, _ = ORBITS[name]
+    (q, p), expected = ORBITS[name]
     out = go.circulation(q.astype(dtype), p.astype(dtype))
     np.testing.assert_array_equal(out, expected)
     np.testing.assert_array_equal(
@@ -373,7 +372,7 @@ def test_half_precision_kepler_matches_float32():
 
 @pytest.mark.parametrize("name", list(ORBITS))
 def test_units_do_not_change_the_answer(name):
-    (q, p), expected, _ = ORBITS[name]
+    (q, p), expected = ORBITS[name]
     for qu, pu in [("kpc", "kpc/Myr"), ("m", "m/s"), ("pc", "km/s")]:
         out = go.circulation(u.Q(q, qu), u.Q(p, pu))
         np.testing.assert_array_equal(out, expected)
@@ -381,7 +380,7 @@ def test_units_do_not_change_the_answer(name):
 
 
 def test_wrong_dimensions_raise():
-    (q, p), _, _ = ORBITS["xy"]
+    (q, p), _ = ORBITS["xy"]
     with pytest.raises(Exception, match=r"(?i)unit|dimension|convert"):
         go.circulation(u.Q(q, "deg"), u.Q(p, "kpc/Myr"))
     with pytest.raises(Exception, match=r"(?i)unit|dimension|convert"):
@@ -390,7 +389,7 @@ def test_wrong_dimensions_raise():
 
 def test_batched_prolate_spheroidal_coordinate():
     """A batch broadcasts the vector components, not Delta."""
-    (qa, pa), expected, _ = ORBITS["yz"]
+    (qa, pa), expected = ORBITS["yz"]
     qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
     pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
     q = cx.vconvert(cx.vecs.ProlateSpheroidalPos, qc, Delta=u.Q(1.5, "kpc"))
@@ -399,3 +398,18 @@ def test_batched_prolate_spheroidal_coordinate():
     p2 = replace(p, **{c: qnp.stack([getattr(p, c)] * 2) for c in p.components})
     w = gc.PhaseSpaceCoordinate(q=q2, p=p2, t=u.Q(jnp.arange(len(qa)), "Myr"))
     np.testing.assert_array_equal(go.circulation(w), [expected, expected])
+
+
+def test_composite_of_single_points():
+    """Components of shape () are joined along time like longer ones."""
+    pts = [
+        gc.PhaseSpaceCoordinate(
+            q=u.Q([8.0 * np.cos(a), 8.0 * np.sin(a), 0], "kpc"),
+            p=u.Q([-200.0 * np.sin(a), 200.0 * np.cos(a), 0], "km/s"),
+            t=u.Q(float(i), "Myr"),
+        )
+        for i, a in enumerate([0.0, 0.5, 1.0])
+    ]
+    comp = gc.CompositePhaseSpaceCoordinate(a=pts[0], b=pts[1], c=pts[2])
+    assert comp["a"].q.shape == ()
+    np.testing.assert_array_equal(go.circulation(comp), [False, False, True])

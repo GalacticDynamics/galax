@@ -48,7 +48,10 @@ default_constants: Final = ImmutableMap(
 
 def _jax_constant(v: Any, /) -> Any:
     """Make a constant kept out of JAX a JAX `unxt.Quantity`."""
-    return u.Q.from_(v) if isinstance(v, u.StaticQuantity) else v
+    # Not `u.Q.from_(v)`, which takes about 4 times as long.
+    if isinstance(v, u.StaticQuantity):
+        return u.Q(jax.numpy.asarray(v.value), v.unit)
+    return v
 
 
 DimL = u.dimension("length")

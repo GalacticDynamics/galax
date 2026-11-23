@@ -381,6 +381,4 @@ def test_default_constants() -> None:
     pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
     assert isinstance(pot.constants["G"], u.Q)
     assert pot.constants["G"].unit == G.decompose(pot.units).unit
-    assert jnp.allclose(
-        pot.constants["G"].value, u.Q.from_(G).decompose(pot.units).value, rtol=0
-    )
+    assert pot.constants["G"].value == u.Q.from_(G).decompose(pot.units).value

@@ -18,7 +18,7 @@ from ..optional_deps import GSL_ENABLED, OptDeps
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
 from .test_common import ParameterMTotMixin
-from galax.potential._src.builtin.powerlawcutoff import potential
+from galax.potential._src.builtin.powerlawcutoff import mass_enclosed, potential
 
 
 class AlphaParameterMixin(ParameterFieldMixin):
@@ -293,6 +293,23 @@ def test_kernel_vmap_over_alpha_and_radius() -> None:
     )
     assert np.isfinite(np.asarray(grid)).all()
     assert (np.asarray(grid) < 0).all()
+
+
+@pytest.mark.parametrize("s", [0.5, 1.5, 2.0, 3.0, 10.0])
+@pytest.mark.parametrize("alpha", [0.0, 1.0, 1.9])
+def test_kernel_mass_enclosed_alpha_derivative(alpha: float, s: float) -> None:
+    """``d M(<r) / d alpha`` is finite and right inside and outside ``r_c``."""
+    r = np.float64(s * RC)
+    got = float(
+        jax.grad(lambda al: mass_enclosed({**_params(0.0), "alpha": al}, r))(alpha)
+    )
+    x = mp.mpf(s) ** 2
+    ref = M_TOT * mp.diff(
+        lambda al: mp.gammainc(mp.mpf("1.5") - al / 2, 0, x, regularized=True),
+        mp.mpf(alpha),
+    )
+    assert np.isfinite(got)
+    assert got == pytest.approx(float(ref), rel=1e-9, abs=1e-14)
 
 
 # ==============================================================================

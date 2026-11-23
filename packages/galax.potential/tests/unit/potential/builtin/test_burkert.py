@@ -29,6 +29,18 @@ def test_rho0() -> None:
     np.testing.assert_allclose(pot.rho0(0.0).ustrip("Msun / kpc3"), got, rtol=1e-12)
 
 
+def test_from_central_density() -> None:
+    """``from_central_density`` sets ``m = pi C rho_0 r_s^3`` and inverts ``rho0``."""
+    pot = gp.BurkertPotential.from_central_density(
+        u.Q(2.0e6, "Msun / kpc3"), u.Q(2.5, "kpc"), units="galactic"
+    )
+    c = 3 * np.log(2) - np.pi / 2
+    np.testing.assert_allclose(
+        pot.m(0.0).ustrip("Msun"), np.pi * c * 2.0e6 * 2.5**3, rtol=1e-12
+    )
+    np.testing.assert_allclose(pot.rho0(0.0).ustrip("Msun / kpc3"), 2.0e6, rtol=1e-12)
+
+
 @pytest.mark.parametrize("r_s", [0.7, 3.0])
 @pytest.mark.parametrize("x", [0.01, 0.3, 1.0, 3.0, 30.0, 1000.0])
 def test_potential_matches_mpmath(r_s: float, x: float) -> None:

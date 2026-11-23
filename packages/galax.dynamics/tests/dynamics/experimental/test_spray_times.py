@@ -65,11 +65,9 @@ def test_times_schedule() -> None:
     assert jnp.all(jnp.diff(grid) >= 0)
     np.testing.assert_array_equal(sched.release_times(), TS[::-1])
     np.testing.assert_array_equal(grid[sched.release_index()], TS[::-1])
-    np.testing.assert_array_equal(grid[sched.lattice_index()], sched.lattice())
     np.testing.assert_array_equal(sched.lattice(), sched.uniform().lattice())
     u = gde.Uniform(jnp.asarray(300.0), 4, 5)
     np.testing.assert_array_equal(u.grid(), u.lattice())
-    np.testing.assert_array_equal(u.lattice_index(), jnp.arange(16))
 
 
 @pytest.mark.parametrize(

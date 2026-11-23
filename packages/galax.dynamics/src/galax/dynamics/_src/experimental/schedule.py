@@ -66,10 +66,6 @@ class Uniform(eqx.Module):
         """Return the solve's time grid, the lattice itself."""
         return self.lattice()
 
-    def lattice_index(self) -> Array:
-        """Grid index of each lattice point."""
-        return jnp.arange(self.n_steps() + 1)
-
 
 class Times(eqx.Module):
     """Releases at arbitrary times ``ts``, between the points of a lattice.
@@ -147,10 +143,6 @@ class Times(eqx.Module):
         It has static length ``steps + 1 + n``; duplicates are kept.
         """
         return jnp.sort(jnp.concat([self.lattice(), self.ts]))
-
-    def lattice_index(self) -> Array:
-        """Grid index of each lattice point."""
-        return self._order()[: self.steps + 1]
 
     def release_index(self) -> Array:
         """Grid index of each release, in the order of ``ts``."""

@@ -701,3 +701,22 @@ def test_float32_non_cartesian_keeps_dtype():
     for v in (aligned.q, aligned.p):
         for c in v.components:
             assert getattr(v, c).dtype == jnp.float32, c
+
+
+def test_int_non_cartesian_is_not_truncated():
+    """Integer spherical components are promoted, not truncated, when swapped."""
+    (qa, pa), _, _ = ORBITS["yz"]
+    qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
+    pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
+    qf = cx.vconvert(cx.vecs.SphericalPos, qc)
+    pf = cx.vconvert(cx.vecs.SphericalVel, pc, qc)
+    # Integer r on the x tube (r is 8 kpc on the yz circle), float angles.
+    qi = replace(qf, r=u.Q(jnp.round(u.ustrip("kpc", qf.r)).astype(int), "kpc"))
+    wi = gc.PhaseSpaceCoordinate(q=qi, p=pf, t=u.Q(jnp.arange(len(qa)), "Myr"))
+    wf = gc.PhaseSpaceCoordinate(q=replace(qi, r=qi.r.astype(float)), p=pf, t=wi.t)
+    ai, axis = go.align_circulation(wi)
+    af, _ = go.align_circulation(wf)
+    assert int(axis) != 2
+    np.testing.assert_allclose(
+        u.ustrip("kpc", ai.q.r), u.ustrip("kpc", af.q.r), rtol=1e-12
+    )

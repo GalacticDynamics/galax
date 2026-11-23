@@ -246,14 +246,17 @@ def _vconvert(rep: Any, v: Any, at: Any = None, **kwargs: Any) -> Any:
 def _like(old: Any, new: Any, keep: Any) -> Any:
     """Return ``old`` with its components from ``new`` where ``keep`` is False.
 
-    Each component keeps the unit and dtype of ``old``'s, and fields that
-    are not components, e.g. ``Delta`` of a prolate spheroidal vector, are
-    kept.
+    Each component keeps the unit of ``old``'s, and its dtype if that is a
+    floating one. Fields that are not components, e.g. ``Delta`` of a
+    prolate spheroidal vector, are kept.
     """
     comps = {}
     for c in old.components:
         o = getattr(old, c)
-        n = u.uconvert(u.unit_of(o), getattr(new, c)).astype(o.dtype)
+        n = u.uconvert(u.unit_of(o), getattr(new, c))
+        # Keep a floating dtype; an integer one would truncate the result.
+        if jnp.issubdtype(o.dtype, jnp.floating):
+            n = n.astype(o.dtype)
         comps[c] = jnp.where(keep, o, n)
     return replace(old, **comps)
 

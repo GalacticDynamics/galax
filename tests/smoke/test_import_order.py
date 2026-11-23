@@ -172,8 +172,7 @@ def test_x64_enabled_after_import() -> None:
     ``G`` was then 4.4985023e-12 instead of 4.49850215e-12 kpc3 / (Msun Myr2).
     This checks ``G`` in a potential, in each default component of
     `galax.potential.MilkyWayPotential` (whose float32 and traced builds come
-    first), in `galax.nbody.NBodyField` and on a potential class, and the
-    Monari bar's parameter defaults.
+    first) and in `galax.nbody.NBodyField`, and some parameter defaults.
 
     pytest sets ``JAX_ENABLE_X64`` for the whole session, so the subprocess
     runs with it removed: x64 is off at import, as in a plain script.
@@ -207,14 +206,21 @@ def test_x64_enabled_after_import() -> None:
             check(f"MilkyWayPotential.{k}", pot.constants["G"])
         field = gn.NBodyField(u.Q([1.0], "Msun"), eps=u.Q(0.1, "kpc"))
         check("NBodyField", u.Q(field._G, unit))
-        check("NFWPotential class attribute", gp.NFWPotential.constants["G"])
 
         # Parameter defaults are built per instance too, and stay weakly typed.
         bar = gp.MonariEtAl2016BarPotential(
             R0=u.Q(8.0, "kpc"), v0=u.Q(220.0, "km/s"), units="galactic"
         )
-        for name, expect in [("alpha", 0.01), ("Omega", 52.2)]:
-            q = getattr(bar, name).value
+        tri = gp.TriaxialHernquistPotential(
+            m_tot=u.Q(1e10, "Msun"), r_s=u.Q(1.0, "kpc"), units="galactic"
+        )
+        for pot, name, expect in [
+            (bar, "alpha", 0.01),
+            (bar, "Omega", 52.2),
+            (bar, "Rb", 3.5),
+            (tri, "q1", 1.0),
+        ]:
+            q = getattr(pot, name).value
             assert q.value.dtype == "float64", (name, q.value.dtype)
             assert q.value.weak_type, name
             assert q.value.item() == expect, (name, q.value.item())

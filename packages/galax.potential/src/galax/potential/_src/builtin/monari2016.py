@@ -95,13 +95,13 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
     )
 
     Rb: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(3.5, "kpc"),
+        default=u.StaticQuantity(3.5, "kpc"),
         dimensions="length",
         doc="The length of the bar.",
     )
 
     phi_b: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(25, "deg"), dimensions="angle", doc="Bar angle."
+        default=u.StaticQuantity(25, "deg"), dimensions="angle", doc="Bar angle."
     )
 
     Omega: AbstractParameter = ParameterField(  # type: ignore[assignment]

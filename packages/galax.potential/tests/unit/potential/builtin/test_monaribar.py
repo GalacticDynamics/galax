@@ -68,18 +68,20 @@ class TestMonariEtAl2016BarPotential(
 
     # ==========================================================================
 
-    def test_default_alpha_and_omega(
+    def test_defaults(
         self,
         pot_cls: type[gp.MonariEtAl2016BarPotential],
         field_R0: u.AbstractQuantity,
         field_v0: u.AbstractQuantity,
         field_units: u.AbstractUnitSystem,
     ) -> None:
-        """The defaults are built per instance, weakly typed, in their own unit."""
+        """The defaults are weakly typed, in their own unit."""
         pot = pot_cls(R0=field_R0, v0=field_v0, units=field_units)
         for name, want in [
             ("alpha", u.Q(0.01, "")),
             ("Omega", u.Q(52.2, "km/(s kpc)")),
+            ("Rb", u.Q(3.5, "kpc")),
+            ("phi_b", u.Q(25, "deg")),
         ]:
             got = getattr(pot, name).value
             assert got.unit == want.unit, name

@@ -60,13 +60,13 @@ class TriaxialGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
     )
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the y/x direction.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the z/x direction.",
     )

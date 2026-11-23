@@ -37,6 +37,7 @@ from .solve import (
     default_solver,
     grid_time,
     host_terms,
+    index_time,
     is_lattice,
     progenitor_states,
     solve_on,
@@ -97,6 +98,18 @@ class SharedTrack(eqx.Module):
     with ``len(theta)``. A host with many parameters (a multipole expansion
     has thousands) can restrict ``theta`` with ``wrt``.
 
+    With a `Times` schedule the knots are on its uniform lattice
+    (`Times.uniform`), not on the merged grid of the release times, so
+    ``theta`` holds that schedule's ``t_age`` and ``t1`` and ``wrt`` is given
+    it as ``schedule``. With fixed steps that orbit is a separate solve along
+    the lattice, which differs from the merged-grid orbit the releases come
+    from by the two discretizations' difference.
+
+    An adaptive ``progenitor_solver`` makes ``S`` costly: each of its tangent
+    solves runs the adaptive solver over every knot, through ``jacfwd``. One
+    measurement took about 40 s for 5 releases with ``max_steps=400``. A
+    fixed-step ``progenitor_solver`` avoids this.
+
     First derivatives are exact. Second derivatives through the track are not:
     its sensitivity is held constant, so the track's own curvature in those
     inputs is dropped.
@@ -141,6 +154,9 @@ class PerParticle(eqx.Module):
 
     The lead and trail of a release are vmapped; ``loop`` (`jaxmore` `VMap` or
     `Scan`) maps over the releases. A failed solve gives NaN for its particle.
+    With fixed steps, a particle steps on the schedule's grid from its release
+    (for `Times`, the merged grid, like `WholeStream`); an adaptive solve
+    starts at its release time.
     Pick it for adaptive steps chosen per particle, or for a gradient with less
     memory than `WholeStream`'s; `Scan` cuts that memory further, at about 10
     times the gradient's run time with `VMap`.
@@ -174,7 +190,7 @@ class SpraySimulator(eqx.Module):
 
     Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
     `SprayResult`. ``schedule`` is a `Uniform` (releases on a lattice) or a
-    `Times` (releases at any times; `PerParticle` doesn't support it yet).
+    `Times` (releases at any times).
     ``w_today`` is the progenitor's state at ``schedule.t1``,
     ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
     release. A failed solve gives NaN, for the whole result in `WholeStream`
@@ -371,8 +387,9 @@ class _FromRelease(dfx.AbstractTerm):  # type: ignore[misc]
     def vf(self, t: Array, y: Any, args: Any) -> Any:
         return self.term.vf(jnp.maximum(t, self.t_release), y, args)
 
-    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Array:  # noqa: ARG002
-        return jnp.maximum(t1, self.t_release) - jnp.maximum(t0, self.t_release)
+    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Any:  # noqa: ARG002
+        tr = self.t_release
+        return self.term.contr(jnp.maximum(t0, tr), jnp.maximum(t1, tr))
 
     def prod(self, vf: Any, control: Array) -> Any:
         return self.term.prod(vf, control)
@@ -392,10 +409,16 @@ def evolve_per_particle(
     fixed-step solve steps over the whole ``lattice`` (static shapes), with
     no-op steps up to ``t0[i]``, so it takes exactly the lattice steps from
     ``t0[i]``. An adaptive one starts at ``t0[i]``. A failed solve gives NaN
-    for its particle only.
+    for its particle only. A non-finite ``lattice`` or ``t0`` gives NaN for
+    every particle and never raises: the solves run on stand-in times
+    (``arange``, or zero time when adaptive).
     """
     split = isinstance(solver.solver, gf.Leapfrog)
     on_lattice = is_lattice(solver)
+    ok = jnp.all(jnp.isfinite(lattice)) & jnp.all(jnp.isfinite(t0))
+    stand_in = jnp.arange(lattice.shape[0], dtype=float) if on_lattice else 0.0
+    lattice = jnp.where(ok, lattice, stand_in)
+    t0 = jnp.where(ok, t0, lattice[0])
 
     def one(w: Array, t: Array) -> Array:
         if on_lattice:
@@ -413,8 +436,9 @@ def evolve_per_particle(
     pair = jax.vmap(one, in_axes=(0, None))
     if loop is lstrat.Scan:
         w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0))
-        return w
-    return jax.vmap(pair)(w0, t0)
+    else:
+        w = jax.vmap(pair)(w0, t0)
+    return jnp.where(ok, w, jnp.nan)
 
 
 def _check_one_solver(sim: SpraySimulator) -> None:
@@ -555,30 +579,13 @@ def _evolve(
     sim: SpraySimulator,
     pot: gp.AbstractPotential,
     prog_pot: gp.AbstractPotential | None,
-    schedule: Times,
-    w_today: Array,
-    ws: Array,
-    lead0: Array,
-    trail0: Array,
-) -> tuple[Array, Array, Array]:
-    msg = "PerParticle modes don't support a Times schedule yet; use WholeStream"
-    raise NotImplementedError(msg)
-
-
-@dispatch
-def _evolve(
-    mode: PerParticle,
-    sim: SpraySimulator,
-    pot: gp.AbstractPotential,
-    prog_pot: gp.AbstractPotential | None,
-    schedule: Uniform,
+    schedule: Uniform | Times,
     w_today: Array,
     ws: Array,
     lead0: Array,
     trail0: Array,
 ) -> tuple[Array, Array, Array]:
     idx = schedule.release_index()
-    lattice = schedule.lattice()
     w0 = jnp.stack([lead0, trail0], axis=1)  # (n, 2, 6)
     if prog_pot is None:  # no progenitor model needed: the host alone
         terms = host_terms(pot, sim.solver)
@@ -588,10 +595,25 @@ def _evolve(
     else:  # one row about the shared track
         psolver = sim.progenitor_solver
         psolver = sim.solver if psolver is None else psolver
-        track = make_track(pot, w_today, schedule, psolver, ws, mode.progenitor.wrt)
+        # With `Times`, the knots are on its uniform lattice, so theta holds
+        # that schedule's t_age and t1, not every release time.
+        ksched = schedule.uniform() if isinstance(schedule, Times) else schedule
+        kws = ws
+        if isinstance(schedule, Times) and is_lattice(psolver):
+            kws = progenitor_states(pot, w_today, ksched, psolver)
+        track = make_track(pot, w_today, ksched, psolver, kws, mode.progenitor.wrt)
         terms = _TrackField(pot, prog_pot, track).terms(sim.solver)
         w0 = w0[:, :, None]
-    w = evolve_per_particle(terms, sim.solver, w0, lattice[idx], lattice, mode.loop)
+    if isinstance(schedule, Times) and is_lattice(sim.solver):
+        # Step on the merged grid in index time, from each release's index,
+        # like `WholeStream`: a copy then takes the progenitor's own steps.
+        grid = schedule.grid()
+        terms = index_time(terms, grid)
+        t0 = idx.astype(float)
+        steps = jnp.arange(grid.shape[0], dtype=float)
+    else:
+        t0, steps = schedule.release_times(), schedule.lattice()
+    w = evolve_per_particle(terms, sim.solver, w0, t0, steps, mode.loop)
     if prog_pot is not None:
         w = w[:, :, 0]
     return w[:, 0], w[:, 1], ws[-1]

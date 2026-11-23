@@ -1,8 +1,9 @@
-"""Tests for the `Times` schedule (arbitrary release times) in whole-stream mode."""
+"""Tests for the `Times` schedule (arbitrary release times)."""
 
 import diffrax as dfx
 import jax
 import jax.numpy as jnp
+import jaxmore.loop_strategies as lstrat
 import numpy as np
 import pytest
 
@@ -197,13 +198,110 @@ def test_times_unsorted(solver) -> None:
     np.testing.assert_allclose(outp[2], out[2], rtol=0, atol=1e-12)
 
 
-@pytest.mark.parametrize(
-    "mode", [gde.PerParticle(gde.Copies()), gde.PerParticle(gde.SharedTrack())]
-)
-def test_times_per_particle_raises(mode) -> None:
-    sim = gde.SpraySimulator(gde.Fardal2015DF(), mode, progenitor_potential=plummer)
-    with pytest.raises(NotImplementedError, match="Times"):
-        sim(KEY, HOST, W_TODAY, MSAT, gde.Times(TS, 30, T1))
+PER = {
+    "copies-vmap": gde.PerParticle(gde.Copies()),
+    "copies-scan": gde.PerParticle(gde.Copies(), lstrat.Scan),
+    "track-vmap": gde.PerParticle(gde.SharedTrack()),
+    "track-scan": gde.PerParticle(gde.SharedTrack(), lstrat.Scan),
+}
+
+
+def per(mode, solver=LEAP, prog=plummer) -> gde.SpraySimulator:
+    return gde.SpraySimulator(
+        gde.Fardal2015DF(), PER[mode], progenitor_potential=prog, solver=solver
+    )
+
+
+@pytest.mark.parametrize("prog", ["plummer", "none"])
+@pytest.mark.parametrize("mode", list(PER))
+def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
+    """Per-particle `Times` with Leapfrog equals the whole stream.
+
+    Copies and the host alone step on the merged grid like the whole stream,
+    so they match it to round-off. The track's knots come from a separate
+    Leapfrog solve on the uniform lattice, 2.9e-3 kpc from the merged-grid
+    orbit the releases come from, so the track matches only to about that
+    (measured 6.5e-3 kpc, 1.2e-4 kpc/Myr); both are well inside Leapfrog's own
+    error at this step (about 2e-2 kpc against an adaptive reference).
+    """
+    pp = plummer if prog == "plummer" else None
+    sched = gde.Times(TS, 30, T1)
+    sim_w = gde.SpraySimulator(
+        gde.Fardal2015DF(), gde.WholeStream(), progenitor_potential=pp
+    )
+    want = sim_w(KEY, HOST, W_TODAY, MSAT, sched)
+    got = per(mode, prog=pp)(KEY, HOST, W_TODAY, MSAT, sched)
+    exact = mode.startswith("copies") or pp is None
+    xtol, vtol = (1e-11, 1e-11) if exact else (1e-2, 1e-3)
+    for g, w in ((got.lead, want.lead), (got.trail, want.trail)):
+        assert jnp.all(jnp.isfinite(g))
+        np.testing.assert_allclose(g[:, :3], w[:, :3], rtol=0, atol=xtol)
+        np.testing.assert_allclose(g[:, 3:], w[:, 3:], rtol=0, atol=vtol)
+    np.testing.assert_array_equal(got.release_times, want.release_times)
+    np.testing.assert_allclose(got.progenitor, W_TODAY, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap"])
+def test_times_per_particle_grad(mode) -> None:
+    loss = _loss(per(mode))
+    g = jax.grad(loss)(TS)
+    eps = 1e-4
+    fd = jnp.stack(
+        [
+            (loss(TS.at[i].add(eps)) - loss(TS.at[i].add(-eps))) / (2 * eps)
+            for i in range(TS.shape[0])
+        ]
+    )
+    assert jnp.all(g != 0), g
+    np.testing.assert_allclose(g, fd, rtol=1e-5)
+    if mode == "copies-vmap":
+        fwd = dfxtra.DiffEqSolver(
+            gf.Leapfrog(),
+            stepsize_controller=dfx.ConstantStepSize(),
+            adjoint=dfx.ForwardMode(),
+        )
+        jf = jax.jacfwd(_loss(per(mode, fwd)))(TS)
+        np.testing.assert_allclose(jf, g, rtol=1e-10)
+
+
+@pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap"])
+def test_times_per_particle_adaptive(mode) -> None:
+    """Adaptive per-particle solves start at each release time.
+
+    They match a tight whole-stream reference.
+    """
+    sched = gde.Times(TS, 30, T1)
+    ref = whole(adaptive(1e-13, 100_000))(KEY, HOST, W_TODAY, MSAT, sched)
+    got = per(mode, adaptive(1e-10, 10_000))(KEY, HOST, W_TODAY, MSAT, sched)
+    d = jnp.linalg.norm(
+        jnp.concat([got.lead - ref.lead, got.trail - ref.trail])[:, :3], axis=1
+    )
+    assert jnp.max(d) < 1e-6, d
+
+
+@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("mode", ["copies-vmap", "track-scan"])
+def test_per_particle_nan_time(mode, solver) -> None:
+    """A NaN release time or ``t_age`` gives NaN under jit(vmap).
+
+    It never raises, for `Times` and for `Uniform`.
+    """
+    sim = per(mode, SOLVERS[solver])
+
+    def run_times(ts):
+        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
+        return jnp.concat([r.lead, r.trail])
+
+    def run_uniform(t_age):
+        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(t_age, 4, 5))
+        return jnp.concat([r.lead, r.trail])
+
+    got = jax.jit(jax.vmap(run_times))(jnp.stack([TS, TS.at[2].set(jnp.nan)]))
+    assert jnp.all(jnp.isfinite(got[0]))
+    assert jnp.all(jnp.isnan(got[1]))
+    got = jax.jit(jax.vmap(run_uniform))(jnp.asarray([300.0, jnp.nan]))
+    assert jnp.all(jnp.isfinite(got[0]))
+    assert jnp.all(jnp.isnan(got[1]))
 
 
 def test_batched_t1_raises() -> None:

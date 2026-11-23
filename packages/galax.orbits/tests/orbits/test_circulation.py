@@ -413,3 +413,16 @@ def test_composite_of_single_points():
     comp = gc.CompositePhaseSpaceCoordinate(a=pts[0], b=pts[1], c=pts[2])
     assert comp["a"].q.shape == ()
     np.testing.assert_array_equal(go.circulation(comp), [False, False, True])
+
+
+@pytest.mark.parametrize(("qu", "pu"), [("AU", "km/s"), ("m", "m/s"), ("Mpc", "km/s")])
+def test_half_precision_quantities_in_any_unit(qu, pu):
+    """Half-precision Quantities are promoted before the unit conversion."""
+    (q, p), expected = ORBITS["xy"]
+    for dtype in (jnp.float16, jnp.bfloat16):
+        out = go.circulation(u.Q(q.astype(dtype), qu), u.Q(p.astype(dtype), pu))
+        np.testing.assert_array_equal(out, expected)
+    # Integer Quantities are not truncated by the conversion either.
+    qi = u.Q(jnp.round(1000 * q).astype(int), qu)
+    pi = u.Q(jnp.round(1000 * p).astype(int), pu)
+    np.testing.assert_array_equal(go.circulation(qi, pi), expected)

@@ -44,15 +44,23 @@ _P_UNIT: Final = "kpc/Myr"
 # Array cores
 
 
+def _to_float(x: Any) -> Any:
+    """Cast ints to the default float and half precision to float32.
+
+    This runs before the unit conversion, which would otherwise underflow or
+    overflow in half precision and truncate integers.
+    """
+    x = x if hasattr(x, "dtype") else jnp.asarray(x)
+    floating = jnp.issubdtype(x.dtype, jnp.floating)
+    return x.astype(jnp.promote_types(x.dtype, jnp.float32) if floating else float)
+
+
 def _unit_scale(x: Array) -> Array:
     """Divide each sample of ``x`` by a power of 2 near its largest component.
 
     Dividing by a power of 2 is exact, so the signs and zeros of ``q x p`` do
     not change unless a component underflows.
     """
-    # Ints become the default float, half precision becomes float32.
-    floating = jnp.issubdtype(x.dtype, jnp.floating)
-    x = x.astype(jnp.promote_types(x.dtype, jnp.float32) if floating else float)
     m = jnp.max(jnp.abs(x), axis=-1, keepdims=True)
     # Clearing the mantissa bits of m leaves the power of 2 at or below it.
     # jnp.frexp would do the same, but is several times slower.
@@ -102,8 +110,8 @@ def _check_shape(q: Any, p: Any) -> tuple[int, ...]:
 
 def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
     """Check the shapes of (..., T, 3) inputs and run the jitted core."""
-    q = jnp.asarray(u.ustrip(AllowValue, _Q_UNIT, q))
-    p = jnp.asarray(u.ustrip(AllowValue, _P_UNIT, p))
+    q = jnp.asarray(u.ustrip(AllowValue, _Q_UNIT, _to_float(q)))
+    p = jnp.asarray(u.ustrip(AllowValue, _P_UNIT, _to_float(p)))
     _check_shape(q, p)
     q, p = jax.lax.stop_gradient(q), jax.lax.stop_gradient(p)
     return _circulation_core(q, p)  # type: ignore[no-any-return]

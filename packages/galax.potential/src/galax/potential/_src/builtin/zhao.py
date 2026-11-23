@@ -11,13 +11,12 @@ is obtained by automatic differentiation: `gradient`, `hessian` and `laplacian`
 are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
 
-Accuracy: `spexial.incomplete_beta` loses digits when $\alpha(\beta - 3)$ is
-large (JAXtronomy/spexial#65 fixes the cause; this note is temporary). The
-numbers here are approximate, and the error is jagged in $r$. Every quantity
-is good to about 1e-11 when $\alpha(\beta - 3)$ is at most about 12, for
-example at $(\alpha, \beta, \gamma) = (2, 9, 0)$. Beyond that it grows
-quickly, to about 1e-1 in the potential at $(5, 10, 0)$ and to about 1e-3 in
-the other quantities there.
+Accuracy: `spexial.incomplete_beta` loses digits for large $\alpha$ and large
+$\beta$ (JAXtronomy/spexial#65 fixes the cause, and this note goes away with
+it). The error is jagged in $r$, so the numbers are approximate. At
+$(\alpha, \beta, \gamma) = (2, 9, 0)$ every quantity is good to better than
+1e-11. At $(5, 10, 0)$ the potential is off by about 1e-1 and the other
+quantities by about 1e-3.
 """
 
 __all__ = [

@@ -112,7 +112,9 @@ def test_quantities():
     assert isinstance(q2, u.AbstractQuantity)
     assert q2.unit == qq.unit
     assert p2.unit == pq.unit
-    _check_aligned(q2.value, p2.value, expected, axis, axis_exp)
+    _check_aligned(
+        u.ustrip(qq.unit, q2), u.ustrip(pq.unit, p2), expected, axis, axis_exp
+    )
 
 
 def test_align_gradient_is_finite():
@@ -189,8 +191,8 @@ def test_orbit(orbit):
 
 
 def _cart(obj):
-    q = jnp.stack([obj.q.x.value, obj.q.y.value, obj.q.z.value], -1)
-    p = jnp.stack([obj.p.x.value, obj.p.y.value, obj.p.z.value], -1)
+    q = jnp.stack([u.ustrip("kpc", getattr(obj.q, c)) for c in "xyz"], -1)
+    p = jnp.stack([u.ustrip("kpc/Myr", getattr(obj.p, c)) for c in "xyz"], -1)
     return q, p
 
 
@@ -260,7 +262,7 @@ def test_align_orbit_and_coordinate(orbit, as_coordinate):
     # An explicit circ gives the same result.
     aligned2, axis2 = go.align_circulation(obj, go.circulation(obj))
     np.testing.assert_array_equal(axis2, axis)
-    assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)
+    assert jnp.array_equal(u.ustrip("kpc", aligned2.q.x), u.ustrip("kpc", aligned.q.x))
 
 
 # ===================================================================
@@ -326,7 +328,7 @@ def test_composite(composite):
     # An explicit circ reaches the coordinate overload, not the array one.
     aligned2, axis2 = go.align_circulation(composite, go.circulation(composite))
     np.testing.assert_array_equal(axis2, axis)
-    assert jnp.array_equal(aligned2.q.x.value, aligned.q.x.value)
+    assert jnp.array_equal(u.ustrip("kpc", aligned2.q.x), u.ustrip("kpc", aligned.q.x))
 
 
 def test_composite_mixed_representations(orbit):
@@ -465,7 +467,10 @@ def test_half_precision_kepler_matches_float32():
         q=u.Q([1.0, 0, 0.1], "AU"), p=u.Q([0, 20.0, 1.0], "km/s"), t=u.Q(0.0, "yr")
     )
     o = go.compute_orbit(pot, w0, u.Q(jnp.linspace(0, 5, 2001), "yr"))
-    q, p = (np.stack([getattr(v, c).value for c in "xyz"], -1) for v in (o.q, o.p))
+    q, p = (
+        np.stack([u.ustrip(unit, getattr(v, c)) for c in "xyz"], -1)
+        for v, unit in ((o.q, "AU"), (o.p, "km/s"))
+    )
     ref = go.circulation(q.astype(np.float32), p.astype(np.float32))
     for dtype in (jnp.float16, jnp.bfloat16):
         np.testing.assert_array_equal(
@@ -505,10 +510,10 @@ def test_align_keeps_the_input_units(q_quantity):
     assert isinstance(p2, u.AbstractQuantity) != q_quantity
     if q_quantity:
         assert q2.unit == u.unit("pc")
-        np.testing.assert_array_equal(q2.value, q[:, [2, 1, 0]])
+        np.testing.assert_array_equal(u.ustrip("pc", q2), q[:, [2, 1, 0]])
     else:
         assert p2.unit == u.unit("km/s")
-        np.testing.assert_array_equal(p2.value, p[:, [2, 1, 0]])
+        np.testing.assert_array_equal(u.ustrip("km/s", p2), p[:, [2, 1, 0]])
 
 
 # ===================================================================
@@ -610,7 +615,9 @@ def test_align_composite_keeps_component_units():
 def test_align_orbit_keeps_units_and_time(orbit):
     aligned, _ = go.align_circulation(orbit)
     _check_keeps_units(orbit, aligned)
-    np.testing.assert_array_equal(aligned.t.value, orbit.t.value)
+    np.testing.assert_array_equal(
+        u.ustrip(orbit.t.unit, aligned.t), u.ustrip(orbit.t.unit, orbit.t)
+    )
     assert aligned.t.unit == orbit.t.unit
 
 

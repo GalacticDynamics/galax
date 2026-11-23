@@ -237,7 +237,8 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
         Cartesian positions and velocities along the orbits. Bare arrays are
         in ``pot.units``.
     t : Quantity[time] or Array, shape (..., T)
-        The sample times, broadcast against ``q`` and ``p``.
+        The sample times, broadcast against ``q`` and ``p``. The samples
+        should be in time order with no long gaps; see ``n_bad_cover``.
     w : `galax.coordinates.AbstractPhaseSpaceCoordinate`
         An orbit, e.g. from `galax.dynamics.evaluate_orbit`. It must have a
         time axis, which is its last batch axis. A single phase-space point,
@@ -287,8 +288,12 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           length.
         - ``n_bad_cover``: the number of n-vectors whose angle covers less
           than 2 pi, or whose span divided by the number of kept (unmasked)
-          samples exceeds pi (the mean step, as in gala). It leaves out the
-          n-vectors that involve a rest axis and the resonant n-vectors.
+          samples exceeds pi (the mean step, as in gala). All of them count
+          when the toy frequencies predict a step of more than pi / 2 in some
+          toy angle between two kept samples, e.g. across a gap in ``t`` or
+          with samples out of time order, since the angles then cannot be
+          unwrapped. It leaves out the n-vectors that involve a rest axis and
+          the resonant n-vectors.
         - ``n_nan``: the number of samples dropped for non-finite toy
           values. Samples with a non-finite input are also left out of the
           classification and the toy fit.

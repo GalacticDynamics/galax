@@ -99,10 +99,12 @@ class O2GFResult(eqx.Module):
     n-vectors, except those that involve a rest axis, whose angle covers
     less than 2 pi, or whose span divided by the number of kept (unmasked)
     samples exceeds pi (the mean step, as in gala). All of them count when
-    any toy angle steps by more than pi between two kept samples, e.g.
-    across a gap in ``t`` or with samples out of time order, since the
-    angles can then not be unwrapped. Those below the resonance threshold
-    are left out of the fit too.
+    the toy frequencies predict a step of more than pi / 2 in some toy
+    angle between two kept samples, e.g. across a gap in ``t`` or with
+    samples out of time order, since the angles then cannot be unwrapped.
+    The margin covers fitted toys, whose angles can run up to about 1.3
+    times faster than their frequencies over a few samples. Those below the
+    resonance threshold are left out of the fit too.
     ``n_nan`` counts the samples dropped for non-finite toy values. Samples
     with a non-finite input are also left out of the classification and of
     the toy fit.
@@ -218,9 +220,11 @@ def _path(
     tc = jnp.mean(jnp.where(jnp.isfinite(t), t, 0.0))
     # The unwrap along T needs each toy angle to step by less than pi between
     # kept samples. A gap in t, or samples out of time order, breaks that.
+    # A fitted toy's angles can run ~1.3x faster than Om_toy over a few
+    # samples, so flag predicted steps above pi / 2.
     dt = jnp.abs(jnp.diff(fill_masked(t, keep)))
     step = jnp.where(rest, 0.0, jnp.abs(Om_toy[1:]) * dt[:, None])
-    coarse = jax.lax.stop_gradient(jnp.nanmax(step, initial=0.0) > jnp.pi)
+    coarse = jax.lax.stop_gradient(jnp.nanmax(step, initial=0.0) > jnp.pi / 2)
     J, sn, th0, Om, dsn, n_bad, n_nan, n_res = solve_o2gf(
         J, theta, t - tc, nvecs, rest, coarse
     )

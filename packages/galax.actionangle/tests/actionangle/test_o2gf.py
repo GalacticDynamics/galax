@@ -678,3 +678,13 @@ def test_gap_or_shuffle_in_t_flags():
     i = np.arange(len(t))[::-1]
     r = o2gf(ISO, q[i], p[i], t[i], n_max=6)
     assert not bool(r.flagged)
+
+
+def test_gap_flags_with_fitted_box_toy():
+    """A fitted toy's angles outrun its frequencies; the gap check has margin."""
+    pot, (q, p, t) = _log_box()
+    keep = np.ones(len(t), bool)
+    keep[1884:1891] = False  # predicted step 0.77 pi, actual step 1.06 pi
+    r = o2gf(pot, q[keep], p[keep], t[keep], n_max=6)
+    assert bool(r.flagged)
+    assert int(r.n_bad_cover) > 0

@@ -13,17 +13,21 @@ alternative is differentiating through that function on every force evaluation.
 
 Accuracy: `spexial.incomplete_beta` loses digits when $\alpha(\beta - 3)$ is
 large. Measured against `mpmath` (its own density, normalized to $m$ inside
-$r_s$, and quadrature), over 9 to 34 radii between $10^{-3} r_s$ and
-$7 \times 10^4 r_s$, as the worst relative error over those radii (for
-`d2potential_dr2` and `hessian`, relative to the sum of the magnitudes of the
-terms they are made of):
+$r_s$, and quadrature), as the worst relative error over radii between
+$10^{-3} r_s$ and $7 \times 10^4 r_s$ (for `d2potential_dr2` and `hessian`,
+relative to the sum of the magnitudes of the terms they are made of). The error
+is jagged in $r$, so the worst value depends on which radii are sampled: two
+scans with different radii gave worst values up to 2.7 times apart. The values
+below are the larger of the two, rounded up, so they are upper bounds only
+for radii like those scanned.
 
 - 17 parameter sets with $\alpha \leq 2$ and $\beta \leq 9$, among them
   $(2, 9, 0)$: the potential is good to 4e-12 and every other quantity to
-  2e-13.
-- $(3, 8, 0)$: the potential 1.1e-10, every other quantity 4.2e-12.
-- $(4, 12, 0.5)$: the potential 1.4e-3, every other quantity 3.2e-5.
-- $(5, 10, 0)$: the potential 8.0e-2, every other quantity 3.4e-4.
+  3e-13. Nearby sets such as $(1.9, 8.9, 0)$ and $(2, 9, 0.15)$ gave other
+  quantities up to 3e-13.
+- $(3, 8, 0)$: the potential 3e-10, every other quantity 6e-12.
+- $(4, 12, 0.5)$: the potential 5e-3, every other quantity 6e-5.
+- $(5, 10, 0)$: the potential 2e-1, every other quantity 6e-4.
 
 Every quantity uses `incomplete_beta` through the normalization, so all are
 affected; the potential, which also uses it at $\chi$ and $1 - \chi$, most.

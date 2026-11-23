@@ -102,9 +102,7 @@ class CompositePotential(  # type: ignore[misc]
         object.__setattr__(
             self,
             "constants",
-            ImmutableMap(
-                {k: _jax_constant(v).decompose(usys) for k, v in constants.items()}
-            ),
+            ImmutableMap({k: _jax_constant(v, usys) for k, v in constants.items()}),
         )
 
         # Apply the unit system to any parameters.

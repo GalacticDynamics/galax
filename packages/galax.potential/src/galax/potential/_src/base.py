@@ -46,12 +46,29 @@ default_constants: Final = ImmutableMap(
 )
 
 
-def _jax_constant(v: Any, /) -> Any:
-    """Make a constant kept out of JAX a JAX `unxt.Quantity`."""
-    # Not `u.Q.from_(v)`, which takes about 4 times as long.
+def _jax_constant(v: Any, usys: u.AbstractUnitSystem | None = None, /) -> Any:
+    """Return constant ``v`` as a JAX `unxt.Quantity` in ``usys`` (if given)."""
     if isinstance(v, u.StaticQuantity):
-        return u.Q(jax.numpy.asarray(v.value), v.unit)
-    return v
+        return _jax_static_constant(v, usys, jax.dtypes.canonicalize_dtype(float))
+    return v if usys is None else v.decompose(usys)
+
+
+@ft.cache
+@jax.ensure_compile_time_eval()
+def _jax_static_constant(
+    v: u.StaticQuantity, usys: u.AbstractUnitSystem | None, dtype: Any, /
+) -> Any:
+    """Convert ``v`` once per unit system and float precision.
+
+    The unit conversion is most of the cost of constructing a simple potential,
+    so the result is shared by the potentials. ``dtype`` is only the cache key.
+    It runs under `jax.ensure_compile_time_eval`, so a first call inside a trace
+    caches a concrete array, not a tracer.
+    """
+    del dtype  # only the cache key
+    # Not `u.Q.from_(v)`, which takes about 4 times as long.
+    q = u.Q(jax.numpy.asarray(v.value), v.unit)
+    return q if usys is None else q.decompose(usys)
 
 
 DimL = u.dimension("length")
@@ -144,9 +161,8 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
                     object.__setattr__(self, f.name, value)
 
         # Make the constants JAX Quantities, and do their unit conversion
-        constants = {k: _jax_constant(v) for k, v in self.constants.items()}
-        if self.units != u.unitsystems.dimensionless:
-            constants = {k: v.decompose(usys) for k, v in constants.items()}
+        to = None if self.units == u.unitsystems.dimensionless else usys
+        constants = {k: _jax_constant(v, to) for k, v in self.constants.items()}
         object.__setattr__(self, "constants", ImmutableMap(constants))
 
     ###########################################################################

@@ -313,7 +313,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         #       the `constants` of every potential (before `super().__init__`)
         constants = fields["constants"].metadata["converter"](constants)
         self.constants = ImmutableMap(
-            {k: _jax_constant(v).decompose(self.units) for k, v in constants.items()}
+            {k: _jax_constant(v, self.units) for k, v in constants.items()}
         )
 
         # Initialize the Parameter (potential) fields

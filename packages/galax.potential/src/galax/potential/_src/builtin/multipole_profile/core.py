@@ -764,7 +764,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             fn = ft.partial(lambda f, xyz, tt: f(xyz, tt), fn)
         rho_fn: Any = fn if log_rho is None else LogDensity(fn)
 
-        G_ = jnp.asarray(_jax_constant(consts["G"]).decompose(usys).value)
+        G_ = jnp.asarray(_jax_constant(consts["G"], usys).value)
 
         def build_at(tt: gt.BBtSz0) -> dict[str, Array]:
             out: dict[str, Array] = build_expansion(

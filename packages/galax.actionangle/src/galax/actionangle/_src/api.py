@@ -340,14 +340,16 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     measured against quadrature) without a flag. The same happens in
     spherical Hernquist loops, where J_r was off by 1.0e-3 to 2.6e-3 with
     J_r/L of 7 to 36. Eccentric orbits in other cuspy potentials are likely
-    to behave the same way. A higher ``n_max`` makes it worse, and a longer
-    orbit does not reduce it.
+    to behave the same way. A longer orbit does not reduce it, and a higher
+    ``n_max`` does not reliably reduce it either. In Hernquist the error grew
+    with ``n_max``, and in NFW it went up or down depending on the orbit.
 
     On flagged, ill-conditioned orbits (Jacobian norm around 1e17) the
     fitted toy depends on what else is in the batch, and the actions moved
     by about 3 percent between batch compositions. Unflagged orbits agree
-    with single-orbit runs to 5e-14. The results for flagged orbits are not
-    reproducible.
+    with single-orbit runs to 5e-14. The same batch always gives the same
+    result, but the result for an ill-conditioned orbit can change when the
+    other orbits in the batch change.
 
     In a spherical or nearly spherical potential, numerical noise in the
     samples of about 1e-7 relative or larger can keep a resonant mode just

@@ -118,9 +118,9 @@ class O2GFResult(eqx.Module):
     orbit is ``flagged`` when ``n_bad_cover > 0``, more than `NAN_MAX`
     samples were dropped, the fit did not converge, ``toy_degenerate`` is
     True, ``thin_box`` is True, or ``family_mismatch`` is True. A flagged
-    orbit keeps its values, so check ``flagged`` before using them. The
-    results for flagged orbits can change with the composition of the batch
-    and are not reproducible.
+    orbit keeps its values, so check ``flagged`` before using them. When
+    the toy fit is ill-conditioned, the result for an orbit can change when
+    the other orbits in the batch change.
     """
 
     aaf: ActionsAnglesFrequencies

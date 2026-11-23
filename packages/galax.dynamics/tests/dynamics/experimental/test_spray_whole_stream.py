@@ -254,6 +254,7 @@ def test_matches_legacy_generator() -> None:
         jnp.concat([lead - res.lead[:-1], trail - res.trail[:-1]])[:, :3], axis=1
     )
     assert jnp.median(d) < 1e-5, jnp.median(d)
+    assert jnp.max(d) < 1e-4, jnp.max(d)
 
 
 @pytest.mark.slow
@@ -268,6 +269,7 @@ def test_matches_gala() -> None:
     got = np.concatenate([res.lead[:-1], res.trail[:-1]])
     d = np.linalg.norm(got[:, :3] - ref[:, :3], axis=1)
     assert np.median(d) < 1e-5, np.median(d)
+    assert np.max(d) < 1e-4, np.max(d)
 
 
 MODES = {

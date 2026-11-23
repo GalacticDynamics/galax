@@ -1,5 +1,7 @@
 """Tests for the `Times` schedule (arbitrary release times)."""
 
+import functools as ft
+
 import diffrax as dfx
 import jax
 import jax.numpy as jnp
@@ -8,14 +10,17 @@ import numpy as np
 import pytest
 
 import diffraxtra as dfxtra
+import unxt as u
 
 import galax.dynamics as gd
 import galax.fields as gf
+import galax.potential as gp
 from .test_spray_whole_stream import (
     HOST,
     KEY,
     LEAP,
     MSAT,
+    USYS,
     W_TODAY,
     adaptive,
     plummer,
@@ -351,3 +356,110 @@ def test_times_vmap_and_nan(solver) -> None:
     np.testing.assert_array_equal(got[:2], jax.jit(jax.vmap(run))(tss[:2]))
     assert jnp.all(jnp.isnan(got[2]))
     assert jnp.all(jnp.isnan(run(tss[2])))
+
+
+# A host whose mass grows in time, with t1 != 0: a stream from the wrong force
+# times (an offset in the time the host is evaluated at) shows up here.
+TD_HOST = gp.NFWPotential(
+    m=gp.params.LinearParameter(
+        slope=u.Q(5e8, "Msun/Myr"),
+        point_time=u.Q(0.0, "Myr"),
+        point_value=u.Q(1e12, "Msun"),
+    ),
+    r_s=15.0,
+    units=USYS,
+)
+TD_T1 = jnp.asarray(250.0)
+TD_MODES = {
+    "whole": gde.WholeStream(),
+    "copies": gde.PerParticle(gde.Copies()),
+    "track": gde.PerParticle(gde.SharedTrack()),
+}
+
+
+def td_schedule(kind: str, t1=TD_T1):
+    if kind == "uniform":
+        return gde.Uniform(jnp.asarray(1000.0), 16, 1, t1)
+    ts = t1 + jnp.asarray([-1000.0, -873.2, -640.9, -401.7, -222.2, -35.6])
+    return gde.Times(ts, 30, t1)
+
+
+@ft.cache
+def td_legacy(kind: str):
+    """Return the legacy generator's solves from our release states to ``t1``."""
+    solver = adaptive(1e-7, 2**16)
+    sched = td_schedule(kind)
+    ws = progenitor_states(TD_HOST, W_TODAY, sched, solver)
+    idx, ts = sched.release_index(), sched.release_times()
+    xl, vl, xt, vt = sample_releases(
+        gde.Chen2024DF(),
+        KEY,
+        TD_HOST,
+        ts,
+        ws[idx, :3],
+        ws[idx, 3:],
+        jnp.broadcast_to(MSAT, ts.shape),
+    )
+    w0s = jnp.stack(
+        [jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)], axis=1
+    )
+    gen = gd.MockStreamGenerator(
+        gd.ChenStreamDF(), TD_HOST, progenitor_potential=plummer(MSAT)
+    )
+
+    def pair(w0, t0, prog_w0):
+        return gen._integrate_to(w0, u.Q(t0, "Myr"), u.Q(sched.t1, "Myr"), prog_w0)
+
+    keep = ts < sched.t1  # a release at t1 is its release state
+    return keep, jax.jit(jax.vmap(pair))(w0s[keep], ts[keep], ws[idx][keep])
+
+
+@pytest.mark.parametrize("kind", ["uniform", "times"])
+@pytest.mark.parametrize("mode", list(TD_MODES))
+def test_time_dependent_host_matches_legacy(mode, kind) -> None:
+    keep, (lead, trail) = td_legacy(kind)
+    sim = gde.SpraySimulator(
+        gde.Chen2024DF(),
+        TD_MODES[mode],
+        progenitor_potential=plummer,
+        solver=adaptive(1e-7, 2**16),
+    )
+    res = sim(KEY, TD_HOST, W_TODAY, MSAT, td_schedule(kind))
+    d = jnp.linalg.norm(
+        jnp.concat([lead - res.lead[keep], trail - res.trail[keep]])[:, :3], axis=1
+    )
+    assert jnp.median(d) < 1e-5, d
+    assert jnp.max(d) < 1e-4, d
+
+
+@pytest.mark.parametrize("kind", ["uniform", "times"])
+@pytest.mark.parametrize("mode", list(TD_MODES))
+def test_time_dependent_host_time_grads(mode, kind) -> None:
+    """Gradients in ``t1`` and the release times (``t_age`` or ``ts``)."""
+    sim = gde.SpraySimulator(
+        gde.Fardal2015DF(), TD_MODES[mode], progenitor_potential=plummer
+    )
+    base = td_schedule(kind)
+
+    def loss(x: jax.Array) -> jax.Array:
+        if kind == "uniform":
+            sched = gde.Uniform(x[1], 4, 5, x[0])
+        else:
+            sched = gde.Times(x[1:], 30, x[0])
+        r = sim(KEY, TD_HOST, W_TODAY, MSAT, sched)
+        return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
+
+    if kind == "uniform":
+        x = jnp.stack([TD_T1, base.t_age])
+    else:
+        x = jnp.concat([TD_T1[None], base.ts])
+    g = jax.grad(loss)(x)
+    eps = 1e-4
+    fd = jnp.stack(
+        [
+            (loss(x.at[i].add(eps)) - loss(x.at[i].add(-eps))) / (2 * eps)
+            for i in range(x.shape[0])
+        ]
+    )
+    assert jnp.all(g != 0), g
+    np.testing.assert_allclose(g, fd, rtol=1e-5)

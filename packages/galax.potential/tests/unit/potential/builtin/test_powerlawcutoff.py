@@ -169,7 +169,16 @@ class TestPowerLawCutoffPotential(
 RC, M_TOT, G = 1.7, 3.0, 1.3  # generic values, so a stray factor shows up
 ALPHAS = (0.0, 0.5, 1.0, 1.5, 1.9, 1.999, 2.0, 2.001, 2.5, 2.9)
 NEAR_TWO = (2 - 1e-9, 2 + 1e-9)  # where the incomplete gamma terms cancel
-RADII = (1e-3, 1e-2, 0.1, 1.0, 3.0, 10.0)  # in r_c
+RADII = (
+    1e-3,
+    1e-2,
+    0.1,
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    10.0,
+)  # in r_c; 1.5 and 2 are in the continued fraction
 EXTREME_RADII = (1e-8, 20.0)
 
 

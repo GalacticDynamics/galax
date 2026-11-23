@@ -10,6 +10,12 @@ density (Eq. 1) -- is closed-form in terms of the incomplete beta function
 is obtained by automatic differentiation: `gradient`, `hessian` and `laplacian`
 are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
+
+Accuracy: `spexial.incomplete_beta` loses digits when $\alpha(\beta - 3)$ is
+large. Against `mpmath`, with $\alpha \leq 2$ and $\beta \leq 9$ every
+quantity is good to 1e-13. At $(\alpha, \beta, \gamma) = (4, 12, 0.5)$ the
+potential is off by 1.4e-3, and at $(5, 10, 0)$ every quantity is off by 3e-4
+and the potential by up to 8e-2.
 """
 
 __all__ = [

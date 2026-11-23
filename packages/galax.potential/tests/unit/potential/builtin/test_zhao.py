@@ -13,7 +13,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 from ..param.test_field import ParameterFieldMixin
 from ..test_core import AbstractSinglePotential_Test
-from .test_common import ParameterMMixin, ParameterRSMixin
+from .test_common import ParameterMMixin, ParameterRSMixin, mp_spherical_potential
 from galax.potential import zhao
 
 
@@ -247,6 +247,37 @@ def test_laplacian_is_poisson(abg, r: float) -> None:
 
 # ===================================================================
 # `from_m_tot`
+
+# alpha <= 2 and beta <= 9, where `spexial.incomplete_beta` is accurate (see the
+# module docstring of `zhao.py`).
+CLEAN_ABG = [(1, 4, 1), (2, 5, 0), (1.5, 4.5, 1.2), (2, 4, 0.5), (0.5, 6, 1.5)]
+
+
+@pytest.mark.parametrize("abg", CLEAN_ABG)
+@pytest.mark.parametrize("x", [0.01, 0.3, 1.0, 3.0, 30.0, 1000.0])
+def test_potential_matches_mpmath(abg, x: float) -> None:
+    """Phi(r) from the quadrature of Eq. 1, normalised to ``m`` inside ``r_s``.
+
+    The class fixtures compare the potential only at ``jnp.isclose``'s default
+    rtol of 1e-5. The reference uses the density shape alone. 1e-10 relative.
+    """
+    alpha, beta, gamma = abg
+    m, r_s, g = 1e11, 1.7, 1.3
+    ref = mp_spherical_potential(
+        lambda s: (
+            (s / r_s) ** -gamma
+            * (1 + (s / r_s) ** (1 / mp.mpf(alpha)))
+            ** (-(beta - gamma) * mp.mpf(alpha))
+        ),
+        r_s,
+        m,
+        g,
+        x * r_s,
+        r_norm=r_s,
+    )
+    p = {"G": g, "m": m, "r_s": r_s, "alpha": alpha, "beta": beta, "gamma": gamma}
+    np.testing.assert_allclose(zhao.potential(p, x * r_s), ref, rtol=1e-10)
+
 
 FINITE_MASS_ABG = [
     (1.0, 4.0, 1.0),  # Hernquist

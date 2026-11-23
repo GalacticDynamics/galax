@@ -70,9 +70,10 @@ diagonal is ``+inf`` and the off-diagonal entries are 0. It is never NaN. The
 functions of ``r`` expect ``r > 0``, and several of them return NaN at exactly
 ``r = 0``. The class method ``pot.hessian`` at exactly the origin keeps its
 older values and can differ from the module function, except for
-``ZhaoPotential``, whose class methods call the module functions. To differentiate at the
-origin, differentiate the ``hessian``: ``jax.jacfwd`` of the ``gradient`` at 0
-is 0, because the gradient is set to 0 there. The non-spherical functions have
+``ZhaoPotential``, whose class methods call the module functions. For the
+second derivative at the origin, call the ``hessian``, not ``jax.jacfwd`` of the
+``gradient``: that is 0 at the origin, because the gradient is set to 0 there.
+The non-spherical functions have
 no such rule, so evaluate them away from the origin.
 
 

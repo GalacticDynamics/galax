@@ -115,6 +115,18 @@ def test_far_field_matches_needle_integral(xyz_bar: tuple[float, float, float]) 
     np.testing.assert_allclose(got, float(ref), rtol=1e-11)
 
 
+@pytest.mark.parametrize("xyz", [(1.0, 0.5, 0.0), (-3.0, 2.0, 0.0), (3.0, -2.0, 1.2)])
+def test_razor_thin_bar_matches_needle_integral(
+    xyz: tuple[float, float, float],
+) -> None:
+    """C = 0, on and off the mid-plane: the z component is 0 on it, not 0/0."""
+    p, q = _params(c=0.0), np.asarray(xyz, dtype=np.float64)
+    ref = _needle_integral(tuple(map(mp.mpf, xyz)), c=0.0)
+    np.testing.assert_allclose(lm.potential(p, q), float(ref), rtol=1e-10)
+    grad = [float(g) for g in _needle_gradient(xyz, c=0.0)]
+    np.testing.assert_allclose(lm.gradient(p, q), grad, rtol=1e-8, atol=1e-20)
+
+
 @pytest.mark.parametrize("xyz", LM_POINTS)
 def test_reference_sees_b_and_c(xyz: tuple[float, float, float]) -> None:
     """Swapping b and c changes the reference potential by more than 1e-3."""

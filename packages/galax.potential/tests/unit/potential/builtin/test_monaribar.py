@@ -35,8 +35,10 @@ def _mp_potential(p: dict[str, float], t: float, x: Any, y: Any, z: Any) -> Any:
         (2.0, 1.5, 0.8),
     ],
 )
-def test_density_and_laplacian_match_mpmath(xyz: tuple[float, float, float]) -> None:
-    """``4 pi G rho = laplacian(Phi)`` with Phi transcribed independently.
+def test_potential_density_and_laplacian_match_mpmath(
+    xyz: tuple[float, float, float],
+) -> None:
+    """The potential, and ``4 pi G rho = laplacian(Phi)``, against an mpmath Phi.
 
     The reference is ``mpmath.diff`` of the potential at 40 digits, so it does
     not use the radial ``L(r)`` of the code. Measured error < 1e-13.
@@ -59,6 +61,9 @@ def test_density_and_laplacian_match_mpmath(xyz: tuple[float, float, float]) -> 
         )
         rho = float(lap / (4 * mp.pi * p["G"]))
     q = np.asarray(xyz, dtype=np.float64)
+    with mp.workdps(40):
+        phi = float(_mp_potential(p, t, *map(mp.mpf, xyz)))
+    np.testing.assert_allclose(monari.potential(p, q, t), phi, rtol=1e-12)
     np.testing.assert_allclose(monari.density(p, q, t), rho, rtol=1e-11, atol=1e-13)
     np.testing.assert_allclose(
         monari.laplacian(p, q, t), float(lap), rtol=1e-11, atol=1e-13

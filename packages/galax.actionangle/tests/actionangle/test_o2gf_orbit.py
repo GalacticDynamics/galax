@@ -1,4 +1,4 @@
-"""Tests for O2GF orbit circulation and alignment."""
+"""Tests for O2GF orbit circulating_axes and alignment."""
 
 import jax
 import jax.numpy as jnp
@@ -7,7 +7,7 @@ import pytest
 
 from galax.actionangle._src._o2gf_orbit import (
     align_circulation_with_z,
-    circulation,
+    circulating_axes,
     is_loop,
 )
 
@@ -49,9 +49,9 @@ def _check(q, p, circ, expected, axis_exp, out):
 def test_single_orbit(name, jit):
     (q, p), expected, axis_exp = ORBITS[name]
     circ_f, align_f = (
-        (jax.jit(circulation), jax.jit(align_circulation_with_z))
+        (jax.jit(circulating_axes), jax.jit(align_circulation_with_z))
         if jit
-        else (circulation, align_circulation_with_z)
+        else (circulating_axes, align_circulation_with_z)
     )
     circ = circ_f(q, p)
     _check(q, p, circ, expected, axis_exp, align_f(q, p, circ))
@@ -60,7 +60,7 @@ def test_single_orbit(name, jit):
 def test_vmap():
     qs = jnp.stack([v[0][0] for v in ORBITS.values()])
     ps = jnp.stack([v[0][1] for v in ORBITS.values()])
-    circ = jax.jit(jax.vmap(circulation))(qs, ps)
+    circ = jax.jit(jax.vmap(circulating_axes))(qs, ps)
     out = jax.jit(jax.vmap(align_circulation_with_z))(qs, ps, circ)
     for i, (_, expected, axis_exp) in enumerate(ORBITS.values()):
         _check(qs[i], ps[i], circ[i], expected, axis_exp, tuple(o[i] for o in out))
@@ -69,4 +69,4 @@ def test_vmap():
 def test_circulation_skips_nonfinite_samples():
     (q, p), expected, _ = ORBITS["xy"]
     q = q.at[0].set(jnp.nan).at[200].set(jnp.nan)
-    assert tuple(np.asarray(circulation(q, p))) == expected
+    assert tuple(np.asarray(circulating_axes(q, p))) == expected

@@ -70,13 +70,13 @@ def test_units():
     assert str(res.actions.unit) == "kpc2 / Myr"
     assert str(res.angles.unit) == "rad"
     assert str(res.freqs.unit) == "rad / Myr"
-    np.testing.assert_allclose(res.freqs.value, OMEGA)
+    np.testing.assert_allclose(u.ustrip("rad/Myr", res.freqs), OMEGA)
 
 
 def test_scalar_omega_broadcasts():
     pot = gp.HarmonicOscillatorPotential(omega=u.Q(1.5, "1 / Myr"), units="galactic")
     res = haaf(pot, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
-    np.testing.assert_allclose(res.freqs.value, [1.5, 1.5, 1.5])
+    np.testing.assert_allclose(u.ustrip("rad/Myr", res.freqs), [1.5, 1.5, 1.5])
 
 
 def test_jit_vmap_eager_agree():
@@ -110,4 +110,6 @@ def test_phase_space_coordinate():
     )
     res = haaf(pot, w)
     ref = haaf(pot, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
-    np.testing.assert_allclose(res.actions.value, ref.actions.value, rtol=1e-12)
+    np.testing.assert_allclose(
+        u.ustrip("kpc2/Myr", res.actions), u.ustrip("kpc2/Myr", ref.actions), rtol=1e-12
+    )

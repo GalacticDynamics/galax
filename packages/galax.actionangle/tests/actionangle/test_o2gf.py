@@ -184,7 +184,7 @@ def test_grad_fd():
     # galax orbits only support forward mode, so jacrev covers the O2GF part:
     # dJ/dw0 = dJ/d(q, p) . d(q, p)/dw0, against jacfwd of the whole chain.
     ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
-    t = jnp.asarray(ts.value)
+    t = jnp.asarray(u.ustrip("Myr", ts))
 
     def orbit(q0):
         w0 = gc.PhaseSpaceCoordinate(
@@ -599,13 +599,17 @@ def test_units():
     assert withq.actions.unit == u.unit("kpc2 / Myr")
     assert withq.angles.unit == u.unit("rad")
     assert withq.freqs.unit == u.unit("rad / Myr")
-    np.testing.assert_allclose(withq.actions.value, plain.aaf.actions, rtol=1e-12)
+    np.testing.assert_allclose(
+        u.ustrip("kpc2/Myr", withq.actions), plain.aaf.actions, rtol=1e-12
+    )
 
     ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
     orb = gd.evaluate_orbit(ISO, _w0(ISO_Q0, ISO_P0), ts, integrator=TIGHT)
     fromw = o2gf(ISO, orb, n_max=N_MAX).aaf
     assert fromw.actions.unit == u.unit("kpc2 / Myr")
-    np.testing.assert_allclose(fromw.actions.value, plain.aaf.actions, rtol=1e-10)
+    np.testing.assert_allclose(
+        u.ustrip("kpc2/Myr", fromw.actions), plain.aaf.actions, rtol=1e-10
+    )
 
 
 KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
@@ -695,7 +699,7 @@ def test_gap_flags_on_disk_loop():
     pot = gp.MiyamotoNagaiPotential(
         m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.28, "kpc"), units="galactic"
     )
-    kms = 1.0227e-3  # km/s in kpc/Myr
+    kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
     q, p, t = _orbit(pot, [8.0, 0, 0.3], [10 * kms, 230 * kms, 10 * kms], 6000, 6000)
     assert not bool(o2gf(pot, q, p, t, n_max=6).flagged)
     keep = np.ones(len(t), bool)

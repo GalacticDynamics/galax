@@ -1,7 +1,7 @@
 """`L1L2LagrangePoints` must be a type hint beartype can check.
 
 `galax.dynamics` is imported under jaxtyping's hook with beartype in
-`tests/smoke/test_runtime_typechecking.py`; this is the fast check of the hint
+`tests/smoke/test_runtime_typechecking.py`; this is the fast check of one hint
 that used to stop that import.
 """
 

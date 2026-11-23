@@ -64,3 +64,19 @@ def test_kinematics_identity():
     assert gd.omega is go.omega is gda.omega
     assert gd.specific_angular_momentum is go.specific_angular_momentum
     assert gda.specific_angular_momentum is go.specific_angular_momentum
+
+
+def test_integrate_identity():
+    import galax.dynamics as gd
+    import galax.dynamics._src.legacy as gdl
+    import galax.orbits.integrate as goi
+
+    assert gd.evaluate_orbit is goi.evaluate_orbit is gdl.evaluate_orbit
+    assert gd.integrate.Integrator is goi.Integrator is gdl.Integrator
+    assert (
+        gd.integrate.InterpolatedPhaseSpaceCoordinate
+        is goi.InterpolatedPhaseSpaceCoordinate
+    )
+    assert gdl.default_integrator is goi.default_integrator
+    assert gd.integrate.PhaseSpaceInterpolation is goi.PhaseSpaceInterpolation
+    assert gd.integrate.parse_time_specification is goi.parse_time_specification

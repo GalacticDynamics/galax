@@ -18,11 +18,9 @@ from unxt.quantity import AbstractQuantity, Quantity as FastQ
 from xmmutablemap import ImmutableMap
 
 import galax.coordinates as gc
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
-from galax.dynamics._src.orbit import OrbitSolver, PhaseSpaceInterpolation
-from galax.dynamics.fields import AbstractOrbitField
+from galax.orbits import AbstractOrbitField, OrbitSolver, PhaseSpaceInterpolation
 
 R = TypeVar("R")
 Interp = TypeVar("Interp")
@@ -68,7 +66,7 @@ class Integrator(eqx.Module):
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     Then we define initial conditions:
@@ -81,9 +79,9 @@ class Integrator(eqx.Module):
     Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> print(w)
@@ -123,7 +121,7 @@ class Integrator(eqx.Module):
 
     >>> w = integrator(field, w0, t0, t1, saveat=ts, dense=True)
     >>> type(w)
-    <class 'galax.dynamics...InterpolatedPhaseSpaceCoordinate'>
+    <class 'galax.orbits...InterpolatedPhaseSpaceCoordinate'>
 
     The interpolated solution can be evaluated at any time in the domain to get
     the phase-space position at that time:
@@ -180,8 +178,8 @@ class Integrator(eqx.Module):
     def _call_(
         self: "Integrator",
         field: AbstractOrbitField,
-        q0: gdt.BtQ,
-        p0: gdt.BtP,
+        q0: gt.BtQ,
+        p0: gt.BtP,
         t0: gt.QuSz0,
         t1: gt.QuSz0,
         /,
@@ -203,7 +201,7 @@ class Integrator(eqx.Module):
 
         Parameters
         ----------
-        field : `galax.dynamics.fields.AbstractOrbitField`
+        field : `galax.orbits.AbstractOrbitField`
             The field to integrate. Excluded from JIT.
         q0, p0 : Quantity[number, (*batch, 3), 'position' | 'speed']
             Initial conditions. Can have any (or no) batch dimensions. Included
@@ -271,7 +269,7 @@ class Integrator(eqx.Module):
 def call(
     self: Integrator,
     field: AbstractOrbitField,
-    qp0: gdt.BtQP | gdt.BtQParr | gt.BtSz6,
+    qp0: gt.BtQP | gt.BtQParr | gt.BtSz6,
     t0: Time,
     t1: Time,
     /,
@@ -302,7 +300,7 @@ def call(
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     We define initial conditions:
@@ -320,9 +318,9 @@ def call(
     of motion.  Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> w
@@ -374,7 +372,7 @@ def call(
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     We define initial conditions:
@@ -389,9 +387,9 @@ def call(
     of motion.  Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
 
     Different kwargs:
@@ -451,7 +449,7 @@ def call(
 def call(
     self: Integrator,
     field: AbstractOrbitField,
-    y0: gdt.BBtQP | gdt.BBtQParr | gt.BBtSz6,
+    y0: gt.BBtQP | gt.BBtQParr | gt.BBtSz6,
     t0: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     t1: Shaped[AbstractQuantity, "*#batch"] | Shaped[ArrayLike, "*#batch"] | Time,
     /,
@@ -482,7 +480,7 @@ def call(
     >>> import quaxed.numpy as jnp
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     The integrator can be used to integrate a batch of initial conditions at
@@ -497,10 +495,10 @@ def call(
     of motion.  Here we will reproduce what happens with orbit integrations.
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> ws = integrator(field, w0, t0, t1)
     >>> ws.shape
     (2,)
@@ -547,7 +545,7 @@ def call(
     --------
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     We define initial conditions and a potential:
@@ -556,11 +554,11 @@ def call(
     ...                            p=u.Q([0, 200, 0], "km/s"))
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
     We can integrate the phase-space position:
 
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> w
@@ -587,7 +585,7 @@ def call(
     --------
     >>> import unxt as u
     >>> import galax.coordinates as gc
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
     >>> import galax.potential as gp
 
     We define initial conditions and a potential:
@@ -601,11 +599,11 @@ def call(
     >>> w0 = gc.CompositePhaseSpaceCoordinate(w01=w01, w02=w02)
 
     >>> pot = gp.HernquistPotential(m_tot=1e12, r_s=5, units="galactic")
-    >>> field = gd.fields.HamiltonianField(pot)
+    >>> field = go.HamiltonianField(pot)
 
     We can integrate the composite phase-space position:
 
-    >>> integrator = gd.integrate.Integrator()
+    >>> integrator = go.integrate.Integrator()
     >>> t0, t1 = u.Q(0, "Gyr"), u.Q(1, "Gyr")
     >>> w = integrator(field, w0, t0, t1)
     >>> print(w)

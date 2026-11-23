@@ -39,6 +39,7 @@ dependencies = [
   "plum>=2.9.0; python_version >= '3.14'",
   "quaxed>=0.10.5",
   "unxt>=2.0.5,<3",
+  "xmmutablemap>=0.3.1",
 ]
 description = "Orbits and orbit integration for galax"
 dynamic = ["version"]
@@ -66,9 +67,8 @@ requires = ["hatch-vcs", "hatchling"]
 # The root `pyproject.toml` forces most of this, not this portion's imports:
 # `--arraydiff` and `env` come from `[tool.pytest.ini_options]`, and the root
 # `conftest.py` imports `sybil` and `optional_dependencies` at module level, so
-# every run rooted at the repo loads them whatever it collects. `optype` and
-# `xmmutablemap` are imported by the tests themselves (`test_contract.py`,
-# `experimental/test_leapfrog.py`), not by the package.
+# every run rooted at the repo loads them whatever it collects. `optype` is
+# imported by the tests themselves (`test_contract.py`), not by the package.
 test = [
   "optional-dependencies>=0.4.0",
   "optype>=0.14.0",
@@ -78,7 +78,6 @@ test = [
   "pytest-env>=1.1.5",
   "pytest-xdist>=3.6.1",
   "sybil>=9.0.0",
-  "xmmutablemap>=0.3.1",
 ]
 
 [tool.hatch.build.targets.wheel]

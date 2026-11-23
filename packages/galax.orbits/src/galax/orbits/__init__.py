@@ -24,6 +24,7 @@ from ._src.solver import OrbitSolver
 
 # Register by import
 # isort: split
+from . import integrate  # noqa: F401
 from ._src import (  # noqa: F401
     circulation as _circulation,
     compute,

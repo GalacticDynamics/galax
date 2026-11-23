@@ -1,9 +1,9 @@
-"""`galax.dynamics.evaluate_orbit` over a range of potentials.
+"""`galax.orbits.integrate.evaluate_orbit` over a range of potentials.
 
 These assertions used to live on `AbstractPotential_Test`, the contract
 inherited by 42 test classes across 41 files in `galax.potential`'s test tree,
 where they ran 84 times -- twice for each. That made the *potential* portion's
-tests require `galax.dynamics`, so the tree could not collect without the
+tests require a higher portion, so the tree could not collect without the
 higher portion installed. It is the inversion #937 removed from the
 *coordinates* contract, which carried a `test_angular_momentum` calling
 `gd.specific_angular_momentum`; that one was rewritten into this tree rather
@@ -23,9 +23,9 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics as gd
-import galax.dynamics.custom_types as gt
 import galax.fields as gf
+import galax.orbits as go
+import galax.orbits.custom_types as gt
 import galax.potential as gp
 
 # One per kind that reaches the solver differently, not one per potential.
@@ -70,8 +70,8 @@ def test_evaluate_orbit(pot: gp.AbstractPotential, xv: gt.Sz6, ts: gt.QuSzTime) 
     `t` is the save-times array handed back, not a recomputed one, so it
     compares exactly -- for a batch too, where it stays shared and 1-D.
     """
-    orbit = gd.evaluate_orbit(pot, xv, ts)
-    assert isinstance(orbit, gd.Orbit)
+    orbit = go.integrate.evaluate_orbit(pot, xv, ts)
+    assert isinstance(orbit, go.Orbit)
     assert orbit.shape == (len(ts),)
     assert jnp.array_equal(orbit.t, ts)
 
@@ -80,13 +80,13 @@ def test_evaluate_orbit_batch(
     pot: gp.AbstractPotential, xv: gt.Sz6, ts: gt.QuSzTime
 ) -> None:
     """A batch of initial conditions keeps its leading shape."""
-    orbits = gd.evaluate_orbit(pot, xv[None, :], ts)
-    assert isinstance(orbits, gd.Orbit)
+    orbits = go.integrate.evaluate_orbit(pot, xv[None, :], ts)
+    assert isinstance(orbits, go.Orbit)
     assert orbits.shape == (1, len(ts))
     assert jnp.array_equal(orbits.t, ts)
 
-    orbits = gd.evaluate_orbit(pot, jnp.stack([xv, xv], axis=0), ts)
-    assert isinstance(orbits, gd.Orbit)
+    orbits = go.integrate.evaluate_orbit(pot, jnp.stack([xv, xv], axis=0), ts)
+    assert isinstance(orbits, go.Orbit)
     assert orbits.shape == (2, len(ts))
     assert jnp.array_equal(orbits.t, ts)
 
@@ -95,8 +95,8 @@ def test_dense_without_max_steps_in_diffeq_kw() -> None:
     """A ``diffeq_kw`` with no ``max_steps`` key can still integrate densely."""
     import diffrax as dfx
 
-    integ = gd.integrate.Integrator(
-        gd.OrbitSolver(
+    integ = go.integrate.Integrator(
+        go.OrbitSolver(
             solver=gf.Leapfrog(),
             stepsize_controller=dfx.ConstantStepSize(),
         ),
@@ -104,7 +104,18 @@ def test_dense_without_max_steps_in_diffeq_kw() -> None:
     )
     pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
     w0 = gc.PhaseSpacePosition(q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"))
-    orbit = gd.evaluate_orbit(
+    orbit = go.integrate.evaluate_orbit(
         pot, w0, u.Q([0.0, 100.0], "Myr"), integrator=integ, dense=True
     )
+    assert orbit.interpolant.evaluate(u.Q(50.0, "Myr")).q.shape == ()
+
+
+def test_dense_evaluate_orbit_is_interpolated() -> None:
+    """``dense=True`` returns an orbit that carries an interpolant."""
+    pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q([8.0, 0, 0], "kpc"), p=u.Q([0.0, 220, 0], "km/s"), t=u.Q(0.0, "Myr")
+    )
+    orbit = go.integrate.evaluate_orbit(pot, w0, u.Q([0.0, 100.0], "Myr"), dense=True)
+    assert orbit.interpolant is not None
     assert orbit.interpolant.evaluate(u.Q(50.0, "Myr")).q.shape == ()

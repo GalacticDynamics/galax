@@ -80,3 +80,13 @@ def test_integrate_identity():
     assert gdl.default_integrator is goi.default_integrator
     assert gd.integrate.PhaseSpaceInterpolation is goi.PhaseSpaceInterpolation
     assert gd.integrate.parse_time_specification is goi.parse_time_specification
+
+
+def test_experimental_public_identity():
+    import galax.dynamics._src.experimental as gdx
+    import galax.orbits._src.experimental as gox_private
+    import galax.orbits.experimental as gox
+
+    assert gox.integrate_orbit is gox_private.integrate_orbit is gdx.integrate_orbit
+    assert gox.SymplecticSolverT is gdx.SymplecticSolverT
+    assert gdx.integrate is gox_private.integrate

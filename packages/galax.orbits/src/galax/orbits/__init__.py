@@ -35,7 +35,7 @@ from ._src.plot_helper import ProxyAbstractOrbit
 
 # Register the experimental `integrate_orbit` dispatches
 # isort: split
-from ._src import experimental  # noqa: F401
+from . import experimental  # noqa: F401
 
 ProxyAbstractOrbit.deliver(AbstractOrbit)
 

@@ -633,11 +633,22 @@ def test_timestep_guard_warns() -> None:
     assert rec[0].filename == __file__
 
 
-@pytest.mark.parametrize("dt", [float("nan"), float("inf"), -1.0, np.asarray([0.01])])
+def test_timestep_guard_checks_a_negative_dt_by_its_size() -> None:
+    """A backward step is checked like the forward step of the same size."""
+    field, q0, _ = _cluster(n=4)
+    dt_max = gn.check_timestep(field, q0, 0.0, 0.0)
+    assert gn.check_timestep(field, q0, 0.0, -0.5 * dt_max, strict=True) == dt_max
+    with pytest.raises(ValueError, match="above the safe time step"):
+        gn.check_timestep(field, q0, 0.0, -10 * dt_max, strict=True)
+
+
+@pytest.mark.parametrize(
+    "dt", [float("nan"), float("inf"), -float("inf"), np.asarray([0.01])]
+)
 def test_check_timestep_rejects_bad_dt(dt) -> None:
-    """``check_timestep`` raises for a dt that is negative or not finite."""
+    """``check_timestep`` raises for a dt that is not a finite scalar."""
     field = gn.NBodyField(masses=jnp.ones(2), eps=0.1, external_potential=_NULL)
-    with pytest.raises(ValueError, match="finite, non-negative scalar"):
+    with pytest.raises(ValueError, match="finite scalar"):
         gn.check_timestep(field, jnp.eye(2, 3), 0.0, dt, strict=True)
 
 

@@ -165,7 +165,7 @@ def test_two_component_mass_ratio_heating_is_measured(record_property) -> None:
     system = gn.System.from_components(stars, dm, units="galactic")
     field = gn.NBodyField.from_system(system, _NULL)
     ps = system.particles
-    # The heavy particles pull harder, so the step guard needs a smaller dt.
+    # The heavy particles pull harder, so they need a smaller dt.
     res = _run(field, ps.q, ps.p, DT / 2)
 
     q_star = system.split(res.ys[0], axis=-2)["stars"]

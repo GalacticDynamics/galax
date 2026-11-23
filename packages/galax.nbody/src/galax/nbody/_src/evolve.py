@@ -42,9 +42,10 @@ def check_timestep(
     at all ``dt_max`` is infinite. An active particle with a non-finite
     position, or a softened one with a NaN acceleration, makes ``dt_max`` NaN.
 
-    Raises `ValueError` if ``dt`` is a number that is not a finite,
-    non-negative scalar, and `TypeError` if it is not a real number. If
-    ``dt > dt_max``, or ``dt_max`` is NaN, this warns with `UserWarning`, or
+    Raises `ValueError` if ``dt`` is a number that is not a finite scalar,
+    and `TypeError` if it is not a real number. A negative ``dt``, for a
+    backward run, is checked by its size. If ``|dt| > dt_max``, or ``dt_max``
+    is NaN, this warns with `UserWarning`, or
     raises `ValueError` when ``strict``. ``stacklevel`` is passed to
     `warnings.warn`; the default points the warning at the caller. It needs
     concrete values, so call it outside ``jit``.
@@ -53,10 +54,10 @@ def check_timestep(
     q = jnp.asarray(u.ustrip(AllowValue, units["length"], q), dtype=float)
     t = u.ustrip(AllowValue, units["time"], t)
     dt_np = np.asarray(u.ustrip(AllowValue, units["time"], dt))
-    if dt_np.ndim != 0 or not (np.isfinite(dt_np) and dt_np >= 0):
-        msg = f"dt must be a finite, non-negative scalar, got {dt_np}"
+    if dt_np.ndim != 0 or not np.isfinite(dt_np):
+        msg = f"dt must be a finite scalar, got {dt_np}"
         raise ValueError(msg)
-    dt = float(dt_np)
+    dt = abs(float(dt_np))
     a = jnp.linalg.norm(field.acceleration(t, q), axis=-1)
     h = field.softening
     rho = jnp.asarray(gp.density(field.external_potential, q, t))

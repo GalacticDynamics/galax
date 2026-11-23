@@ -16,13 +16,14 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Astronomy",
   "Typing :: Typed",
 ]
-# Two galax dependencies, both downward. Not `galax` -- depending on the root
+# Three galax dependencies, all downward. Not `galax` -- depending on the root
 # would recreate the `galax` <-> portion cycle. `galax.dynamics` is used only by
 # the tests and doctests, so it is in the `test` group below, not here.
 dependencies = [
   "coordinax>=0.24.3,<0.25",
   "equinox>=0.13.8",
   "galax.coordinates",
+  "galax.orbits",
   "galax.potential",
   "jax>=0.7.2",
   "jaxtyping>=0.3.3",
@@ -50,6 +51,7 @@ Homepage = "https://github.com/GalacticDynamics/galax"
 [tool.uv.sources]
 "galax.coordinates" = { workspace = true }
 "galax.dynamics" = { workspace = true }
+"galax.orbits" = { workspace = true }
 "galax.potential" = { workspace = true }
 
 [build-system]

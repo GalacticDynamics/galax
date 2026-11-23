@@ -4,7 +4,7 @@ This is private API.
 
 """
 
-__all__ = ["compute_orbit"]
+__all__ = ["circulation", "compute_orbit"]
 
 
 from typing import Any
@@ -115,6 +115,120 @@ def compute_orbit(
     ...                          dt0=u.Q(1, "Myr"))
     >>> orbit.t
     Q([    0.        ,  -333.33333333,  -666.66666667, -1000.        ], 'Myr')
+
+    """
+    raise NotImplementedError  # pragma: no cover
+
+
+@dispatch.abstract
+def circulation(*args: Any) -> Any:
+    r"""Return which coordinate axes an orbit circulates about.
+
+    Axis ``i`` circulates when the angular momentum component
+    :math:`L_i = (\mathbf{q} \times \mathbf{p})_i` keeps one sign at every
+    sample and never falls below
+    :math:`\max(10^{-13}, 64\,\epsilon)` times
+    :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample, where :math:`\epsilon`
+    is the machine epsilon of the float dtype in use. The factor
+    :math:`\max(10^{-13}, 64\,\epsilon)` is ``1e-13`` for float64 and about
+    ``7.6e-6`` for float32. Integer inputs are cast to the default float
+    first. Half-precision inputs (float16, bfloat16) are not supported yet.
+    A z-tube orbit gives ``[False, False, True]``, an x-tube orbit gives
+    ``[True, False, False]`` and a box orbit gives all `False`. Samples where
+    ``q`` or ``p`` is not finite are left out of the check, and an orbit with
+    no finite samples circulates about no axis. Each sample is checked on its
+    own, so the result does not depend on the order of the samples. An input
+    with no samples raises a `ValueError`.
+
+    This follows :meth:`gala.dynamics.Orbit.circulation` with these
+    differences. The floor here is relative to
+    :math:`|\mathbf{q}|\,|\mathbf{p}|`, so the result does not depend on the
+    units, while gala uses an absolute floor of ``1e-13``. A sample with ``q``
+    parallel to ``p`` therefore does not circulate, even when rounding leaves a
+    small nonzero :math:`\mathbf{L}`. gala skips the floor at the first sample,
+    so in gala an orbit with one sample circulates about every axis, while
+    here every sample is checked. Samples that are not finite are skipped
+    here, while in gala a single NaN sample makes the orbit circulate about no
+    axis. And this function returns booleans where gala returns integers.
+
+    Quantities are checked to be a length (``q``) and a speed (``p``), and a
+    wrong dimension raises. Plain arrays are taken to be in a consistent unit
+    system. The result does not depend on the units.
+
+    The overloads are:
+
+    - ``circulation(orbit)`` checks the stored samples of an
+      `~galax.orbits.AbstractOrbit`.
+    - ``circulation(orbit, t)`` first evaluates the orbit's interpolant at the
+      times ``t`` with ``orbit(t)`` and then checks those samples. This finds
+      sign flips that fall between stored samples and lets you choose the time
+      window. ``t`` is a time Quantity or an array in the orbit's time unit,
+      with shape ``(T,)``, and the orbit must have been computed with
+      ``dense=True``. Any other shape raises a `ValueError`. ``t=None`` uses
+      the stored samples, as ``circulation(orbit)`` does.
+    - ``circulation(w)`` checks a
+      `~galax.coordinates.AbstractPhaseSpaceCoordinate` whose last batch axis
+      is time. This includes composite coordinates, whose components are
+      joined along the time axis. A coordinate has no interpolant, so
+      ``circulation(w, t)`` raises a `TypeError`.
+    - ``circulation(q, p)`` checks arrays or Quantities of Cartesian positions
+      and velocities with shape ``(..., T, 3)``. Axis ``-2`` is the sample
+      (time) axis.
+
+    An orbit or coordinate stores positions and velocities with shape
+    ``(*batch, T)``, where the time axis is the last batch axis, and an
+    orbit's ``t`` has shape ``(T,)``. Its Cartesian components therefore have
+    shape ``(*batch, T, 3)``, and the result has one row of 3 booleans per
+    orbit.
+
+    Returns
+    -------
+    Bool[Array, "*batch 3"]
+        Whether each orbit circulates about x, y and z.
+
+    Examples
+    --------
+    >>> import quaxed.numpy as jnp
+    >>> import unxt as u
+    >>> import galax.coordinates as gc
+    >>> import galax.potential as gp
+    >>> import galax.orbits as go
+
+    Two circular orbits in a Kepler potential, one in the xy plane and one in
+    the yz plane:
+
+    >>> pot = gp.KeplerPotential(m_tot=u.Q(1e11, "Msun"), units="galactic")
+    >>> w0 = gc.PhaseSpaceCoordinate(
+    ...     q=u.Q([[8.0, 0, 0], [0, 8.0, 0]], "kpc"),
+    ...     p=u.Q([[0, 230.0, 0], [0, 0, 230.0]], "km/s"),
+    ...     t=u.Q([0.0, 0.0], "Myr"))
+    >>> ts = u.Q(jnp.linspace(0, 1, 50), "Gyr")
+    >>> orbit = go.compute_orbit(pot, w0, ts, dense=True)
+    >>> orbit.shape
+    (2, 50)
+
+    >>> go.circulation(orbit)
+    Array([[False, False,  True],
+           [ True, False, False]], dtype=bool)
+
+    The method calls this function:
+
+    >>> orbit.circulation()
+    Array([[False, False,  True],
+           [ True, False, False]], dtype=bool)
+
+    The orbit can be checked on a finer time grid with its interpolant:
+
+    >>> go.circulation(orbit, u.Q(jnp.linspace(0, 1, 500), "Gyr"))
+    Array([[False, False,  True],
+           [ True, False, False]], dtype=bool)
+
+    Cartesian arrays or Quantities work too:
+
+    >>> q = u.Q([[8.0, 0, 0], [0, 8.0, 0]], "kpc")
+    >>> p = u.Q([[0, 230.0, 0], [-230.0, 0, 0]], "km/s")
+    >>> go.circulation(q, p)
+    Array([False, False,  True], dtype=bool)
 
     """
     raise NotImplementedError  # pragma: no cover

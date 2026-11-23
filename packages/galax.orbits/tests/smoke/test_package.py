@@ -12,6 +12,7 @@ def test_all() -> None:
         "Orbit",
         "OrbitSolver",
         "PhaseSpaceInterpolation",
+        "circulation",
         "compute_orbit",
     }
     for name in go.__all__:

@@ -130,9 +130,9 @@ def circulation(*args: Any) -> Any:
     :math:`\max(10^{-13}, 64\,\epsilon)` times
     :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample, where :math:`\epsilon`
     is the machine epsilon of the float dtype in use (``1e-13`` for float64,
-    about ``7.6e-6`` for float32). Half-precision inputs (float16, bfloat16)
-    are promoted to float32 first, so they use the float32 floor. A z-tube
-    orbit gives
+    about ``7.6e-6`` for float32). Integer inputs are cast to the default
+    float first. Half-precision inputs (float16, bfloat16) are not supported
+    yet. A z-tube orbit gives
     ``[False, False, True]``, an x-tube orbit gives ``[True, False, False]``
     and a box orbit gives all `False`. Samples where
     ``q`` or ``p`` is not finite are left out of the check, and an orbit with

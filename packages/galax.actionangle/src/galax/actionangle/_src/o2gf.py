@@ -75,11 +75,15 @@ class O2GFResult(eqx.Module):
     the whole orbit (e.g. z for a planar orbit) the action is 0 and the angle
     and frequency are NaN.
 
-    ``toy`` is the toy each orbit used, fitted or given. When the family is
+    ``toy`` is the toy each orbit used, fitted or given. Its fields are bare
+    arrays in ``pot.units``, a unit system the code controls, and a ``toy``
+    passed in must be in ``pot.units`` too. When the family is
     chosen per orbit (``family=None`` and no ``toy``), it is the pair
     ``(IsochroneToy, OscillatorToy)`` and ``nvecs`` is the pair ``(loop_nvecs,
-    box_nvecs)``. ``sn`` holds the generating function S_n for each n-vector
-    and ``dsn_dj`` its derivative, flattened from shape (3, N). Box entries
+    box_nvecs)``. ``sn`` holds the generating function S_n for each n-vector,
+    with the unit of ``aaf.actions`` when that carries units and bare
+    otherwise. ``dsn_dj`` is its derivative, dimensionless and always a bare
+    array. Both are flattened from shape (3, N). Box entries
     are then zero-padded to the loop length, per block of ``dsn_dj``.
 
     ``family_mismatch`` is True when the path that ran, fixed by ``family``
@@ -114,7 +118,9 @@ class O2GFResult(eqx.Module):
     orbit is ``flagged`` when ``n_bad_cover > 0``, more than `NAN_MAX`
     samples were dropped, the fit did not converge, ``toy_degenerate`` is
     True, ``thin_box`` is True, or ``family_mismatch`` is True. A flagged
-    orbit keeps its values, so check ``flagged`` before using them.
+    orbit keeps its values, so check ``flagged`` before using them. The
+    results for flagged orbits can change with the composition of the batch
+    and are not reproducible.
     """
 
     aaf: ActionsAnglesFrequencies
@@ -351,12 +357,18 @@ def _run(
         # equinox warns about any array in a static field; nvecs is a
         # trace-time NumPy constant, so static is what we want.
         warnings.filterwarnings("ignore", "A JAX array is being set as static")
+        aaf = wrap_result(out.J, out.th0, out.Om, pot, as_quantity)
         return O2GFResult(
-            aaf=wrap_result(out.J, out.th0, out.Om, pot, as_quantity),
+            aaf=aaf,
             toy=out.toy,
             is_loop=out.loop,
             aligned_axis=out.axis,
-            sn=out.sn,
+            # S_n has the units of an action, so it follows aaf.actions
+            sn=(
+                u.Q(out.sn, pot.units["length"] ** 2 / pot.units["time"])
+                if as_quantity
+                else out.sn
+            ),
             dsn_dj=out.dsn,
             n_bad_cover=out.n_bad,
             n_resonant=out.n_res,

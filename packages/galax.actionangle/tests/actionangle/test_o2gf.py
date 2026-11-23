@@ -643,3 +643,18 @@ def test_si_matches_galactic(mk, q0, v0, tmax):
     np.testing.assert_allclose(
         np.asarray(si.aaf.actions) / (KPC**2 / MYR), gal.aaf.actions, rtol=1e-8
     )
+
+
+def test_sn_units_follow_actions():
+    q, p, t = _iso_orbit()
+    plain = o2gf(ISO, q, p, t, n_max=N_MAX, toy=ISO_TOY)
+    assert not isinstance(plain.sn, u.AbstractQuantity)
+    assert not isinstance(plain.aaf.actions, u.AbstractQuantity)
+    assert not isinstance(plain.dsn_dj, u.AbstractQuantity)
+
+    ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
+    orb = gd.evaluate_orbit(ISO, _w0(ISO_Q0, ISO_P0), ts, integrator=TIGHT)
+    res = o2gf(ISO, orb, n_max=N_MAX, toy=ISO_TOY)
+    assert isinstance(res.sn, u.AbstractQuantity)
+    assert res.sn.unit == res.aaf.actions.unit
+    assert not isinstance(res.dsn_dj, u.AbstractQuantity)

@@ -269,15 +269,17 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           and ordered (R, φ, z); box orbits are ordered (x, y, z). J_phi is
           signed.
         - ``toy``: the toy each orbit used, fitted or given, in
-          ``pot.units``.
+          ``pot.units``. These are bare arrays by design, and a ``toy``
+          passed in must be in ``pot.units`` too.
         - ``is_loop``: whether the orbit took the loop path.
         - ``aligned_axis``: the axis (0, 1 or 2) that was swapped with z
           before the loop path, 2 when none was. To go back, swap axis 2
           with ``aligned_axis``. The swap is a reflection, so after one
           J_phi is -L_x or -L_y, as in gala.
         - ``sn``, ``dsn_dj``: the generating function S_n for each n-vector
-          and its derivative dS_n/dJ, flattened from shape (3, N). They are
-          bare arrays in ``pot.units`` even when ``aaf`` carries units.
+          and its derivative dS_n/dJ, flattened from shape (3, N). ``sn``
+          has the unit of ``aaf.actions`` when that carries units, and is
+          bare otherwise. ``dsn_dj`` is dimensionless and always a bare array.
         - ``nvecs``: the n-vectors, shape (N, 3). With ``family=None`` and
           no ``toy``, ``toy`` is the pair ``(IsochroneToy, OscillatorToy)``,
           ``nvecs`` is the pair ``(loop_nvecs, box_nvecs)``, and the box
@@ -335,8 +337,17 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     On eccentric orbits in a spherical NFW potential, J_r can be off by
     about 1e-3 (1.05e-3 to 1.3e-3 on two orbits with J_r/L of about 4 to 7,
-    measured against quadrature) without a flag, and a higher ``n_max`` or
-    a longer orbit does not reduce it.
+    measured against quadrature) without a flag. The same happens in
+    spherical Hernquist loops, where J_r was off by 1.0e-3 to 2.6e-3 with
+    J_r/L of 7 to 36. Eccentric orbits in other cuspy potentials are likely
+    to behave the same way. A higher ``n_max`` makes it worse, and a longer
+    orbit does not reduce it.
+
+    On flagged, ill-conditioned orbits (Jacobian norm around 1e17) the
+    fitted toy depends on what else is in the batch, and the actions moved
+    by about 3 percent between batch compositions. Unflagged orbits agree
+    with single-orbit runs to 5e-14. The results for flagged orbits are not
+    reproducible.
 
     In a spherical or nearly spherical potential, numerical noise in the
     samples of about 1e-7 relative or larger can keep a resonant mode just
@@ -413,7 +424,7 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     >>> res = o2gf_actions_angles_freqs(pot, orbit, n_max=4)
     >>> res.aaf.actions.shape, str(res.aaf.actions.unit)
     ((3,), 'kpc2 / Myr')
-    >>> round(float(res.aaf.actions[1].value), 2)
+    >>> round(float(u.ustrip("kpc2/Myr", res.aaf.actions[1])), 2)
     1.8
     >>> bool(res.is_loop), bool(res.flagged)
     (True, False)

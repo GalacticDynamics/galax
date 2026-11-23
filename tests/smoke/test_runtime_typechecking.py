@@ -3,7 +3,8 @@
 `docs/testing.rst` documents wrapping the first galax import in
 `jaxtyping.install_import_hook("galax", "beartype.beartype")`. A hint beartype
 cannot handle makes the import itself fail, and the failure depends on import
-order, so every portion is imported in a fresh interpreter.
+order, so the seven portions are imported together in a fresh interpreter, with
+`coordinates` first.
 """
 
 import os

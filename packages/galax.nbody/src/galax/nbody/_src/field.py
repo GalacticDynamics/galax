@@ -29,6 +29,7 @@ _DIRECT: Final = DirectSum()
 
 
 @ft.cache
+@jax.ensure_compile_time_eval()
 def _null_potential(dtype: Any, /) -> gp.NullPotential:
     """Return the default external potential, built once per float precision.
 
@@ -38,8 +39,7 @@ def _null_potential(dtype: Any, /) -> gp.NullPotential:
     concrete arrays, not tracers.
     """
     del dtype  # only the cache key
-    with jax.ensure_compile_time_eval():
-        return gp.NullPotential(units="galactic")
+    return gp.NullPotential(units="galactic")
 
 
 # Inactive rows and non-finite tracers are parked at multiples of this, in the

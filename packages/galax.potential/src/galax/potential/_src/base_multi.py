@@ -249,6 +249,7 @@ def replace(
 
 
 @ft.cache
+@jax.ensure_compile_time_eval()
 def _component_default(
     cls: "type[AbstractPreCompositedPotential]", name: str, dtype: Any, /
 ) -> Any:
@@ -256,15 +257,14 @@ def _component_default(
 
     A ``default_factory`` runs once per class, field and float precision, and
     the component it builds is shared by the instances. ``dtype`` is only the
-    cache key. The factory runs under `jax.ensure_compile_time_eval`, so a
+    cache key. It runs under `jax.ensure_compile_time_eval`, so a
     first call inside a trace caches concrete arrays, not tracers.
     """
     del dtype  # only the cache key
     f = cls.__dataclass_fields__[name]
     if f.default_factory is MISSING:
         return f.default
-    with jax.ensure_compile_time_eval():
-        return f.default_factory()
+    return f.default_factory()
 
 
 class AbstractPreCompositedPotential(AbstractCompositePotential):

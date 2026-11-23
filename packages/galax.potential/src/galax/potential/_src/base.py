@@ -35,6 +35,7 @@ _CONSTANTS: Final = MappingProxyType({"G": _CONST_G})
 
 
 @ft.cache
+@jax.ensure_compile_time_eval()
 def _constant(key: str, dtype: Any, /) -> u.AbstractQuantity:
     """Build constant ``key`` as a Quantity, once per float precision.
 
@@ -42,8 +43,7 @@ def _constant(key: str, dtype: Any, /) -> u.AbstractQuantity:
     so a first call inside a trace caches a concrete array, not a tracer.
     """
     del dtype  # only the cache key
-    with jax.ensure_compile_time_eval():
-        return u.Q.from_(_CONSTANTS[key])
+    return u.Q.from_(_CONSTANTS[key])
 
 
 class _DefaultConstants(Mapping[str, u.AbstractQuantity]):

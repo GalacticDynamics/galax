@@ -129,12 +129,12 @@ def circulation(*args: Any) -> Any:
     sample and never falls below
     :math:`\max(10^{-13}, 64\,\epsilon)` times
     :math:`|\mathbf{q}|\,|\mathbf{p}|` at that sample, where :math:`\epsilon`
-    is the machine epsilon of the float dtype in use (``1e-13`` for float64,
-    about ``7.6e-6`` for float32). Integer inputs are cast to the default
-    float first. Half-precision inputs (float16, bfloat16) are not supported
-    yet. A z-tube orbit gives
-    ``[False, False, True]``, an x-tube orbit gives ``[True, False, False]``
-    and a box orbit gives all `False`. Samples where
+    is the machine epsilon of the float dtype in use. The factor
+    :math:`\max(10^{-13}, 64\,\epsilon)` is ``1e-13`` for float64 and about
+    ``7.6e-6`` for float32. Integer inputs are cast to the default float
+    first. Half-precision inputs (float16, bfloat16) are not supported yet.
+    A z-tube orbit gives ``[False, False, True]``, an x-tube orbit gives
+    ``[True, False, False]`` and a box orbit gives all `False`. Samples where
     ``q`` or ``p`` is not finite are left out of the check, and an orbit with
     no finite samples circulates about no axis. Each sample is checked on its
     own, so the result does not depend on the order of the samples. An input

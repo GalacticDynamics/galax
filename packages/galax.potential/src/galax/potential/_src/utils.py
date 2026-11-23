@@ -5,7 +5,7 @@ __all__: tuple[str, ...] = ()
 import functools as ft
 import math
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from jaxtyping import Array, Bool, Shaped
 from typing import TYPE_CHECKING, Any, Final, TypeAlias, cast
 
@@ -43,6 +43,34 @@ def parse_dtypes(dtype2: np.dtype, dtype1: Any, /) -> np.dtype | None:
         if dtype1 is None
         else jnp.promote_types(dtype2, canonicalize_dtype(dtype1))
     )
+
+
+def _asarray(x: Any, /, dtype: Any) -> Any:
+    """`jnp.asarray`, where ``dtype=jnp.inexact`` means any inexact dtype.
+
+    With ``jnp.inexact`` an inexact input keeps its own dtype, so a float32
+    input stays float32 also with ``jax_enable_x64`` on. An integer array
+    becomes the default float type. A Python scalar becomes a weakly typed
+    float, so it takes the precision of what it is combined with.
+    """
+    if dtype is not jnp.inexact:
+        return jnp.asarray(x, dtype=dtype)
+    x = jnp.asarray(x)
+    if jnp.issubdtype(x.dtype, jnp.inexact):
+        return x
+    # A weak int times a Python float is a weak float; `astype` is strong.
+    return x * 1.0 if getattr(x, "value", x).weak_type else x.astype(float)
+
+
+def horner(coeffs: Iterable[float], x: Any, /) -> Any:
+    """`jnp.polyval` with Python-float coefficients, highest degree first.
+
+    `jnp.polyval` makes its coefficients a strongly typed array, which promotes
+    a float32 ``x``, or a weakly typed ``x`` kept at float32 by its partner, to
+    float64. Python floats are weakly typed, so the result has the dtype of
+    ``x``, and is weakly typed if ``x`` is.
+    """
+    return ft.reduce(lambda y, c: y * x + float(c), coeffs, 0.0)
 
 
 # ==============================================================================
@@ -387,11 +415,12 @@ def gauss_legendre(
     /,
     *,
     interval: tuple[float, float] = (0.0, 1.0),
+    dtype: Any = float,
 ) -> Shaped[Array, "*batch"] | Shaped[u.AbstractQuantity, "*batch"]:
     """Integrate ``f`` over ``interval`` by Gauss-Legendre quadrature.
 
     ``f`` maps the ``(N,)`` nodes to ``(N, *batch)``; the sum is over the node
-    axis, giving ``(*batch,)``.
+    axis, giving ``(*batch,)``. The nodes and weights are floats in ``dtype``.
 
     This is deliberately not `jax.jit`-ed: ``f`` would have to be static, and a
     freshly-built closure -- which is what every caller passes -- then misses
@@ -409,7 +438,9 @@ def gauss_legendre(
     Array(2., dtype=float64)
 
     """
-    x, w = gauss_legendre_nodes(order, (float(interval[0]), float(interval[1])))
+    # An integer ``dtype`` gives the default float type.
+    dtype = canonicalize_dtype(jnp.result_type(dtype, float))
+    x, w = _nodes_for_dtype(order, (float(interval[0]), float(interval[1])), dtype)
     y = f(x)
     w = w.reshape(w.shape + (1,) * (y.ndim - 1))
     return jnp.sum(y * w, axis=0)
@@ -582,8 +613,8 @@ def parse_to_xyz_t(
     ``t=None`` means the default time, ``t=0``.
     """
     # Process the input arguments into arrays
-    xyz = jnp.asarray(xyz, dtype=dtype)
-    t = jnp.asarray(0.0 if t is None else t, dtype=dtype)
+    xyz = _asarray(xyz, dtype)
+    t = _asarray(0.0 if t is None else t, dtype)
 
     # The coordinates are assumed to be in the simulation frame and may need to
     # be transformed to the target frame.
@@ -604,7 +635,7 @@ def parse_to_xyz_t(
     ustrip: OptUSys = None,
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input argument to position & time."""
-    txyz = jnp.asarray(txyz, dtype=dtype)
+    txyz = _asarray(txyz, dtype)
     return parse_to_xyz_t(
         to_frame, txyz[..., 1:4], txyz[..., 0], dtype=None, ustrip=ustrip
     )
@@ -621,7 +652,7 @@ def parse_to_xyz_t(
     ustrip: OptUSys = None,
 ) -> tuple[gt.BBtSz3, gt.BBtSz0]:
     """Parse input argument to position & time."""
-    txyz = jnp.asarray(txyz, dtype=dtype)
+    txyz = _asarray(txyz, dtype)
     t, xyz = txyz[..., 0], txyz[..., 1:4]
     t = eqx.error_if(
         t,
@@ -649,10 +680,10 @@ def parse_to_xyz_t(
 
     ``t=None`` means the default time, ``t=0``.
     """
-    xyz = jnp.asarray(xyz, dtype=dtype)
+    xyz = _asarray(xyz, dtype)
     # A Quantity so that a Quantity position keeps a Quantity time. The unit is
     # immaterial for zero.
-    t = jnp.asarray(u.Q(0.0, "Myr") if t is None else t, dtype=dtype)
+    t = _asarray(u.Q(0.0, "Myr") if t is None else t, dtype)
 
     if ustrip is not None:
         xyz = u.ustrip(AllowValue, ustrip["length"], xyz)
@@ -864,7 +895,7 @@ def parse_to_xyz_t(
     wt = wt.to_frame(gc.frames.simulation_frame if to_frame is None else to_frame)
     # Parse `t`
     t = eqx.error_if(
-        jnp.asarray(wt.t, dtype=dtype),
+        _asarray(wt.t, dtype),
         t is not None
         and u.ustrip(AllowValue, "", jnp.logical_not(jnp.array_equal(wt.t, t))),
         "t != wt.t, None",
@@ -888,9 +919,7 @@ def parse_to_xyz_t(
     wt = wt.to_frame(gc.frames.simulation_frame if to_frame is None else to_frame)
     # Re-dispatch on the data
     # Now that the data is in the correct frame, we can just parse the data.
-    return parse_to_xyz_t(
-        None, wt.q, jnp.asarray(wt.t, dtype=dtype), dtype=dtype, ustrip=ustrip
-    )
+    return parse_to_xyz_t(None, wt.q, _asarray(wt.t, dtype), dtype=dtype, ustrip=ustrip)
 
 
 def parse_pot_to_xyz_t(

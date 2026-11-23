@@ -10,7 +10,7 @@ import functools as ft
 from dataclasses import KW_ONLY
 
 from jaxtyping import Array
-from typing import Final, final
+from typing import Any, Final, final
 
 import equinox as eqx
 import jax
@@ -96,16 +96,20 @@ class AbstractMN3Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
         raise NotImplementedError  # pragma: no cover
 
     def _get_mn_components(
-        self, t: gt.BBtQorVSz0, /
+        self, t: gt.BBtQorVSz0, /, dtype: Any = float
     ) -> tuple[
         mn.MiyamotoNagaiPotential, mn.MiyamotoNagaiPotential, mn.MiyamotoNagaiPotential
     ]:
         hR = self.h_R(t)
         hzR = (self.h_z(t) / hR).ustrip(dimensionless)
+        # The NumPy tables in the input's float dtype, so float32 stays float32.
+        dtype = jnp.result_type(dtype, float)  # an integer dtype gives a float
         K = MN3_K_POS_DENS if self.positive_density else MN3_K_NEG_DENS
+        K = jnp.asarray(K, dtype=dtype)
 
         # get b / h_R with fitting functions:
-        b_hR = self._b_coeffs @ jnp.array([hzR**3, hzR**2, hzR])
+        b_coeffs = jnp.asarray(self._b_coeffs, dtype=dtype)
+        b_hR = b_coeffs @ jnp.array([hzR**3, hzR**2, hzR], dtype=dtype)
 
         x = jnp.vander(b_hR[None], N=5)[0]
         param_vec = K @ x
@@ -132,17 +136,17 @@ class AbstractMN3Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
         t = u.ustrip(AllowValue, self.units["time"], t)
         # TODO: swap to use mn.potential when have an easy way to construct
         # paarams dict.
+        mns = self._get_mn_components(t, xyz.dtype)
         return jnp.sum(  # type: ignore[no-any-return]
-            jnp.asarray([mn._potential(xyz, t) for mn in self._get_mn_components(t)]),  # noqa: SLF001
+            jnp.asarray([mn._potential(xyz, t) for mn in mns]),  # noqa: SLF001
             axis=0,
         )
 
     @ft.partial(jax.jit)
     def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-        densities = jnp.asarray(
-            [mn._density(xyz, t) for mn in self._get_mn_components(t)]  # noqa: SLF001
-        )
+        mns = self._get_mn_components(t, xyz.dtype)
+        densities = jnp.asarray([mn._density(xyz, t) for mn in mns])  # noqa: SLF001
         return jnp.sum(densities, axis=0)  # type: ignore[no-any-return]
 
 

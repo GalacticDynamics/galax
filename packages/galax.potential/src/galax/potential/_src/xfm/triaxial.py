@@ -6,6 +6,7 @@ import functools as ft
 
 import jax
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -92,10 +93,12 @@ class TriaxialInThePotential(AbstractTransformedPotential):
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
+        xyz = u.ustrip(
+            AllowValue, self.units["length"], xyz.astype(jnp.result_type(xyz, float))
+        )
         # Transform the position
         p = self.params(t)
-        xyz = xyz.at[..., 1].divide(p["y_over_x"])
+        xyz = xyz.at[..., 1].divide(p["y_over_x"].astype(xyz.dtype))
         xyz = xyz.at[..., 2].divide(p["z_over_x"])
 
         # Evaluate the potential energy at the transformed position, time.

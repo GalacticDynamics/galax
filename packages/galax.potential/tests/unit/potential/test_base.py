@@ -19,7 +19,7 @@ import galax.potential as gp
 import galax.potential.custom_types as gt
 import galax.potential.params as gpp
 from .io.test_gala import GalaIOMixin
-from galax.potential._src.base import default_constants
+from galax.potential._src.base import _jax_constant, default_constants
 
 
 class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
@@ -206,6 +206,30 @@ class AbstractPotential_Test(GalaIOMixin, metaclass=ABCMeta):
         assert type(got) is type(exp)
         assert jnp.allclose(got, exp, equal_nan=True)
 
+    @pytest.mark.parametrize(
+        "func",
+        [gp.potential, gp.gradient, gp.acceleration, gp.density, gp.hessian],
+    )
+    def test_float32_input(
+        self, func: Any, pot: gp.AbstractPotential, x: gt.QuSz3
+    ) -> None:
+        """float32 inputs give float32 outputs, also with x64 on.
+
+        A potential that holds float64 arrays, such as expansion coefficients,
+        follows JAX's promotion and gives float64. With those arrays cast to
+        float32 it gives float32.
+        """
+
+        def is_f64(a: Any) -> bool:
+            return eqx.is_array(a) and a.dtype == jnp.float64 and not a.weak_type
+
+        if any(is_f64(a) for a in jax.tree.leaves(pot)):
+            pot = jax.tree.map(lambda a: a.astype(jnp.float32) if is_f64(a) else a, pot)
+        x32 = x.astype(jnp.float32)
+        t32 = u.Q(jnp.float32(0), "Myr")
+        assert func(pot, x32, t32).dtype == jnp.float32
+        assert func(pot, x32.value, t32.value).dtype == jnp.float32
+
 
 ##############################################################################
 
@@ -219,7 +243,9 @@ class TestAbstractPotential(AbstractPotential_Test):
     @pytest.fixture(scope="class")
     def pot_cls(self, units) -> type[gp.AbstractPotential]:
         usys = units
-        constants_in_usys = {k: v.decompose(usys) for k, v in default_constants.items()}
+        constants_in_usys = {
+            k: _jax_constant(v, usys) for k, v in default_constants.items()
+        }
 
         class TestPotential(gp.AbstractPotential):
             m_tot: gpp.AbstractParameter = gpp.ParameterField(

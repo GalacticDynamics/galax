@@ -15,7 +15,6 @@ import jax.numpy as jnp
 from plum import dispatch
 
 import unxt as u
-from unxt.quantity import AllowValue
 
 import galax.fields as gf
 import galax.orbits.custom_types as gt
@@ -24,7 +23,7 @@ from .backend import AbstractForceBackend
 from .checks import MASS_MSG, SOFT_MSG, check, input_oks, tracer_msg
 from .direct import DirectSum
 from .particles import Sources, Targets
-from .system import System
+from .system import System, _strip
 from galax.orbits import AbstractOrbitField
 
 _DIRECT: Final = DirectSum()
@@ -140,9 +139,8 @@ class NBodyField(AbstractOrbitField):
         # `_check` sees their values and raises now. Traced inputs stay traced
         # and get the same checks at run time through `eqx.error_if`.
         with jax.ensure_compile_time_eval():
-            m = jnp.asarray(u.ustrip(AllowValue, units["mass"], masses), dtype=float)
-            h = softening if eps is None else eps
-            h = jnp.asarray(u.ustrip(AllowValue, units["length"], h), dtype=float)
+            m = _strip(masses, units["mass"])
+            h = _strip(softening if eps is None else eps, units["length"])
             if m.ndim != 1:
                 msg = f"masses must be 1-D, got shape {m.shape}"
                 raise ValueError(msg)
@@ -284,7 +282,7 @@ def from_(
     >>> s = gn.System.from_(c, units="galactic")
     >>> f = gn.NBodyField.from_(s, gp.NullPotential(units="galactic"))
     >>> f.masses, gn.NBodyField.from_(f) is f
-    (Array([1., 1.], dtype=float64), True)
+    (Array([1., 1.], dtype=float64, weak_type=True), True)
     """
     return cls.from_system(system, external_potential, backend=backend)
 
@@ -374,9 +372,9 @@ def __call__(
 ) -> tuple[Real[Array, "N 3"], Real[Array, "N 3"]]:
     units = self.units
     x, v = xv
-    x = jnp.asarray(u.ustrip(AllowValue, units["length"], x), dtype=float)
-    v = jnp.asarray(u.ustrip(AllowValue, units["speed"], v), dtype=float)
-    return v, self.acceleration(t, x)
+    x, v = _strip(x, units["length"]), _strip(v, units["speed"])
+    # The derivative has the state's dtype, also with float64 masses.
+    return v, self.acceleration(t, x).astype(v.dtype)
 
 
 @AbstractOrbitField.terms.dispatch

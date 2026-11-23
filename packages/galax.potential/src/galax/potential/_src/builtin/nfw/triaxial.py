@@ -204,7 +204,7 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
             return delta_psi_factor(s2) / denom  # type: ignore[no-any-return]
 
         # TODO: option to do integrate.quad
-        integral = gauss_legendre(integrand, self.integration_order)
+        integral = gauss_legendre(integrand, self.integration_order, dtype=xyz.dtype)
 
         out = (-2.0 * jnp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2) * integral
         return out.ustrip(self.units["specific energy"])  # type: ignore[no-any-return]

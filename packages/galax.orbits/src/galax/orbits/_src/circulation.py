@@ -96,17 +96,23 @@ def _circulation_core(q: Array, p: Array) -> Bool[Array, "*batch 3"]:
     return (pos | neg) & ok.any(axis=-2)  # type: ignore[no-any-return]
 
 
-def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
-    """Check the shapes of (..., T, 3) inputs and run the jitted core."""
-    q = jnp.asarray(u.ustrip(AllowValue, _Q_UNIT, q))
-    p = jnp.asarray(u.ustrip(AllowValue, _P_UNIT, p))
-    shape = jnp.broadcast_shapes(q.shape, p.shape)
+def _check_shape(q: Any, p: Any) -> tuple[int, ...]:
+    """Check that q and p broadcast to shape (..., T, 3) with T > 0."""
+    shape = jnp.broadcast_shapes(jnp.shape(q), jnp.shape(p))
     if len(shape) < 2 or shape[-1] != 3 or shape[-2] == 0:
         msg = (
             f"circulation needs q and p of shape (..., T, 3) with T > 0, but "
             f"they broadcast to shape {shape}."
         )
         raise ValueError(msg)
+    return shape  # type: ignore[no-any-return]
+
+
+def _circulation_qp(q: Any, p: Any) -> Bool[Array, "*batch 3"]:
+    """Check the shapes of (..., T, 3) inputs and run the jitted core."""
+    q = jnp.asarray(u.ustrip(AllowValue, _Q_UNIT, q))
+    p = jnp.asarray(u.ustrip(AllowValue, _P_UNIT, p))
+    _check_shape(q, p)
     q, p = jax.lax.stop_gradient(q), jax.lax.stop_gradient(p)
     return _circulation_core(q, p)  # type: ignore[no-any-return]
 
@@ -207,7 +213,7 @@ def _align_axis(q: Any, p: Any, circ: Any) -> Int[Array, "*batch"]:
     """Return the axis to swap with z, computing and checking ``circ``."""
     if circ is None:
         return _circ_axis(_circulation_qp(q, p))
-    batch = jnp.broadcast_shapes(jnp.shape(q), jnp.shape(p))[:-2]
+    batch = _check_shape(q, p)[:-2]
     if jnp.shape(circ) != (*batch, 3):
         msg = (
             f"circ has shape {jnp.shape(circ)}, but the orbits need shape "
@@ -215,6 +221,30 @@ def _align_axis(q: Any, p: Any, circ: Any) -> Int[Array, "*batch"]:
         )
         raise ValueError(msg)
     return _circ_axis(circ)
+
+
+def _vconvert(rep: Any, v: Any, at: Any = None) -> Any:
+    """Convert a vector to ``rep``, flattening 2 or more batch axes.
+
+    coordinax's velocity ``vconvert`` fails to broadcast with 2 or more batch
+    axes.
+    """
+    shape = v.shape
+    if len(shape) < 2:
+        return cx.vconvert(rep, v) if at is None else cx.vconvert(rep, v, at)
+    v = v.reshape(-1)
+    out = cx.vconvert(rep, v) if at is None else cx.vconvert(rep, v, at.reshape(-1))
+    return out.reshape(shape)
+
+
+def _like(old: Any, new: Any) -> Any:
+    """Return ``new`` with each component in the unit of ``old``'s."""
+    return type(new)(
+        **{
+            c: u.uconvert(u.unit_of(getattr(old, c)), getattr(new, c))
+            for c in old.components
+        }
+    )
 
 
 def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
@@ -225,9 +255,11 @@ def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
         parts = {k: _aligned(v, axis) for k, v in w.items()}
         return type(w)(parts, frame=w.frame)
     q, p = _cartesian_qp(w)
+    qc = cx.CartesianPos3D.from_(_swap(q, axis))
+    pc = cx.CartesianVel3D.from_(_swap(p, axis))
     changes: dict[str, Any] = {
-        "q": cx.CartesianPos3D.from_(_swap(q, axis)),
-        "p": cx.CartesianVel3D.from_(_swap(p, axis)),
+        "q": _like(w.q, _vconvert(type(w.q), qc)),
+        "p": _like(w.p, _vconvert(type(w.p), pc, qc)),
     }
     if isinstance(w, AbstractOrbit):
         # The interpolant still describes the unswapped axes, so drop it.

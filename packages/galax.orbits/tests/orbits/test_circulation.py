@@ -507,3 +507,106 @@ def test_align_keeps_the_input_units(q_quantity):
     else:
         assert p2.unit == u.unit("km/s")
         np.testing.assert_array_equal(p2.value, p[:, [2, 1, 0]])
+
+
+# ===================================================================
+# Shapes with circ, and per-component units
+
+
+@pytest.mark.parametrize("shape", [(3,), (5, 4)])
+def test_align_with_circ_checks_the_shape(shape):
+    x = np.ones(shape)
+    with pytest.raises(ValueError, match="shape"):
+        go.align_circulation(x, x, np.array([True, False, False]))
+
+
+def _units_of(v):
+    return {c: str(u.unit_of(getattr(v, c))) for c in v.components}
+
+
+def _cart(v, at=None):
+    if at is None:
+        return cx.vconvert(cx.CartesianPos3D, v)
+    return cx.vconvert(cx.CartesianVel3D, v, at)
+
+
+def _coordinate(rep):
+    """Return a yz-plane orbit in mixed units, in the representation ``rep``."""
+    (q, p), _, _ = ORBITS["yz"]
+    qv = cx.CartesianPos3D(
+        x=u.Q(q[:, 0], "kpc"), y=u.Q(q[:, 1] * 1e3, "pc"), z=u.Q(q[:, 2] * 2e8, "AU")
+    )
+    pv = cx.CartesianVel3D(
+        x=u.Q(p[:, 0], "kpc/Myr"),
+        y=u.Q(p[:, 1] * 977.8, "km/s"),
+        z=u.Q(p[:, 2], "kpc/Myr"),
+    )
+    if rep is cx.CartesianPos3D:
+        return qv, pv
+    qs = cx.vconvert(cx.vecs.SphericalPos, qv)
+    ps = cx.vconvert(cx.vecs.SphericalVel, pv, qv)
+    return qs, ps
+
+
+def _check_keeps_units(w, aligned):
+    assert type(aligned.q) is type(w.q)
+    assert type(aligned.p) is type(w.p)
+    assert _units_of(aligned.q) == _units_of(w.q)
+    assert _units_of(aligned.p) == _units_of(w.p)
+
+
+@pytest.mark.parametrize("rep", [cx.CartesianPos3D, cx.vecs.SphericalPos])
+def test_align_coordinate_keeps_component_units(rep):
+    qv, pv = _coordinate(rep)
+    w = gc.PhaseSpaceCoordinate(q=qv, p=pv, t=u.Q(T, "Myr"))
+    aligned, axis = go.align_circulation(w)
+    assert int(axis) == 0
+    _check_keeps_units(w, aligned)
+    # The values are those of the Cartesian swap.
+    qc, pc = _cart(w.q), _cart(w.p, w.q)
+    qa, pa = _cart(aligned.q), _cart(aligned.p, aligned.q)
+    for a, b in [(qa.x, qc.z), (qa.y, qc.y), (qa.z, qc.x)]:
+        np.testing.assert_allclose(
+            u.ustrip("kpc", a), u.ustrip("kpc", b), rtol=1e-5, atol=1e-5
+        )
+    for a, b in [(pa.x, pc.z), (pa.y, pc.y), (pa.z, pc.x)]:
+        np.testing.assert_allclose(
+            u.ustrip("kpc/Myr", a), u.ustrip("kpc/Myr", b), rtol=1e-5, atol=1e-5
+        )
+
+
+def test_align_spherical_in_au_deg_mas_per_yr():
+    qv, pv = _coordinate(cx.vecs.SphericalPos)
+    qv = cx.vecs.SphericalPos(
+        r=u.Q(u.ustrip("AU", qv.r), "AU"),
+        theta=u.Q(u.ustrip("deg", qv.theta), "deg"),
+        phi=u.Q(u.ustrip("deg", qv.phi), "deg"),
+    )
+    pv = cx.vecs.SphericalVel(
+        r=u.Q(u.ustrip("AU/yr", pv.r), "AU/yr"),
+        theta=u.Q(u.ustrip("mas/yr", pv.theta), "mas/yr"),
+        phi=u.Q(u.ustrip("mas/yr", pv.phi), "mas/yr"),
+    )
+    w = gc.PhaseSpaceCoordinate(q=qv, p=pv, t=u.Q(T, "Myr"))
+    aligned, _ = go.align_circulation(w)
+    _check_keeps_units(w, aligned)
+
+
+def test_align_composite_keeps_component_units():
+    qv, pv = _coordinate(cx.CartesianPos3D)
+    qs, ps = _coordinate(cx.vecs.SphericalPos)
+    h = T.size // 2
+    a = gc.PhaseSpaceCoordinate(q=qv[:h], p=pv[:h], t=u.Q(T[:h], "Myr"))
+    b = gc.PhaseSpaceCoordinate(q=qs[h:], p=ps[h:], t=u.Q(T[h:], "Myr"))
+    comp = gc.CompositePhaseSpaceCoordinate(a=a, b=b)
+    aligned, axis = go.align_circulation(comp)
+    assert int(axis) == 0
+    for k in ("a", "b"):
+        _check_keeps_units(comp[k], aligned[k])
+
+
+def test_align_orbit_keeps_units_and_time(orbit):
+    aligned, _ = go.align_circulation(orbit)
+    _check_keeps_units(orbit, aligned)
+    np.testing.assert_array_equal(aligned.t.value, orbit.t.value)
+    assert aligned.t.unit == orbit.t.unit

@@ -36,7 +36,7 @@ dependencies = [
   "dataclassish>=0.8.0",
   "equinox>=0.13.8",
   "galax.coordinates",
-  "interpax>=0.3.11",
+  "interpax>=0.3.16",
   "is-annotated>=1.0",
   "jax>=0.7.2",
   "jaxtyping>=0.3.3",

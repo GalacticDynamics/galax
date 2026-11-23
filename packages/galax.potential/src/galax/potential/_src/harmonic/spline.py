@@ -11,7 +11,6 @@ __all__: tuple[str, ...] = ()
 from jaxtyping import Array, Float
 
 import interpax
-import jax
 
 import quaxed.numpy as jnp
 
@@ -33,37 +32,13 @@ def fit_log_spline(
     floor set by the condition, not a discretization error that ``n_r``
     reduces.
 
-    The tridiagonal system is solved with `jax.lax.linalg.tridiagonal_solve`
-    rather than through `interpax.approx_df`, whose `lineax` solve compares
-    the operator's structure with the right-hand side's, sharding included,
-    and so fails inside `jax.shard_map` once the values vary over a mapped
-    axis while the knots do not -- for example a potential built per particle
-    from a traced density. The equations are `interpax`'s; fewer than four
-    knots (a line or a parabola) still go through `interpax`.
+    `interpax` solves the tridiagonal system with
+    `jax.lax.linalg.tridiagonal_solve` from 0.3.16 on, so this also works
+    inside `jax.shard_map` when the values vary over a mapped axis while the
+    knots do not -- for example a potential built per particle from a traced
+    density. Older versions solved through `lineax` and failed there.
     """
-    n = log_r.shape[0]
-    if n < 4:
-        return interpax.approx_df(log_r, values, "cubic2", 0, bc_type="not-a-knot")  # type: ignore[no-any-return]
-    f = values.reshape(n, -1)
-    dx = jnp.diff(log_r)
-    df = jnp.diff(f, axis=0) / dx[:, None]
-    d0, d1 = log_r[2] - log_r[0], log_r[-1] - log_r[-3]
-    # Rows 1..n-2: C2 continuity. Rows 0 and n-1: not-a-knot.
-    diag = jnp.zeros(n, dx.dtype).at[1:-1].set(2 * (dx[:-1] + dx[1:]))
-    diag = diag.at[0].set(dx[1]).at[-1].set(dx[-2])
-    upper = jnp.zeros(n, dx.dtype).at[1:-1].set(dx[:-1]).at[0].set(d0)  # A[i, i+1]
-    lower = jnp.zeros(n, dx.dtype).at[1:-1].set(dx[1:]).at[-1].set(d1)  # A[i, i-1]
-    rhs = (
-        jnp.zeros_like(f)
-        .at[1:-1]
-        .set(3 * (dx[1:, None] * df[:-1] + dx[:-1, None] * df[1:]))
-    )
-    rhs = rhs.at[0].set(((dx[0] + 2 * d0) * dx[1] * df[0] + dx[0] ** 2 * df[1]) / d0)
-    rhs = rhs.at[-1].set(
-        (dx[-1] ** 2 * df[-2] + (2 * d1 + dx[-1]) * dx[-2] * df[-1]) / d1
-    )
-    out = jax.lax.linalg.tridiagonal_solve(lower, diag, upper, rhs)
-    return out.reshape(values.shape)
+    return interpax.approx_df(log_r, values, "cubic2", 0, bc_type="not-a-knot")  # type: ignore[no-any-return]
 
 
 def eval_log_spline(

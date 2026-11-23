@@ -38,7 +38,7 @@ dependencies = [
   "galax.nbody",
   "galax.orbits",
   "galax.potential",
-  "interpax>=0.3.11",
+  "interpax>=0.3.16",
   "jax>=0.7.2",
   "jaxmore>=0.5",
   "jaxtyping>=0.3.3",

@@ -1176,7 +1176,7 @@ requires-dist = [
     { name = "galax-nbody", editable = "packages/galax.nbody" },
     { name = "galax-orbits", editable = "packages/galax.orbits" },
     { name = "galax-potential", editable = "packages/galax.potential" },
-    { name = "interpax", specifier = ">=0.3.11" },
+    { name = "interpax", specifier = ">=0.3.16" },
     { name = "jax", specifier = ">=0.7.2" },
     { name = "jaxmore", specifier = ">=0.5" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
@@ -1613,7 +1613,7 @@ requires-dist = [
     { name = "dataclassish", specifier = ">=0.8.0" },
     { name = "equinox", specifier = ">=0.13.8" },
     { name = "galax-coordinates", editable = "packages/galax.coordinates" },
-    { name = "interpax", specifier = ">=0.3.11" },
+    { name = "interpax", specifier = ">=0.3.16" },
     { name = "is-annotated", specifier = ">=1.0" },
     { name = "jax", specifier = ">=0.7.2" },
     { name = "jaxtyping", specifier = ">=0.3.3" },
@@ -1710,18 +1710,18 @@ wheels = [
 
 [[package]]
 name = "interpax"
-version = "0.3.12"
+version = "0.3.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "equinox" },
     { name = "jax" },
+    { name = "jaxkd" },
     { name = "jaxtyping" },
-    { name = "lineax" },
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/39/55576cf2c33c1f4df483ec1507fb36027389c00863772b78abf04c75afff/interpax-0.3.12.tar.gz", hash = "sha256:9563b5458a70a9bac34372c68d8fca34a03864e19805b06763a1c48dbd420699", size = 58170, upload-time = "2025-11-03T19:01:45.591Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/09/bba97be44a8e0d6b8df8d721c0494d78076973d9266962c25e7ba8683480/interpax-0.3.16.tar.gz", hash = "sha256:b543e20ae292e13faa6eb16323d891018047dd7e06746fb71c0054d2d8139a2a", size = 66621, upload-time = "2026-10-22T21:56:53.575Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/41/2077ef0c346d44ec66d1ee807493631fbe07e6088255191b4324fc258949/interpax-0.3.12-py3-none-any.whl", hash = "sha256:1f447c238ae629dabf23f9c04671d52a03d11251f31ec7607556c576a81142b6", size = 27795, upload-time = "2025-11-03T19:01:44.422Z" },
+    { url = "https://files.pythonhosted.org/packages/df/8d/35502ad14f1d8c2283e03dc1362bbfc4408005513afc6179459fb872ae8a/interpax-0.3.16-py3-none-any.whl", hash = "sha256:ed622c18b5b4ef03d1c574eae733571473f7025212366eddd1d9ad6f556d2970", size = 49239, upload-time = "2026-10-22T21:56:51.947Z" },
 ]
 
 [[package]]
@@ -1807,6 +1807,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/22/1c/9baf805e6c969a1a7afeb37d359e8a10585e8b2621f103626998b42ae838/jax-0.8.0.tar.gz", hash = "sha256:0ea5a7be7068c25934450dfd87d7d80a18a5d30e0a53454e7aade525b23accd5", size = 2489031, upload-time = "2025-10-15T23:10:11.839Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/77/4e6c9a54247810eff8ac8a1af7dc1be0779b52df0d82f3fc8586061914f3/jax-0.8.0-py3-none-any.whl", hash = "sha256:d190158bc019756c6a0f6b3d5fc8783471fb407e6deaff559eaac60dd5ee850a", size = 2900279, upload-time = "2025-10-15T23:10:09.88Z" },
+]
+
+[[package]]
+name = "jaxkd"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jax" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fc/6b/40de65a682f0212ff13facf0c2a9b1a07e1b0f719906c11b39a9855275b3/jaxkd-0.1.2.tar.gz", hash = "sha256:842e7837450feec39fa03bb6f5369fa4123ec526339dc359bfba7157884b77ec", size = 9414, upload-time = "2025-07-15T11:45:09.193Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/31/53a56d0bb104b6726f6d6858304fe7f4fb63fb120112f446ebecae5168c4/jaxkd-0.1.2-py3-none-any.whl", hash = "sha256:63560da791809a6c2cc7f3bf7e9d1509f2d880ba1bb7e6695727e6a41032bd98", size = 11399, upload-time = "2025-07-15T11:45:07.791Z" },
 ]
 
 [[package]]

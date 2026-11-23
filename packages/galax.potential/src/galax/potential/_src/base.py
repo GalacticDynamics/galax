@@ -59,11 +59,11 @@ class _DefaultConstants(Mapping[str, u.AbstractQuantity]):
     outside JAX, in astropy's NumPy float64, and each potential gets the
     constants at the precision in effect when it is constructed.
 
-    Why strong: the value comes from NumPy float64, so with x64 on ``G`` is a
-    strongly typed float64 and promotes float32 inputs to float64. That is
-    what galax did when x64 was turned on before import. A weakly typed ``G``
-    (built from a Python float) would instead let float32 inputs stay
-    float32; that would change results for float32 users, so it is not done.
+    Typing: the value comes from NumPy float64, so with x64 on ``G`` is a
+    strongly typed float64, as it was when x64 was turned on before import.
+    A strong ``G`` promotes float32 inputs to float64. Making it weakly typed
+    would not by itself keep them float32, because the potential functions
+    also cast their inputs to the default float type.
     """
 
     def __getitem__(self, key: str, /) -> u.AbstractQuantity:

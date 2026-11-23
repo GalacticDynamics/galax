@@ -68,9 +68,11 @@ same two names to pytest:
 
     pytest --jaxtyping-packages=galax,beartype.beartype
 
-``beartype.claw.beartype_package("galax")`` also works, but it checks types and
-dtypes only; array shapes that must agree across arguments are checked only
-under jaxtyping's hook.
+``beartype.claw.beartype_package("galax")`` is not a substitute. Today
+:mod:`galax.coordinates` and :mod:`galax.potential` fail to import under it,
+because it breaks plum's ``.dispatch`` decorator on class methods, and it does
+not check array dimensions that must agree across arguments, which jaxtyping's
+hook does.
 
 Some calls do fail under the hook today, for example in :mod:`galax.potential`,
 so expect failures from the full test suite. A failure like that usually points

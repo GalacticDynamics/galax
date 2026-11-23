@@ -26,7 +26,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.potential as gp
 from ._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
-from ._o2gf_orbit import align_circulation, circulation, is_loop
+from ._o2gf_orbit import align_circulation_with_z, circulation, is_loop
 from ._o2gf_solve import solve_o2gf
 from ._o2gf_toy import (
     IsochroneToy,
@@ -188,7 +188,7 @@ def _path(
     """Run the loop or the box path on one orbit."""
     keep = _finite(q, p, t)
     if loop:
-        q, p, axis = align_circulation(q, p, circulation(q, p, keep))
+        q, p, axis = align_circulation_with_z(q, p, circulation(q, p, keep))
     else:
         axis = jnp.asarray(2)
     fitted = toy is None

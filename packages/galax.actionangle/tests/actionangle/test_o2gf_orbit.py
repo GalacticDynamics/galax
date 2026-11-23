@@ -5,7 +5,11 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-from galax.actionangle._src._o2gf_orbit import align_circulation, circulation, is_loop
+from galax.actionangle._src._o2gf_orbit import (
+    align_circulation_with_z,
+    circulation,
+    is_loop,
+)
 
 T = jnp.linspace(0.0, 40.0, 400)
 C, S, Z = jnp.cos(T), jnp.sin(T), jnp.zeros_like(T)
@@ -45,9 +49,9 @@ def _check(q, p, circ, expected, axis_exp, out):
 def test_single_orbit(name, jit):
     (q, p), expected, axis_exp = ORBITS[name]
     circ_f, align_f = (
-        (jax.jit(circulation), jax.jit(align_circulation))
+        (jax.jit(circulation), jax.jit(align_circulation_with_z))
         if jit
-        else (circulation, align_circulation)
+        else (circulation, align_circulation_with_z)
     )
     circ = circ_f(q, p)
     _check(q, p, circ, expected, axis_exp, align_f(q, p, circ))
@@ -57,7 +61,7 @@ def test_vmap():
     qs = jnp.stack([v[0][0] for v in ORBITS.values()])
     ps = jnp.stack([v[0][1] for v in ORBITS.values()])
     circ = jax.jit(jax.vmap(circulation))(qs, ps)
-    out = jax.jit(jax.vmap(align_circulation))(qs, ps, circ)
+    out = jax.jit(jax.vmap(align_circulation_with_z))(qs, ps, circ)
     for i, (_, expected, axis_exp) in enumerate(ORBITS.values()):
         _check(qs[i], ps[i], circ[i], expected, axis_exp, tuple(o[i] for o in out))
 

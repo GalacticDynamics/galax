@@ -1,6 +1,6 @@
 """Circulation detection and axis alignment for O2GF orbits (pure JAX)."""
 
-__all__ = ["align_circulation", "circulation", "is_loop"]
+__all__ = ["align_circulation_with_z", "circulation", "is_loop"]
 
 from jaxtyping import Array, Bool, Int
 from typing import Final
@@ -35,7 +35,7 @@ def is_loop(circ: Bool[Array, "3"]) -> Bool[Array, ""]:
     return jnp.any(circ)
 
 
-def align_circulation(
+def align_circulation_with_z(
     q: Array, p: Array, circ: Bool[Array, "3"]
 ) -> tuple[Array, Array, Int[Array, ""]]:
     """Swap the circulating axis with z in ``q`` and ``p``.

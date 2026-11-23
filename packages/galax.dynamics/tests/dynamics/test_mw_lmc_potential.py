@@ -76,3 +76,28 @@ def test_matches_joint_integration(n):
     want = joint_orbit(q0, p0)
     assert got.shape == want.shape
     assert jnp.max(jnp.abs(got - want)) < 1e-6
+
+
+class _Stop(Exception):  # noqa: N818
+    """Raised by the stand-in integrator to stop after recording its input."""
+
+
+def test_default_t_interp(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without `t_interp`, the orbits are saved at 10,000 times, 0 to -14 Gyr."""
+    seen = {}
+
+    def integrate_field(field, y0, ts, **kwargs):
+        seen["ts"] = ts
+        raise _Stop
+
+    # `make_mw_lmc_potential` imports `integrate_field` from `galax.dynamics`
+    # when called, so this stands in for the integration.
+    monkeypatch.setattr(gd, "integrate_field", integrate_field)
+    with pytest.raises(_Stop):
+        gd.examples.make_mw_lmc_potential(MW, LMC, MW_W0, LMC_W0)
+
+    ts = seen["ts"]
+    assert ts.shape == (10_000,)
+    assert ts.unit == u.unit("Gyr")
+    assert ts[0].value == 0
+    assert ts[-1].value == -14

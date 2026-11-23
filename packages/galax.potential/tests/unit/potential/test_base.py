@@ -372,3 +372,15 @@ class TestDefaultTimeDependent:
         assert jnp.allclose(
             jax.jit(gp.gradient)(pot, q.value), pot.gradient(q.value, 0.0)
         )
+
+
+def test_default_constants() -> None:
+    """`default_constants` is a read-only mapping that builds G when read."""
+    assert list(default_constants) == ["G"]
+    assert len(default_constants) == 1
+    assert repr(default_constants) == "default_constants"
+    G = default_constants["G"]
+    assert G is default_constants["G"]  # built once per float precision
+    assert u.dimension_of(G) == u.dimension_of(u.Q(1, "m3 / (kg s2)"))
+    with pytest.raises(KeyError):
+        default_constants["c"]

@@ -220,7 +220,7 @@ class ParameterField:
             v = value
         elif value is self.default and isinstance(value, u.StaticQuantity):
             # A default kept out of JAX (see `default`). A scalar one becomes a
-            # Python float here, so it is weakly typed, as `u.Q(0.01, "")` was.
+            # Python float or int here, so it is weakly typed, as `u.Q(0.01, "")` was.
             v = ConstantParameter(u.Q(np.asarray(value.value).tolist(), value.unit))
         elif callable(value):
             dims = _get_dimensions_from_return_annotation(value)

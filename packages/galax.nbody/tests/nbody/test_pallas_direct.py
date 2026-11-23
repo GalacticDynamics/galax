@@ -188,6 +188,30 @@ def test_drop_in_for_nbody_field(interpret) -> None:
     np.testing.assert_allclose(got, want, rtol=1e-10)
 
 
+def test_evolve_matches_direct_sum(interpret) -> None:
+    """`gn.evolve` with the kernel: trajectory, grad and vmap as with DirectSum."""
+    import galax.potential as gp
+
+    s, _ = massive(13)
+    pot = gp.KeplerPotential(m_tot=1e11, units="galactic")
+    p0 = 0.1 * s.q[::-1]
+    fp, fd = (
+        gn.NBodyField(s.m * 1e9, eps=0.05, external_potential=pot, backend=b)
+        for b in (backend(interpret), DirectSum())
+    )
+
+    def final(f, q):
+        return gn.evolve(f, q, p0, 0.0, 0.1, 20).ys[0][-1]
+
+    if interpret or jax.default_backend() == "gpu":  # not the CPU fallback
+        assert "nbody_pair_sum" in str(jax.make_jaxpr(ft.partial(final, fp))(s.q))
+    _close(final(fp, s.q), final(fd, s.q))
+    loss = lambda f: jax.grad(lambda q: jnp.sum(jnp.sin(final(f, q))))
+    _close(loss(fp)(s.q), loss(fd)(s.q))
+    qs = jnp.stack([s.q, 1.1 * s.q])
+    _close(jax.vmap(ft.partial(final, fp))(qs), jax.vmap(ft.partial(final, fd))(qs))
+
+
 @pytest.mark.skipif(
     jax.default_backend() in ("gpu", "tpu"), reason="fallback is CPU-only"
 )

@@ -28,11 +28,7 @@ from .test_spray_whole_stream import (
 from galax.dynamics._src.experimental.df import sample_releases
 from galax.dynamics._src.experimental.fields import _CopiesField
 from galax.dynamics._src.experimental.simulator import _evolve
-from galax.dynamics._src.experimental.solve import (
-    index_time,
-    progenitor_states,
-    solve_on,
-)
+from galax.dynamics._src.experimental.solve import progenitor_states, solve_on
 
 gde = gd.experimental
 T1 = jnp.asarray(0.0)
@@ -170,11 +166,10 @@ def test_times_no_leak() -> None:
     for i in range(TS.shape[0]):
         j = int(idx[i])
         sub = grid[j:]
-        terms = index_time(copies.terms(LEAP), sub)
-        steps = jnp.arange(sub.shape[0], dtype=float)
+        terms = copies.terms(LEAP)
         for got, w0 in ((res.lead[i], lead0[i]), (res.trail[i], trail0[i])):
             y0 = (jnp.stack([w0[:3], ws[j, :3]]), jnp.stack([w0[3:], ws[j, 3:]]))
-            want = jnp.concat(solve_on(LEAP, terms, y0, steps), axis=-1)
+            want = jnp.concat(solve_on(LEAP, terms, y0, sub), axis=-1)
             np.testing.assert_allclose(got, want[0], rtol=0, atol=1e-11)
     np.testing.assert_allclose(res.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
@@ -215,6 +210,59 @@ def per(mode, solver=LEAP, prog=plummer) -> gde.SpraySimulator:
     return gde.SpraySimulator(
         gde.Fardal2015DF(), PER[mode], progenitor_potential=prog, solver=solver
     )
+
+
+ALL = {"whole": gde.WholeStream(), **PER}
+
+
+def any_mode(mode, solver=LEAP) -> gde.SpraySimulator:
+    return gde.SpraySimulator(
+        gde.Fardal2015DF(), ALL[mode], progenitor_potential=plummer, solver=solver
+    )
+
+
+def flat(r) -> jax.Array:
+    return jnp.concat([r.lead, r.trail, r.progenitor[None]])
+
+
+@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("mode", list(ALL))
+def test_zero_span(mode, solver) -> None:
+    """Schedules over zero time run, eagerly and under jit, and never raise.
+
+    One release with the default ``t1 = max(ts)``, or a `Uniform` with
+    ``t_age = 0``: every release is at ``t1``, so the stream is its release
+    states.
+    """
+    s = SOLVERS[solver]
+    sim = any_mode(mode, s)
+    cases = (
+        (lambda ts: gde.Times(ts, 10), jnp.asarray([-100.0])),
+        (lambda a: gde.Uniform(a, 4, 5), jnp.asarray(0.0)),
+    )
+    for make, x in cases:
+        _, lead0, trail0 = release_ics(make(x), s)
+
+        def run(x, make=make):
+            return flat(sim(KEY, HOST, W_TODAY, MSAT, make(x)))
+
+        for got in (run(x), jax.jit(run)(x)):
+            n = lead0.shape[0]
+            np.testing.assert_allclose(got[:n], lead0, rtol=0, atol=1e-13)
+            np.testing.assert_allclose(got[n : 2 * n], trail0, rtol=0, atol=1e-13)
+            np.testing.assert_allclose(got[-1], W_TODAY, rtol=0, atol=1e-13)
+
+
+@pytest.mark.parametrize("mode", list(ALL))
+def test_release_after_t1_is_nan(mode) -> None:
+    """A release time after ``t1`` gives NaN under jit, not a wrong stream."""
+    sim = any_mode(mode)
+
+    def run(ts):
+        return flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 20, T1)))
+
+    got = jax.jit(run)(jnp.asarray([-200.0, -50.0, 40.0]))
+    assert jnp.all(jnp.isnan(got))
 
 
 @pytest.mark.parametrize("prog", ["plummer", "none"])

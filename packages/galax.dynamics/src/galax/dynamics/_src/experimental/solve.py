@@ -4,12 +4,13 @@ __all__ = [
     "default_solver",
     "grid_time",
     "host_terms",
-    "index_time",
     "is_lattice",
+    "map_terms",
     "progenitor_states",
     "solve_on",
 ]
 
+from collections.abc import Callable
 from jaxtyping import Array
 from typing import Any
 
@@ -89,13 +90,9 @@ class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
         return self.term.prod(vf, control)
 
 
-def index_time(terms: Any, grid: Array) -> Any:
-    """Return ``terms`` in index time on ``grid``; solve them on ``arange(M)``."""
-    return jax.tree.map(
-        lambda x: _IndexTime(x, grid),
-        terms,
-        is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
-    )
+def map_terms(f: Callable[[dfx.AbstractTerm], Any], terms: Any) -> Any:
+    """Apply ``f`` to each term in ``terms`` (one term, or a tuple of them)."""
+    return jax.tree.map(f, terms, is_leaf=lambda x: isinstance(x, dfx.AbstractTerm))
 
 
 def _solve(
@@ -106,8 +103,15 @@ def _solve(
     saveat: dfx.SaveAt,
     args: Any = None,
 ) -> Any:
-    """Solve and return ``ys``; NaN for a failed solve instead of raising."""
+    """Solve and return ``ys``; NaN for a failed solve instead of raising.
+
+    A fixed-step solve steps from ``step_ts[k]`` to ``step_ts[k + 1]`` in index
+    time (`_IndexTime`), so equal or NaN times never make diffrax raise. The
+    terms still see physical times.
+    """
     if is_lattice(solver):
+        terms = map_terms(lambda x: _IndexTime(x, step_ts), terms)
+        step_ts = jnp.arange(step_ts.shape[0], dtype=float)
         kw: dict[str, Any] = {
             "dt0": None,
             "stepsize_controller": dfx.StepTo(ts=step_ts),
@@ -168,37 +172,28 @@ def progenitor_states(
     """Return the progenitor's states ``(M, 6)`` on ``schedule.grid()``.
 
     It integrates ``w_today`` back from ``t1`` to the first grid point, then
-    forward saving every grid point. With `Times`, a fixed-step solver steps
-    back and forth on the merged grid (in index time), so the states at the
-    release times are the integrator's own; an adaptive one saves at the grid
-    points.
+    forward saving every grid point. A fixed-step solver steps back and forth
+    on the grid, so the states at the release times are the integrator's own;
+    a grid over zero time gives ``w_today`` at every point. An adaptive one
+    saves at the grid points.
     """
-    lattice, grid = schedule.lattice(), schedule.grid()
+    grid = schedule.grid()
     terms = host_terms(pot, solver)
     split = isinstance(solver.solver, gf.Leapfrog)
     y0 = (w_today[:3], w_today[3:]) if split else w_today
-    # A NaN time would make diffrax raise (`StepTo`, `SaveAt(ts=...)`) or an
-    # adaptive solve grind to `max_steps`: solve on stand-in times (zero time
-    # when adaptive) and return NaN.
-    ok = jnp.all(jnp.isfinite(grid))
+    # A NaN time, or a release after t1, gives NaN. In an adaptive solve a
+    # NaN time would make diffrax raise (`SaveAt(ts=...)`) or grind to
+    # `max_steps`: it solves over zero time instead.
+    ts = schedule.release_times()
+    ok = jnp.all(jnp.isfinite(grid)) & jnp.all(ts <= schedule.t1)
     if is_lattice(solver):
-        lattice = jnp.where(ok, lattice, jnp.arange(lattice.shape[0]))
-        grid = jnp.where(ok, grid, jnp.arange(grid.shape[0]))
-    else:
-        lattice, grid = jnp.where(ok, lattice, 0.0), jnp.where(ok, grid, 0.0)
-
-    if is_lattice(solver):
+        # Back and forth on the same grid: Leapfrog retraces its steps, so the
+        # orbit passes through `w_today` at t1.
         saveat = dfx.SaveAt(t0=True, steps=True)
     else:
+        grid = jnp.where(ok, grid, 0.0)
         saveat = dfx.SaveAt(ts=grid)
-    if isinstance(schedule, Times) and is_lattice(solver):
-        # Back and forth on the same merged grid, in index time: Leapfrog
-        # retraces its steps, so the orbit passes through `w_today` at t1.
-        steps = jnp.arange(grid.shape[0], dtype=float)
-        y_start = solve_on(solver, index_time(terms, grid[::-1]), y0, steps)
-        ys = _solve(solver, index_time(terms, grid), y_start, steps, saveat)
-    else:
-        y_start = solve_on(solver, terms, y0, lattice[::-1])
-        ys = _solve(solver, terms, y_start, grid, saveat)
+    y_start = solve_on(solver, terms, y0, grid[::-1])
+    ys = _solve(solver, terms, y_start, grid, saveat)
     w = jnp.concat(ys, axis=-1) if split else ys
     return jnp.where(ok, w, jnp.nan)

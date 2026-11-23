@@ -35,10 +35,9 @@ from .fields import _CopiesField, _TrackField, _WholeStreamField
 from .schedule import Times, Uniform
 from .solve import (
     default_solver,
-    grid_time,
     host_terms,
-    index_time,
     is_lattice,
+    map_terms,
     progenitor_states,
     solve_on,
 )
@@ -87,7 +86,8 @@ class SharedTrack(eqx.Module):
     Every particle feels the progenitor potential centred on the same track:
     the progenitor's orbit from ``progenitor_solver``, Hermite-interpolated
     between knots (its fixed-step lattice, or ``max(20 n_release, 2**14)``
-    uniform knots of an adaptive solve). Gradients use the knots' sensitivity
+    uniform knots of an adaptive solve; with `Times`, ``n_release`` there is
+    ``steps + 1``). Gradients use the knots' sensitivity
     ``S`` to ``theta``, the inexact array leaves of ``(w_today, pot,
     schedule)`` that ``wrt`` selects, computed once with `jax.jacfwd`. Under
     `jax.jit` a forward-only run never computes ``S``: nothing uses it, so XLA
@@ -105,10 +105,11 @@ class SharedTrack(eqx.Module):
     the lattice, which differs from the merged-grid orbit the releases come
     from by the two discretizations' difference.
 
-    An adaptive ``progenitor_solver`` makes ``S`` costly: each of its tangent
-    solves runs the adaptive solver over every knot, through ``jacfwd``. One
-    measurement took about 40 s for 5 releases with ``max_steps=400``. A
-    fixed-step ``progenitor_solver`` avoids this.
+    An adaptive ``progenitor_solver`` makes ``S`` costly: it takes
+    ``len(theta)`` tangent solves through `jax.jacfwd`, each running the
+    adaptive solver over every knot, so its cost is many adaptive progenitor
+    solves and grows with the knot count. A fixed-step ``progenitor_solver``
+    avoids this.
 
     First derivatives are exact. Second derivatives through the track are not:
     its sensitivity is held constant, so the track's own curvature in those
@@ -422,12 +423,7 @@ def evolve_per_particle(
 
     def one(w: Array, t: Array) -> Array:
         if on_lattice:
-            tm = jax.tree.map(
-                lambda x: _FromRelease(x, t),
-                terms,
-                is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
-            )
-            ts = lattice
+            tm, ts = map_terms(lambda x: _FromRelease(x, t), terms), lattice
         else:
             tm, ts = terms, jnp.stack([t, lattice[-1]])
         y = solve_on(solver, tm, (w[..., :3], w[..., 3:]) if split else w, ts)
@@ -458,11 +454,11 @@ def _check_one_solver(sim: SpraySimulator) -> None:
 
 
 class _Gate(dfx.AbstractTerm):  # type: ignore[misc]
-    """A whole-stream term in index time, each row frozen until its release.
+    """A whole-stream term with each row frozen until its release.
 
-    Index ``s`` is the physical time ``grid[s]``. Row ``r`` has a zero control
-    on every step that starts before ``t_rel[r]`` (``-inf`` for the progenitor
-    row), and its derivatives are switched off (``args["active"]``) before it.
+    Row ``r`` has a zero control on every step that starts before ``t_rel[r]``
+    (``-inf`` for the progenitor row), and its derivatives are switched off
+    (``args["active"]``) before it.
     Release times are grid points, so a step either ends by a release or starts
     at or after it. The step that ends at a release evaluates the row's force
     at its release state, with the progenitor row at the release time, so
@@ -471,17 +467,13 @@ class _Gate(dfx.AbstractTerm):  # type: ignore[misc]
     """
 
     term: dfx.AbstractTerm
-    grid: Array
     t_rel: Array  # (R,)
 
     def vf(self, t: Array, y: Any, args: Any) -> Any:  # noqa: ARG002
-        tau = grid_time(self.grid, t)
-        return self.term.vf(tau, y, {"active": (tau >= self.t_rel)[1:]})
+        return self.term.vf(t, y, {"active": (t >= self.t_rel)[1:]})
 
     def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Array:  # noqa: ARG002
-        tau0 = grid_time(self.grid, t0)
-        c = self.term.contr(tau0, grid_time(self.grid, t1))
-        return jnp.where(tau0 >= self.t_rel, c, 0.0)
+        return jnp.where(t0 >= self.t_rel, self.term.contr(t0, t1), 0.0)
 
     def prod(self, vf: Any, control: Array) -> Any:
         return jax.tree.map(lambda v: v * control[:, None], vf)
@@ -541,27 +533,24 @@ def _evolve(
     ts = schedule.release_times()
     if is_lattice(sim.solver):
         # One solve over the merged grid, each row gated by its release time.
-        grid = schedule.grid()
         t_rel = jnp.concat([jnp.full(1, -jnp.inf), ts, ts])
-        terms = jax.tree.map(
-            lambda x: _Gate(x, grid, t_rel),
-            field.terms(sim.solver),
-            is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
-        )
+        terms = map_terms(lambda x: _Gate(x, t_rel), field.terms(sim.solver))
         w0 = jnp.concat([ws[:1], lead0, trail0])
         split = isinstance(sim.solver.solver, gf.Leapfrog)
         y0 = (w0[:, :3], w0[:, 3:]) if split else w0
-        steps = jnp.arange(grid.shape[0], dtype=float)
-        y = solve_on(sim.solver, terms, y0, steps)
+        y = solve_on(sim.solver, terms, y0, schedule.grid())
         w = jnp.concat(y, axis=-1) if split else y
         w = jnp.where(jnp.all(jnp.isfinite(w)), w, jnp.nan)
     else:
         # PR-1 segments: between consecutive sorted releases, then to t1.
         u = jnp.sort(ts)
         grids = jnp.stack([u, jnp.concat([u[1:], schedule.t1[None]])], axis=1)
-        # A NaN time gives NaN rows (below); solve over zero time, not NaN time.
+        # A NaN time gives NaN release states, so NaN rows: solve over zero
+        # time, not NaN time.
         grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
         on = ts[None, :] <= u[:, None]
+        # The progenitor at min(ts). Not ws[0]: lattice round-off can put the
+        # grid's first point an ulp before min(ts).
         start = ws[schedule.release_index()[jnp.argmin(ts)]]
         w = evolve_whole_stream(
             field,
@@ -604,15 +593,9 @@ def _evolve(
         track = make_track(pot, w_today, ksched, psolver, kws, mode.progenitor.wrt)
         terms = _TrackField(pot, prog_pot, track).terms(sim.solver)
         w0 = w0[:, :, None]
-    if isinstance(schedule, Times) and is_lattice(sim.solver):
-        # Step on the merged grid in index time, from each release's index,
-        # like `WholeStream`: a copy then takes the progenitor's own steps.
-        grid = schedule.grid()
-        terms = index_time(terms, grid)
-        t0 = idx.astype(float)
-        steps = jnp.arange(grid.shape[0], dtype=float)
-    else:
-        t0, steps = schedule.release_times(), schedule.lattice()
+    # A fixed-step solve steps on the grid (for `Times`, the merged grid, like
+    # `WholeStream`): a copy then takes the progenitor's own steps.
+    t0, steps = schedule.release_times(), schedule.grid()
     w = evolve_per_particle(terms, sim.solver, w0, t0, steps, mode.loop)
     if prog_pot is not None:
         w = w[:, :, 0]

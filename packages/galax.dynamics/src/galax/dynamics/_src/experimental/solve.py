@@ -2,7 +2,9 @@
 
 __all__ = [
     "default_solver",
+    "grid_time",
     "host_terms",
+    "index_time",
     "is_lattice",
     "progenitor_states",
     "solve_on",
@@ -19,7 +21,7 @@ import diffraxtra as dfxtra
 
 import galax.fields as gf
 import galax.potential as gp
-from .schedule import Uniform
+from .schedule import Times, Uniform
 
 
 def default_solver() -> dfxtra.DiffEqSolver:
@@ -57,6 +59,42 @@ def host_terms(pot: gp.AbstractPotential, solver: dfxtra.DiffEqSolver) -> Any:
         )
     return dfx.ODETerm(
         lambda t, w, args: jnp.concat([w[3:], acc(t, w[:3])])  # noqa: ARG005
+    )
+
+
+def grid_time(grid: Array, s: Array) -> Array:
+    """Physical time at index time ``s``: linear in ``grid``, exact at integers."""
+    i = jnp.clip(jnp.floor(s), 0, grid.shape[0] - 1).astype(int)
+    j = jnp.minimum(i + 1, grid.shape[0] - 1)
+    return grid[i] + (s - i) * (grid[j] - grid[i])
+
+
+class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
+    """``term`` in index time: the step ``s -> s + 1`` is ``grid[s] -> grid[s + 1]``.
+
+    A step between equal grid points has zero control, so it leaves the state as
+    it is; diffrax's `StepTo` rejects such a step in physical time.
+    """
+
+    term: dfx.AbstractTerm
+    grid: Array
+
+    def vf(self, t: Array, y: Any, args: Any) -> Any:
+        return self.term.vf(grid_time(self.grid, t), y, args)
+
+    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Any:  # noqa: ARG002
+        return self.term.contr(grid_time(self.grid, t0), grid_time(self.grid, t1))
+
+    def prod(self, vf: Any, control: Any) -> Any:
+        return self.term.prod(vf, control)
+
+
+def index_time(terms: Any, grid: Array) -> Any:
+    """Return ``terms`` in index time on ``grid``; solve them on ``arange(M)``."""
+    return jax.tree.map(
+        lambda x: _IndexTime(x, grid),
+        terms,
+        is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
     )
 
 
@@ -124,23 +162,43 @@ def solve_on(
 def progenitor_states(
     pot: gp.AbstractPotential,
     w_today: Array,
-    schedule: Uniform,
+    schedule: Uniform | Times,
     solver: dfxtra.DiffEqSolver,
 ) -> Array:
-    """Return the progenitor's states ``(n_steps + 1, 6)`` on the lattice.
+    """Return the progenitor's states ``(M, 6)`` on ``schedule.grid()``.
 
-    It integrates ``w_today`` back from ``t1`` to the first lattice point, then
-    forward saving every lattice point.
+    It integrates ``w_today`` back from ``t1`` to the first grid point, then
+    forward saving every grid point. With `Times`, a fixed-step solver steps
+    back and forth on the merged grid (in index time), so the states at the
+    release times are the integrator's own; an adaptive one saves at the grid
+    points.
     """
-    lattice = schedule.lattice()
+    lattice, grid = schedule.lattice(), schedule.grid()
     terms = host_terms(pot, solver)
     split = isinstance(solver.solver, gf.Leapfrog)
     y0 = (w_today[:3], w_today[3:]) if split else w_today
+    # A NaN time would make diffrax raise (`StepTo`, `SaveAt(ts=...)`) or an
+    # adaptive solve grind to `max_steps`: solve on stand-in times (zero time
+    # when adaptive) and return NaN.
+    ok = jnp.all(jnp.isfinite(grid))
+    if is_lattice(solver):
+        lattice = jnp.where(ok, lattice, jnp.arange(lattice.shape[0]))
+        grid = jnp.where(ok, grid, jnp.arange(grid.shape[0]))
+    else:
+        lattice, grid = jnp.where(ok, lattice, 0.0), jnp.where(ok, grid, 0.0)
 
-    y_start = solve_on(solver, terms, y0, lattice[::-1])
     if is_lattice(solver):
         saveat = dfx.SaveAt(t0=True, steps=True)
     else:
-        saveat = dfx.SaveAt(ts=lattice)
-    ys = _solve(solver, terms, y_start, lattice, saveat)
-    return jnp.concat(ys, axis=-1) if split else ys
+        saveat = dfx.SaveAt(ts=grid)
+    if isinstance(schedule, Times) and is_lattice(solver):
+        # Back and forth on the same merged grid, in index time: Leapfrog
+        # retraces its steps, so the orbit passes through `w_today` at t1.
+        steps = jnp.arange(grid.shape[0], dtype=float)
+        y_start = solve_on(solver, index_time(terms, grid[::-1]), y0, steps)
+        ys = _solve(solver, index_time(terms, grid), y_start, steps, saveat)
+    else:
+        y_start = solve_on(solver, terms, y0, lattice[::-1])
+        ys = _solve(solver, terms, y_start, grid, saveat)
+    w = jnp.concat(ys, axis=-1) if split else ys
+    return jnp.where(ok, w, jnp.nan)

@@ -32,9 +32,10 @@ import galax.fields as gf
 import galax.potential as gp
 from .df import AbstractKinematicDF, Chen2024DF, sample_releases
 from .fields import _CopiesField, _TrackField, _WholeStreamField
-from .schedule import Uniform
+from .schedule import Times, Uniform
 from .solve import (
     default_solver,
+    grid_time,
     host_terms,
     is_lattice,
     progenitor_states,
@@ -57,9 +58,13 @@ class WholeStream(eqx.Module):
 
     The state holds the progenitor and every tracer. A tracer is frozen at its
     release state until its release time, then moves in the host plus the
-    progenitor potential centred on the progenitor row. Each stretch between
+    progenitor potential centred on the progenitor row. With a `Uniform`
+    schedule, or with `Times` and an adaptive controller, each stretch between
     consecutive release times is its own solve, so a tracer's first step uses
-    the force at its release state.
+    the force at its release state. With `Times` and fixed steps, it is one
+    solve over the merged grid, in which each tracer's steps have zero length
+    until its release; the step that ends at the release computes the force at
+    the release state, so the first step after it uses that force too.
 
     With an adaptive controller, diffrax's default error norm is the RMS over
     the whole state, frozen tracers included. So one particle's error can reach
@@ -153,7 +158,8 @@ class PerParticle(eqx.Module):
 class SprayResult(eqx.Module):
     """The stream at ``t1``, as raw arrays in the host potential's units.
 
-    ``lead[i]`` and ``trail[i]`` were both released at ``release_times[i]``.
+    ``lead[i]`` and ``trail[i]`` were both released at ``release_times[i]``,
+    in the schedule's order (for `Times`, the order of its ``ts``).
     """
 
     lead: Array  # (n_release, 6)
@@ -167,7 +173,9 @@ class SpraySimulator(eqx.Module):
     """Spray a stellar stream from a progenitor's state today.
 
     Calling it with ``(key, pot, w_today, Msat, schedule)`` returns a
-    `SprayResult`: ``w_today`` is the progenitor's state at ``schedule.t1``,
+    `SprayResult`. ``schedule`` is a `Uniform` (releases on a lattice) or a
+    `Times` (releases at any times; `PerParticle` doesn't support it yet).
+    ``w_today`` is the progenitor's state at ``schedule.t1``,
     ``Msat`` a scalar or, with a fixed or no progenitor potential, one mass per
     release. A failed solve gives NaN, for the whole result in `WholeStream`
     and for that particle in `PerParticle`; it never raises. Gradients at a
@@ -252,7 +260,7 @@ class SpraySimulator(eqx.Module):
         pot: gp.AbstractPotential,
         w_today: Array,
         Msat: Array,
-        schedule: Uniform,
+        schedule: Uniform | Times,
         /,
     ) -> SprayResult:
         return simulate(self, key, pot, w_today, Msat, schedule)
@@ -264,15 +272,24 @@ def simulate(
     pot: gp.AbstractPotential,
     w_today: Array,
     Msat: Array,
-    schedule: Uniform,
+    schedule: Uniform | Times,
     /,
 ) -> SprayResult:
     """Sample the releases on the progenitor's orbit and integrate them."""
-    if jnp.shape(w_today) != (6,) or jnp.ndim(schedule.t_age) != 0:
+    w_today = jnp.asarray(w_today, dtype=float)
+    if isinstance(schedule, Times):
+        times, want = schedule.ts, 1
+    else:
+        times, want = schedule.t_age, 0
+    if (
+        jnp.shape(w_today) != (6,)
+        or jnp.ndim(times) != want
+        or jnp.ndim(schedule.t1) != 0
+    ):
         msg = (
-            "w_today must have shape (6,) and t_age be a scalar, got "
-            f"{jnp.shape(w_today)} and {jnp.shape(schedule.t_age)}; vmap over "
-            "a batch"
+            "w_today must have shape (6,), t1 and t_age be scalars and ts be "
+            f"1-d, got w_today {jnp.shape(w_today)}, t1 {jnp.shape(schedule.t1)} "
+            f"and t_age or ts {jnp.shape(times)}; vmap over a batch"
         )
         raise ValueError(msg)
     psolver = sim.solver if sim.progenitor_solver is None else sim.progenitor_solver
@@ -400,6 +417,52 @@ def evolve_per_particle(
     return jax.vmap(pair)(w0, t0)
 
 
+def _check_one_solver(sim: SpraySimulator) -> None:
+    # The tracers orbit the progenitor row, so it must start from (and its
+    # release states come from) the same solver.
+    psolver = sim.progenitor_solver
+    if (
+        psolver is not None
+        and psolver is not sim.solver
+        and eqx.tree_equal(psolver, sim.solver) is not True
+    ):
+        msg = (
+            "WholeStream integrates the progenitor with the stream: "
+            "progenitor_solver must be None or equal to solver"
+        )
+        raise ValueError(msg)
+
+
+class _Gate(dfx.AbstractTerm):  # type: ignore[misc]
+    """A whole-stream term in index time, each row frozen until its release.
+
+    Index ``s`` is the physical time ``grid[s]``. Row ``r`` has a zero control
+    on every step that starts before ``t_rel[r]`` (``-inf`` for the progenitor
+    row), and its derivatives are switched off (``args["active"]``) before it.
+    Release times are grid points, so a step either ends by a release or starts
+    at or after it. The step that ends at a release evaluates the row's force
+    at its release state, with the progenitor row at the release time, so
+    `Leapfrog`'s cached force is right for the next step: no kick leaks across
+    the release.
+    """
+
+    term: dfx.AbstractTerm
+    grid: Array
+    t_rel: Array  # (R,)
+
+    def vf(self, t: Array, y: Any, args: Any) -> Any:  # noqa: ARG002
+        tau = grid_time(self.grid, t)
+        return self.term.vf(tau, y, {"active": (tau >= self.t_rel)[1:]})
+
+    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Array:  # noqa: ARG002
+        tau0 = grid_time(self.grid, t0)
+        c = self.term.contr(tau0, grid_time(self.grid, t1))
+        return jnp.where(tau0 >= self.t_rel, c, 0.0)
+
+    def prod(self, vf: Any, control: Array) -> Any:
+        return jax.tree.map(lambda v: v * control[:, None], vf)
+
+
 @dispatch.abstract
 def _evolve(mode: Any, *args: Any) -> tuple[Array, Array, Array]:
     """Integrate the release states to ``t1``: ``(lead, trail, progenitor)``."""
@@ -417,19 +480,7 @@ def _evolve(
     lead0: Array,
     trail0: Array,
 ) -> tuple[Array, Array, Array]:
-    # The tracers orbit the progenitor row, so it must start from (and its
-    # release states come from) the same solver.
-    psolver = sim.progenitor_solver
-    if (
-        psolver is not None
-        and psolver is not sim.solver
-        and eqx.tree_equal(psolver, sim.solver) is not True
-    ):
-        msg = (
-            "WholeStream integrates the progenitor with the stream: "
-            "progenitor_solver must be None or equal to solver"
-        )
-        raise ValueError(msg)
+    _check_one_solver(sim)
     # One segment per stretch between releases (one for a single release); the
     # tracers released by a segment's start move in it.
     n = schedule.n_release
@@ -446,6 +497,72 @@ def _evolve(
         jnp.concat([on, on], axis=1),
     )
     return w[1 : n + 1], w[n + 1 :], w[0]
+
+
+@dispatch
+def _evolve(
+    mode: WholeStream,  # noqa: ARG001
+    sim: SpraySimulator,
+    pot: gp.AbstractPotential,
+    prog_pot: gp.AbstractPotential | None,
+    schedule: Times,
+    w_today: Array,  # noqa: ARG001
+    ws: Array,
+    lead0: Array,
+    trail0: Array,
+) -> tuple[Array, Array, Array]:
+    _check_one_solver(sim)
+    n = lead0.shape[0]
+    field = _WholeStreamField(pot, prog_pot)
+    ts = schedule.release_times()
+    if is_lattice(sim.solver):
+        # One solve over the merged grid, each row gated by its release time.
+        grid = schedule.grid()
+        t_rel = jnp.concat([jnp.full(1, -jnp.inf), ts, ts])
+        terms = jax.tree.map(
+            lambda x: _Gate(x, grid, t_rel),
+            field.terms(sim.solver),
+            is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
+        )
+        w0 = jnp.concat([ws[:1], lead0, trail0])
+        split = isinstance(sim.solver.solver, gf.Leapfrog)
+        y0 = (w0[:, :3], w0[:, 3:]) if split else w0
+        steps = jnp.arange(grid.shape[0], dtype=float)
+        y = solve_on(sim.solver, terms, y0, steps)
+        w = jnp.concat(y, axis=-1) if split else y
+        w = jnp.where(jnp.all(jnp.isfinite(w)), w, jnp.nan)
+    else:
+        # PR-1 segments: between consecutive sorted releases, then to t1.
+        u = jnp.sort(ts)
+        grids = jnp.stack([u, jnp.concat([u[1:], schedule.t1[None]])], axis=1)
+        # A NaN time gives NaN rows (below); solve over zero time, not NaN time.
+        grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
+        on = ts[None, :] <= u[:, None]
+        start = ws[schedule.release_index()[jnp.argmin(ts)]]
+        w = evolve_whole_stream(
+            field,
+            sim.solver,
+            jnp.concat([start[None], lead0, trail0]),
+            grids,
+            jnp.concat([on, on], axis=1),
+        )
+    return w[1 : n + 1], w[n + 1 :], w[0]
+
+
+@dispatch
+def _evolve(
+    mode: PerParticle,
+    sim: SpraySimulator,
+    pot: gp.AbstractPotential,
+    prog_pot: gp.AbstractPotential | None,
+    schedule: Times,
+    w_today: Array,
+    ws: Array,
+    lead0: Array,
+    trail0: Array,
+) -> tuple[Array, Array, Array]:
+    msg = "PerParticle modes don't support a Times schedule yet; use WholeStream"
+    raise NotImplementedError(msg)
 
 
 @dispatch

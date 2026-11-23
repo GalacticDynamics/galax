@@ -262,9 +262,11 @@ def align_circulation(*args: Any) -> Any:
     - ``align_circulation(q, p, circ=None)`` returns ``(q', p', axis)`` for
       Cartesian arrays or Quantities of shape ``(..., T, 3)``.
 
-    The returned positions and velocities are Cartesian. ``axis`` has shape
-    ``(*batch,)``. It is 2 when nothing changed, and otherwise it is the axis
-    that was swapped with z.
+    The ``(q, p)`` form returns Cartesian positions and velocities. A
+    coordinate or orbit keeps its representation and the unit of each
+    component, and an orbit with ``axis`` 2 keeps its input values. ``axis``
+    has shape ``(*batch,)``. It is 2 when nothing changed, and otherwise it
+    is the axis that was swapped with z.
 
     Examples
     --------

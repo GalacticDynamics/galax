@@ -7,7 +7,7 @@ This is private API.
 __all__ = ["align_circulation", "circulation"]
 
 import functools as ft
-from dataclasses import replace
+from dataclasses import fields, replace
 
 from jaxtyping import Array, ArrayLike, Bool, Int
 from typing import Any, Final, TypeAlias
@@ -223,27 +223,36 @@ def _align_axis(q: Any, p: Any, circ: Any) -> Int[Array, "*batch"]:
     return _circ_axis(circ)
 
 
-def _vconvert(rep: Any, v: Any, at: Any = None) -> Any:
+def _vconvert(rep: Any, v: Any, at: Any = None, **kwargs: Any) -> Any:
     """Convert a vector to ``rep``, flattening 2 or more batch axes.
 
     coordinax's velocity ``vconvert`` fails to broadcast with 2 or more batch
     axes.
     """
     shape = v.shape
-    if len(shape) < 2:
-        return cx.vconvert(rep, v) if at is None else cx.vconvert(rep, v, at)
-    v = v.reshape(-1)
-    out = cx.vconvert(rep, v) if at is None else cx.vconvert(rep, v, at.reshape(-1))
-    return out.reshape(shape)
+    if len(shape) >= 2:
+        v = v.reshape(-1)
+        at = None if at is None else at.reshape(-1)
+    out = cx.vconvert(rep, v, **kwargs) if at is None else cx.vconvert(rep, v, at)
+    return out if len(shape) < 2 else out.reshape(shape)
 
 
-def _like(old: Any, new: Any) -> Any:
-    """Return ``new`` with each component in the unit of ``old``'s."""
-    return type(new)(
+def _like(old: Any, new: Any, keep: Any) -> Any:
+    """Return ``old`` with its components from ``new`` where ``keep`` is False.
+
+    Each component keeps the unit of ``old``'s, and fields that are not
+    components, e.g. ``Delta`` of a prolate spheroidal vector, are kept.
+    """
+    return replace(
+        old,
         **{
-            c: u.uconvert(u.unit_of(getattr(old, c)), getattr(new, c))
+            c: jnp.where(
+                keep,
+                getattr(old, c),
+                u.uconvert(u.unit_of(getattr(old, c)), getattr(new, c)),
+            )
             for c in old.components
-        }
+        },
     )
 
 
@@ -254,13 +263,22 @@ def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
         # swapped with the same axis.
         parts = {k: _aligned(v, axis) for k, v in w.items()}
         return type(w)(parts, frame=w.frame)
+    # An orbit with axis 2 keeps its input. Its round trip through Cartesian
+    # can be NaN, e.g. on the z axis in spherical coordinates, so those rows
+    # go through the conversion as an off-axis point that the where drops,
+    # which keeps the gradient finite.
+    keep = (axis == 2)[..., None]  # against components of shape (*batch, T)
     q, p = _cartesian_qp(w)
-    qc = cx.CartesianPos3D.from_(_swap(q, axis))
-    pc = cx.CartesianVel3D.from_(_swap(p, axis))
-    changes: dict[str, Any] = {
-        "q": _like(w.q, _vconvert(type(w.q), qc)),
-        "p": _like(w.p, _vconvert(type(w.p), pc, qc)),
+    q = jnp.where(keep[..., None], jnp.ones_like(q), _swap(q, axis))
+    p = jnp.where(keep[..., None], jnp.ones_like(p), _swap(p, axis))
+    extra = {
+        f.name: getattr(w.q, f.name)
+        for f in fields(w.q)
+        if f.name not in w.q.components
     }
+    qn = _vconvert(type(w.q), cx.CartesianPos3D.from_(q), **extra)
+    pn = _vconvert(type(w.p), cx.CartesianVel3D.from_(p), qn)
+    changes: dict[str, Any] = {"q": _like(w.q, qn, keep), "p": _like(w.p, pn, keep)}
     if isinstance(w, AbstractOrbit):
         # The interpolant still describes the unswapped axes, so drop it.
         changes["interpolant"] = None

@@ -610,3 +610,51 @@ def test_align_orbit_keeps_units_and_time(orbit):
     _check_keeps_units(orbit, aligned)
     np.testing.assert_array_equal(aligned.t.value, orbit.t.value)
     assert aligned.t.unit == orbit.t.unit
+
+
+def test_unswapped_spherical_orbit_on_z_axis_is_unchanged():
+    """An orbit with axis 2 keeps its input, even where Cartesian is singular."""
+    r = u.Q(jnp.linspace(1, 2, 5), "kpc")
+    q = cx.vecs.SphericalPos(
+        r=r, theta=u.Q(jnp.zeros(5), "deg"), phi=u.Q(jnp.full(5, 30.0), "deg")
+    )
+    p = cx.vecs.SphericalVel(
+        r=u.Q(jnp.ones(5), "km/s"),
+        theta=u.Q(jnp.zeros(5), "mas/yr"),
+        phi=u.Q(jnp.zeros(5), "mas/yr"),
+    )
+    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.linspace(0, 1, 5), "Myr"))
+    aligned, axis = go.align_circulation(w)
+    assert int(axis) == 2
+    for old, new in ((q, aligned.q), (p, aligned.p)):
+        for c in old.components:
+            np.testing.assert_array_equal(
+                u.ustrip(u.unit_of(getattr(old, c)), getattr(new, c)),
+                u.ustrip(u.unit_of(getattr(old, c)), getattr(old, c)),
+            )
+
+
+def test_prolate_spheroidal_coordinate_aligns():
+    """A representation with a non-component field (Delta) is rebuilt with it."""
+    (qa, pa), _, _ = ORBITS["yz"]
+    qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
+    pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
+    delta = u.Q(1.5, "kpc")
+    q = cx.vconvert(cx.vecs.ProlateSpheroidalPos, qc, Delta=delta)
+    p = cx.vconvert(cx.vecs.ProlateSpheroidalVel, pc, q)
+    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.arange(len(qa)), "Myr"))
+    aligned, axis = go.align_circulation(w)
+    assert isinstance(aligned.q, cx.vecs.ProlateSpheroidalPos)
+    assert aligned.q.Delta == delta
+    ref, _, ref_axis = go.align_circulation(u.Q(qa, "kpc"), u.Q(pa, "kpc/Myr"))
+    assert int(axis) == int(ref_axis) != 2
+    back = cx.vconvert(cx.CartesianPos3D, aligned.q)
+    np.testing.assert_allclose(
+        jnp.stack(
+            [u.ustrip("kpc", back.x), u.ustrip("kpc", back.y), u.ustrip("kpc", back.z)],
+            -1,
+        ),
+        u.ustrip("kpc", ref),
+        rtol=1e-10,
+        atol=1e-12,
+    )

@@ -56,9 +56,7 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
         interpolant = eqx.error_if(
             self.interpolant,
             self.interpolant is None,
-            f"this {self.__class__.__name__} has no interpolant (it was not "
-            "integrated with dense output, or it was rebuilt by "
-            "align_circulation).",
+            f"{self.__class__.__name__} was not integrated with interpolation.",
         )
         qp = interpolant(t)
         return replace(self, q=qp.q, p=qp.p, t=qp.t, interpolant=None, frame=self.frame)
@@ -75,19 +73,6 @@ class AbstractOrbit(gc.AbstractBasicPhaseSpaceCoordinate):
 
         out = circulation(self) if t is None else circulation(self, t)
         return cast("Bool[Array, '*batch 3']", out)
-
-    def align_circulation(
-        self, circ: Any = None
-    ) -> tuple["AbstractOrbit", Int[Array, "*batch"]]:
-        """Swap the orbit's circulation axis with z.
-
-        This calls `galax.orbits.align_circulation`, which documents the
-        arguments.
-        """
-        from .api import align_circulation
-
-        out = align_circulation(self, circ)
-        return cast("tuple[AbstractOrbit, Int[Array, '*batch']]", out)
 
     # ==========================================================================
     # Array properties

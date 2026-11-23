@@ -4,7 +4,7 @@ This is private API.
 
 """
 
-__all__ = ["align_circulation", "circulation", "compute_orbit"]
+__all__ = ["circulation", "compute_orbit"]
 
 
 from typing import Any
@@ -229,82 +229,6 @@ def circulation(*args: Any) -> Any:
     >>> p = u.Q([[0, 230.0, 0], [-230.0, 0, 0]], "km/s")
     >>> go.circulation(q, p)
     Array([False, False,  True], dtype=bool)
-
-    """
-    raise NotImplementedError  # pragma: no cover
-
-
-@dispatch.abstract
-def align_circulation(*args: Any) -> Any:
-    """Swap an orbit's circulation axis with z.
-
-    The circulation ``circ`` is a boolean array of shape ``(*batch, 3)`` from
-    `galax.orbits.circulation`. If it is omitted, it is computed from the
-    stored samples. A ``circ`` of any other shape raises a `ValueError`. An
-    orbit that circulates about z, or about no axis, is left unchanged.
-    Otherwise the circulating axis is swapped with z in both the positions
-    and velocities, and x is chosen over y when both circulate.
-    This follows :meth:`gala.dynamics.Orbit.align_circulation_with_z`.
-
-    The swap is a selection between permuted copies of the inputs, so it is
-    differentiable in the positions and velocities.
-
-    The overloads are:
-
-    - ``align_circulation(orbit, circ=None)`` returns ``(orbit', axis)``,
-      where ``orbit'`` has the same type as ``orbit``. The returned orbit has
-      no interpolant, because the interpolant describes the unswapped axes,
-      so calling ``orbit'(t)`` raises an error.
-    - ``align_circulation(w, circ=None)`` returns ``(w', axis)`` for a
-      `~galax.coordinates.AbstractPhaseSpaceCoordinate` with a time axis,
-      where ``w'`` has the same type as ``w``. Each component of a composite
-      coordinate is swapped with the same axis.
-    - ``align_circulation(q, p, circ=None)`` returns ``(q', p', axis)`` for
-      Cartesian arrays or Quantities of shape ``(..., T, 3)``.
-
-    The ``(q, p)`` form returns Cartesian positions and velocities. A
-    coordinate or orbit keeps its representation and the unit of each
-    component, and an orbit with ``axis`` 2 keeps its input values. ``axis``
-    has shape ``(*batch,)``. It is 2 when nothing changed, and otherwise it
-    is the axis that was swapped with z.
-
-    Examples
-    --------
-    >>> import quaxed.numpy as jnp
-    >>> import unxt as u
-    >>> import galax.coordinates as gc
-    >>> import galax.potential as gp
-    >>> import galax.orbits as go
-
-    A circular orbit in the yz plane circulates about x:
-
-    >>> pot = gp.KeplerPotential(m_tot=u.Q(1e11, "Msun"), units="galactic")
-    >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([0, 8.0, 0], "kpc"),
-    ...                              p=u.Q([0, 0, 230.0], "km/s"),
-    ...                              t=u.Q(0.0, "Myr"))
-    >>> ts = u.Q(jnp.linspace(0, 1, 50), "Gyr")
-    >>> orbit = go.compute_orbit(pot, w0, ts)
-
-    >>> aligned, axis = go.align_circulation(orbit)
-    >>> int(axis)
-    0
-    >>> go.circulation(aligned)
-    Array([False, False,  True], dtype=bool)
-
-    The method calls this function:
-
-    >>> aligned, axis = orbit.align_circulation()
-    >>> type(aligned).__name__
-    'Orbit'
-
-    With arrays the swapped positions and velocities are returned:
-
-    >>> q = u.Q([[0, 8.0, 0], [0, 0, 8.0]], "kpc")
-    >>> p = u.Q([[0, 0, 230.0], [0, -230.0, 0]], "km/s")
-    >>> q2, p2, axis = go.align_circulation(q, p)
-    >>> q2
-    Q([[0., 8., 0.],
-       [8., 0., 0.]], 'kpc')
 
     """
     raise NotImplementedError  # pragma: no cover

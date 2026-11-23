@@ -1,4 +1,4 @@
-"""Tests for `galax.orbits.circulation` and `galax.orbits.align_circulation`."""
+"""Tests for `galax.orbits.circulation`."""
 
 from dataclasses import replace
 
@@ -36,14 +36,6 @@ ORBITS = {
 }
 
 
-def _check_aligned(q, p, expected, axis, axis_exp):
-    assert int(axis) == axis_exp
-    if any(expected):
-        L = jnp.cross(q, p)
-        assert jnp.all(L[:, 2] * L[0, 2] > 0)
-        assert jnp.allclose(L[:, :2], 0, atol=1e-6)
-
-
 # ===================================================================
 # Arrays
 
@@ -51,29 +43,18 @@ def _check_aligned(q, p, expected, axis, axis_exp):
 @pytest.mark.parametrize("name", list(ORBITS))
 @pytest.mark.parametrize("jit", [False, True])
 def test_arrays(name, jit):
-    (q, p), expected, axis_exp = ORBITS[name]
+    (q, p), expected, _ = ORBITS[name]
     circ_f = jax.jit(go.circulation) if jit else go.circulation
-    align_f = jax.jit(go.align_circulation) if jit else go.align_circulation
 
     circ = circ_f(q, p)
     assert circ.dtype == bool
     assert tuple(np.asarray(circ)) == expected
-
-    q2, p2, axis = align_f(q, p, circ)
-    _check_aligned(q2, p2, expected, axis, axis_exp)
-
-    # circ is optional
-    q3, p3, axis3 = align_f(q, p)
-    assert jnp.array_equal(q3, q2)
-    assert jnp.array_equal(p3, p2)
-    assert int(axis3) == axis_exp
 
 
 def test_batch_and_vmap():
     qs = jnp.stack([v[0][0] for v in ORBITS.values()])
     ps = jnp.stack([v[0][1] for v in ORBITS.values()])
     expected = np.array([v[1] for v in ORBITS.values()])
-    axes = [v[2] for v in ORBITS.values()]
 
     # Batch axes are handled by the function itself.
     circ = go.circulation(qs, ps)
@@ -87,13 +68,6 @@ def test_batch_and_vmap():
     circ_v = jax.jit(jax.vmap(go.circulation))(qs, ps)
     np.testing.assert_array_equal(circ_v, expected)
 
-    q2, p2, axis = go.align_circulation(qs, ps, circ)
-    q2v, _, axisv = jax.jit(jax.vmap(go.align_circulation))(qs, ps, circ)
-    assert jnp.array_equal(q2, q2v)
-    assert jnp.array_equal(axis, axisv)
-    for i, name in enumerate(ORBITS):
-        _check_aligned(q2[i], p2[i], ORBITS[name][1], axis[i], axes[i])
-
 
 def test_skips_nonfinite_samples():
     (q, p), expected, _ = ORBITS["xy"]
@@ -102,34 +76,11 @@ def test_skips_nonfinite_samples():
 
 
 def test_quantities():
-    (q, p), expected, axis_exp = ORBITS["yz"]
+    (q, p), expected, _ = ORBITS["yz"]
     qq, pq = u.Q(q, "kpc"), u.Q(p, "km/s")
     assert tuple(np.asarray(go.circulation(qq, pq))) == expected
     # The floor is relative, so tiny units do not change the answer.
     assert tuple(np.asarray(go.circulation(1e-20 * q, 1e-20 * p))) == expected
-
-    q2, p2, axis = go.align_circulation(qq, pq)
-    assert isinstance(q2, u.AbstractQuantity)
-    assert q2.unit == qq.unit
-    assert p2.unit == pq.unit
-    _check_aligned(
-        u.ustrip(qq.unit, q2), u.ustrip(pq.unit, p2), expected, axis, axis_exp
-    )
-
-
-def test_align_gradient_is_finite():
-    (q, p), _, _ = ORBITS["yz"]
-
-    def loss(q, p):
-        q2, p2, _ = go.align_circulation(q, p)
-        return jnp.sum(q2[:, 2] ** 2 + p2[:, 2] ** 2)
-
-    gq, gp_ = jax.grad(loss, argnums=(0, 1))(q, p)
-    assert jnp.all(jnp.isfinite(gq))
-    assert jnp.all(jnp.isfinite(gp_))
-    # The x column was moved to z, so only it gets a gradient.
-    assert jnp.allclose(gq[:, 0], 2 * q[:, 0])
-    assert jnp.allclose(gq[:, 1:], 0)
 
 
 def test_float32_large_magnitudes():
@@ -239,32 +190,6 @@ def test_coordinate_rejects_times(orbit):
         go.circulation(w, orbit.t)
 
 
-@pytest.mark.parametrize("as_coordinate", [False, True])
-def test_align_orbit_and_coordinate(orbit, as_coordinate):
-    obj = (
-        gc.PhaseSpaceCoordinate(q=orbit.q, p=orbit.p, t=orbit.t)
-        if as_coordinate
-        else orbit
-    )
-    aligned, axis = go.align_circulation(obj)
-    assert type(aligned) is type(obj)
-    np.testing.assert_array_equal(axis, [2, 0, 1])
-    np.testing.assert_array_equal(go.circulation(aligned), [[False, False, True]] * 3)
-    if not as_coordinate:
-        assert aligned.interpolant is None
-        _, axis_m = orbit.align_circulation()
-        np.testing.assert_array_equal(axis_m, axis)
-
-    # L is parallel to z after the alignment.
-    L = jnp.cross(*_cart(aligned))
-    assert jnp.allclose(L[..., :2], 0, atol=1e-10 * float(jnp.abs(L).max()))
-
-    # An explicit circ gives the same result.
-    aligned2, axis2 = go.align_circulation(obj, go.circulation(obj))
-    np.testing.assert_array_equal(axis2, axis)
-    assert jnp.array_equal(u.ustrip("kpc", aligned2.q.x), u.ustrip("kpc", aligned.q.x))
-
-
 # ===================================================================
 # Edge cases
 
@@ -285,23 +210,6 @@ def test_zero_samples_raise():
         go.circulation(q[:0], p[:0])
 
 
-def test_circ_shape_is_checked(orbit):
-    (q, p), _, _ = ORBITS["yz"]
-    bad = jnp.array([[True, False, False], [False, False, True]])
-    with pytest.raises(ValueError, match="circ has shape"):
-        go.align_circulation(q, p, bad)
-    with pytest.raises(ValueError, match="circ has shape"):
-        jax.jit(go.align_circulation)(q, p, bad)
-    with pytest.raises(ValueError, match="circ has shape"):
-        go.align_circulation(orbit, jnp.array([True, False, False]))
-
-
-def test_aligned_orbit_has_no_interpolant(orbit):
-    aligned, _ = go.align_circulation(orbit)
-    with pytest.raises(Exception, match="rebuilt by align_circulation"):
-        aligned(orbit.t)
-
-
 # ===================================================================
 # Composite coordinates
 
@@ -317,19 +225,6 @@ def composite(orbit):
 def test_composite(composite):
     np.testing.assert_array_equal(go.circulation(composite), EXPECTED_ORBITS)
 
-    aligned, axis = go.align_circulation(composite)
-    assert type(aligned) is type(composite)
-    assert set(aligned.keys()) == {"a", "b"}
-    np.testing.assert_array_equal(axis, [2, 0, 1])
-    np.testing.assert_array_equal(go.circulation(aligned), [[False, False, True]] * 3)
-    L = jnp.cross(*_cart(aligned))
-    assert jnp.allclose(L[..., :2], 0, atol=1e-10 * float(jnp.abs(L).max()))
-
-    # An explicit circ reaches the coordinate overload, not the array one.
-    aligned2, axis2 = go.align_circulation(composite, go.circulation(composite))
-    np.testing.assert_array_equal(axis2, axis)
-    assert jnp.array_equal(u.ustrip("kpc", aligned2.q.x), u.ustrip("kpc", aligned.q.x))
-
 
 def test_composite_mixed_representations(orbit):
     """Components in different representations are joined as Cartesian."""
@@ -342,10 +237,6 @@ def test_composite_mixed_representations(orbit):
     )
     composite = gc.CompositePhaseSpaceCoordinate(a=a, b=b)
     np.testing.assert_array_equal(go.circulation(composite), EXPECTED_ORBITS[0])
-
-    aligned, axis = go.align_circulation(composite)
-    assert int(axis) == 2
-    np.testing.assert_array_equal(go.circulation(aligned), EXPECTED_ORBITS[0])
 
 
 @pytest.mark.parametrize(
@@ -404,8 +295,6 @@ def test_nd_non_cartesian_coordinate():
         t=u.Q(T, "Myr"),
     )
     np.testing.assert_array_equal(go.circulation(w), [expected, expected])
-    _, axis = go.align_circulation(w)
-    np.testing.assert_array_equal(axis, [2, 2])
 
 
 @pytest.mark.parametrize("rep", [cx.CartesianPos3D, cx.vecs.SphericalPos])
@@ -499,231 +388,14 @@ def test_wrong_dimensions_raise():
         go.circulation(u.Q(q, "kpc"), u.Q(p, "kpc"))
 
 
-@pytest.mark.parametrize("q_quantity", [True, False])
-def test_align_keeps_the_input_units(q_quantity):
-    (q, p), _, _ = ORBITS["yz"]
-    qi = u.Q(q, "pc") if q_quantity else q
-    pi = p if q_quantity else u.Q(p, "km/s")
-    q2, p2, axis = go.align_circulation(qi, pi)
-    assert int(axis) == 0
-    assert isinstance(q2, u.AbstractQuantity) == q_quantity
-    assert isinstance(p2, u.AbstractQuantity) != q_quantity
-    if q_quantity:
-        assert q2.unit == u.unit("pc")
-        np.testing.assert_array_equal(u.ustrip("pc", q2), q[:, [2, 1, 0]])
-    else:
-        assert p2.unit == u.unit("km/s")
-        np.testing.assert_array_equal(u.ustrip("km/s", p2), p[:, [2, 1, 0]])
-
-
-# ===================================================================
-# Shapes with circ, and per-component units
-
-
-@pytest.mark.parametrize("shape", [(3,), (5, 4)])
-def test_align_with_circ_checks_the_shape(shape):
-    x = np.ones(shape)
-    with pytest.raises(ValueError, match="shape"):
-        go.align_circulation(x, x, np.array([True, False, False]))
-
-
-def _units_of(v):
-    return {c: str(u.unit_of(getattr(v, c))) for c in v.components}
-
-
-def _vcart(v, at=None):
-    if at is None:
-        return cx.vconvert(cx.CartesianPos3D, v)
-    return cx.vconvert(cx.CartesianVel3D, v, at)
-
-
-def _coordinate(rep):
-    """Return a yz-plane orbit in mixed units, in the representation ``rep``."""
-    (q, p), _, _ = ORBITS["yz"]
-    qv = cx.CartesianPos3D(
-        x=u.Q(q[:, 0], "kpc"), y=u.Q(q[:, 1] * 1e3, "pc"), z=u.Q(q[:, 2] * 2e8, "AU")
-    )
-    pv = cx.CartesianVel3D(
-        x=u.Q(p[:, 0], "kpc/Myr"),
-        y=u.Q(p[:, 1] * 977.8, "km/s"),
-        z=u.Q(p[:, 2], "kpc/Myr"),
-    )
-    if rep is cx.CartesianPos3D:
-        return qv, pv
-    qs = cx.vconvert(cx.vecs.SphericalPos, qv)
-    ps = cx.vconvert(cx.vecs.SphericalVel, pv, qv)
-    return qs, ps
-
-
-def _check_keeps_units(w, aligned):
-    assert type(aligned.q) is type(w.q)
-    assert type(aligned.p) is type(w.p)
-    assert _units_of(aligned.q) == _units_of(w.q)
-    assert _units_of(aligned.p) == _units_of(w.p)
-
-
-@pytest.mark.parametrize("rep", [cx.CartesianPos3D, cx.vecs.SphericalPos])
-def test_align_coordinate_keeps_component_units(rep):
-    qv, pv = _coordinate(rep)
-    w = gc.PhaseSpaceCoordinate(q=qv, p=pv, t=u.Q(T, "Myr"))
-    aligned, axis = go.align_circulation(w)
-    assert int(axis) == 0
-    _check_keeps_units(w, aligned)
-    # The values are those of the Cartesian swap.
-    qc, pc = _vcart(w.q), _vcart(w.p, w.q)
-    qa, pa = _vcart(aligned.q), _vcart(aligned.p, aligned.q)
-    for a, b in [(qa.x, qc.z), (qa.y, qc.y), (qa.z, qc.x)]:
-        np.testing.assert_allclose(
-            u.ustrip("kpc", a), u.ustrip("kpc", b), rtol=1e-5, atol=1e-5
-        )
-    for a, b in [(pa.x, pc.z), (pa.y, pc.y), (pa.z, pc.x)]:
-        np.testing.assert_allclose(
-            u.ustrip("kpc/Myr", a), u.ustrip("kpc/Myr", b), rtol=1e-5, atol=1e-5
-        )
-
-
-def test_align_spherical_in_au_deg_mas_per_yr():
-    qv, pv = _coordinate(cx.vecs.SphericalPos)
-    qv = cx.vecs.SphericalPos(
-        r=u.Q(u.ustrip("AU", qv.r), "AU"),
-        theta=u.Q(u.ustrip("deg", qv.theta), "deg"),
-        phi=u.Q(u.ustrip("deg", qv.phi), "deg"),
-    )
-    pv = cx.vecs.SphericalVel(
-        r=u.Q(u.ustrip("AU/yr", pv.r), "AU/yr"),
-        theta=u.Q(u.ustrip("mas/yr", pv.theta), "mas/yr"),
-        phi=u.Q(u.ustrip("mas/yr", pv.phi), "mas/yr"),
-    )
-    w = gc.PhaseSpaceCoordinate(q=qv, p=pv, t=u.Q(T, "Myr"))
-    aligned, _ = go.align_circulation(w)
-    _check_keeps_units(w, aligned)
-
-
-def test_align_composite_keeps_component_units():
-    qv, pv = _coordinate(cx.CartesianPos3D)
-    qs, ps = _coordinate(cx.vecs.SphericalPos)
-    h = T.size // 2
-    a = gc.PhaseSpaceCoordinate(q=qv[:h], p=pv[:h], t=u.Q(T[:h], "Myr"))
-    b = gc.PhaseSpaceCoordinate(q=qs[h:], p=ps[h:], t=u.Q(T[h:], "Myr"))
-    comp = gc.CompositePhaseSpaceCoordinate(a=a, b=b)
-    aligned, axis = go.align_circulation(comp)
-    assert int(axis) == 0
-    for k in ("a", "b"):
-        _check_keeps_units(comp[k], aligned[k])
-
-
-def test_align_orbit_keeps_units_and_time(orbit):
-    aligned, _ = go.align_circulation(orbit)
-    _check_keeps_units(orbit, aligned)
-    np.testing.assert_array_equal(
-        u.ustrip(orbit.t.unit, aligned.t), u.ustrip(orbit.t.unit, orbit.t)
-    )
-    assert aligned.t.unit == orbit.t.unit
-
-
-def test_unswapped_spherical_orbit_on_z_axis_is_unchanged():
-    """An orbit with axis 2 keeps its input, even where Cartesian is singular."""
-    r = u.Q(jnp.linspace(1, 2, 5), "kpc")
-    q = cx.vecs.SphericalPos(
-        r=r, theta=u.Q(jnp.zeros(5), "deg"), phi=u.Q(jnp.full(5, 30.0), "deg")
-    )
-    p = cx.vecs.SphericalVel(
-        r=u.Q(jnp.ones(5), "km/s"),
-        theta=u.Q(jnp.zeros(5), "mas/yr"),
-        phi=u.Q(jnp.zeros(5), "mas/yr"),
-    )
-    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.linspace(0, 1, 5), "Myr"))
-    aligned, axis = go.align_circulation(w)
-    assert int(axis) == 2
-    for old, new in ((q, aligned.q), (p, aligned.p)):
-        for c in old.components:
-            np.testing.assert_array_equal(
-                u.ustrip(u.unit_of(getattr(old, c)), getattr(new, c)),
-                u.ustrip(u.unit_of(getattr(old, c)), getattr(old, c)),
-            )
-
-
-def test_prolate_spheroidal_coordinate_aligns():
-    """A representation with a non-component field (Delta) is rebuilt with it."""
-    (qa, pa), _, _ = ORBITS["yz"]
+def test_batched_prolate_spheroidal_coordinate():
+    """A batch broadcasts the vector components, not Delta."""
+    (qa, pa), expected, _ = ORBITS["yz"]
     qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
     pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
-    delta = u.Q(1.5, "kpc")
-    q = cx.vconvert(cx.vecs.ProlateSpheroidalPos, qc, Delta=delta)
+    q = cx.vconvert(cx.vecs.ProlateSpheroidalPos, qc, Delta=u.Q(1.5, "kpc"))
     p = cx.vconvert(cx.vecs.ProlateSpheroidalVel, pc, q)
-    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.arange(len(qa)), "Myr"))
-    aligned, axis = go.align_circulation(w)
-    assert isinstance(aligned.q, cx.vecs.ProlateSpheroidalPos)
-    assert aligned.q.Delta == delta
-    ref, _, ref_axis = go.align_circulation(u.Q(qa, "kpc"), u.Q(pa, "kpc/Myr"))
-    assert int(axis) == int(ref_axis) != 2
-    back = cx.vconvert(cx.CartesianPos3D, aligned.q)
-    np.testing.assert_allclose(
-        jnp.stack(
-            [u.ustrip("kpc", back.x), u.ustrip("kpc", back.y), u.ustrip("kpc", back.z)],
-            -1,
-        ),
-        u.ustrip("kpc", ref),
-        rtol=1e-10,
-        atol=1e-12,
-    )
-
-    # A batch of 2 orbits broadcasts the components, not Delta.
     q2 = replace(q, **{c: qnp.stack([getattr(q, c)] * 2) for c in q.components})
     p2 = replace(p, **{c: qnp.stack([getattr(p, c)] * 2) for c in p.components})
-    w2 = gc.PhaseSpaceCoordinate(q=q2, p=p2, t=w.t)
-    np.testing.assert_array_equal(go.circulation(w2), [go.circulation(w)] * 2)
-    aligned2, axis2 = go.align_circulation(w2)
-    np.testing.assert_array_equal(axis2, [axis, axis])
-    assert aligned2.q.Delta == delta
-
-
-def test_composite_of_single_points_keeps_shape():
-    """Components of shape () keep shape () through align_circulation."""
-    pts = [
-        gc.PhaseSpaceCoordinate(
-            q=u.Q([8.0, 0, i], "kpc"), p=u.Q([0, 200.0, 0], "km/s"), t=u.Q(i, "Myr")
-        )
-        for i in range(3)
-    ]
-    comp = gc.CompositePhaseSpaceCoordinate(a=pts[0], b=pts[1], c=pts[2])
-    aligned, _ = go.align_circulation(comp)
-    for k in comp:
-        assert aligned[k].q.shape == comp[k].q.shape == ()
-        assert aligned[k].p.shape == comp[k].p.shape == ()
-
-
-def test_float32_non_cartesian_keeps_dtype():
-    """A float32 spherical input keeps float32 components, swapped or not."""
-    (qa, pa), _, _ = ORBITS["yz"]
-    qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
-    pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
-    q = cx.vconvert(cx.vecs.SphericalPos, qc)
-    p = cx.vconvert(cx.vecs.SphericalVel, pc, qc)
-    q = replace(q, **{c: getattr(q, c).astype(jnp.float32) for c in q.components})
-    p = replace(p, **{c: getattr(p, c).astype(jnp.float32) for c in p.components})
-    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.arange(len(qa)), "Myr"))
-    aligned, axis = go.align_circulation(w)
-    assert int(axis) != 2
-    for v in (aligned.q, aligned.p):
-        for c in v.components:
-            assert getattr(v, c).dtype == jnp.float32, c
-
-
-def test_int_non_cartesian_is_not_truncated():
-    """Integer spherical components are promoted, not truncated, when swapped."""
-    (qa, pa), _, _ = ORBITS["yz"]
-    qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
-    pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
-    qf = cx.vconvert(cx.vecs.SphericalPos, qc)
-    pf = cx.vconvert(cx.vecs.SphericalVel, pc, qc)
-    # Integer r on the x tube (r is 8 kpc on the yz circle), float angles.
-    qi = replace(qf, r=u.Q(jnp.round(u.ustrip("kpc", qf.r)).astype(int), "kpc"))
-    wi = gc.PhaseSpaceCoordinate(q=qi, p=pf, t=u.Q(jnp.arange(len(qa)), "Myr"))
-    wf = gc.PhaseSpaceCoordinate(q=replace(qi, r=qi.r.astype(float)), p=pf, t=wi.t)
-    ai, axis = go.align_circulation(wi)
-    af, _ = go.align_circulation(wf)
-    assert int(axis) != 2
-    np.testing.assert_allclose(
-        u.ustrip("kpc", ai.q.r), u.ustrip("kpc", af.q.r), rtol=1e-12
-    )
+    w = gc.PhaseSpaceCoordinate(q=q2, p=p2, t=u.Q(jnp.arange(len(qa)), "Myr"))
+    np.testing.assert_array_equal(go.circulation(w), [expected, expected])

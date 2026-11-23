@@ -7,12 +7,11 @@ __all__ = [
     "Orbit",
     "OrbitSolver",
     "PhaseSpaceInterpolation",
-    "align_circulation",
     "circulation",
     "compute_orbit",
 ]
 
-from ._src.api import align_circulation, circulation, compute_orbit
+from ._src.api import circulation, compute_orbit
 from ._src.base import AbstractOrbit
 from ._src.field_base import AbstractOrbitField
 from ._src.field_hamiltonian import HamiltonianField

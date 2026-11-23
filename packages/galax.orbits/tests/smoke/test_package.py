@@ -12,7 +12,6 @@ def test_all() -> None:
         "Orbit",
         "OrbitSolver",
         "PhaseSpaceInterpolation",
-        "align_circulation",
         "circulation",
         "compute_orbit",
     }

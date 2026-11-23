@@ -4,7 +4,7 @@ import abc
 import functools as ft
 from dataclasses import KW_ONLY, fields, replace
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Mapping
 from jaxtyping import Array
 from types import MappingProxyType
 from typing import Any, ClassVar, Final
@@ -31,63 +31,26 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.params.utils import all_parameters, all_vars
 from galax.potential.dataclasses import ModuleMeta
 
-_CONSTANTS: Final = MappingProxyType({"G": _CONST_G})
+#: The default constants. ``G`` is kept out of JAX here, as astropy's NumPy
+#: float64 in a `unxt.StaticQuantity`, and each potential makes it a JAX array
+#: when it is constructed (see `_jax_constant`), at the JAX precision in effect
+#: then. While ``jax_enable_x64`` is off JAX has no float64, so a JAX array
+#: built here, at import, would stay float32 even after x64 is turned on.
+#: With x64 on, ``G`` becomes a strongly typed float64 (it comes from NumPy
+#: float64), as it was when x64 was turned on before import. A strong ``G``
+#: promotes float32 inputs to float64. Making it weakly typed would not by
+#: itself keep them float32, because the potential functions also cast their
+#: inputs to the default float type.
+default_constants: Final = ImmutableMap(
+    {"G": u.StaticQuantity(_CONST_G.value, str(_CONST_G.unit))}
+)
 
 
-@ft.cache
-@jax.ensure_compile_time_eval()
-def _constant(key: str, dtype: Any, /) -> u.AbstractQuantity:
-    """Build constant ``key`` as a Quantity, once per float precision.
-
-    ``dtype`` is only the cache key. Built under `jax.ensure_compile_time_eval`,
-    so a first call inside a trace caches a concrete array, not a tracer.
-    """
-    del dtype  # only the cache key
-    return u.Q.from_(_CONSTANTS[key])
+def _jax_constant(v: Any, /) -> Any:
+    """Make a constant kept out of JAX a JAX `unxt.Quantity`."""
+    return u.Q.from_(v) if isinstance(v, u.StaticQuantity) else v
 
 
-class _DefaultConstants(Mapping[str, u.AbstractQuantity]):
-    """The default constants, built as `unxt.Quantity` objects when read.
-
-    Each is built the first time it is read under each JAX float precision.
-
-    Why deferred: while ``jax_enable_x64`` is off, JAX has no float64 at all.
-    Every array it makes is float32, even one asked for as float64, and it
-    stays float32 after x64 is turned on. Building the Quantities at import
-    would therefore leave ``G`` float32 for the whole process whenever galax
-    is imported first. Until a constant is first read, its full value lives
-    outside JAX, in astropy's NumPy float64, and each potential gets the
-    constants at the precision in effect when it is constructed.
-
-    Typing: the value comes from NumPy float64, so with x64 on ``G`` is a
-    strongly typed float64, as it was when x64 was turned on before import.
-    A strong ``G`` promotes float32 inputs to float64. Making it weakly typed
-    would not by itself keep them float32, because the potential functions
-    also cast their inputs to the default float type.
-    """
-
-    def __getitem__(self, key: str, /) -> u.AbstractQuantity:
-        return _constant(key, jax.dtypes.canonicalize_dtype(float))
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(_CONSTANTS)
-
-    def __len__(self) -> int:
-        return len(_CONSTANTS)
-
-    def __repr__(self) -> str:
-        return "default_constants"
-
-    # A dataclass field default must be hashable, and `Mapping` sets
-    # `__hash__ = None`. There is one instance, so identity is enough.
-    __hash__ = object.__hash__
-
-    #: Tells `galax.potential.dataclasses.ModuleMeta` not to convert this
-    #: default when a class is defined, which would build ``G`` then.
-    convert_per_instance: ClassVar[bool] = True
-
-
-default_constants: Final = _DefaultConstants()
 DimL = u.dimension("length")
 DimT = u.dimension("time")
 
@@ -177,12 +140,11 @@ class AbstractPotential(eqx.Module, metaclass=ModuleMeta):
                     value = u.uconvert(usys[f.metadata.get("dimensions")], value)
                     object.__setattr__(self, f.name, value)
 
-        # Do unit conversion for the constants
+        # Make the constants JAX Quantities, and do their unit conversion
+        constants = {k: _jax_constant(v) for k, v in self.constants.items()}
         if self.units != u.unitsystems.dimensionless:
-            constants = ImmutableMap(
-                {k: v.decompose(usys) for k, v in self.constants.items()}
-            )
-            object.__setattr__(self, "constants", constants)
+            constants = {k: v.decompose(usys) for k, v in constants.items()}
+        object.__setattr__(self, "constants", ImmutableMap(constants))
 
     ###########################################################################
     # Parameters

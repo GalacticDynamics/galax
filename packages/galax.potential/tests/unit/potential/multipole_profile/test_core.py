@@ -29,7 +29,9 @@ XFAIL_T = (
 )
 """Why `potential`/`density` are expected to fail on a batched `t`."""
 
-G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+G_GALACTIC = float(
+    u.Q.from_(default_constants["G"]).decompose(u.unitsystem("galactic")).value
+)
 """G in kpc^3 / (Msun Myr^2), from the same constant the potentials use.
 
 Derived rather than written out: the literal it replaced had already drifted
@@ -579,7 +581,9 @@ def test_from_density_uses_n_theta_and_n_phi_as_given() -> None:
     r = jnp.geomspace(1e-2, 1e2, n_r)
     args = (_flattened_density, r, l_max, keys)
     # `from_density`'s own G, so the comparison isolates the quadrature.
-    g = jnp.asarray(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+    g = jnp.asarray(
+        u.Q.from_(default_constants["G"]).decompose(u.unitsystem("galactic")).value
+    )
     tail = (jnp.asarray(0.0), g)
     direct = build_expansion(*args, n_theta, n_phi, *tail)
     transposed = build_expansion(*args, n_phi, n_theta, *tail)

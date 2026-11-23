@@ -26,7 +26,11 @@ import galax.potential.custom_types as gt
 from .build import _PAD_MULTIPLE, build_expansion
 from .expansion import expansion_density, expansion_gradient, expansion_potential
 from .interp import time_interpolated_parameter
-from galax.potential._src.base import AbstractPotential, default_constants
+from galax.potential._src.base import (
+    AbstractPotential,
+    _jax_constant,
+    default_constants,
+)
 from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.harmonic import (
     LogDensity,
@@ -760,7 +764,7 @@ class MultipoleProfilePotential(AbstractMultipoleProfilePotential):
             fn = ft.partial(lambda f, xyz, tt: f(xyz, tt), fn)
         rho_fn: Any = fn if log_rho is None else LogDensity(fn)
 
-        G_ = jnp.asarray(consts["G"].decompose(usys).value)
+        G_ = jnp.asarray(_jax_constant(consts["G"]).decompose(usys).value)
 
         def build_at(tt: gt.BBtSz0) -> dict[str, Array]:
             out: dict[str, Array] = build_expansion(

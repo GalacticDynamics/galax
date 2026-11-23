@@ -23,7 +23,7 @@ from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
-from .base import AbstractPotential, default_constants, eval_params
+from .base import AbstractPotential, _jax_constant, default_constants, eval_params
 from .symmetry import Symmetry, common_symmetry
 
 if TYPE_CHECKING:
@@ -313,7 +313,7 @@ class AbstractPreCompositedPotential(AbstractCompositePotential):
         #       the `constants` of every potential (before `super().__init__`)
         constants = fields["constants"].metadata["converter"](constants)
         self.constants = ImmutableMap(
-            {k: v.decompose(self.units) for k, v in constants.items()}
+            {k: _jax_constant(v).decompose(self.units) for k, v in constants.items()}
         )
 
         # Initialize the Parameter (potential) fields

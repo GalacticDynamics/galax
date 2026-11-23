@@ -375,12 +375,12 @@ class TestDefaultTimeDependent:
 
 
 def test_default_constants() -> None:
-    """`default_constants` is a read-only mapping that builds G when read."""
-    assert list(default_constants) == ["G"]
-    assert len(default_constants) == 1
-    assert repr(default_constants) == "default_constants"
+    """The default G is kept out of JAX, and a potential makes it a Quantity."""
     G = default_constants["G"]
-    assert G is default_constants["G"]  # built once per float precision
-    assert u.dimension_of(G) == u.dimension_of(u.Q(1, "m3 / (kg s2)"))
-    with pytest.raises(KeyError):
-        default_constants["c"]
+    assert isinstance(G, u.StaticQuantity)
+    pot = gp.KeplerPotential(m_tot=u.Q(1e12, "Msun"), units="galactic")
+    assert isinstance(pot.constants["G"], u.Q)
+    assert pot.constants["G"].unit == G.decompose(pot.units).unit
+    assert jnp.allclose(
+        pot.constants["G"].value, u.Q.from_(G).decompose(pot.units).value, rtol=0
+    )

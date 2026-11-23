@@ -15,7 +15,7 @@ import unxt as u
 from xmmutablemap import ImmutableMap
 from zeroth import zeroth
 
-from .base import AbstractPotential, default_constants
+from .base import AbstractPotential, _jax_constant, default_constants
 from .base_multi import AbstractCompositePotential
 from .params.attr import CompositeParamObjsAttribute
 
@@ -102,7 +102,9 @@ class CompositePotential(  # type: ignore[misc]
         object.__setattr__(
             self,
             "constants",
-            ImmutableMap({k: v.decompose(usys) for k, v in constants.items()}),
+            ImmutableMap(
+                {k: _jax_constant(v).decompose(usys) for k, v in constants.items()}
+            ),
         )
 
         # Apply the unit system to any parameters.

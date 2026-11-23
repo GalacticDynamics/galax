@@ -84,19 +84,6 @@ def test_times_checks(kw) -> None:
         gde.Times(**kw)
 
 
-@pytest.mark.parametrize("solver", list(SOLVERS))
-def test_times_on_lattice_equals_uniform(solver) -> None:
-    uni = gde.Uniform(jnp.asarray(300.0), 5, 8)
-    times = gde.Times(uni.release_times(), uni.n_steps(), uni.t1)
-    sim = whole(SOLVERS[solver])
-    a = sim(KEY, HOST, W_TODAY, MSAT, uni)
-    b = sim(KEY, HOST, W_TODAY, MSAT, times)
-    for x, y in ((a.lead, b.lead), (a.trail, b.trail), (a.progenitor, b.progenitor)):
-        assert jnp.all(jnp.isfinite(x))
-        np.testing.assert_allclose(y, x, rtol=0, atol=1e-12)
-    np.testing.assert_array_equal(b.release_times, a.release_times)
-
-
 def _loss(sim):
     def loss(ts: jax.Array) -> jax.Array:
         r = sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
@@ -292,8 +279,9 @@ def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
     np.testing.assert_allclose(got.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
 
-@pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap"])
+@pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap", "track-scan"])
 def test_times_per_particle_grad(mode) -> None:
+    """Release-time gradients match finite differences and `jax.jacfwd`."""
     loss = _loss(per(mode))
     g = jax.grad(loss)(TS)
     eps = 1e-4
@@ -305,14 +293,13 @@ def test_times_per_particle_grad(mode) -> None:
     )
     assert jnp.all(g != 0), g
     np.testing.assert_allclose(g, fd, rtol=1e-5)
-    if mode == "copies-vmap":
-        fwd = dfxtra.DiffEqSolver(
-            gf.Leapfrog(),
-            stepsize_controller=dfx.ConstantStepSize(),
-            adjoint=dfx.ForwardMode(),
-        )
-        jf = jax.jacfwd(_loss(per(mode, fwd)))(TS)
-        np.testing.assert_allclose(jf, g, rtol=1e-10)
+    fwd = dfxtra.DiffEqSolver(
+        gf.Leapfrog(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        adjoint=dfx.ForwardMode(),
+    )
+    jf = jax.jacfwd(_loss(per(mode, fwd)))(TS)
+    np.testing.assert_allclose(jf, g, rtol=1e-10)
 
 
 @pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap"])
@@ -509,3 +496,45 @@ def test_time_dependent_host_time_grads(mode, kind) -> None:
     )
     assert jnp.all(g != 0), g
     np.testing.assert_allclose(g, fd, rtol=1e-5)
+
+
+ON_LATTICE = [
+    *[("leapfrog", m, h) for m in ALL for h in ("static", "td")],
+    ("adaptive", "whole", "static"),
+]
+
+
+@pytest.mark.parametrize(("solver", "mode", "host"), ON_LATTICE)
+def test_times_on_lattice_equals_uniform(solver, mode, host) -> None:
+    """`Times` on `Uniform`'s release times gives `Uniform`'s stream.
+
+    The time-dependent host, with ``t1 != 0``, catches a term that is given
+    the grid index instead of the physical time.
+    """
+    pot, t1 = (HOST, T1) if host == "static" else (TD_HOST, TD_T1)
+    uni = gde.Uniform(jnp.asarray(300.0), 5, 8, t1)
+    times = gde.Times(uni.release_times(), uni.n_steps(), uni.t1)
+    sim = any_mode(mode, SOLVERS[solver])
+    a = sim(KEY, pot, W_TODAY, MSAT, uni)
+    b = sim(KEY, pot, W_TODAY, MSAT, times)
+    for x, y in ((a.lead, b.lead), (a.trail, b.trail), (a.progenitor, b.progenitor)):
+        assert jnp.all(jnp.isfinite(x))
+        np.testing.assert_allclose(y, x, rtol=0, atol=1e-12)
+    np.testing.assert_array_equal(b.release_times, a.release_times)
+
+
+def test_times_fixed_step_runge_kutta() -> None:
+    """With a fixed-step Runge-Kutta solver (Tsit5), copies equal the stream.
+
+    Both step on the merged grid, so a copy takes the progenitor row's steps.
+    """
+    tsit = dfxtra.DiffEqSolver(
+        dfx.Tsit5(),
+        stepsize_controller=dfx.ConstantStepSize(),
+        adjoint=dfx.RecursiveCheckpointAdjoint(),
+    )
+    sched = gde.Times(TS, 30, T1)
+    want = flat(any_mode("whole", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
+    got = flat(any_mode("copies-vmap", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
+    assert jnp.all(jnp.isfinite(want))
+    np.testing.assert_allclose(got, want, rtol=0, atol=1e-11)

@@ -289,11 +289,12 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
         - ``n_bad_cover``: the number of n-vectors whose angle covers less
           than 2 pi, or whose span divided by the number of kept (unmasked)
           samples exceeds pi (the mean step, as in gala). All of them count
-          when the toy frequencies predict a step of more than pi / 2 in some
-          toy angle between two kept samples, e.g. across a gap in ``t`` or
-          with samples out of time order, since the angles then cannot be
-          unwrapped. It leaves out the n-vectors that involve a rest axis and
-          the resonant n-vectors.
+          when some toy angle is predicted to step by more than pi / 2
+          between two kept samples, e.g. across a gap in ``t`` or with
+          samples out of time order, since the angles then cannot be
+          unwrapped. The step is predicted from the faster of the toy
+          frequency and the angle's mean rate along the orbit. It leaves out
+          the n-vectors that involve a rest axis and the resonant n-vectors.
         - ``n_nan``: the number of samples dropped for non-finite toy
           values. Samples with a non-finite input are also left out of the
           classification and the toy fit.

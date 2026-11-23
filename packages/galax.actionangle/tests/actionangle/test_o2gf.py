@@ -664,7 +664,7 @@ def test_gap_or_shuffle_in_t_flags():
     """A step too long to unwrap the toy angles flags the orbit."""
     q, p, t = _iso_orbit()
     full = o2gf(ISO, q, p, t, n_max=6)
-    short = (t < 500) | (t > 530)  # the toy angles step under pi
+    short = (t < 500) | (t > 520)  # the toy angles step under pi / 2
     r = o2gf(ISO, q[short], p[short], t[short], n_max=6)
     assert not bool(r.flagged)
     np.testing.assert_allclose(r.aaf.freqs, full.aaf.freqs, rtol=1e-6)
@@ -685,6 +685,21 @@ def test_gap_flags_with_fitted_box_toy():
     pot, (q, p, t) = _log_box()
     keep = np.ones(len(t), bool)
     keep[1884:1891] = False  # predicted step 0.77 pi, actual step 1.06 pi
+    r = o2gf(pot, q[keep], p[keep], t[keep], n_max=6)
+    assert bool(r.flagged)
+    assert int(r.n_bad_cover) > 0
+
+
+def test_gap_flags_on_disk_loop():
+    """On a disk loop the toy's Omega_z is ~3x too slow; the angle rate catches it."""
+    pot = gp.MiyamotoNagaiPotential(
+        m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.28, "kpc"), units="galactic"
+    )
+    kms = 1.0227e-3  # km/s in kpc/Myr
+    q, p, t = _orbit(pot, [8.0, 0, 0.3], [10 * kms, 230 * kms, 10 * kms], 6000, 6000)
+    assert not bool(o2gf(pot, q, p, t, n_max=6).flagged)
+    keep = np.ones(len(t), bool)
+    keep[3000:3056] = False  # toy-predicted step 0.42 pi, actual theta_z step 1.0 pi
     r = o2gf(pot, q[keep], p[keep], t[keep], n_max=6)
     assert bool(r.flagged)
     assert int(r.n_bad_cover) > 0

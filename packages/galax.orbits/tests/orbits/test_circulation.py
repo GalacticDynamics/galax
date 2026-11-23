@@ -1,5 +1,7 @@
 """Tests for `galax.orbits.circulation` and `galax.orbits.align_circulation`."""
 
+from dataclasses import replace
+
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -658,3 +660,44 @@ def test_prolate_spheroidal_coordinate_aligns():
         rtol=1e-10,
         atol=1e-12,
     )
+
+    # A batch of 2 orbits broadcasts the components, not Delta.
+    q2 = replace(q, **{c: qnp.stack([getattr(q, c)] * 2) for c in q.components})
+    p2 = replace(p, **{c: qnp.stack([getattr(p, c)] * 2) for c in p.components})
+    w2 = gc.PhaseSpaceCoordinate(q=q2, p=p2, t=w.t)
+    np.testing.assert_array_equal(go.circulation(w2), [go.circulation(w)] * 2)
+    aligned2, axis2 = go.align_circulation(w2)
+    np.testing.assert_array_equal(axis2, [axis, axis])
+    assert aligned2.q.Delta == delta
+
+
+def test_composite_of_single_points_keeps_shape():
+    """Components of shape () keep shape () through align_circulation."""
+    pts = [
+        gc.PhaseSpaceCoordinate(
+            q=u.Q([8.0, 0, i], "kpc"), p=u.Q([0, 200.0, 0], "km/s"), t=u.Q(i, "Myr")
+        )
+        for i in range(3)
+    ]
+    comp = gc.CompositePhaseSpaceCoordinate(a=pts[0], b=pts[1], c=pts[2])
+    aligned, _ = go.align_circulation(comp)
+    for k in comp:
+        assert aligned[k].q.shape == comp[k].q.shape == ()
+        assert aligned[k].p.shape == comp[k].p.shape == ()
+
+
+def test_float32_non_cartesian_keeps_dtype():
+    """A float32 spherical input keeps float32 components, swapped or not."""
+    (qa, pa), _, _ = ORBITS["yz"]
+    qc = cx.CartesianPos3D.from_(u.Q(qa, "kpc"))
+    pc = cx.CartesianVel3D.from_(u.Q(pa, "kpc/Myr"))
+    q = cx.vconvert(cx.vecs.SphericalPos, qc)
+    p = cx.vconvert(cx.vecs.SphericalVel, pc, qc)
+    q = replace(q, **{c: getattr(q, c).astype(jnp.float32) for c in q.components})
+    p = replace(p, **{c: getattr(p, c).astype(jnp.float32) for c in p.components})
+    w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(jnp.arange(len(qa)), "Myr"))
+    aligned, axis = go.align_circulation(w)
+    assert int(axis) != 2
+    for v in (aligned.q, aligned.p):
+        for c in v.components:
+            assert getattr(v, c).dtype == jnp.float32, c

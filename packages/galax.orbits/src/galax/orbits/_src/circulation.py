@@ -131,6 +131,13 @@ def _swap[QP: (Array, u.AbstractQuantity)](x: QP, axis: Int[Array, "*batch"]) ->
     return jnp.where(a == 0, x[..., _PERM_X], jnp.where(a == 1, x[..., _PERM_Y], x))  # type: ignore[no-any-return]
 
 
+def _broadcast(v: Any, shape: tuple[int, ...]) -> Any:
+    """Broadcast the components of ``v``, not its other fields (e.g. Delta)."""
+    return replace(
+        v, **{c: jnp.broadcast_to(getattr(v, c), shape) for c in v.components}
+    )
+
+
 def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
     """Return Cartesian q and p of a coordinate as Quantities of shape (..., 3)."""
     if isinstance(w, gc.AbstractCompositePhaseSpaceCoordinate):
@@ -150,8 +157,7 @@ def _cartesian_qp(w: Any) -> tuple[u.AbstractQuantity, u.AbstractQuantity]:
     shape = jnp.broadcast_shapes(w.q.shape, w.p.shape)
     wq, wp = w.q, w.p
     if len(shape) > 1 or wq.shape != wp.shape:
-        bcast = ft.partial(jax.tree.map, lambda a: jnp.broadcast_to(a, shape))
-        wq, wp = bcast(wq).reshape(-1), bcast(wp).reshape(-1)
+        wq, wp = _broadcast(wq, shape).reshape(-1), _broadcast(wp, shape).reshape(-1)
     q: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianPos3D, wq), u.Quantity)
     p: u.AbstractQuantity = convert(cx.vconvert(cx.CartesianVel3D, wp, wq), u.Quantity)
     return q.reshape(*shape, 3), p.reshape(*shape, 3)
@@ -240,20 +246,16 @@ def _vconvert(rep: Any, v: Any, at: Any = None, **kwargs: Any) -> Any:
 def _like(old: Any, new: Any, keep: Any) -> Any:
     """Return ``old`` with its components from ``new`` where ``keep`` is False.
 
-    Each component keeps the unit of ``old``'s, and fields that are not
-    components, e.g. ``Delta`` of a prolate spheroidal vector, are kept.
+    Each component keeps the unit and dtype of ``old``'s, and fields that
+    are not components, e.g. ``Delta`` of a prolate spheroidal vector, are
+    kept.
     """
-    return replace(
-        old,
-        **{
-            c: jnp.where(
-                keep,
-                getattr(old, c),
-                u.uconvert(u.unit_of(getattr(old, c)), getattr(new, c)),
-            )
-            for c in old.components
-        },
-    )
+    comps = {}
+    for c in old.components:
+        o = getattr(old, c)
+        n = u.uconvert(u.unit_of(o), getattr(new, c)).astype(o.dtype)
+        comps[c] = jnp.where(keep, o, n)
+    return replace(old, **comps)
 
 
 def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
@@ -267,7 +269,9 @@ def _aligned(w: Any, axis: Int[Array, "*batch"]) -> Any:
     # can be NaN, e.g. on the z axis in spherical coordinates, so those rows
     # go through the conversion as an off-axis point that the where drops,
     # which keeps the gradient finite.
-    keep = (axis == 2)[..., None]  # against components of shape (*batch, T)
+    # Shape keep like the components, (*batch, T), or () for a single point.
+    ndim = len(jnp.broadcast_shapes(w.q.shape, w.p.shape))
+    keep = jnp.reshape(axis == 2, axis.shape + (1,) * (ndim - axis.ndim))
     q, p = _cartesian_qp(w)
     q = jnp.where(keep[..., None], jnp.ones_like(q), _swap(q, axis))
     p = jnp.where(keep[..., None], jnp.ones_like(p), _swap(p, axis))

@@ -9,6 +9,8 @@ __all__ = [
     "PhaseSpaceInterpolation",
     "circulation",
     "compute_orbit",
+    "omega",
+    "specific_angular_momentum",
 ]
 
 from ._src.api import circulation, compute_orbit
@@ -16,12 +18,18 @@ from ._src.base import AbstractOrbit
 from ._src.field_base import AbstractOrbitField
 from ._src.field_hamiltonian import HamiltonianField
 from ._src.interp import PhaseSpaceInterpolation
+from ._src.kinematics import omega, specific_angular_momentum
 from ._src.orbit import Orbit
 from ._src.solver import OrbitSolver
 
 # Register by import
 # isort: split
-from ._src import circulation as _circulation, compute, register_dfx  # noqa: F401
+from ._src import (  # noqa: F401
+    circulation as _circulation,
+    compute,
+    register_dfx,
+    register_kinematics,
+)
 from ._src.plot_helper import ProxyAbstractOrbit
 
 # Register the experimental `integrate_orbit` dispatches

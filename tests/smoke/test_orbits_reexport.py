@@ -54,3 +54,13 @@ def test_experimental_submodules():
 
     assert gd.experimental.integrate is goi
     assert not hasattr(gd.experimental, "leapfrog")
+
+
+def test_kinematics_identity():
+    import galax.dynamics as gd
+    import galax.dynamics._src.api as gda
+    import galax.orbits as go
+
+    assert gd.omega is go.omega is gda.omega
+    assert gd.specific_angular_momentum is go.specific_angular_momentum
+    assert gda.specific_angular_momentum is go.specific_angular_momentum

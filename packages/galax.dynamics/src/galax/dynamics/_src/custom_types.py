@@ -11,9 +11,16 @@ from galax.orbits.custom_types import (
     BBtParr as BBtParr,
     BBtQ as BBtQ,
     BBtQarr as BBtQarr,
+    BBtQP as BBtQP,
     BBtQParr as BBtQParr,
     BtAarr as BtAarr,
+    BtP as BtP,
     BtPAarr as BtPAarr,
+    BtParr as BtParr,
+    BtQ as BtQ,
+    BtQarr as BtQarr,
+    BtQP as BtQP,
+    BtQParr as BtQParr,
     Parr as Parr,
     Qarr as Qarr,
     QParr as QParr,
@@ -22,20 +29,14 @@ from galax.orbits.custom_types import (
 # ---------------------------
 # Q
 
-BtQarr: TypeAlias = gt.BtSz3
-
 BQarr: TypeAlias = Real[gt.Sz3, "batch"]
 
 Q: TypeAlias = gt.QuSz3
-BtQ: TypeAlias = gt.BtQuSz3
 
 # ---------------------------
 # P
 
-BtParr: TypeAlias = gt.BtSz3
-
 P: TypeAlias = gt.QuSz3
-BtP: TypeAlias = gt.BtQuSz3
 
 # ---------------------------
 # A
@@ -45,11 +46,7 @@ Aarr: TypeAlias = gt.Sz3
 # ---------------------------
 # QP
 
-BtQParr: TypeAlias = tuple[BtQarr, BtParr]
-
 QP: TypeAlias = tuple[Q, P]
-BtQP: TypeAlias = tuple[BtQ, BtP]
-BBtQP: TypeAlias = tuple[BBtQ, BBtP]
 
 # ---------------------------
 # PA

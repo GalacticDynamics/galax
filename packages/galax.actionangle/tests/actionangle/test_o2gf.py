@@ -658,3 +658,23 @@ def test_sn_units_follow_actions():
     assert isinstance(res.sn, u.AbstractQuantity)
     assert res.sn.unit == res.aaf.actions.unit
     assert not isinstance(res.dsn_dj, u.AbstractQuantity)
+
+
+def test_gap_or_shuffle_in_t_flags():
+    """A step too long to unwrap the toy angles flags the orbit."""
+    q, p, t = _iso_orbit()
+    full = o2gf(ISO, q, p, t, n_max=6)
+    short = (t < 500) | (t > 530)  # the toy angles step under pi
+    r = o2gf(ISO, q[short], p[short], t[short], n_max=6)
+    assert not bool(r.flagged)
+    np.testing.assert_allclose(r.aaf.freqs, full.aaf.freqs, rtol=1e-6)
+    long = (t < 500) | (t > 600)  # theta_r steps by about 5.8 rad
+    r = o2gf(ISO, q[long], p[long], t[long], n_max=6)
+    assert bool(r.flagged)
+    assert int(r.n_bad_cover) > 0
+    i = np.random.default_rng(0).permutation(len(t))
+    r = o2gf(ISO, q[i], p[i], t[i], n_max=6)
+    assert bool(r.flagged)
+    i = np.arange(len(t))[::-1]
+    r = o2gf(ISO, q[i], p[i], t[i], n_max=6)
+    assert not bool(r.flagged)

@@ -98,8 +98,11 @@ class O2GFResult(eqx.Module):
     S_n = 0, and do not flag the orbit. ``n_bad_cover`` counts the other
     n-vectors, except those that involve a rest axis, whose angle covers
     less than 2 pi, or whose span divided by the number of kept (unmasked)
-    samples exceeds pi (the mean step, as in gala). Those below the
-    resonance threshold are left out of the fit too.
+    samples exceeds pi (the mean step, as in gala). All of them count when
+    any toy angle steps by more than pi between two kept samples, e.g.
+    across a gap in ``t`` or with samples out of time order, since the
+    angles can then not be unwrapped. Those below the resonance threshold
+    are left out of the fit too.
     ``n_nan`` counts the samples dropped for non-finite toy values. Samples
     with a non-finite input are also left out of the classification and of
     the toy fit.
@@ -201,7 +204,7 @@ def _path(
         ok = jnp.asarray(True)  # noqa: FBT003
     # Map the masked samples through the toy at a kept sample, so their NaN
     # does not reach the gradient, then mark them NaN for the solve to drop.
-    J, theta, _ = toy_aaf(toy, G, fill_masked(q, keep), fill_masked(p, keep))
+    J, theta, Om_toy = toy_aaf(toy, G, fill_masked(q, keep), fill_masked(p, keep))
     J = jnp.where(keep[:, None], J, jnp.nan)
     theta = jnp.where(keep[:, None], theta, jnp.nan)
     # An axis whose toy action stays 0 (a planar orbit) has no angle to fit.
@@ -213,7 +216,14 @@ def _path(
     # Solve about the mean time, which conditions the angle system far better
     # (it matters in float32), then step the angles back to t = 0.
     tc = jnp.mean(jnp.where(jnp.isfinite(t), t, 0.0))
-    J, sn, th0, Om, dsn, n_bad, n_nan, n_res = solve_o2gf(J, theta, t - tc, nvecs, rest)
+    # The unwrap along T needs each toy angle to step by less than pi between
+    # kept samples. A gap in t, or samples out of time order, breaks that.
+    dt = jnp.abs(jnp.diff(fill_masked(t, keep)))
+    step = jnp.where(rest, 0.0, jnp.abs(Om_toy[1:]) * dt[:, None])
+    coarse = jax.lax.stop_gradient(jnp.nanmax(step, initial=0.0) > jnp.pi)
+    J, sn, th0, Om, dsn, n_bad, n_nan, n_res = solve_o2gf(
+        J, theta, t - tc, nvecs, rest, coarse
+    )
     th0 = mod_2pi(th0 - Om * tc)
     # On an axis at rest J is 0, and its angle and frequency are undefined.
     J = jnp.where(rest, 0.0, J)

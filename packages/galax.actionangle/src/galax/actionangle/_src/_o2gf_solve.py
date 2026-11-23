@@ -119,6 +119,7 @@ def solve_o2gf(
     nvecs: np.ndarray,
     /,
     rest: jax.Array | None = None,
+    coarse: jax.Array | bool = False,  # noqa: FBT002
 ) -> tuple[jax.Array, ...]:
     """Solve the O2GF action and angle systems.
 
@@ -145,8 +146,9 @@ def solve_o2gf(
 
     ``n_bad_cover`` counts the other n-vectors for which the span of
     ``n . theta`` is under 2 pi (window too short) or the span per sample
-    exceeds pi (sampling too coarse). Those not below the resonance
-    threshold stay in the solves, as in gala.
+    exceeds pi (sampling too coarse), or all of them when ``coarse`` is True
+    (some step between samples is too long to unwrap). Those not below the
+    resonance threshold stay in the solves, as in gala.
 
     Both systems are solved by minimum-norm least squares. On a regular system
     this matches gala's ``scipy.linalg.solve``. Dropping the resonant modes
@@ -185,7 +187,7 @@ def solve_o2gf(
     ).min(axis=0)
     turns = jnp.where(ok.any(), th_span, 0.0) >= 2 * jnp.pi
     resonant = below & jnp.all((nvecs == 0) | turns, axis=1)
-    bad = (span < 2 * jnp.pi) | (safe_div(span, w.sum()) > jnp.pi)
+    bad = (span < 2 * jnp.pi) | (safe_div(span, w.sum()) > jnp.pi) | coarse
     bad &= ~(skip | resonant)
 
     drop = below | skip

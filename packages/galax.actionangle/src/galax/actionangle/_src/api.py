@@ -335,27 +335,30 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     floats (``jax_enable_x64``) for precision.
 
     Thin box orbits are flagged. On a nearly planar box the fit modes that
-    involve J_z absorb the in-plane fit error, which can move the in-plane
-    actions by up to about 10 percent and J_z by up to the whole of it. A box is
-    flagged as thin when its smallest mean toy action on an axis not at
-    rest is below 3e-4 of the sum. In tests on triaxial NFW, triaxial
-    Hernquist and LMJ09 boxes, the near-planar boxes with bad actions were
-    well below this cutoff and the random 3-D boxes well above it. The flag also
-    catches thin boxes whose actions are right. A planar orbit, with J_z at
-    rest, is not affected by this.
+    involve J_z absorb the in-plane fit error, which can move all three
+    actions and J_z most of all. A box is flagged as thin when its smallest
+    mean toy action on an axis not at rest is below 3e-4 of the sum. The
+    flag also catches thin boxes whose actions are right. A planar orbit,
+    with J_z at rest, is not affected by this.
 
-    On eccentric orbits in spherical NFW and Hernquist potentials, J_r can
-    be off by about 1e-3 or more (relative, measured against quadrature)
-    without a flag. Eccentric orbits in other cuspy potentials are likely to
-    behave the same way. A longer orbit does not reduce it, and a higher
-    ``n_max`` does not reliably reduce it either.
+    Accuracy varies by potential and orbit, and ``flagged`` does not catch
+    every inaccurate orbit. Orbits known to come out wrong without a flag
+    include eccentric orbits in cuspy spherical potentials such as NFW and
+    Hernquist (mostly in J_r), orbits near a low-order resonance such as 3:2
+    in Omega_z and Omega_r, and tubes about the long axis of a triaxial
+    potential and some regular boxes, whose actions change with ``n_max``. A
+    longer orbit or a higher ``n_max`` does not reliably fix these. Very
+    small actions carry an absolute error relative to the sum of the
+    actions, with an arbitrary sign, so they can come out negative. The
+    tests that measure accuracy are in ``tests/actionangle/test_o2gf.py``
+    and ``test_o2gf_vs_gala.py`` (exact isochrone actions and gala) and in
+    ``tests/integration/agama`` and ``tests/integration/galpy`` (agama and
+    galpy).
 
-    On flagged, ill-conditioned orbits (Jacobian norm around 1e17) the
-    fitted toy depends on what else is in the batch, and the actions moved
-    by a few percent between batch compositions. Unflagged orbits agree
-    with single-orbit runs to near round-off. The same batch always gives the same
-    result, but the result for an ill-conditioned orbit can change when the
-    other orbits in the batch change.
+    On flagged, ill-conditioned orbits the fitted toy can depend on what
+    else is in the batch, so their actions can change when the other orbits
+    in the batch change. Unflagged orbits agree with single-orbit runs, and
+    the same batch always gives the same result.
 
     In a spherical or nearly spherical potential, numerical noise in the
     samples, e.g. from a loosely integrated orbit, can keep a resonant mode just
@@ -379,32 +382,14 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     0, and the conjugate angle and frequency are undefined and returned as
     NaN.
 
-    Sample about 40 periods of the orbit's slowest frequency. In random
-    samples of disk orbits in `galax.potential.MilkyWayPotential2022` at
-    ``n_max=8``, with 2000 samples, most orbits were flagged at 10 periods
-    and a third to a half were still flagged at 40. More samples per period
-    unflagged only a few of them. In those orbits some ``n . Omega`` is so
-    close to 0 that its angle still covers less than 2 pi. For an orbit
-    still flagged at 40 periods, first try a lower ``n_max``: in tests, most
-    of them were unflagged at ``n_max=6`` or ``n_max=4``, and their actions
-    changed little from those at ``n_max=8``. A longer orbit helped less. If
-    neither works, treat the result as unreliable.
-
-    Orbits near a low-order resonance can be wrong without being flagged.
-    Near the 3:2 resonance of Omega_z and Omega_r, J_z came out 10 percent
-    or more off on unflagged orbits, and a longer orbit did not fix it. The
-    actions of tubes about the long axis of a triaxial potential are
-    sensitive to the toy fit, and can move by 10 percent or more as
-    ``n_max`` changes without being flagged, and by far more at low
-    ``n_max``. Regular box orbits can be sensitive too: on an LMJ09 box J_x
-    moved by a few percent across ``n_max`` = 4 to 10 without a flag,
-    while staying stable with orbit length.
-
-    Very small actions carry an absolute error of up to a few parts in 1e5
-    of the sum of the actions, with an arbitrary sign, on unflagged orbits as well.
-    On near-planar Miyamoto-Nagai loops J_z came out negative, against a
-    much smaller true value, and boxes just above the thin-box cutoff had
-    the largest offsets.
+    Sample many periods of the orbit's slowest frequency; about 40 is a good
+    start. Many disk orbits in `galax.potential.MilkyWayPotential2022` are
+    still flagged at 10 periods with ``n_max=8``. In those orbits some
+    ``n . Omega`` is so close to 0 that its angle covers less than 2 pi. For an
+    orbit that stays flagged, first try a lower ``n_max``, which often
+    clears the flag while changing the actions little. A longer orbit or
+    more samples per period helps less often. If none of these works, treat
+    the result as unreliable.
 
     The fitted toy differs from gala's (Powell) at the fit tolerance, so
     pass ``toy`` to compare with gala exactly. At odd ``n_max`` the

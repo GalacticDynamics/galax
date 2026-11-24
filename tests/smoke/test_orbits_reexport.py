@@ -80,6 +80,15 @@ def test_integrate_identity():
     assert gdl.default_integrator is goi.default_integrator
     assert gd.integrate.PhaseSpaceInterpolation is goi.PhaseSpaceInterpolation
     assert gd.integrate.parse_time_specification is goi.parse_time_specification
+    assert gdl.InterpolatedPhaseSpaceCoordinate is goi.InterpolatedPhaseSpaceCoordinate
+
+
+def test_custom_types_alias_identity():
+    import galax.dynamics.custom_types as gdt
+    import galax.orbits.custom_types as got
+
+    for name in ("BtQuSz3", "SzTime", "OptArgs"):
+        assert getattr(gdt, name) is getattr(got, name)
 
 
 def test_experimental_public_identity():

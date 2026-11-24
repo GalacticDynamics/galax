@@ -65,12 +65,12 @@ def evaluate_orbit(
         sure to set the initial time to the desired value. See the `t` argument
         for more details.
 
-        - :class:`~galax.dynamics.PhaseSpaceCoordinate`[number, (*batch,)]:
+        - :class:`~galax.coordinates.PhaseSpaceCoordinate`[number, (*batch,)]:
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
             at `t`.
-        - :class:`~galax.dynamics.PhaseSpacePosition`[number, (*batch,)]:
+        - :class:`~galax.coordinates.PhaseSpacePosition`[number, (*batch,)]:
             The partial phase-space position, including position and velocity.
             `w0` will be integrated from ``t[0]`` to ``t[1]``, returning the
             orbit calculated at `t`.
@@ -160,7 +160,7 @@ def evaluate_orbit(
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D( ... ), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=None )
 
-    :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
+    :class:`~galax.coordinates.PhaseSpacePosition` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
@@ -178,7 +178,7 @@ def evaluate_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.dynamics.PhaseSpacePosition`. `evaluate_orbit` will then
+        :class:`~galax.coordinates.PhaseSpacePosition`. `evaluate_orbit` will then
         assume ``w0`` is defined at `t`[0].
 
     """

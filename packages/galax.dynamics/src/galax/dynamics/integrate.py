@@ -8,10 +8,10 @@ __all__ = [
     "InterpolatedPhaseSpaceCoordinate",
 ]
 
-from ._src.legacy import (
+from galax.fields import parse_time_specification
+from galax.orbits.integrate import (
     Integrator,
     InterpolatedPhaseSpaceCoordinate,
+    PhaseSpaceInterpolation,
     evaluate_orbit,
 )
-from galax.fields import parse_time_specification
-from galax.orbits import PhaseSpaceInterpolation

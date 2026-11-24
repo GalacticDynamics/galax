@@ -47,7 +47,6 @@ __all__ = [
 from diffraxtra import DiffEqSolver
 
 from . import cluster, examples, fields, integrate, mockstream, nbody, plot
-from ._src.api import omega, specific_angular_momentum
 from ._src.cluster import lagrange_points, tidal_radius
 from .fields import AbstractField, AbstractOrbitField, HamiltonianField, NBodyField
 from .integrate import evaluate_orbit
@@ -62,15 +61,10 @@ from .mockstream import (
 from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
 from .setup_package import load_interop_plugins
 from galax.fields import SolveState, integrate_field, parse_time_specification
+from galax.orbits import omega, specific_angular_momentum
 
 # isort: split
 from ._src import experimental  # noqa: F401
-
-# isort: split
-from ._src import register_api
-
-# Cleanup
-del register_api
 
 # Interoperability with third-party libraries. Importing a registered module is
 # what performs its `plum` dispatch registration; entry points let separately

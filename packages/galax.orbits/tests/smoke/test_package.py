@@ -14,6 +14,8 @@ def test_all() -> None:
         "PhaseSpaceInterpolation",
         "circulation",
         "compute_orbit",
+        "omega",
+        "specific_angular_momentum",
     }
     for name in go.__all__:
         assert hasattr(go, name)

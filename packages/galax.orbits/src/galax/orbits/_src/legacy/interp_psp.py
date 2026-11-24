@@ -15,11 +15,11 @@ import unxt as u
 from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 from galax.coordinates import ComponentShapeTuple
 from galax.coordinates.frames import SimulationFrame
 from galax.coordinates.utils import batched_shape, vector_batched_shape
-from galax.dynamics._src.orbit import PhaseSpaceInterpolation
+from galax.orbits import PhaseSpaceInterpolation
 
 
 @final

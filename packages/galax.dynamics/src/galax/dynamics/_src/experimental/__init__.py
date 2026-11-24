@@ -16,8 +16,11 @@ from .simulator import (
     to_mockstream as to_mockstream,
 )
 from .stream import *
-from galax.orbits._src.experimental import (
+
+# `gd.experimental.integrate` is the module `galax.orbits._src.experimental.integrate`,
+# kept for compatibility (#1047): the one allowed cross-distribution `_src` import.
+from galax.orbits._src.experimental import integrate as integrate
+from galax.orbits.experimental import (
     SymplecticSolverT as SymplecticSolverT,
-    integrate as integrate,
     integrate_orbit as integrate_orbit,
 )

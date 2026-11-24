@@ -1,4 +1,4 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Dispatches of `omega` and `specific_angular_momentum`."""
 
 __all__ = [
     "specific_angular_momentum",
@@ -16,8 +16,8 @@ import quaxed.numpy as jnp
 from unxt.quantity import Quantity
 
 import galax.coordinates as gc
-import galax.dynamics.custom_types as gt
-from . import api
+import galax.orbits.custom_types as gt
+from . import kinematics as api
 
 # ===================================================================
 # Specific angular momentum

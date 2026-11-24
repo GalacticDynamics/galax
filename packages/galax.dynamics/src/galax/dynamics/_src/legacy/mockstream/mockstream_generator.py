@@ -22,12 +22,11 @@ import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
 import galax.fields as gf
 from .df import AbstractStreamDF, ChenStreamDF, ProgenitorMassCallable
-from galax.dynamics._src.legacy.funcs import default_integrator, evaluate_orbit
-from galax.dynamics._src.legacy.integrator import Integrator
 from galax.dynamics._src.mockstream.arm import MockStreamArm
 from galax.dynamics._src.mockstream.core import MockStream
 from galax.dynamics._src.orbit import HamiltonianField, Orbit
 from galax.orbits import AbstractOrbitField
+from galax.orbits.integrate import Integrator, default_integrator, evaluate_orbit
 from galax.potential import AbstractPotential
 from galax.potential.utils import cond_reverse
 

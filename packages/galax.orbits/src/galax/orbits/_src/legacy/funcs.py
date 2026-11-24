@@ -13,11 +13,10 @@ import quaxed.numpy as jnp
 from unxt.quantity import Quantity as FastQ
 
 import galax.coordinates as gc
-import galax.dynamics._src.custom_types as gdt
-import galax.dynamics.custom_types as gt
+import galax.orbits.custom_types as gt
 import galax.potential as gp
 from .integrator import Integrator
-from galax.dynamics._src.orbit import HamiltonianField, Orbit
+from galax.orbits import HamiltonianField, Orbit
 
 # TODO: enable setting the default integrator
 default_integrator: Integrator = Integrator()
@@ -42,7 +41,7 @@ def orbit_from_psp(w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime) -> Orbit:
 @dispatch
 def evaluate_orbit(
     pot: gp.AbstractPotential,
-    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition | gdt.BtQParr | gt.BtSz6,
+    w0: gc.PhaseSpaceCoordinate | gc.PhaseSpacePosition | gt.BtQParr | gt.BtSz6,
     t: Any,
     /,
     *,
@@ -66,12 +65,12 @@ def evaluate_orbit(
         sure to set the initial time to the desired value. See the `t` argument
         for more details.
 
-        - :class:`~galax.dynamics.PhaseSpaceCoordinate`[number, (*batch,)]:
+        - :class:`~galax.coordinates.PhaseSpaceCoordinate`[number, (*batch,)]:
             The full phase-space position, including position, velocity, and
             time. `w0` will be integrated from ``w0.t`` to ``t[0]``, then
             integrated from ``t[0]`` to ``t[1]``, returning the orbit calculated
             at `t`.
-        - :class:`~galax.dynamics.PhaseSpacePosition`[number, (*batch,)]:
+        - :class:`~galax.coordinates.PhaseSpacePosition`[number, (*batch,)]:
             The partial phase-space position, including position and velocity.
             `w0` will be integrated from ``t[0]`` to ``t[1]``, returning the
             orbit calculated at `t`.
@@ -114,7 +113,7 @@ def evaluate_orbit(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     We can then create the point-mass' potential, with galactic units:
 
@@ -127,7 +126,7 @@ def evaluate_orbit(
     ...                              p=u.Q([0, 200, 0], "km/s"),
     ...                              t=u.Q(-100, "Myr"))
     >>> ts = u.Q(jnp.linspace(0, 1, 4), "Gyr")
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([...], 'Myr'),
            frame=SimulationFrame(), interpolant=None )
@@ -139,14 +138,14 @@ def evaluate_orbit(
     Changing the number of times is easy:
 
     >>> ts = u.Q(jnp.linspace(0, 1, 10), "Gyr")
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=None )
 
     Or evaluating at a single time:
 
-    >>> orbit = gd.evaluate_orbit(potential, w0, u.Q(0.5, "Gyr"))
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, u.Q(0.5, "Gyr"))
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([500.], 'Myr'),
            frame=SimulationFrame(), interpolant=None )
@@ -156,12 +155,12 @@ def evaluate_orbit(
     >>> w0 = gc.PhaseSpaceCoordinate(q=u.Q([[10, 0, 0], [10., 0, 0]], "kpc"),
     ...                              p=u.Q([[0, 200, 0], [0, 220, 0]], "km/s"),
     ...                              t=u.Q([-100, -150], "Myr"))
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D( ... ), t=Q( [...], 'Myr' ),
            frame=SimulationFrame(), interpolant=None )
 
-    :class:`~galax.dynamics.PhaseSpacePosition` has a ``t`` argument for the
+    :class:`~galax.coordinates.PhaseSpacePosition` has a ``t`` argument for the
     time at which the position is given. As noted earlier, this can be used to
     integrate from a different time than the initial time of the position:
 
@@ -169,7 +168,7 @@ def evaluate_orbit(
     ...                              p=u.Q([0, 200, 0], "km/s"),
     ...                              t=u.Q(0, "Myr"))
     >>> ts = u.Q(jnp.linspace(0.3, 1, 8), "Gyr")
-    >>> orbit = gd.evaluate_orbit(potential, w0, ts)
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, ts)
     >>> orbit.q[0]  # doctest: +SKIP
     Array([ 9.779, -0.3102,  0.        ], dtype=float64)
 
@@ -179,7 +178,7 @@ def evaluate_orbit(
     .. note::
 
         If you want to reproduce :mod:`gala`'s behavior, you can use
-        :class:`~galax.dynamics.PhaseSpacePosition`. `evaluate_orbit` will then
+        :class:`~galax.coordinates.PhaseSpacePosition`. `evaluate_orbit` will then
         assume ``w0`` is defined at `t`[0].
 
     """
@@ -232,7 +231,7 @@ def evaluate_orbit(
     >>> import unxt as u
     >>> import galax.coordinates as gc
     >>> import galax.potential as gp
-    >>> import galax.dynamics as gd
+    >>> import galax.orbits as go
 
     We can then create the point-mass' potential, with galactic units:
 
@@ -245,7 +244,7 @@ def evaluate_orbit(
     ...                              p=u.Q([0, 200, 0], "km/s"),
     ...                              t=u.Q(-100, "Myr"))
     >>> ts = jnp.linspace(0, 1000, 4)  # (1 Gyr, 4 steps)
-    >>> orbit = gd.evaluate_orbit(potential, w0, t=ts)
+    >>> orbit = go.integrate.evaluate_orbit(potential, w0, t=ts)
     >>> orbit
     Orbit( q=CartesianPos3D(...), p=CartesianVel3D(...), t=Q([...], 'Myr'),
            frame=SimulationFrame(), interpolant=None )

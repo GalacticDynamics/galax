@@ -18,7 +18,7 @@ import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .base import AbstractStreamDF
 from galax.dynamics._src.cluster.radius import tidal_radius
-from galax.dynamics._src.register_api import specific_angular_momentum
+from galax.orbits import specific_angular_momentum
 
 # ============================================================
 # Constants

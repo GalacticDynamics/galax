@@ -1,9 +1,12 @@
 """Integration routines.
 
-This is private API.
+This is private API. The legacy integrator lives in :mod:`galax.orbits.integrate`.
 
 """
 
-from .funcs import *
-from .integrator import *
-from .interp_psp import *
+from galax.orbits.integrate import (
+    Integrator as Integrator,
+    InterpolatedPhaseSpaceCoordinate as InterpolatedPhaseSpaceCoordinate,
+    default_integrator as default_integrator,
+    evaluate_orbit as evaluate_orbit,
+)

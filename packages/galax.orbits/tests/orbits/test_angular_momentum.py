@@ -1,9 +1,10 @@
-"""`galax.dynamics.specific_angular_momentum` on phase-space objects.
+"""`galax.orbits.specific_angular_momentum` and `galax.orbits.omega`.
 
-The function takes any `galax.coordinates.AbstractPhaseSpaceObject` and lives in
-`galax.dynamics`, so it is tested here rather than in the coordinates contract.
-Testing it there made the lower portion's tests import the higher one -- the
-same inversion the energy functions had before they moved.
+`specific_angular_momentum` takes any
+`galax.coordinates.AbstractPhaseSpaceObject` and lives in `galax.orbits`, so it
+is tested here rather than in the coordinates contract. Testing it there made
+the lower portion's tests import the higher one -- the same inversion the
+energy functions had before they moved.
 """
 
 import pytest
@@ -13,7 +14,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics as gd
+import galax.orbits as go
 
 
 @pytest.fixture
@@ -32,18 +33,18 @@ def p() -> u.Quantity:
 def w(request, q, p) -> gc.AbstractPhaseSpaceObject:
     """Return the same state as a `PhaseSpaceCoordinate` and as an `Orbit`.
 
-    `Orbit` is a `galax.orbits` type (re-exported by `galax.dynamics`)
-    implementing the coordinates contract, so the function must accept both.
+    `Orbit` implements the coordinates contract, so the function must accept
+    both.
     """
     t = u.Q([0.0, 0.0], "Myr")
     if request.param == "coordinate":
         return gc.PhaseSpaceCoordinate(q=q, p=p, t=t)
-    return gd.Orbit(q=q, p=p, t=t, interpolant=None, frame=gc.frames.simulation_frame)
+    return go.Orbit(q=q, p=p, t=t, interpolant=None, frame=gc.frames.simulation_frame)
 
 
 def test_shape_and_type(w) -> None:
     """The result is a Cartesian 3-vector shaped like the positions."""
-    h = gd.specific_angular_momentum(w)
+    h = go.specific_angular_momentum(w)
     assert isinstance(h, cx.vecs.Cartesian3D)
     assert h.shape == w.q.shape
 
@@ -54,8 +55,15 @@ def test_planar_motion_gives_purely_z(w) -> None:
     Shape and type alone would pass for any vector-valued function; this pins
     the value, which is what makes the test about angular momentum.
     """
-    h = gd.specific_angular_momentum(w)
+    h = go.specific_angular_momentum(w)
     zero = u.Q(0.0, h.x.unit)
     assert jnp.allclose(h.x, zero, atol=u.Q(1e-8, h.x.unit))
     assert jnp.allclose(h.y, zero, atol=u.Q(1e-8, h.y.unit))
     assert jnp.all(h.z > zero)
+
+
+def test_omega_value() -> None:
+    """`omega` resolves with `galax.orbits` alone and pins the value."""
+    x = jnp.array([8.0, 0, 0])
+    v = jnp.array([0.0, 8, 0])
+    assert float(go.omega(x, v)) == 1.0

@@ -21,7 +21,12 @@ def test_constant_parameter_call_under_runtime_type_checking() -> None:
             import galax.potential as gp
         import unxt as u
         p = gp.params.ConstantParameter(value=u.Q(1.0, "Msun"))
-        assert hasattr(type(p).__call__, "__wrapped__")  # the hook wrapped galax
+        try:  # a bare float is not a time quantity, so only the hook rejects it
+            p(1.0)
+        except TypeError:
+            pass
+        else:
+            raise AssertionError("the hook did not check the call")
         assert isinstance(p(u.Q(0, "Gyr")), u.AbstractQuantity)
         assert float(p(u.Q(0, "Gyr"), ustrip=u.unit("Msun"))) == 1.0
     """)

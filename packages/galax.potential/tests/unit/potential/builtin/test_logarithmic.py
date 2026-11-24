@@ -1,5 +1,6 @@
 from typing import Any
 
+import numpy as np
 import pytest
 
 import quaxed.numpy as jnp
@@ -65,3 +66,29 @@ class TestLogarithmicPotential(
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
+
+
+# ==============================================================================
+# The module functions
+
+
+def test_module_closed_forms() -> None:
+    """`galax.potential.logarithmic` equals the closed forms at a few radii."""
+    pot = gp.LogarithmicPotential(
+        v_c=u.Q(220.0, "km/s"), r_s=u.Q(5.0, "kpc"), units="galactic"
+    )
+    p = pot.params(0.0)
+    v2, rs2, G = p["v_c"] ** 2, p["r_s"] ** 2, p["G"]
+
+    for r in (0.5, 5.0, 30.0):
+        np.testing.assert_allclose(
+            gp.logarithmic.mass_enclosed(p, r), v2 * r**3 / (G * (rs2 + r**2))
+        )
+        np.testing.assert_allclose(
+            gp.logarithmic.dpotential_dr(p, r), v2 * r / (rs2 + r**2)
+        )
+
+    # The circular speed tends to v_c far out.
+    r = 1e4 * p["r_s"]
+    vc = jnp.sqrt(r * gp.logarithmic.dpotential_dr(p, r))
+    np.testing.assert_allclose(vc, p["v_c"], rtol=1e-7)

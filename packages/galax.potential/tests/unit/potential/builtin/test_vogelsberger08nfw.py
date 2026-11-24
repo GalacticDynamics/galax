@@ -2,6 +2,7 @@
 
 from typing import Any, ClassVar
 
+import numpy as np
 import pytest
 from unxts.parametric import ParametricQuantity
 
@@ -113,3 +114,26 @@ class TestVogelsberger08TriaxialNFWPotential(
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
+
+
+# ==============================================================================
+# The module functions
+
+
+def test_density_is_laplacian_over_4piG() -> None:
+    """The class density equals the trace of its Hessian over ``4 pi G``."""
+    pot = gp.Vogelsberger08TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(8.0, "kpc"),
+        q1=1.1,
+        a_r=u.Q(1.5, ""),
+        units="galactic",
+    )
+    xyz = jnp.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [0.3, 0.2, 0.1]])
+    four_pi_G = 4 * np.pi * pot.params(0.0)["G"]
+
+    np.testing.assert_allclose(
+        pot.density(xyz, 0.0),
+        jnp.trace(pot.hessian(xyz, 0.0), axis1=-2, axis2=-1) / four_pi_G,
+        rtol=1e-12,
+    )

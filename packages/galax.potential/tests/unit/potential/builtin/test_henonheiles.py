@@ -2,6 +2,7 @@
 
 from typing import Any, ClassVar
 
+import numpy as np
 import pytest
 from unxts.parametric import ParametricQuantity
 
@@ -133,3 +134,36 @@ class TestHenonHeilesPotential(
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.Sz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
+
+
+# ==============================================================================
+# The module functions
+
+
+def test_module_closed_forms() -> None:
+    """`galax.potential.henonheiles` equals the derivatives written out by hand."""
+    hh = gp.henonheiles
+    lam, ts, G = 1.0, 1.5, 3.0
+    p = {"coeff": lam, "timescale": ts, "G": G}
+    x, y, z = 1.0, 2.0, 3.0
+    xyz = jnp.array([x, y, z])
+
+    phi = (0.5 * (x**2 + y**2) + lam * (x**2 * y - y**3 / 3)) / ts**2
+    np.testing.assert_allclose(hh.potential(p, xyz), phi)
+
+    grad = np.array([x + 2 * lam * x * y, y + lam * (x**2 - y**2), 0.0]) / ts**2
+    np.testing.assert_allclose(hh.gradient(p, xyz), grad)
+
+    hess = np.array(
+        [
+            [1 + 2 * lam * y, 2 * lam * x, 0.0],
+            [2 * lam * x, 1 - 2 * lam * y, 0.0],
+            [0.0, 0.0, 0.0],
+        ]
+    )
+    np.testing.assert_allclose(hh.hessian(p, xyz), hess / ts**2, atol=1e-15)
+
+    # The cubic terms are harmonic, so the Laplacian and the density are uniform.
+    np.testing.assert_allclose(hh.laplacian(p, xyz), 2 / ts**2)
+    np.testing.assert_allclose(hh.density(p, xyz), 2 / (4 * np.pi * G * ts**2))
+    assert hh.density(p, jnp.ones((4, 3))).shape == (4,)

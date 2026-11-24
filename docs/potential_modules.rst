@@ -162,11 +162,13 @@ Spherical
 ---------
 
 ``burkert``, ``gaussian``, ``gnfw``, ``hardcutoffnfw``, ``hernquist``,
-``isochrone``, ``jaffe``, ``kepler``, ``nfw``, ``plummer``,
-``powerlawcutoff``, ``stoneostriker15``, ``zhao``.
+``isochrone``, ``jaffe``, ``kepler``, ``logarithmic``, ``nfw``, ``null``,
+``plummer``, ``powerlawcutoff``, ``stoneostriker15``, ``zhao``.
 
 Non-spherical
 -------------
 
-``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``harmonicoscillator``, ``henonheiles``, ``kuzmin``, ``kuzminkutuzov``,
+``leesutotriaxialnfw``, ``lmj09logarithmic``, ``longmuralibar``,
+``miyamotonagai``, ``monarietal2016bar``, ``satoh``, ``triaxialhernquist``,
+``vogelsberger08triaxialnfw``.

@@ -128,7 +128,7 @@ class ConstantParameter(AbstractParameter, ArrayValue, quax_blocks.NumpyMathMixi
         *,
         ustrip: u.AbstractUnit | None = None,
         **__: Any,
-    ) -> gt.QuSzAny:
+    ) -> gt.QuSzAny | gt.SzAny:
         """Return the constant parameter value.
 
         Parameters

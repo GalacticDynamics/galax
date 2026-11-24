@@ -30,6 +30,14 @@ from galax.dynamics._src.experimental.fields import _CopiesField
 from galax.dynamics._src.experimental.simulator import _evolve
 from galax.dynamics._src.experimental.solve import progenitor_states, solve_on
 
+
+@pytest.fixture(autouse=True)
+def _clear_jax_caches():
+    """Drop compiled programs after each test: they add up to gigabytes here."""
+    yield
+    jax.clear_caches()
+
+
 gde = gd.experimental
 T1 = jnp.asarray(0.0)
 # Off the 30-step lattice over [-290.3, 0] (h ~ 9.68 Myr), except the first.

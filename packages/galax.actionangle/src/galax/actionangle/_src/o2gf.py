@@ -65,68 +65,10 @@ _THIN_BOX: Final = 3e-4
 class O2GFResult(eqx.Module):
     """Result of `o2gf_actions_angles_freqs`.
 
-    Every array has the batch shape of the orbits in front. ``aaf`` holds the
-    actions, angles and frequencies, and ``is_loop`` says which path each
-    orbit took. Loop orbits are in the aligned frame, ordered (R, φ, z);
-    ``aligned_axis`` is the axis that was swapped with z (2 when none was).
-    The swap is a reflection, so after one J_phi is -L_x or -L_y, as in
-    gala. Box orbits are ordered (x, y, z). The angles are those at
-    ``t = 0``, in ``[0, 2 pi)``. On an axis whose toy action is 0 along
-    the whole orbit (e.g. z for a planar orbit) the action is 0 and the angle
-    and frequency are NaN.
-
-    ``toy`` is the toy each orbit used, fitted or given. Its fields are bare
-    arrays in ``pot.units``, a unit system the code controls, and a ``toy``
-    passed in must be in ``pot.units`` too. When the family is
-    chosen per orbit (``family=None`` and no ``toy``), it is the pair
-    ``(IsochroneToy, OscillatorToy)`` and ``nvecs`` is the pair ``(loop_nvecs,
-    box_nvecs)``. ``sn`` holds the generating function S_n for each n-vector,
-    with the unit of ``aaf.actions`` when that carries units and bare
-    otherwise. ``dsn_dj`` is its derivative, dimensionless and always a bare
-    array. Both are flattened from shape (3, N). Box entries
-    are then zero-padded to the loop length, per block of ``dsn_dj``.
-
-    ``family_mismatch`` is True when the path that ran, fixed by ``family``
-    or by the type of ``toy``, is not the one the orbit's circulation picks
-    (in either direction). It is always False with ``family=None`` and no
-    ``toy``.
-
-    ``n_resonant`` counts the n-vectors whose angle ``n . theta`` is constant
-    along the orbit, e.g. ``(0, 2, -2)`` in a spherical potential: it spans
-    less than ``max(1e-6, 100 eps max|n . theta|)`` rad, while each toy angle
-    it involves spans at least 2 pi. They are left out of the fit, with
-    S_n = 0, and do not flag the orbit. ``n_bad_cover`` counts the other
-    n-vectors, except those that involve a rest axis, whose angle covers
-    less than 2 pi, or whose span divided by the number of kept (unmasked)
-    samples exceeds pi (the mean step, as in gala). All of them count when
-    some toy angle is predicted to step by more than pi / 2 between two kept
-    samples, e.g. across a gap in ``t`` or with samples out of time order,
-    since the angles then cannot be unwrapped. The step is predicted from
-    the faster of the toy frequency and the angle's mean rate along the
-    orbit, because a fitted toy's frequency can be several times too slow
-    (2 to 3.4 times for Omega_z on the disk loops tested). Those below the
-    resonance threshold are left out of the fit too.
-    ``n_nan`` counts the samples dropped for non-finite toy values. Samples
-    with a non-finite input are also left out of the classification and of
-    the toy fit.
-    ``fit_converged`` says whether the toy fit converged (True for a given
-    toy). ``toy_degenerate`` is True when a box orbit's oscillator toy has
-    collapsed: a fitted omega_i on an axis not at rest is below 0.02 of its
-    seed. This happens
-    on many triaxial box orbits, where the best variance fit wants a
-    negative omega_i^2 and the fit stops at omega_i = 0 with the solver
-    converged. The actions are then wrong by orders of magnitude, often
-    with coverage that passes. It is always False on the loop path.
-    ``thin_box`` is True when a box orbit is nearly planar or nearly linear:
-    the smallest mean toy action on an axis not at rest is below 3e-4 of the
-    sum. The fit then moves every action, J_z by up to the whole of it. It
-    is always False on the loop path. An orbit is ``flagged`` when
-    ``n_bad_cover > 0``, more than ``NAN_MAX = 1`` sample was dropped, the
-    fit did not converge, ``toy_degenerate`` is True, ``thin_box`` is True,
-    or ``family_mismatch`` is True. A flagged orbit keeps its values, so
-    check ``flagged`` before using them. When the toy fit is
-    ill-conditioned, the result for an orbit can change when the other
-    orbits in the batch change.
+    ``aaf`` holds the actions, angles and frequencies, and the other fields
+    hold the fitted toy, the generating function and the diagnostics. Check
+    ``flagged`` before using an orbit's values. See
+    `o2gf_actions_angles_freqs` for each field.
     """
 
     aaf: ActionsAnglesFrequencies

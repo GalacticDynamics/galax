@@ -118,36 +118,16 @@ def solve_o2gf(
     ``J_toy`` and ``theta_raw`` have shape (T, 3) and ``t`` is (T,). A sample
     with any non-finite entry gets weight 0. Before unwrapping, its angles are
     replaced by the previous good sample (the next one for leading samples), so
-    the unwrap sees no jump there.
+    the unwrap sees no jump there. ``rest`` (bool, shape (3,)) marks the axes
+    at rest, and ``coarse`` an orbit whose angles step too far to unwrap.
 
     Returns ``(J[3], S_n[N], theta0[3], Omega[3], dSn_dJ[3N], n_bad_cover,
-    n_nan, n_resonant)``. ``n_nan`` is the number of masked samples.
-
-    An n-vector is resonant when ``n . theta`` spans less than
-    ``max(1e-6, 100 eps max|n . theta|)`` rad over the orbit (1e-6 rad in
-    float64), and each toy angle with ``n_i != 0`` spans at least 2 pi on its
-    own, e.g. ``n = (0, 2, -2)`` in a spherical potential, where
-    ``Omega_phi = Omega_z``. Its column is then collinear with the action
-    columns, so it is left out of both solves, with S_n and dS_n/dJ set to 0,
-    and counted in ``n_resonant``. An n-vector below the threshold whose
-    angles do not each span 2 pi (a window too short to tell) is left out
-    too, but counted in ``n_bad_cover``. ``rest`` (bool, shape (3,)) marks
-    axes whose toy action is 0 along the whole orbit, e.g. z for a planar
-    orbit; the n-vectors with a nonzero component on such an axis are left
-    out too, and are not counted.
-
-    ``n_bad_cover`` counts the other n-vectors for which the span of
-    ``n . theta`` is under 2 pi (window too short) or the span per sample
-    exceeds pi (sampling too coarse), or all of them when ``coarse`` is True
-    (some step between samples is too long to unwrap). Those not below the
-    resonance threshold stay in the solves, as in gala.
-
-    Both systems are solved by minimum-norm least squares. On a regular system
-    this matches gala's ``scipy.linalg.solve``. Dropping the resonant modes
-    does not make every system regular: in a spherical potential the
-    ``cos(n . theta)`` of n-vectors that differ by a resonant vector are
-    still linearly dependent, and there the minimum norm picks the S_n, where
-    gala's solve is singular.
+    n_nan, n_resonant)``. ``n_nan`` is the number of masked samples. See
+    `o2gf_actions_angles_freqs` for the resonant, badly covered and rest-axis
+    n-vectors. Dropping the resonant modes does not make every system
+    regular: in a spherical potential the ``cos(n . theta)`` of n-vectors
+    that differ by a resonant vector are still linearly dependent, and there
+    the minimum norm picks the S_n, where gala's solve is singular.
     """
     # Mask non-finite samples: weight 0, zeroed J and t, angles filled before
     # unwrapping.

@@ -272,9 +272,9 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           ``t = 0``, in ``[0, 2 pi)``. Loop orbits are in the aligned frame
           and ordered (R, φ, z); box orbits are ordered (x, y, z). J_phi is
           signed.
-        - ``toy``: the toy each orbit used, fitted or given, in
-          ``pot.units``. These are bare arrays by design, and a ``toy``
-          passed in must be in ``pot.units`` too.
+        - ``toy``: the toy each orbit used, fitted or given. Its fields are
+          bare arrays in ``pot.units``, a unit system the code controls,
+          and a ``toy`` passed in must be in ``pot.units`` too.
         - ``is_loop``: whether the orbit took the loop path.
         - ``aligned_axis``: the axis (0, 1 or 2) that was swapped with z
           before the loop path, 2 when none was. To go back, swap axis 2
@@ -296,13 +296,22 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           between two kept samples, e.g. across a gap in ``t`` or with
           samples out of time order, since the angles then cannot be
           unwrapped. The step is predicted from the faster of the toy
-          frequency and the angle's mean rate along the orbit. It leaves out
-          the n-vectors that involve a rest axis and the resonant n-vectors.
+          frequency and the angle's mean rate along the orbit, because a
+          fitted toy's frequency can be several times too slow (2 to 3.4
+          times for Omega_z on the disk loops tested). It leaves out the
+          n-vectors that involve a rest axis and the resonant n-vectors. A
+          mode below the resonance threshold whose angles do not each span
+          2 pi is left out of the fit too, but counted here.
         - ``n_nan``: the number of samples dropped for non-finite toy
           values. Samples with a non-finite input are also left out of the
           classification and the toy fit.
-        - ``n_resonant``: the number of exactly resonant n-vectors left out
-          of the fit (see Notes).
+        - ``n_resonant``: the number of n-vectors whose angle ``n . theta``
+          is constant along the orbit (an exact resonance, e.g.
+          ``(0, 2, -2)`` when ``Omega_phi = Omega_z`` in a spherical
+          potential). Constant means a span below
+          ``max(1e-6, 100 eps max|n . theta|)`` rad while each toy angle it
+          involves spans at least 2 pi. They are left out of the fit, with
+          S_n = 0, and do not flag the orbit.
         - ``fit_converged``: whether the toy fit's solver converged (True
           for a given toy). It does not show that the toy is a good one. In
           float32 the fitted isochrone can be far from the best one on
@@ -311,12 +320,18 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           ``toy_degenerate``). Coverage does not catch every bad toy either.
         - ``toy_degenerate``: whether a box orbit's oscillator toy has
           collapsed. That is, a fitted omega_i on an axis not at rest is
-          below 0.02 of its seed. On many triaxial box orbits the fit drives one omega_i
-          to about 0, and the actions on that axis come out wrong by orders
-          of magnitude. Always False on the loop path.
-        - ``thin_box``: whether a box orbit is thin, that is, the smallest
-          mean toy action on an axis not at rest is below 3e-4 of the sum
-          (see Notes). Always False on the loop path.
+          below 0.02 of its seed. On many triaxial box orbits the best
+          variance fit wants a negative omega_i^2, and the fit stops at
+          omega_i = 0 with the solver converged. The actions then come out
+          wrong by orders of magnitude, often with coverage that passes.
+          Always False on the loop path.
+        - ``thin_box``: whether a box orbit is nearly planar or nearly
+          linear, that is, the smallest mean toy action on an axis not at
+          rest is below 3e-4 of the sum. The fit modes that involve J_z
+          then absorb the in-plane fit error, which moves every action, J_z
+          by up to the whole of it. The flag also catches thin
+          boxes whose actions are right. A planar orbit, with J_z at rest,
+          is not affected. Always False on the loop path.
         - ``family_mismatch``: whether the path forced by ``family`` or by
           the type of ``toy`` disagrees with the orbit's classification, in
           either direction. Always False with ``family=None`` and no ``toy``.
@@ -326,20 +341,8 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     Notes
     -----
-    An orbit is ``flagged`` when its angles cover the n-vectors badly (the
-    orbit is too short or too coarsely sampled), when more than one sample
-    has non-finite toy values, when the toy fit did not converge, when a box
-    orbit's oscillator toy has collapsed, when a box orbit is thin, or when
-    a forced family does not match the orbit. A
-    flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
+    A flagged orbit keeps its values, so check ``flagged``. Enable 64-bit
     floats (``jax_enable_x64``) for precision.
-
-    Thin box orbits are flagged. On a nearly planar box the fit modes that
-    involve J_z absorb the in-plane fit error, which can move all three
-    actions and J_z most of all. A box is flagged as thin when its smallest
-    mean toy action on an axis not at rest is below 3e-4 of the sum. The
-    flag also catches thin boxes whose actions are right. A planar orbit,
-    with J_z at rest, is not affected by this.
 
     Accuracy varies by potential and orbit, and ``flagged`` does not catch
     every inaccurate orbit. Orbits known to come out wrong without a flag
@@ -361,18 +364,11 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     the same batch always gives the same result.
 
     In a spherical or nearly spherical potential, numerical noise in the
-    samples, e.g. from a loosely integrated orbit, can keep a resonant mode just
-    above the cutoff below. The orbit then stays flagged however long it is
-    or however low ``n_max`` is (short of ``n_max=2``), and integrating the
-    orbit more precisely removes the flag.
+    samples, e.g. from a loosely integrated orbit, can keep a resonant mode
+    just above the resonance cutoff (see ``n_resonant``). The orbit then
+    stays flagged however long it is or however low ``n_max`` is (short of
+    ``n_max=2``), and integrating the orbit more precisely removes the flag.
 
-    An n-vector whose angle ``n . theta`` is constant along the orbit (an
-    exact resonance, such as ``Omega_phi = Omega_z`` in a spherical
-    potential) is left out of the fit and counted in ``n_resonant``, which
-    does not flag the orbit. Constant means a span below
-    ``max(1e-6, 100 eps max|n . theta|)`` rad while each toy angle it
-    involves spans at least 2 pi. A mode below that threshold whose angles
-    do not each span 2 pi is left out too, but counted in ``n_bad_cover``.
     Both linear systems are solved by minimum-norm least squares, which
     agrees with gala on a regular system and picks the smallest S_n where
     the system is singular.

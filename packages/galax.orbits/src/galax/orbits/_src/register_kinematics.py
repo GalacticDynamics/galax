@@ -1,8 +1,8 @@
-"""Dispatches of `omega` and `specific_angular_momentum`."""
+"""Dispatches of `angular_speed` and `specific_angular_momentum`."""
 
 __all__ = [
     "specific_angular_momentum",
-    "omega",
+    "angular_speed",
 ]
 
 
@@ -71,7 +71,7 @@ def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject, /) -> cx.vecs.Cart
 
 
 # ===================================================================
-# omega
+# angular_speed
 
 
 @dispatch.multi(
@@ -79,7 +79,7 @@ def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject, /) -> cx.vecs.Cart
     (gt.BBtQuSz3, gt.BBtQuSz3),
 )
 @jax.jit
-def omega(
+def angular_speed(
     x: gt.BBtSz3 | gt.BBtQuSz3, v: gt.BBtSz3 | gt.BBtQuSz3, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
     """Compute from `unxt.Quantity`s as Cartesian coordinates."""
@@ -90,30 +90,30 @@ def omega(
 
 @dispatch
 @jax.jit
-def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
+def angular_speed(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
     """Compute from `coordinax.vecs.AbstractVector`s."""
     # TODO: more directly using the vectors
     v = convert(cx.vconvert(cx.CartesianVel3D, v, x), Quantity)
     x = convert(cx.vconvert(cx.CartesianPos3D, x), Quantity)
-    return api.omega(x, v)
+    return api.angular_speed(x, v)
 
 
 @dispatch
 @jax.jit
-def omega(w: cx.KinematicSpace, /) -> gt.BBtQuSz0:
+def angular_speed(w: cx.KinematicSpace, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.KinematicSpace`."""
-    return api.omega(w["length"], w["speed"])
+    return api.angular_speed(w["length"], w["speed"])
 
 
 @dispatch
 @jax.jit
-def omega(w: cx.frames.AbstractCoordinate, /) -> gt.BBtQuSz0:
+def angular_speed(w: cx.frames.AbstractCoordinate, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.frames.AbstractCoordinate`."""
-    return api.omega(w.data)
+    return api.angular_speed(w.data)
 
 
 @dispatch
 @jax.jit
-def omega(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtQuSz0:
+def angular_speed(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtQuSz0:
     """Compute from a `galax.coordinates.AbstractPhaseSpaceObject`."""
-    return api.omega(w.q, w.p)
+    return api.angular_speed(w.q, w.p)

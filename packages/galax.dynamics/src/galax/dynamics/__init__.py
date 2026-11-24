@@ -36,13 +36,17 @@ __all__ = [
     "specific_angular_momentum",
     "lagrange_points",
     "tidal_radius",
-    "omega",
+    "angular_speed",
     "parse_time_specification",
     # ========================
     # Diffraxtra compat
     "DiffEqSolver",
 ]
 
+
+import warnings
+
+from typing import Any
 
 from diffraxtra import DiffEqSolver
 
@@ -61,7 +65,7 @@ from .mockstream import (
 from .orbit import AbstractSolver, Orbit, OrbitSolver, compute_orbit
 from .setup_package import load_interop_plugins
 from galax.fields import SolveState, integrate_field, parse_time_specification
-from galax.orbits import omega, specific_angular_momentum
+from galax.orbits import angular_speed, specific_angular_momentum
 
 # isort: split
 from ._src import experimental  # noqa: F401
@@ -72,3 +76,16 @@ from ._src import experimental  # noqa: F401
 load_interop_plugins("galax.dynamics.interop")
 
 del load_interop_plugins
+
+
+def __getattr__(name: str) -> Any:
+    """Serve the deprecated ``omega`` alias of `angular_speed`."""
+    if name == "omega":
+        warnings.warn(
+            "`omega` is deprecated; use `angular_speed`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return angular_speed
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)

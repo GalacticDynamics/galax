@@ -39,7 +39,7 @@ def test_all() -> None:
         "specific_angular_momentum",
         "lagrange_points",
         "tidal_radius",
-        "omega",
+        "angular_speed",
         "parse_time_specification",
         # Diffraxtra compat
         "DiffEqSolver",

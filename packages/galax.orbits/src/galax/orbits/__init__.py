@@ -7,18 +7,22 @@ __all__ = [
     "Orbit",
     "OrbitSolver",
     "PhaseSpaceInterpolation",
+    "angular_speed",
     "circulation",
     "compute_orbit",
-    "omega",
     "specific_angular_momentum",
 ]
+
+import warnings
+
+from typing import Any
 
 from ._src.api import circulation, compute_orbit
 from ._src.base import AbstractOrbit
 from ._src.field_base import AbstractOrbitField
 from ._src.field_hamiltonian import HamiltonianField
 from ._src.interp import PhaseSpaceInterpolation
-from ._src.kinematics import omega, specific_angular_momentum
+from ._src.kinematics import angular_speed, specific_angular_momentum
 from ._src.orbit import Orbit
 from ._src.solver import OrbitSolver
 
@@ -38,6 +42,20 @@ from ._src.plot_helper import ProxyAbstractOrbit
 from . import experimental  # noqa: F401
 
 ProxyAbstractOrbit.deliver(AbstractOrbit)
+
+
+def __getattr__(name: str) -> Any:
+    """Serve the deprecated ``omega`` alias of `angular_speed`."""
+    if name == "omega":
+        warnings.warn(
+            "`omega` is deprecated; use `angular_speed`.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return angular_speed
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
+
 
 # Cleanup
 del ProxyAbstractOrbit

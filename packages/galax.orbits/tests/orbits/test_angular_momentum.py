@@ -1,4 +1,4 @@
-"""`galax.orbits.specific_angular_momentum` and `galax.orbits.omega`.
+"""`galax.orbits.specific_angular_momentum` and `galax.orbits.angular_speed`.
 
 `specific_angular_momentum` takes any
 `galax.coordinates.AbstractPhaseSpaceObject` and lives in `galax.orbits`, so it
@@ -62,8 +62,16 @@ def test_planar_motion_gives_purely_z(w) -> None:
     assert jnp.all(h.z > zero)
 
 
-def test_omega_value() -> None:
-    """`omega` resolves with `galax.orbits` alone and pins the value."""
+def test_angular_speed_value() -> None:
+    """`angular_speed` resolves with `galax.orbits` alone and pins the value."""
     x = jnp.array([8.0, 0, 0])
     v = jnp.array([0.0, 8, 0])
-    assert float(go.omega(x, v)) == 1.0
+    assert float(go.angular_speed(x, v)) == 1.0
+
+
+def test_omega_is_deprecated_alias() -> None:
+    """`omega` still works but warns."""
+    with pytest.warns(DeprecationWarning, match="use `angular_speed`"):
+        assert go.omega is go.angular_speed
+    with pytest.raises(AttributeError):
+        _ = go.not_a_name

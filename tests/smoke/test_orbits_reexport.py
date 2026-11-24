@@ -1,5 +1,7 @@
 """galax.dynamics re-exports the objects that live in galax.orbits."""
 
+import pytest
+
 import galax.dynamics as gd
 import galax.orbits as go
 
@@ -61,7 +63,9 @@ def test_kinematics_identity():
     import galax.dynamics._src.api as gda
     import galax.orbits as go
 
-    assert gd.omega is go.omega is gda.omega
+    assert gd.angular_speed is go.angular_speed is gda.angular_speed
+    with pytest.warns(DeprecationWarning, match="use `angular_speed`"):
+        assert gd.omega is go.angular_speed
     assert gd.specific_angular_momentum is go.specific_angular_momentum
     assert gda.specific_angular_momentum is go.specific_angular_momentum
 

@@ -20,7 +20,9 @@ from galax.potential._src.harmonic import (
 )
 from galax.potential._src.utils import safe_vector_norm
 
-_G_GALACTIC = float(default_constants["G"].decompose(u.unitsystem("galactic")).value)
+_G_GALACTIC = float(
+    u.Q.from_(default_constants["G"]).decompose(u.unitsystem("galactic")).value
+)
 
 
 def _hernquist_density(xyz, t):

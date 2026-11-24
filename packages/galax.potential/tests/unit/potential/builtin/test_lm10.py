@@ -23,7 +23,12 @@ class TestLM10Potential(AbstractSpecialCompositePotential_Test):
         self, pot_cls: type[gp.LM10Potential]
     ) -> dict[str, dict[str, gp.AbstractPotential]]:
         """Composite potential."""
-        return {"disk": pot_cls.disk, "bulge": pot_cls.bulge, "halo": pot_cls.halo}
+        defaults = pot_cls()  # built lazily, so not on the class
+        return {
+            "disk": defaults["disk"],
+            "bulge": defaults["bulge"],
+            "halo": defaults["halo"],
+        }
 
     # ==========================================================================
 

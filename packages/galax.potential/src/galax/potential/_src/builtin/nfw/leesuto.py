@@ -3,6 +3,7 @@
 __all__ = ["LeeSutoTriaxialNFWPotential"]
 
 import functools as ft
+import math
 from dataclasses import KW_ONLY
 
 from collections.abc import Callable
@@ -25,7 +26,7 @@ from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import safe_vector_norm, with_r_derivative
 
-LOG2: Final = jnp.log(jnp.asarray(2.0))
+LOG2: Final = math.log(2.0)
 
 
 @final
@@ -73,17 +74,17 @@ class LeeSutoTriaxialNFWPotential(AbstractSinglePotential):
     r_s: AbstractParameter = ParameterField(dimensions="length", doc="Scale radius.")  # type: ignore[assignment]
 
     a1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Q(1.0, ""), doc="Major axis."
+        dimensions="dimensionless", default=u.StaticQuantity(1.0, ""), doc="Major axis."
     )
 
     a2: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         doc="Intermediate axis.",
     )
 
     a3: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless", default=u.Q(1.0, ""), doc="Minor axis."
+        dimensions="dimensionless", default=u.StaticQuantity(1.0, ""), doc="Minor axis."
     )
 
     _: KW_ONLY

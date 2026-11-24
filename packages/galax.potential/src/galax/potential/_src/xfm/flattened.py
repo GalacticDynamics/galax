@@ -69,7 +69,7 @@ class FlattenedInThePotential(AbstractTransformedPotential):
     base_potential: AbstractPotential
 
     q_z: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1, ""),
+        default=u.StaticQuantity(1, ""),
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x- or y-axis (or cylindrical radius)",
     )

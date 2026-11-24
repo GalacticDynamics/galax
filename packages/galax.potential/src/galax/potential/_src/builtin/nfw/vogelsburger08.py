@@ -35,7 +35,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         doc="""y/x axis ratio.
 
     The z/x axis ratio is defined as :math:`q_2^2 = 3 - q_1^2`
@@ -44,7 +44,7 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
     a_r: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="dimensionless",
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         doc="""Transition radius relative to :math:`r_s`.
 
     :math:`r_a = a_r r_s  is a transition scale where the potential shape

@@ -9,6 +9,7 @@ pytest session has already imported everything.
 """
 
 import ast
+import os
 import pathlib
 import subprocess
 import sys
@@ -17,13 +18,16 @@ import textwrap
 import pytest
 
 
-def run(code: str) -> subprocess.CompletedProcess[str]:
-    """Run `code` in a fresh interpreter."""
+def run(
+    code: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run `code` in a fresh interpreter, with `env` (default: this one's)."""
     return subprocess.run(  # noqa: S603
         [sys.executable, "-c", textwrap.dedent(code)],
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
 
 
@@ -157,6 +161,73 @@ def test_jit_then_late_potential_import() -> None:
     """)
     assert proc.returncode == 0, proc.stderr
     assert "UnexpectedTracerError" not in proc.stderr
+
+
+def test_x64_enabled_after_import() -> None:
+    """Turning on x64 after importing galax still gives float64 values.
+
+    Regression: ``G`` (and other constants and defaults) were built as JAX
+    arrays when galax was imported, so importing galax before
+    ``jax_enable_x64`` was turned on left them float32 for the whole process.
+    ``G`` was then 4.4985023e-12 instead of 4.49850215e-12 kpc3 / (Msun Myr2).
+    This checks ``G`` in a potential, in each default component of
+    `galax.potential.MilkyWayPotential` (whose float32 and traced builds come
+    first) and in `galax.nbody.NBodyField`, and some parameter defaults.
+
+    pytest sets ``JAX_ENABLE_X64`` for the whole session, so the subprocess
+    runs with it removed: x64 is off at import, as in a plain script.
+    """
+    env = {k: v for k, v in os.environ.items() if k != "JAX_ENABLE_X64"}
+    proc = run(
+        """
+        import jax
+        import unxt as u
+
+        import galax.nbody as gn
+        import galax.potential as gp
+
+        assert not jax.config.jax_enable_x64
+        gp.MilkyWayPotential()  # caches the float32 default components
+        jax.config.update("jax_enable_x64", True)
+        # The first float64 build of the default components happens in a trace.
+        jax.jit(lambda: gp.MilkyWayPotential()["disk"].constants["G"].value)()
+
+        unit = "kpc3 / (solMass Myr2)"
+        G = u.Q(4.498502151469554e-12, unit)  # astropy CODATA 2018
+
+        def check(name, g):
+            g = u.uconvert(unit, g)
+            assert g.value.dtype == "float64", (name, g.value.dtype)
+            assert abs(g.value / G.value - 1) < 1e-14, (name, g.value.item())
+
+        check("NFW", gp.NFWPotential(m=1e12, r_s=20, units="galactic").constants["G"])
+        for k, pot in gp.MilkyWayPotential().items():
+            assert "Tracer" not in type(pot.constants["G"].value).__name__, k
+            check(f"MilkyWayPotential.{k}", pot.constants["G"])
+        field = gn.NBodyField(u.Q([1.0], "Msun"), eps=u.Q(0.1, "kpc"))
+        check("NBodyField", u.Q(field._G, unit))
+
+        # Parameter defaults are built per instance too, and stay weakly typed.
+        bar = gp.MonariEtAl2016BarPotential(
+            R0=u.Q(8.0, "kpc"), v0=u.Q(220.0, "km/s"), units="galactic"
+        )
+        tri = gp.TriaxialHernquistPotential(
+            m_tot=u.Q(1e10, "Msun"), r_s=u.Q(1.0, "kpc"), units="galactic"
+        )
+        for pot, name, expect in [
+            (bar, "alpha", 0.01),
+            (bar, "Omega", 52.2),
+            (bar, "Rb", 3.5),
+            (tri, "q1", 1.0),
+        ]:
+            q = getattr(pot, name).value
+            assert q.value.dtype == "float64", (name, q.value.dtype)
+            assert q.value.weak_type, name
+            assert q.value.item() == expect, (name, q.value.item())
+        """,
+        env=env,
+    )
+    assert proc.returncode == 0, proc.stderr
 
 
 def test_no_deferred_upward_imports() -> None:

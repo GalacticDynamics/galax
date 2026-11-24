@@ -71,13 +71,13 @@ class TriaxialInThePotential(AbstractTransformedPotential):
     base_potential: AbstractPotential
 
     y_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1, ""),
+        default=u.StaticQuantity(1, ""),
         dimensions="dimensionless",
         doc="ratio of the y-axis to the x-axis",
     )
 
     z_over_x: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1, ""),
+        default=u.StaticQuantity(1, ""),
         dimensions="dimensionless",
         doc="ratio of the z-axis to the x-axis",
     )

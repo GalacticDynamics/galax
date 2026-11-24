@@ -138,13 +138,13 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
 
     # TODO: move to a triaxial wrapper
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the y direction divided by ``c``.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
         doc="Scale length in the z direction divided by ``c``.",
     )

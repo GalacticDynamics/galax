@@ -20,6 +20,7 @@ from typing import (
     override,
 )
 
+import numpy as np
 from astropy.units import PhysicalType as Dimension, Quantity as AstropyQuantity
 
 import unxt as u
@@ -123,11 +124,17 @@ class ParameterField:
     """The name of the parameter."""
 
     _: KW_ONLY
-    default: AbstractParameter | Literal[Sentinel.MISSING] = field(
+    default: AbstractParameter | u.StaticQuantity | Literal[Sentinel.MISSING] = field(
         default=Sentinel.MISSING,
-        converter=Unless(Sentinel, converter=converter_parameter),
+        converter=Unless((Sentinel, u.StaticQuantity), converter=converter_parameter),
     )
-    """The default value of the parameter."""
+    """The default value of the parameter.
+
+    A `unxt.StaticQuantity` is kept as is and becomes a
+    `galax.potential.params.ConstantParameter` when each potential is
+    constructed. Its value is then a JAX array at the precision in effect at
+    that time, rather than the one in effect when the class was defined.
+    """
 
     dimensions: Dimension = field(converter=u.dimension)
     """The dimensions (unit-wise) of the parameter."""
@@ -211,6 +218,10 @@ class ParameterField:
         # Convert
         if isinstance(value, AbstractParameter):
             v = value
+        elif value is self.default and isinstance(value, u.StaticQuantity):
+            # A default kept out of JAX (see `default`). A scalar one becomes a
+            # Python float or int here, so it is weakly typed, as `u.Q(0.01, "")` was.
+            v = ConstantParameter(u.Q(np.asarray(value.value).tolist(), value.unit))
         elif callable(value):
             dims = _get_dimensions_from_return_annotation(value)
             self._check_dimensions(potential, dims)  # Check the unit is compatible

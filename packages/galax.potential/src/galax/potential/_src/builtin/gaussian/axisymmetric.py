@@ -76,7 +76,7 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.Q(1.0, ""),
+        default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
         doc="Axis ratio z/R. q2 < 1 is oblate, q2 > 1 is prolate.",
     )

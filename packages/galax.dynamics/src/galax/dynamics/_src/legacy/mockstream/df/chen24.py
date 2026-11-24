@@ -10,6 +10,7 @@ from typing import final
 
 import jax
 import jax.random as jr
+import numpy as np
 
 import coordinax as cx
 import quaxed.numpy as jnp
@@ -23,9 +24,9 @@ from galax.orbits import specific_angular_momentum
 # ============================================================
 # Constants
 
-mean = jnp.array([1.6, -30, 0, 1, 20, 0])
+mean = np.array([1.6, -30, 0, 1, 20, 0])
 
-cov = jnp.array(
+cov = np.array(
     [
         [0.1225, 0, 0, 0, -4.9, 0],
         [0, 529, 0, 0, 0, 0],

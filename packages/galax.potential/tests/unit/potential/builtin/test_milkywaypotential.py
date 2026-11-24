@@ -24,11 +24,12 @@ class TestMilkyWayPotential(AbstractSpecialCompositePotential_Test):
         self, pot_cls: type[gp.MilkyWayPotential]
     ) -> dict[str, dict[str, u.Quantity]]:
         """Composite potential."""
+        defaults = pot_cls()  # built lazily, so not on the class
         return {
-            "disk": pot_cls.disk,
-            "halo": pot_cls.halo,
-            "bulge": pot_cls.bulge,
-            "nucleus": pot_cls.nucleus,
+            "disk": defaults["disk"],
+            "halo": defaults["halo"],
+            "bulge": defaults["bulge"],
+            "nucleus": defaults["nucleus"],
         }
 
     @pytest.fixture(scope="class")

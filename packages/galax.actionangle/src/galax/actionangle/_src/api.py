@@ -336,7 +336,7 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
 
     Thin box orbits are flagged. On a nearly planar box the fit modes that
     involve J_z absorb the in-plane fit error, which can move the in-plane
-    actions by a few percent and J_z by up to the whole of it. A box is
+    actions by up to about 10 percent and J_z by up to the whole of it. A box is
     flagged as thin when its smallest mean toy action on an axis not at
     rest is below 3e-4 of the sum. In tests on triaxial NFW, triaxial
     Hernquist and LMJ09 boxes, the near-planar boxes with bad actions were
@@ -382,13 +382,13 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     Sample about 40 periods of the orbit's slowest frequency. In random
     samples of disk orbits in `galax.potential.MilkyWayPotential2022` at
     ``n_max=8``, with 2000 samples, most orbits were flagged at 10 periods
-    and about a third were still flagged at 40. More samples per period did
-    not help. In those orbits some ``n . Omega`` is so close to 0 that its
-    angle still covers less than 2 pi. For an orbit still flagged at 40
-    periods, first try a lower ``n_max``: in tests, most of them were
-    unflagged at ``n_max=6`` or ``n_max=4``, and their actions changed
-    little from those at ``n_max=8``. A longer orbit helped less. If neither
-    works, treat the result as unreliable.
+    and a third to a half were still flagged at 40. More samples per period
+    unflagged only a few of them. In those orbits some ``n . Omega`` is so
+    close to 0 that its angle still covers less than 2 pi. For an orbit
+    still flagged at 40 periods, first try a lower ``n_max``: in tests, most
+    of them were unflagged at ``n_max=6`` or ``n_max=4``, and their actions
+    changed little from those at ``n_max=8``. A longer orbit helped less. If
+    neither works, treat the result as unreliable.
 
     Orbits near a low-order resonance can be wrong without being flagged.
     Near the 3:2 resonance of Omega_z and Omega_r, J_z came out 10 percent

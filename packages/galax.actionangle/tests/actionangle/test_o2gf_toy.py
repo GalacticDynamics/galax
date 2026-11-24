@@ -22,6 +22,7 @@ from galax.actionangle._src._o2gf_toy import (
     toy_aaf,
 )
 from galax.actionangle._src._parse import parse_w
+from galax.actionangle._src._utils import finite_rows
 
 ISO = gp.IsochronePotential(
     m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
@@ -58,7 +59,7 @@ def _iso_orbit(x0=8.0):
 
 def test_fit_isochrone_recovers():
     q, p, t = _iso_orbit()
-    toy, ok = fit_isochrone(ISO, q, p, t)
+    toy, ok = fit_isochrone(ISO, q, p, t, finite_rows(q, p, t))
     assert bool(ok)
     np.testing.assert_allclose(toy.m, 1e11, rtol=1e-6)
     np.testing.assert_allclose(toy.b, 2.0, rtol=1e-6)
@@ -66,7 +67,7 @@ def test_fit_isochrone_recovers():
 
 def test_fit_oscillator_recovers():
     q, p, t = _orbit(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 200)
-    toy, ok = fit_oscillator(q, p, t)
+    toy, ok = fit_oscillator(q, p, t, finite_rows(q, p, t))
     assert bool(ok)
     np.testing.assert_allclose(toy.omega, HO_OMEGA, rtol=1e-8)
 
@@ -77,7 +78,7 @@ def test_fit_grad_fd():
 
     @jax.jit
     def b_fit(x0):
-        return fit_isochrone(ISO, q.at[0, 0].set(x0), p, t)[0].b
+        return fit_isochrone(ISO, q.at[0, 0].set(x0), p, t, finite_rows(q, p, t))[0].b
 
     x0 = q[0, 0]
     g = jax.grad(b_fit)(x0)
@@ -108,7 +109,7 @@ def _grad_vs_fd(q, p, t, h=1e-4):
 
     @jax.jit
     def fit(x0):
-        toy, ok = fit_isochrone(ISO, q.at[0, 0].set(x0), p, t)
+        toy, ok = fit_isochrone(ISO, q.at[0, 0].set(x0), p, t, finite_rows(q, p, t))
         return toy.b, ok
 
     x0 = q[0, 0]
@@ -146,10 +147,10 @@ def test_fit_not_converged_flag():
     # is NaN, so the solver cannot succeed.
     rng = np.random.default_rng(0)
     q, p, t = rng.normal(size=(50, 3)), rng.normal(size=(50, 3)), np.arange(50.0)
-    _, ok = fit_oscillator(q, p, t)
+    _, ok = fit_oscillator(q, p, t, finite_rows(q, p, t))
     assert bool(ok)
     q[:, 0] = np.nan
-    _, ok = fit_oscillator(q, p, t)
+    _, ok = fit_oscillator(q, p, t, finite_rows(q, p, t))
     assert not bool(ok)
 
 
@@ -162,7 +163,7 @@ def test_fit_out_of_steps(monkeypatch):
     # A new function, so jit traces it again instead of reusing a cached trace.
     @jax.jit
     def fit(q, p, t):
-        return fit_oscillator.__wrapped__(q, p, t)
+        return fit_oscillator.__wrapped__(q, p, t, finite_rows(q, p, t))
 
     ref = np.load(pathlib.Path(__file__).parent / "data" / "o2gf_gala_refs.npz")
     q, p, t = (ref[f"mw2022_loop__{k}"] for k in ("q", "p", "t"))
@@ -183,6 +184,10 @@ def test_oscillator_axis_at_rest_grad_finite():
     q, p, t = _orbit(HO, [1.0, 0.5, 0.0], [0.1, -0.2, 0.0], 30.0, 200)
     q, p, t = jnp.asarray(q), jnp.asarray(p), jnp.asarray(t)
     g = jax.jit(
-        jax.grad(lambda x: fit_oscillator(q.at[0, 0].set(x), p, t)[0].omega[0])
+        jax.grad(
+            lambda x: fit_oscillator(q.at[0, 0].set(x), p, t, finite_rows(q, p, t))[
+                0
+            ].omega[0]
+        )
     )(1.0)
     assert np.isfinite(g)

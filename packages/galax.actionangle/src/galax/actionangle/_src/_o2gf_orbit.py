@@ -8,6 +8,8 @@ from typing import Final
 import jax.numpy as jnp
 import numpy as np
 
+from ._utils import finite_rows
+
 _FLOOR: Final = 1e-13
 _FLOOR_EPS: Final = 64
 
@@ -17,19 +19,16 @@ _FLOOR_EPS: Final = 64
 # Unifying them would be nicer, but galax.actionangle does not depend on
 # galax.orbits, which keeps galax.orbits free to use action-angles later, and
 # galax.coordinates has no notion of circulation to share it from.
-def circulating_axes(
-    q: Array, p: Array, ok: Bool[Array, " T"] | None = None
-) -> Bool[Array, "3"]:
+def circulating_axes(q: Array, p: Array, ok: Bool[Array, " T"]) -> Bool[Array, "3"]:
     """Return which axes the orbit circulates about, from its kept samples.
 
     ``q`` and ``p`` have shape ``(T, 3)``. Axis ``i`` circulates when ``L_i``
     keeps one sign at every kept sample and stays at or above
-    ``max(1e-13, 64 eps) |q| |p|``. ``ok`` marks the kept samples; by default
-    they are those where ``q`` and ``p`` are finite. An orbit with no kept
+    ``max(1e-13, 64 eps) |q| |p|``. ``ok`` marks the kept samples, of which
+    those with a non-finite ``q`` or ``p`` are dropped too. An orbit with no kept
     samples circulates about no axis.
     """
-    finite = jnp.isfinite(q).all(axis=1) & jnp.isfinite(p).all(axis=1)
-    ok = finite if ok is None else ok & finite
+    ok = ok & finite_rows(q, p)
     # Divide each sample by a power of 2, which is exact, so |L|^2 cannot
     # overflow and the signs of L do not change.
     q = jnp.ldexp(q, -jnp.frexp(jnp.max(jnp.abs(q), axis=1, keepdims=True))[1])
@@ -55,9 +54,5 @@ def align_circulation_with_z(
     Otherwise ``axis`` is the first circulating axis among x and y, preferring x.
     """
     axis = jnp.where(circ[2] | ~(circ[0] | circ[1]), 2, jnp.where(circ[0], 0, 1))
-    perm = jnp.where(
-        axis == 0,
-        jnp.array([2, 1, 0]),
-        jnp.where(axis == 1, jnp.array([0, 2, 1]), jnp.array([0, 1, 2])),
-    )
+    perm = jnp.array([[2, 1, 0], [0, 2, 1], [0, 1, 2]])[axis]
     return q[:, perm], p[:, perm], axis

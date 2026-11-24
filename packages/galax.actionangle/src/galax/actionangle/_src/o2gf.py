@@ -7,7 +7,7 @@ true actions, angles and frequencies then come from two linear solves over the
 samples of the orbit (`solve_o2gf`).
 """
 
-__all__ = ["NAN_MAX", "O2GFResult"]
+__all__ = ["O2GFResult"]
 
 import functools as ft
 import warnings
@@ -38,7 +38,7 @@ from ._o2gf_toy import (
     toy_aaf,
 )
 from ._parse import parse_qpt, parse_w, wrap_result
-from ._utils import G_in_units, fill_masked, mod_2pi, safe_div
+from ._utils import G_in_units, fill_masked, finite_rows, mod_2pi, safe_div
 from .result import ActionsAnglesFrequencies
 
 # An orbit with more masked (non-finite) toy samples than this is flagged. gala
@@ -60,7 +60,6 @@ _COLLAPSE: Final = 0.02
 # smallest unflagged random 3-D box was at 1.6e-3, and a good LMJ09 box with a
 # thin in-plane axis at 6.4e-4. None of 79 random 3-D boxes fell below it.
 _THIN_BOX: Final = 3e-4
-_FAMILIES: Final = (None, "loop", "box")
 
 
 class O2GFResult(eqx.Module):
@@ -148,32 +147,23 @@ class O2GFResult(eqx.Module):
 
 
 class _Out(NamedTuple):
-    """Per-orbit output of one path."""
+    """Per-orbit output of one path, named as in `O2GFResult`."""
 
     toy: Any
-    ok: Array
-    axis: Array
+    fit_converged: Array
+    aligned_axis: Array
     J: Array
     th0: Array
     Om: Array
     sn: Array
-    dsn: Array
-    n_bad: Array
+    dsn_dj: Array
+    n_bad_cover: Array
     n_nan: Array
-    n_res: Array
-    loop: Array
-    degenerate: Array
-    thin: Array
-    mismatch: Any = None
-
-
-def _finite(q: Array, p: Array, t: Array) -> Array:
-    """Mark the samples with finite ``q``, ``p`` and ``t``.
-
-    The fits and the classification keep these. A non-finite input sample
-    gives non-finite toy values, so the solves drop it too.
-    """
-    return jnp.isfinite(q).all(axis=1) & jnp.isfinite(p).all(axis=1) & jnp.isfinite(t)
+    n_resonant: Array
+    is_loop: Array
+    toy_degenerate: Array
+    thin_box: Array
+    family_mismatch: Any = None
 
 
 def _path(
@@ -183,15 +173,23 @@ def _path(
     q: Array,
     p: Array,
     t: Array,
+    keep: Array,
+    circ: Array,
     toy: Any,
     nvecs: np.ndarray,
 ) -> _Out:
-    """Run the loop or the box path on one orbit."""
-    keep = _finite(q, p, t)
+    """Run the loop or the box path on one orbit.
+
+    ``keep`` marks the samples with finite ``q``, ``p`` and ``t``, which the
+    fits and the classification use, and ``circ`` the circulating axes.
+    """
     if loop:
-        q, p, axis = align_circulation_with_z(q, p, circulating_axes(q, p, keep))
+        q, p, axis = align_circulation_with_z(q, p, circ)
     else:
         axis = jnp.asarray(2)
+    # Masked samples take the values of a kept sample, so their NaN does not
+    # reach the toy map or the gradient. The fits fill them on their own.
+    qm, pm, tm = (fill_masked(x, keep) for x in (q, p, t))
     fitted = toy is None
     if fitted:
         # Fit in the default float: optimistix's Levenberg-Marquardt mixes in
@@ -206,11 +204,11 @@ def _path(
         toy = jax.tree.map(lambda x: x.astype(q.dtype), toy)
     else:
         ok = jnp.asarray(True)  # noqa: FBT003
-    # Map the masked samples through the toy at a kept sample, so their NaN
-    # does not reach the gradient, then mark them NaN for the solve to drop.
-    J, theta, Om_toy = toy_aaf(toy, G, fill_masked(q, keep), fill_masked(p, keep))
+    # Map the masked samples through the toy at a kept sample, then mark them
+    # NaN for the solve to drop.
+    J, th, Om_toy = toy_aaf(toy, G, qm, pm)
     J = jnp.where(keep[:, None], J, jnp.nan)
-    theta = jnp.where(keep[:, None], theta, jnp.nan)
+    theta = jnp.where(keep[:, None], th, jnp.nan)
     # An axis whose toy action stays 0 (a planar orbit) has no angle to fit.
     aJ = jnp.abs(J)
     # The mean toy action per axis, for the thin-box check below.
@@ -226,8 +224,8 @@ def _path(
     # mean rate along the orbit: a fitted toy's frequency can be several
     # times too slow (Omega_z on a disk loop), and the angle's own rate
     # varies by ~1.5x along the orbit, so flag predicted steps above pi / 2.
-    dt = jnp.abs(jnp.diff(fill_masked(t, keep)))
-    dth = jnp.abs(mod_2pi(jnp.diff(fill_masked(theta, keep), axis=0) + jnp.pi) - jnp.pi)
+    dt = jnp.abs(jnp.diff(tm))
+    dth = jnp.abs(mod_2pi(jnp.diff(th, axis=0) + jnp.pi) - jnp.pi)
     mean_rate = safe_div(jnp.nansum(dth, axis=0), dt.sum())
     rate = jnp.fmax(jnp.abs(Om_toy[1:]), mean_rate)
     step = jnp.where(rest, 0.0, rate * dt[:, None])
@@ -242,21 +240,19 @@ def _path(
     J = jnp.where(rest, 0.0, J)
     th0 = jnp.where(rest, jnp.nan, th0)
     Om = jnp.where(rest, jnp.nan, Om)
-    if loop:
-        degenerate = thin = jnp.asarray(False)  # noqa: FBT003
-    else:
+    degenerate = thin = jnp.asarray(False)  # noqa: FBT003
+    if not loop:
         # On a thin box the n_z != 0 modes absorb the in-plane fit residual,
         # which moves every action. Use the toy actions, which do not depend
         # on that solve.
         thin = jnp.min(jnp.where(rest, jnp.inf, mJ)) < _THIN_BOX * mJ.sum()
         # A small negative J_i is not a sign of collapse: a near-planar box
         # carries a J_z offset of arbitrary sign with a good toy.
-        degenerate = jnp.asarray(False)  # noqa: FBT003
         if fitted:
             omega0 = _oscillator_seed(
                 fill_masked(qf, keep), fill_masked(tf, keep), keep
             )
-            degenerate |= jnp.any(~rest & (toy.omega < _COLLAPSE * omega0))
+            degenerate = jnp.any(~rest & (toy.omega < _COLLAPSE * omega0))
     return _Out(
         toy,
         ok,
@@ -275,13 +271,6 @@ def _path(
     )
 
 
-def _pad(sn: Array, dsn: Array, n: int) -> tuple[Array, Array]:
-    """Zero-pad S_n to length n, and each of the 3 blocks of dS_n/dJ."""
-    k = n - len(sn)
-    dsn = jnp.pad(dsn.reshape(3, -1), ((0, 0), (0, k))).reshape(-1)
-    return jnp.pad(sn, (0, k)), dsn
-
-
 @ft.partial(jax.jit, static_argnames=("n_max", "family"))
 def _o2gf(
     pot: Any, q: Array, p: Array, t: Array, toy: Any, *, n_max: int, family: Any
@@ -291,23 +280,31 @@ def _o2gf(
     loop_n, box_n = n_vectors(n_max, LOOP_STEPS), n_vectors(n_max, BOX_STEPS)
 
     def one(q: Array, p: Array, t: Array, toy: Any) -> _Out:
-        sel = circulating_axes(q, p, _finite(q, p, t)).any()
+        keep = finite_rows(q, p, t)
+        circ = circulating_axes(q, p, keep)
+        sel = circ.any()
         if family is not None:
             loop = family == "loop"
-            out = _path(loop, pot, G, q, p, t, toy, loop_n if loop else box_n)
+            n = loop_n if loop else box_n
+            out = _path(loop, pot, G, q, p, t, keep, circ, toy, n)
             # The forced path may not be the orbit's family.
-            return out._replace(mismatch=sel != loop)
-        lo = _path(True, pot, G, q, p, t, None, loop_n)  # noqa: FBT003
-        bo = _path(False, pot, G, q, p, t, None, box_n)  # noqa: FBT003
-        sn, dsn = _pad(bo.sn, bo.dsn, len(loop_n))
-        bo = bo._replace(sn=sn, dsn=dsn)
-        mixed = jax.tree.map(
+            return out._replace(family_mismatch=sel != loop)
+        lo = _path(True, pot, G, q, p, t, keep, circ, None, loop_n)  # noqa: FBT003
+        bo = _path(False, pot, G, q, p, t, keep, circ, None, box_n)  # noqa: FBT003
+        # Zero-pad the box S_n, and each of the 3 blocks of dS_n/dJ, to the
+        # loop length.
+        k = len(loop_n) - len(bo.sn)
+        dsn = jnp.pad(bo.dsn_dj.reshape(3, -1), ((0, 0), (0, k))).reshape(-1)
+        bo = bo._replace(sn=jnp.pad(bo.sn, (0, k)), dsn_dj=dsn)
+        mixed: _Out = jax.tree.map(
             lambda a, b: jnp.where(sel, a, b),
             lo._replace(toy=None),
             bo._replace(toy=None),
         )
-        out = mixed._replace(toy=(lo.toy, bo.toy), mismatch=jnp.asarray(False))  # noqa: FBT003
-        return out
+        return mixed._replace(
+            toy=(lo.toy, bo.toy),
+            family_mismatch=jnp.asarray(False),  # noqa: FBT003
+        )
 
     for _ in q.shape[:-2]:
         one = jax.vmap(one)
@@ -331,7 +328,7 @@ def _run(
             "phase-space point has no time axis"
         )
         raise ValueError(msg)
-    if family not in _FAMILIES:
+    if family not in (None, "loop", "box"):
         msg = f"family must be None, 'loop' or 'box', got {family!r}"
         raise ValueError(msg)
     if toy is not None:
@@ -377,33 +374,24 @@ def _run(
         # equinox warns about any array in a static field; nvecs is a
         # trace-time NumPy constant, so static is what we want.
         warnings.filterwarnings("ignore", "A JAX array is being set as static")
-        aaf = wrap_result(out.J, out.th0, out.Om, pot, as_quantity)
+        fields = out._asdict()
+        aaf = wrap_result(
+            fields.pop("J"), fields.pop("th0"), fields.pop("Om"), pot, as_quantity
+        )
         return O2GFResult(
-            aaf=aaf,
-            toy=out.toy,
-            is_loop=out.loop,
-            aligned_axis=out.axis,
-            # S_n has the units of an action, so it follows aaf.actions
-            sn=(
-                u.Q(out.sn, pot.units["length"] ** 2 / pot.units["time"])
-                if as_quantity
-                else out.sn
-            ),
-            dsn_dj=out.dsn,
-            n_bad_cover=out.n_bad,
-            n_resonant=out.n_res,
-            n_nan=out.n_nan,
-            fit_converged=out.ok,
-            toy_degenerate=out.degenerate,
-            thin_box=out.thin,
-            family_mismatch=out.mismatch,
-            flagged=(out.n_bad > 0)
-            | (out.n_nan > NAN_MAX)
-            | ~out.ok
-            | out.degenerate
-            | out.thin
-            | out.mismatch,
-            nvecs=nvecs,
+            **fields
+            | {
+                "aaf": aaf,
+                # S_n has the units of an action, so it follows aaf.actions
+                "sn": u.Q(out.sn, u.unit_of(aaf.actions)) if as_quantity else out.sn,
+                "flagged": (out.n_bad_cover > 0)
+                | (out.n_nan > NAN_MAX)
+                | ~out.fit_converged
+                | out.toy_degenerate
+                | out.thin_box
+                | out.family_mismatch,
+                "nvecs": nvecs,
+            }
         )
 
 

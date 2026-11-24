@@ -13,7 +13,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from ._utils import fill_masked, safe_div
+from ._utils import fill_masked, finite_rows, masked_span, safe_div
 
 # Floor (rad) of the threshold on the span of n . theta for a resonant n-vector.
 _RESONANT: Final = 1e-6
@@ -21,22 +21,21 @@ _RESONANT: Final = 1e-6
 
 def action_system(
     J_toy: jax.Array,
-    theta: jax.Array,
-    nvecs: np.ndarray,
+    X: jax.Array,
+    n: jax.Array,
     w: jax.Array,
     /,
 ) -> tuple[jax.Array, jax.Array]:
     """Matrix and right-hand side for the true actions and generating function.
 
-    ``J_toy`` and ``theta`` have shape (T, 3), ``nvecs`` is (N, 3) and ``w``
-    is the (T,) sample weight. Returns ``A`` of shape (3 + N, 3 + N) and ``b``
-    of shape (3 + N,).
+    ``J_toy`` has shape (T, 3), ``n`` is the (N, 3) n-vectors, ``X`` the
+    (T, N) phases ``theta @ n.T`` and ``w`` the (T,) sample weight. Returns
+    ``A`` of shape (3 + N, 3 + N) and ``b`` of shape (3 + N,).
     """
-    n = jnp.asarray(nvecs, dtype=theta.dtype)  # (N, 3)
-    cosv = jnp.cos(theta @ n.T)  # (T, N)
+    cosv = jnp.cos(X)  # (T, N)
     wcos = w[:, None] * cosv
     C_T = 2.0 * n.T * wcos.sum(axis=0)  # (3, N)
-    top = jnp.concat([w.sum() * jnp.eye(3, dtype=theta.dtype), C_T], axis=1)
+    top = jnp.concat([w.sum() * jnp.eye(3, dtype=X.dtype), C_T], axis=1)
     low = jnp.concat([C_T.T, 4.0 * (n @ n.T) * (wcos.T @ cosv)], axis=1)
     b = jnp.concat(
         [(w[:, None] * J_toy).sum(axis=0), 2.0 * ((J_toy @ n.T) * wcos).sum(axis=0)]
@@ -46,19 +45,19 @@ def action_system(
 
 def angle_system(
     theta: jax.Array,
+    X: jax.Array,
     t: jax.Array,
-    nvecs: np.ndarray,
     w: jax.Array,
     /,
 ) -> tuple[jax.Array, jax.Array]:
     """Matrix and right-hand side for the angle offsets, frequencies and dS/dJ.
 
-    ``theta`` is the (T, 3) toy angle, already unwrapped along T. Returns ``A``
-    of shape (6 + 3N, 6 + 3N) and ``b`` of shape (6 + 3N,).
+    ``theta`` is the (T, 3) toy angle, already unwrapped along T, and ``X``
+    the (T, N) phases ``theta @ n.T``. Returns ``A`` of shape
+    (6 + 3N, 6 + 3N) and ``b`` of shape (6 + 3N,).
     """
     eye3 = jnp.eye(3, dtype=theta.dtype)
-    n = jnp.asarray(nvecs, dtype=theta.dtype)
-    sinv = jnp.sin(theta @ n.T)  # (T, N)
+    sinv = jnp.sin(X)  # (T, N)
     wsin = w[:, None] * sinv
     s1 = -2.0 * wsin.sum(axis=0)  # (N,)
     s2 = -2.0 * (t[:, None] * wsin).sum(axis=0)
@@ -111,8 +110,8 @@ def solve_o2gf(
     t: jax.Array,
     nvecs: np.ndarray,
     /,
-    rest: jax.Array | None = None,
-    coarse: jax.Array | bool = False,  # noqa: FBT002
+    rest: jax.Array,
+    coarse: jax.Array | bool,
 ) -> tuple[jax.Array, ...]:
     """Solve the O2GF action and angle systems.
 
@@ -152,25 +151,18 @@ def solve_o2gf(
     """
     # Mask non-finite samples: weight 0, zeroed J and t, angles filled before
     # unwrapping.
-    ok = jnp.isfinite(J_toy).all(axis=1) & jnp.isfinite(theta_raw).all(axis=1)
-    ok &= jnp.isfinite(t)
+    ok = finite_rows(J_toy, theta_raw, t)
     w = ok.astype(jnp.result_type(J_toy, theta_raw, float))
     J = jnp.where(ok[:, None], J_toy, 0.0)
     tt = jnp.where(ok, t, 0.0)
     theta = jnp.unwrap(fill_masked(theta_raw, ok), axis=0)
 
     # Span of each n . theta over the kept samples.
-    X = theta @ jnp.asarray(nvecs, dtype=theta.dtype).T  # (T, N)
-    span = jnp.where(ok[:, None], X, -jnp.inf).max(axis=0) - jnp.where(
-        ok[:, None], X, jnp.inf
-    ).min(axis=0)
-    span = jnp.where(ok.any(), span, 0.0)
+    n = jnp.asarray(nvecs, dtype=theta.dtype)
+    X = theta @ n.T  # (T, N)
+    span = masked_span(X, ok[:, None])
     # Modes that involve an axis at rest are left out and not counted.
-    skip = (
-        jnp.zeros(len(nvecs), bool)
-        if rest is None
-        else jnp.any((nvecs != 0) & rest, axis=1)
-    )
+    skip = jnp.any((nvecs != 0) & rest, axis=1)
     # Resonance threshold. In float32 the round-off of the unwrapped angles
     # exceeds 1e-6 rad.
     eps = float(np.finfo(theta.dtype).eps)
@@ -180,10 +172,7 @@ def solve_o2gf(
     below = (span < tol) & ~skip
     # A constant n . theta is a resonance only if each angle it involves turns
     # through 2 pi on its own; otherwise the window is too short to tell.
-    th_span = jnp.where(ok[:, None], theta, -jnp.inf).max(axis=0) - jnp.where(
-        ok[:, None], theta, jnp.inf
-    ).min(axis=0)
-    turns = jnp.where(ok.any(), th_span, 0.0) >= 2 * jnp.pi
+    turns = masked_span(theta, ok[:, None]) >= 2 * jnp.pi
     resonant = below & jnp.all((nvecs == 0) | turns, axis=1)
     # Badly covered: under one turn, more than pi per sample, or the whole
     # orbit too coarse to unwrap.
@@ -193,9 +182,9 @@ def solve_o2gf(
     # Solve for x = (J, S_n) and y = (theta0, Omega, dS_n/dJ), with the
     # dropped modes fixed at 0.
     drop = below | skip
-    A, b = action_system(J, theta, nvecs, w)
+    A, b = action_system(J, X, n, w)
     x = _solve_masked(A, b, jnp.concat([jnp.zeros(3, bool), drop]))
-    A, b = angle_system(theta, tt, nvecs, w)
+    A, b = angle_system(theta, X, tt, w)
     y = _solve_masked(A, b, jnp.concat([jnp.zeros(6, bool), jnp.tile(drop, 3)]))
     return (
         x[:3],  # J

@@ -1,22 +1,24 @@
 """Helpers for the action-angle module."""
 
 __all__ = [
-    "TWO_PI",
     "G_in_units",
     "fill_masked",
+    "finite_rows",
+    "masked_span",
     "mod_2pi",
     "safe_div",
     "safe_sqrt",
 ]
 
 import functools as ft
+import operator
 
 from typing import Any, Final
 
 import jax
 import jax.numpy as jnp
 
-TWO_PI: Final = 2 * jnp.pi
+_TWO_PI: Final = 2 * jnp.pi
 
 
 @ft.partial(jax.jit, inline=True)
@@ -41,10 +43,24 @@ def fill_masked(x: jax.Array, ok: jax.Array) -> jax.Array:
     return x[idx]
 
 
+def finite_rows(*xs: jax.Array) -> jax.Array:
+    """Mark the rows (leading axis) where every input is finite."""
+    rows = (jnp.isfinite(x).reshape(len(x), -1).all(axis=1) for x in xs)
+    return ft.reduce(operator.and_, rows)
+
+
+def masked_span(x: jax.Array, mask: jax.Array) -> jax.Array:
+    """``max - min`` of ``x`` along axis 0 over ``mask``; 0 where none is kept."""
+    span = jnp.where(mask, x, -jnp.inf).max(axis=0) - jnp.where(mask, x, jnp.inf).min(
+        axis=0
+    )
+    return jnp.where(mask.any(axis=0), span, 0.0)
+
+
 def mod_2pi(x: jax.Array, /) -> jax.Array:
     """``x`` modulo 2 pi, in ``[0, 2 pi)``; `jnp.mod` can round up to 2 pi."""
-    x = jnp.mod(x, TWO_PI)
-    return jnp.where(x >= TWO_PI, x - TWO_PI, x)
+    x = jnp.mod(x, _TWO_PI)
+    return jnp.where(x >= _TWO_PI, x - _TWO_PI, x)
 
 
 def G_in_units(pot: Any, /) -> Any:

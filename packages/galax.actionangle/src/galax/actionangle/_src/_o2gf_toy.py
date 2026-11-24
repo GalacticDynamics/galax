@@ -31,7 +31,7 @@ import jax.numpy as jnp
 import optimistix as optx
 from plum import dispatch
 
-from ._utils import G_in_units, fill_masked
+from ._utils import G_in_units, fill_masked, masked_span
 from .harmonic_oscillator import _ho_aaf
 from .isochrone import _isochrone_aaf
 
@@ -98,35 +98,28 @@ def toy_aaf(toy: OscillatorToy, G: Any, q: Any, p: Any) -> tuple[Array, Array, A
 # Fits
 
 
-def _kept(
-    q: Array, p: Array, t: Array, ok: Array | None
-) -> tuple[Array, Array, Array, Array]:
-    """Return the kept-sample mask and ``q``, ``p``, ``t`` with masked rows filled.
+def _lm_fit(energy: Any, y0: Array, keep: Array) -> tuple[Array, Bool[Array, ""]]:
+    """Fit ``y`` so that ``energy(y)`` is as constant as possible over ``keep``.
 
-    A masked row is replaced by the previous kept row (the next one for
-    leading rows), so every value is finite and gradients stay finite too.
-    """
-    if ok is None:
-        ok = jnp.isfinite(q).all(axis=1) & jnp.isfinite(p).all(axis=1)
-        ok &= jnp.isfinite(t)
-    return ok, fill_masked(q, ok), fill_masked(p, ok), fill_masked(t, ok)
-
-
-def _kept_mean(x: Array, ok: Array) -> Array:
-    """Mean of ``x`` over the kept samples (leading axis)."""
-    w = ok.reshape(ok.shape + (1,) * (x.ndim - 1))
-    return jnp.sum(jnp.where(w, x, 0.0), axis=0) / jnp.sum(ok)
-
-
-def _lm_fit(residual: Any, y0: Array) -> tuple[Array, Bool[Array, ""]]:
-    """Solve the least-squares fit and say whether it converged.
-
-    The tight tolerance keeps the implicit gradient accurate, but it sits
+    Returns ``y`` and whether the fit converged. The energies are divided by
+    the mean ``|H|`` at ``y0``, and a weak pull toward ``y0`` keeps the problem
+    full rank. The tight tolerance keeps the implicit gradient accurate, but it sits
     below the round-off floor of the loss, so near the end whether a trial
     step is accepted depends on round-off and can differ between platforms.
     The fit also counts as converged when it runs out of steps while the next
     step it would take is below ``_STALL_STEP`` relative to ``1 + |y|``.
     """
+    scale = jax.lax.stop_gradient(jnp.mean(jnp.abs(energy(y0)), axis=0, where=keep))
+
+    def residual(y: Array, _: None) -> Array:
+        H = energy(y) / scale
+        return jnp.concat(
+            [
+                jnp.where(keep, H - jnp.mean(H, axis=0, where=keep), 0.0),
+                _TIKHONOV * (y - y0),
+            ]
+        )
+
     sol = optx.least_squares(
         residual,
         optx.LevenbergMarquardt(rtol=1e-10, atol=1e-10),
@@ -139,7 +132,9 @@ def _lm_fit(residual: Any, y0: Array) -> tuple[Array, Bool[Array, ""]]:
     stalled = (sol.result == optx.RESULTS.nonlinear_max_steps_reached) & jnp.all(
         step <= _STALL_STEP
     )
-    return sol.value, (sol.result == optx.RESULTS.successful) | stalled
+    ok = (sol.result == optx.RESULTS.successful) | stalled
+    # With no kept sample the energy residuals are all zero but scale is NaN.
+    return sol.value, ok & jnp.isfinite(scale)
 
 
 def _isochrone_seed(
@@ -154,11 +149,10 @@ def _isochrone_seed(
     b^2)`` by 20 bisection steps on ``log b``, falling back to ``b = r0`` when
     the bracket has no sign change.
     """
-    r0 = _kept_mean(jnp.linalg.norm(q, axis=-1), ok)
+    r0 = jnp.mean(jnp.linalg.norm(q, axis=-1), axis=0, where=ok)
     x0 = jnp.array([r0, 0.0, 0.0])
-    phi0 = pot._potential(x0, t0)  # noqa: SLF001
-    dphi = jax.grad(pot._potential)(x0, t0)[0]  # noqa: SLF001
-    m_enc = r0**2 * jnp.abs(dphi) / G
+    phi0, dphi = jax.value_and_grad(pot._potential)(x0, t0)  # noqa: SLF001
+    m_enc = r0**2 * jnp.abs(dphi[0]) / G
 
     def g(logb: Array) -> Array:
         b = jnp.exp(logb)
@@ -182,34 +176,26 @@ def _isochrone_seed(
 
 
 def fit_isochrone(
-    pot: Any, q: Array, p: Array, t: Array, ok: Array | None = None
+    pot: Any, q: Array, p: Array, t: Array, ok: Array
 ) -> tuple[IsochroneToy, Bool[Array, ""]]:
     """Fit the isochrone toy to one orbit; ``q``, ``p`` are (T, 3), ``t`` (T,).
 
     Everything is in ``pot.units``.  The caller jits.  A weak pull toward
     the seed keeps the problem full rank, so circular orbits give a finite fit
-    and gradient. ``ok`` marks the samples to fit, by default the finite
-    ones. Returns the toy and whether the solver converged.
+    and gradient. ``ok`` marks the samples to fit. Returns the toy and
+    whether the solver converged.
     """
     G = G_in_units(pot)
-    keep, q, p, t = _kept(q, p, t, ok)
-    m0, b0 = _isochrone_seed(pot, G, q, t[0], keep)
+    # Masked rows take a kept row's values, so values and gradients stay finite.
+    q, p, t = (fill_masked(x, ok) for x in (q, p, t))
+    m0, b0 = _isochrone_seed(pot, G, q, t[0], ok)
     y0 = jax.lax.stop_gradient(jnp.log(jnp.stack([m0, b0])))
 
     def energy(y: Array) -> Array:
         return _isochrone_energy(jnp.exp(y[0]), jnp.exp(y[1]), G, q, p)
 
-    scale = jax.lax.stop_gradient(_kept_mean(jnp.abs(energy(y0)), keep))
-
-    def residual(y: Array, _: None) -> Array:
-        H = energy(y) / scale
-        return jnp.concat(
-            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), _TIKHONOV * (y - y0)]
-        )
-
-    y, ok = _lm_fit(residual, y0)
-    # With no kept sample the energy residuals are all zero but scale is NaN.
-    return IsochroneToy(m=jnp.exp(y[0]), b=jnp.exp(y[1])), ok & jnp.isfinite(scale)
+    y, converged = _lm_fit(energy, y0, ok)
+    return IsochroneToy(m=jnp.exp(y[0]), b=jnp.exp(y[1])), converged
 
 
 def _oscillator_seed(q: Array, t: Array, ok: Array) -> Array:
@@ -219,44 +205,31 @@ def _oscillator_seed(q: Array, t: Array, ok: Array) -> Array:
     With fewer than two crossings the period is the span of ``t``. Masked
     rows must already repeat a kept row, so they add no crossing.
     """
-    f = q - _kept_mean(q, ok)
+    f = q - jnp.mean(q, axis=0, where=ok[:, None])
     cross = jnp.sign(f[1:]) * jnp.sign(f[:-1]) < 0  # (T-1, 3)
     dt = (t[1:] - t[:-1])[:, None]
     df = f[1:] - f[:-1]
     tc = t[:-1, None] - f[:-1] * dt / jnp.where(cross, df, 1.0)
     n = jnp.sum(cross, axis=0)
-    span = jnp.max(jnp.where(cross, tc, -jnp.inf), axis=0) - jnp.min(
-        jnp.where(cross, tc, jnp.inf), axis=0
-    )
-    half = span / jnp.where(n > 1, n - 1, 1)
+    half = masked_span(tc, cross) / jnp.where(n > 1, n - 1, 1)
     period = jnp.where(n > 1, 2 * half, t[-1] - t[0])
     return 2 * jnp.pi / period
 
 
 @jax.jit
 def fit_oscillator(
-    q: Array, p: Array, t: Array, ok: Array | None = None
+    q: Array, p: Array, t: Array, ok: Array
 ) -> tuple[OscillatorToy, Bool[Array, ""]]:
     """Fit the harmonic-oscillator toy to one orbit; ``q``, ``p`` are (T, 3).
 
-    ``ok`` marks the samples to fit, by default the finite ones. Returns the
-    toy, with ``omega = |omega|``, and whether the solver converged.
+    ``ok`` marks the samples to fit. Returns the toy, with
+    ``omega = |omega|``, and whether the solver converged.
     """
-    keep, q, p, t = _kept(q, p, t, ok)
-    omega0 = jax.lax.stop_gradient(_oscillator_seed(q, t, keep))
-    y0 = jnp.ones_like(omega0)
+    q, p, t = (fill_masked(x, ok) for x in (q, p, t))
+    omega0 = jax.lax.stop_gradient(_oscillator_seed(q, t, ok))
 
     def energy(y: Array) -> Array:
         return _oscillator_energy(y * omega0, q, p)
 
-    scale = jax.lax.stop_gradient(_kept_mean(jnp.abs(energy(y0)), keep))
-
-    def residual(y: Array, _: None) -> Array:
-        H = energy(y) / scale
-        return jnp.concat(
-            [jnp.where(keep, H - _kept_mean(H, keep), 0.0), _TIKHONOV * (y - y0)]
-        )
-
-    y, ok = _lm_fit(residual, y0)
-    # With no kept sample the energy residuals are all zero but scale is NaN.
-    return OscillatorToy(omega=jnp.abs(y * omega0)), ok & jnp.isfinite(scale)
+    y, converged = _lm_fit(energy, jnp.ones_like(omega0), ok)
+    return OscillatorToy(omega=jnp.abs(y * omega0)), converged

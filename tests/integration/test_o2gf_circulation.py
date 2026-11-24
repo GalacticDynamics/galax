@@ -41,4 +41,5 @@ ORBITS = {
 def test_matches_galax_orbits(name, dtype, scale):
     q, p = ORBITS[name]
     q, p = (scale * q).astype(dtype), p.astype(dtype)
-    np.testing.assert_array_equal(circulating_axes(q, p), go.circulation(q, p))
+    circ = circulating_axes(q, p, jnp.ones(len(q), bool))
+    np.testing.assert_array_equal(circ, go.circulation(q, p))

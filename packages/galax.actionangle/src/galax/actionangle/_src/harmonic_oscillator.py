@@ -53,11 +53,9 @@ def _aaf(
     tq = u.Q(t, usys["time"])
     omega = pot.omega(tq, ustrip=usys["frequency"])
     omega = jnp.broadcast_to(jnp.asarray(omega), (*batch, 3))
-
-    f = _ho_aaf
-    for _ in batch:
-        f = jax.vmap(f)
-    return f(omega, q, p)
+    f = jnp.vectorize(_ho_aaf, signature="(3),(3),(3)->(3),(3),(3)")
+    out: tuple[Array, Array, Array] = f(omega, q, p)
+    return out
 
 
 @dispatch

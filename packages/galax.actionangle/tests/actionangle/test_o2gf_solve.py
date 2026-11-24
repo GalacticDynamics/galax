@@ -10,6 +10,7 @@ from galax.actionangle._src._o2gf_nvecs import LOOP_STEPS, n_vectors
 from galax.actionangle._src._o2gf_solve import action_system, angle_system, solve_o2gf
 
 T = 200
+NO_REST = np.zeros(3, bool)
 
 
 def _close(a, e, tol=1e-12):
@@ -37,7 +38,7 @@ def _data(seed=0, T=T):
 
 def test_action_system_matches_gala():
     J, theta, _ = _data()
-    A, b = action_system(J, theta, NVECS, jnp.ones(T))
+    A, b = action_system(J, theta @ NVECS.T, NVECS, jnp.ones(T))
     Ar, br = ref.action_prepare(np.hstack([J, theta]).T, NVECS)
     _close(A, Ar)
     _close(b, br)
@@ -45,7 +46,7 @@ def test_action_system_matches_gala():
 
 def test_angle_system_matches_gala():
     J, theta, t = _data()
-    A, b = angle_system(theta, t, NVECS, jnp.ones(T))
+    A, b = angle_system(theta, theta @ NVECS.T, t, jnp.ones(T))
     Ar, br = ref.angle_prepare(np.hstack([J, theta]).T, t, NVECS)
     _close(A, Ar)
     _close(b, br)
@@ -58,8 +59,8 @@ def test_nan_sample_masked():
     Jn[57] = np.nan
     wn[57] = np.nan
     keep = np.arange(T) != 57
-    out = solve_o2gf(Jn, wn, t, NVECS)
-    exp = solve_o2gf(J[keep], wrapped[keep], t[keep], NVECS)
+    out = solve_o2gf(Jn, wn, t, NVECS, NO_REST, coarse=False)
+    exp = solve_o2gf(J[keep], wrapped[keep], t[keep], NVECS, NO_REST, coarse=False)
     assert int(out[6]) == 1
     assert int(exp[6]) == 0
     # Masking a sample and dropping it sum in different orders; Windows CI
@@ -73,7 +74,7 @@ def test_nan_sample_masked():
 def test_coverage_counts_match_gala(n):
     J, theta, t = _data()
     J, theta, t = J[:n], theta[:n], t[:n]
-    out = solve_o2gf(J, np.mod(theta, 2 * np.pi), t, NVECS)
+    out = solve_o2gf(J, np.mod(theta, 2 * np.pi), t, NVECS, NO_REST, coarse=False)
     failed, _ = ref.check_angle_sampling(
         NVECS, np.unwrap(np.mod(theta, 2 * np.pi), axis=0).T
     )
@@ -84,7 +85,9 @@ def test_coverage_counts_match_gala(n):
 def test_solve_grad_finite():
     J, theta, t = _data()
     wrapped = np.mod(theta, 2 * np.pi)
-    jac = jax.jacrev(lambda j: solve_o2gf(j, wrapped, t, NVECS)[0])(jnp.asarray(J))
+    jac = jax.jacrev(
+        lambda j: solve_o2gf(j, wrapped, t, NVECS, NO_REST, coarse=False)[0]
+    )(jnp.asarray(J))
     assert jac.shape == (3, T, 3)
     assert np.isfinite(np.asarray(jac)).all()
 
@@ -94,7 +97,9 @@ def test_solve_grad_finite_with_nan_sample():
     wrapped = np.mod(theta, 2 * np.pi)
     wrapped[57] = np.nan
     Jn = jnp.asarray(J).at[57].set(jnp.nan)
-    jac = jax.jacrev(lambda j: solve_o2gf(j, wrapped, t, NVECS)[0])(Jn)
+    jac = jax.jacrev(
+        lambda j: solve_o2gf(j, wrapped, t, NVECS, NO_REST, coarse=False)[0]
+    )(Jn)
     assert np.isfinite(np.asarray(jac)).all()
     np.testing.assert_array_equal(np.asarray(jac)[:, 57], 0.0)
 
@@ -105,7 +110,7 @@ def test_coarse_sampling_counted():
     t = np.linspace(0.0, 30.0, n)
     theta = np.cumsum(np.full((n, 3), 3.0), axis=0) + np.arange(3) * 0.1
     J = 1.0 + 0.01 * np.sin(np.arange(n))[:, None] * np.ones(3)
-    out = solve_o2gf(J, np.mod(theta, 2 * np.pi), t, NVECS)
+    out = solve_o2gf(J, np.mod(theta, 2 * np.pi), t, NVECS, NO_REST, coarse=False)
     X = np.unwrap(np.mod(theta, 2 * np.pi), axis=0).T
     failed, kinds = ref.check_angle_sampling(NVECS, X)
     assert (kinds == 1).any()

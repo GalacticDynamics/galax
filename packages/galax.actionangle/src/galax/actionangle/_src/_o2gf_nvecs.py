@@ -27,5 +27,5 @@ def n_vectors(n_max: int, steps: tuple[int, int, int]) -> np.ndarray:
     keep = ((vecs**2).sum(axis=1) <= n_max**2) & (
         (k > 0) | ((k == 0) & (j > 0)) | ((k == 0) & (j == 0) & (i > 0))
     )
-    vecs = vecs[keep]
-    return vecs[np.lexsort((vecs[:, 2], vecs[:, 1], vecs[:, 0]))]
+    # meshgrid over ascending ranges is already in lexicographic order
+    return np.asarray(vecs[keep])

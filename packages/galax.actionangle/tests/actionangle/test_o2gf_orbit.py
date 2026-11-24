@@ -52,14 +52,15 @@ def test_single_orbit(name, jit):
         if jit
         else (circulating_axes, align_circulation_with_z)
     )
-    circ = circ_f(q, p)
+    circ = circ_f(q, p, jnp.ones(len(q), bool))
     _check(q, p, circ, expected, axis_exp, align_f(q, p, circ))
 
 
 def test_vmap():
     qs = jnp.stack([v[0][0] for v in ORBITS.values()])
     ps = jnp.stack([v[0][1] for v in ORBITS.values()])
-    circ = jax.jit(jax.vmap(circulating_axes))(qs, ps)
+    ok = jnp.ones(qs.shape[:2], bool)
+    circ = jax.jit(jax.vmap(circulating_axes))(qs, ps, ok)
     out = jax.jit(jax.vmap(align_circulation_with_z))(qs, ps, circ)
     for i, (_, expected, axis_exp) in enumerate(ORBITS.values()):
         _check(qs[i], ps[i], circ[i], expected, axis_exp, tuple(o[i] for o in out))
@@ -68,4 +69,5 @@ def test_vmap():
 def test_circulation_skips_nonfinite_samples():
     (q, p), expected, _ = ORBITS["xy"]
     q = q.at[0].set(jnp.nan).at[200].set(jnp.nan)
-    assert tuple(np.asarray(circulating_axes(q, p))) == expected
+    circ = circulating_axes(q, p, jnp.ones(len(q), bool))
+    assert tuple(np.asarray(circ)) == expected

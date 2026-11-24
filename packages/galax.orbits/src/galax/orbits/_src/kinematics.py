@@ -16,9 +16,9 @@ import galax.orbits.custom_types as gt
 def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
     r"""Compute the specific angular momentum.
 
-    The specific angular momentum $\mathbf{j}$ is given by:
+    The specific angular momentum $\mathbf{h}$ is given by:
 
-    ..math::
+    .. math::
 
         \mathbf{h} = \mathbf{r} \times \mathbf{v}
 

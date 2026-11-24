@@ -48,14 +48,14 @@ def specific_angular_momentum(
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def specific_angular_momentum(w: cx.KinematicSpace, /) -> cx.vecs.Cartesian3D:
     """Compute from `coordinax.KinematicSpace`."""
     return api.specific_angular_momentum(w["length"], w["speed"])
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def specific_angular_momentum(
     w: cx.frames.AbstractCoordinate, /
 ) -> cx.vecs.Cartesian3D:
@@ -78,7 +78,7 @@ def specific_angular_momentum(w: gc.AbstractPhaseSpaceObject, /) -> cx.vecs.Cart
     (gt.BBtSz3, gt.BBtSz3),
     (gt.BBtQuSz3, gt.BBtQuSz3),
 )
-@ft.partial(jax.jit)
+@jax.jit
 def omega(
     x: gt.BBtSz3 | gt.BBtQuSz3, v: gt.BBtSz3 | gt.BBtQuSz3, /
 ) -> gt.BBtSz0 | gt.BBtQuSz0:
@@ -89,7 +89,7 @@ def omega(
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
     """Compute from `coordinax.vecs.AbstractVector`s."""
     # TODO: more directly using the vectors
@@ -99,21 +99,21 @@ def omega(x: cx.vecs.AbstractPos3D, v: cx.vecs.AbstractVel3D, /) -> gt.BBtQuSz0:
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def omega(w: cx.KinematicSpace, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.KinematicSpace`."""
     return api.omega(w["length"], w["speed"])
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def omega(w: cx.frames.AbstractCoordinate, /) -> gt.BBtQuSz0:
     """Compute from a `coordinax.frames.AbstractCoordinate`."""
     return api.omega(w.data)
 
 
 @dispatch
-@ft.partial(jax.jit)
+@jax.jit
 def omega(w: gc.AbstractPhaseSpaceObject, /) -> gt.BBtQuSz0:
     """Compute from a `galax.coordinates.AbstractPhaseSpaceObject`."""
     return api.omega(w.q, w.p)

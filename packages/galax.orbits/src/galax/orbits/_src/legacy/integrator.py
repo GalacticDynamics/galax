@@ -2,12 +2,11 @@
 
 __all__ = ["Integrator"]
 
-import functools as ft
 from dataclasses import KW_ONLY
 
 from collections.abc import Mapping
 from jaxtyping import ArrayLike, Shaped
-from typing import Any, Literal, TypeAlias, TypeVar, final
+from typing import Any, Literal, TypeAlias, final
 
 import diffrax as dfx
 import equinox as eqx
@@ -22,9 +21,6 @@ import galax.orbits.custom_types as gt
 from .interp_psp import InterpolatedPhaseSpaceCoordinate
 from galax.orbits import AbstractOrbitField, OrbitSolver, PhaseSpaceInterpolation
 
-R = TypeVar("R")
-Interp = TypeVar("Interp")
-
 IntLike: TypeAlias = gt.IntSz0 | int
 FloatLike: TypeAlias = gt.FloatSz0 | float | int
 RealSz0Like: TypeAlias = FloatLike | IntLike
@@ -33,8 +29,6 @@ Times: TypeAlias = gt.QuSzTime | gt.SzTime
 
 
 save_t1_only = dfx.SaveAt(t1=True)
-default_solver = dfx.Dopri8(scan_kind="bounded")
-default_stepsize_controller = dfx.PIDController(rtol=1e-7, atol=1e-7)
 
 
 @final
@@ -174,7 +168,7 @@ class Integrator(eqx.Module):
     # =====================================================
     # Call
 
-    @ft.partial(eqx.filter_jit)
+    @eqx.filter_jit
     def _call_(
         self: "Integrator",
         field: AbstractOrbitField,
@@ -227,20 +221,17 @@ class Integrator(eqx.Module):
             field, (q0, p0), t0, t1, saveat=save_at, dense=dense, **diffeq_kw
         )
 
-        # Return
         out_kw = {
             "frame": gc.frames.simulation_frame,  # TODO: determine the frame
             "units": field.units,
+            "unbatch_time": saveat is None,
         }
-        if dense:
-            out_cls = InterpolatedPhaseSpaceCoordinate
-            out_kw["interpolant"] = PhaseSpaceInterpolation(
-                soln.interpolation, units=field.units
-            )
-        else:
-            out_cls = gc.PhaseSpaceCoordinate
-
-        return out_cls.from_(soln, **out_kw, unbatch_time=saveat is None)
+        if not dense:
+            return gc.PhaseSpaceCoordinate.from_(soln, **out_kw)
+        interpolant = PhaseSpaceInterpolation(soln.interpolation, units=field.units)
+        return InterpolatedPhaseSpaceCoordinate.from_(
+            soln, **out_kw, interpolant=interpolant
+        )
 
     # -----------------------------------------------------
     # Call method
@@ -422,22 +413,8 @@ def call(
         t=Q(1000., 'Myr'), frame=SimulationFrame() )
 
     """
-    # y0: Any, t0: Any, t1: Any
-    match args:
-        case (y0, t0):
-            t1 = kwargs.pop("t1")
-        case (y0,):
-            t0 = kwargs.pop("t0")
-            t1 = kwargs.pop("t1")
-        case ():
-            y0 = kwargs.pop("y0")
-            t0 = kwargs.pop("t0")
-            t1 = kwargs.pop("t1")
-        case _:  # pragma: no cover
-            match = f"Invalid number of arguments: {args}"
-            raise TypeError(match)
-
-    return self(field, y0, t0, t1, **kwargs)
+    missing = ("y0", "t0", "t1")[len(args) :]
+    return self(field, *args, *(kwargs.pop(k) for k in missing), **kwargs)
 
 
 # -------------------------------------------

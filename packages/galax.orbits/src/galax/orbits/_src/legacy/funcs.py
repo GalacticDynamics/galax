@@ -2,11 +2,8 @@
 
 __all__ = ["evaluate_orbit", "default_integrator"]
 
-from collections.abc import Callable
-from jaxtyping import Array
 from typing import Any, Literal
 
-import jax
 from plum import dispatch
 
 import quaxed.numpy as jnp
@@ -20,22 +17,6 @@ from galax.orbits import HamiltonianField, Orbit
 
 # TODO: enable setting the default integrator
 default_integrator: Integrator = Integrator()
-
-
-_select_w0: Callable[[Array, Array, Array], Array] = jax.numpy.vectorize(
-    jax.lax.select, signature="(),(6),(6)->(6)"
-)
-
-
-def orbit_from_psp(w: gc.PhaseSpaceCoordinate, t: gt.QuSzTime) -> Orbit:
-    """Create an orbit object from the phase-space position."""
-    return Orbit(
-        q=w.q,
-        p=w.p,
-        t=t,
-        frame=w.frame,
-        interpolant=getattr(w, "interpolant", None),
-    )
 
 
 @dispatch
@@ -92,11 +73,11 @@ def evaluate_orbit(
 
             This is NOT the timesteps to use for integration, which are
             controlled by the `integrator`; the default integrator
-            :class:`~galax.integrator.Integrator` uses adaptive timesteps.
+            :class:`~galax.orbits.integrate.Integrator` uses adaptive timesteps.
 
-    integrator : :class:`~galax.integrate.Integrator`, keyword-only
+    integrator : :class:`~galax.orbits.integrate.Integrator`, keyword-only
         Integrator to use.  If `None`, the default integrator
-        :class:`~galax.integrator.Integrator` is used.  This integrator is used
+        :class:`~galax.orbits.integrate.Integrator` is used.  This integrator is used
         twice: once to integrate from `w0.t` to `t[0]` and then from `t[0]` to
         `t[1]`.
 
@@ -208,8 +189,13 @@ def evaluate_orbit(
     # TODO: `max_steps` as kwarg.
     ws = integrator(field, qp0, t[0], t[-1], saveat=t, dense=dense)
 
-    # Return the orbit object
-    return orbit_from_psp(ws, t)
+    return Orbit(
+        q=ws.q,
+        p=ws.p,
+        t=t,
+        frame=ws.frame,
+        interpolant=getattr(ws, "interpolant", None),
+    )
 
 
 @dispatch

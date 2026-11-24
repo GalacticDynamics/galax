@@ -395,6 +395,7 @@ derivative is :math:`G M'(r)/r^2 - 2 G M(r)/r^3`, not autodiff of
 the series in :func:`mass_enclosed`, so :func:`gradient` linearizes to the exact
 Hessian.
 """
+dpotential_dr.__doc__ = shell_dphi_dr.__doc__  # `help()`: a custom_jvp has no doc
 
 
 _spherical_gradient = spherical_gradient(dpotential_dr)

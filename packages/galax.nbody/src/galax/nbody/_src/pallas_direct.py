@@ -50,8 +50,33 @@ from .particles import Sources, Targets
 _Arrs = tuple[Array, ...]
 
 
+# JAX >= 0.11 moved `vma` into `manual_axis_type.varying` and dropped
+# `lax.pvary` (now `lax.pcast(..., to="varying")`). Support both.
+_ManualAxisType: Any = getattr(jax.sharding, "ManualAxisType", None)
+
+
+def _vma_kw(vma: frozenset[str]) -> dict[str, Any]:
+    if _ManualAxisType is None:
+        return {"vma": vma}
+    return {"manual_axis_type": _ManualAxisType(varying=vma)} if vma else {}
+
+
 def _sds(shape: tuple[int, ...], dtype: Any, vma: frozenset[str] = frozenset()) -> Any:
-    return jax.ShapeDtypeStruct(shape, dtype, vma=vma)  # type: ignore[no-untyped-call]
+    sds: Any = jax.ShapeDtypeStruct
+    return sds(shape, dtype, **_vma_kw(vma))
+
+
+def _pvary(x: Array, vma: frozenset[str]) -> Array:
+    lax: Any = jax.lax
+    axes = tuple(sorted(vma))
+    if hasattr(lax, "pvary"):
+        return lax.pvary(x, axes)  # type: ignore[no-any-return]
+    return lax.pcast(x, axes, to="varying")  # type: ignore[no-any-return]
+
+
+def _zero(x: Any) -> Any:
+    """Symbolic zero tangent for primal ``x``."""
+    return ad.Zero(jax.typeof(x).to_tangent_aval())
 
 
 def _no_check_vma() -> Any:
@@ -61,9 +86,14 @@ def _no_check_vma() -> Any:
     return contextlib.nullcontext() if state is None else state(False)  # noqa: FBT003
 
 
+def _vma_of(x: Any) -> frozenset[str]:
+    mat = getattr(x, "manual_axis_type", None)
+    return frozenset(getattr(x, "vma", frozenset()) if mat is None else mat.varying)
+
+
 def _vma(avals: Sequence[Any]) -> frozenset[str]:
     """Mesh axes an output varies over under `shard_map`: any operand's."""
-    return frozenset().union(*(getattr(x, "vma", frozenset()) for x in avals))
+    return frozenset().union(*(_vma_of(x) for x in avals))
 
 
 def _undef(x: Any) -> bool:
@@ -563,7 +593,7 @@ def _call_ab(
     dts = _out_dtypes(fn, tuple(x.dtype for x in a), tuple(x.dtype for x in b))
     zeros = [jnp.zeros((lead, 1, nb_p), dt) for dt in dts[n_ga:]]
     if vma:  # aliased to outputs, so they must vary like them
-        zeros = [jax.lax.pvary(z, tuple(sorted(vma))) for z in zeros]  # type: ignore[no-untyped-call]
+        zeros = [_pvary(z, vma) for z in zeros]
     n_in = len(a) + len(b)
     out = pl.pallas_call(
         ft.partial(_kernel_ab, fn=fn, n_a=n_a, n_b=len(b), na=na, nb=nb, lc=lc),
@@ -637,11 +667,12 @@ def _out_avals(
     vma = _vma(ops)
     sharding = None
     if vma:  # the operands' (manual) mesh
-        mesh = next(x.sharding.mesh for x in ops if x.vma)
+        mesh = next(x.sharding.mesh for x in ops if _vma_of(x))
         spec = jax.sharding.PartitionSpec()  # type: ignore[no-untyped-call]
         sharding = jax.sharding.NamedSharding(mesh, spec)
+    aval: Any = jax.core.ShapedArray
     return [
-        jax.core.ShapedArray(s, dt, sharding=sharding, vma=vma)
+        aval(s, dt, sharding=sharding, **_vma_kw(vma))
         for s, dt in zip(shapes, dts, strict=True)
     ]
 
@@ -712,7 +743,7 @@ def _jvp(
     out = _bind(*primals, fn=fn, n_a=n_a, n_lin_a=n_lin_a, n_lin_b=n_lin_b, lc=lc)
     t_out = _tangent(primals, tangents, fn=fn, n_a=n_a, lc=lc)
     if t_out is None:
-        return out, [ad.Zero.from_primal_value(o) for o in out]
+        return out, [_zero(o) for o in out]
     return out, t_out
 
 
@@ -865,7 +896,7 @@ for _plat in ("cuda", "rocm"):
     mlir.register_lowering(pair_sum_p, _lowering(gpu=True), platform=_plat)
 ad.primitive_jvps[pair_sum_p] = _jvp
 ad.primitive_transposes[pair_sum_p] = _transpose
-batching.primitive_batchers[pair_sum_p] = _batch  # type: ignore[assignment]
+batching.primitive_batchers[pair_sum_p] = _batch  # type: ignore[assignment,unused-ignore]
 
 
 # ``(*f_a, *ct, *f_b) -> (cotangents of wrt_a, cotangents of wrt_b)``: the
@@ -955,7 +986,7 @@ def _ab_jvp(
     t_out: list[Any] = []
     for p, t, fn, n_a, o in parts:
         t_part = _tangent(p, t, fn=fn, n_a=n_a, lc=lc)
-        t_out += [ad.Zero.from_primal_value(x) for x in o] if t_part is None else t_part
+        t_out += [_zero(x) for x in o] if t_part is None else t_part
     return out, t_out
 
 
@@ -988,7 +1019,7 @@ for _plat in ("cuda", "rocm"):
     mlir.register_lowering(pair_sum_ab_p, _ab_lowering(gpu=True), platform=_plat)
 ad.primitive_jvps[pair_sum_ab_p] = _ab_jvp
 ad.primitive_transposes[pair_sum_ab_p] = _ab_transpose
-batching.primitive_batchers[pair_sum_ab_p] = lambda args, dims, **p: _batch_with(  # type: ignore[assignment]
+batching.primitive_batchers[pair_sum_ab_p] = lambda args, dims, **p: _batch_with(  # type: ignore[assignment,unused-ignore]
     _bind_ab, args, dims, p
 )
 

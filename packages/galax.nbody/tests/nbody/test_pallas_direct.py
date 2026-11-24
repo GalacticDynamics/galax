@@ -29,6 +29,15 @@ if jax.default_backend() == "gpu":
     MODES.append(pytest.param(False, id="compiled"))
 
 
+try:  # jaxlib has no Triton on Windows (nor a GPU there)
+    from jax.experimental.pallas import triton as _  # noqa: F401
+except ImportError:
+    HAS_TRITON = False
+else:
+    HAS_TRITON = True
+requires_triton = pytest.mark.skipif(not HAS_TRITON, reason="jaxlib lacks Triton")
+
+
 @pytest.fixture(params=MODES)
 def interpret(request):
     return request.param
@@ -232,6 +241,7 @@ def test_cpu_fallback_matches_direct_sum(name) -> None:
     _close(jax.jvp(f, args, tan), jax.jvp(fd, args, tan), 1e-14)
 
 
+@requires_triton
 def test_lowers_for_gpu_with_launch_params() -> None:
     """Pallas -> Triton lowering passes num_warps/num_stages; runs on CPU CI."""
     from jax import export
@@ -702,6 +712,7 @@ def test_fused_linear_transpose() -> None:
     _close(tf(s.q), tu(s.q))
 
 
+@requires_triton
 @pytest.mark.parametrize("n", [5, 37])
 def test_fused_kernel_matches_two_pass(n) -> None:
     """The atomic kernel itself, in interpret mode (padding on both sides)."""
@@ -732,6 +743,7 @@ def test_fused_kernel_matches_two_pass(n) -> None:
     _close(got, [*want_a, *want_b], 1e-12)
 
 
+@requires_triton
 def test_fused_lowers_for_gpu() -> None:
     """The f64 gradient lowers to the fused Triton kernel; runs on CPU CI."""
     from jax import export

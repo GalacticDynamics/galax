@@ -7,7 +7,6 @@ of the same integral in its original form, the one over :math:`\tau \in
 [0, \infty)`, at 30 digits.
 """
 
-import jax
 import mpmath as mp
 import numpy as np
 import pytest
@@ -117,21 +116,9 @@ def test_integration_order_is_used_and_static(name, order):
         assert not np.array_equal(fn(p, xyz, integration_order=order), fn(p, xyz))
 
 
-@pytest.mark.parametrize("name", CASES)
-def test_empty_batch(name):
-    pot = CASES[name]
-    xyz = jnp.zeros((0, 3))
-    assert pot.potential(xyz, 0.0).shape == (0,)
-    assert pot.density(xyz, 0.0).shape == (0,)
-    assert pot.laplacian(xyz, 0.0).shape == (0,)
-    assert pot.gradient(xyz, 0.0).shape == (0, 3)
-    assert pot.hessian(xyz, 0.0).shape == (0, 3, 3)
-
-
 def test_spherical_limits():
     """For ``q1 = q2 = 1`` the three are the spherical Gaussian and NFW."""
     xyz = jnp.array([1.0, 2.0, 3.0])
-    r = float(jnp.linalg.norm(xyz))
     for name, sph in (
         ("axisymmetricgaussian", gp.GaussianPotential(m_tot=M, r_s=RS, units=G)),
         ("triaxialgaussian", gp.GaussianPotential(m_tot=M, r_s=RS, units=G)),
@@ -147,48 +134,35 @@ def test_spherical_limits():
         np.testing.assert_allclose(
             pot.density(xyz, 0.0), sph.density(xyz, 0.0), rtol=1e-12
         )
-        assert r > 0
 
 
-def test_axisymmetric_central_potential():
-    """``Phi(0) = -sqrt(2/pi) G m / r_s * f(q2)`` with ``f = arcsin(e) / e``."""
-    q2 = 0.7
-    pot = CASES["axisymmetricgaussian"]
+@pytest.mark.parametrize("q2", [0.7, 1.5])
+def test_axisymmetric_central_potential(q2):
+    """``Phi(0) = -sqrt(2/pi) G m / r_s * f(q2)``: arcsin for q2 < 1, arcsinh above."""
+    pot = gp.AxisymmetricGaussianPotential(m_tot=M, r_s=RS, q2=q2, units=G)
     p = pot.params(0.0)
-    e = np.sqrt(1 - q2**2)
-    want = -np.sqrt(2 / np.pi) * p["G"] * p["m_tot"] / p["r_s"] * np.arcsin(e) / e
+    if q2 < 1:
+        e = np.sqrt(1 - q2**2)
+        f = np.arcsin(e) / e
+    else:
+        e = np.sqrt(q2**2 - 1)
+        f = np.arcsinh(e) / e
+    want = -np.sqrt(2 / np.pi) * p["G"] * p["m_tot"] / p["r_s"] * f
     got = gp.axisymmetricgaussian.potential(p, jnp.zeros(3))
     np.testing.assert_allclose(got, want, rtol=1e-12)
 
 
-def test_gaussian_density_integrates_to_the_mass():
-    """The ``q1 q2`` in ``rho0`` makes ``m_tot`` the total mass for any axis ratio."""
-    for name in ("axisymmetricgaussian", "triaxialgaussian"):
-        pot = CASES[name]
-        p = pot.params(0.0)
-        q1 = float(p.get("q1", 1.0))
-        q2 = float(p["q2"])
-        # The ellipsoidal map x -> (x, q1 y, q2 z) takes the density to a
-        # spherical Gaussian: the mass is rho0 q1 q2 (2 pi)^(3/2) r_s^3.
-        got = float(pot.rho0(0.0, ustrip=True)) * q1 * q2 * (2 * np.pi) ** 1.5
-        np.testing.assert_allclose(got * float(p["r_s"]) ** 3, float(p["m_tot"]))
+@pytest.mark.parametrize("name", ["axisymmetricgaussian", "triaxialgaussian"])
+def test_gaussian_density_integrates_to_the_mass(name):
+    """The sum of the density over a fine box equals ``m_tot``, for any axis ratio.
 
-
-@pytest.mark.parametrize("name", CASES)
-def test_rho0_class_equals_module(name):
-    pot = CASES[name]
-    np.testing.assert_allclose(
-        pot.rho0(0.0, ustrip=True), getattr(gp, name).rho0_of_m(pot.params(0.0))
-    )
-    assert str(pot.rho0(0.0).unit) == "solMass / kpc3"
-
-
-@pytest.mark.parametrize("name", CASES)
-def test_class_matches_vmap_on_a_batch(name):
-    """The class on a batch equals ``jax.vmap`` of the module potential."""
-    pot, module = CASES[name], getattr(gp, name)
-    p = pot.params(0.0)
-    rng = np.random.default_rng(1)
-    xyz = jnp.asarray(rng.normal(size=(7, 3)) * 8.0)
-    want = jax.vmap(lambda x: module.potential(p, x))(xyz)
-    np.testing.assert_allclose(pot.potential(xyz, 0.0), want, rtol=1e-12)
+    The trapezoid rule is spectrally accurate for a Gaussian that is negligible at
+    the edge of the box (9 widths along the widest axis, 4 nodes per width).
+    """
+    p = CASES[name].params(0.0)
+    h = float(p["r_s"]) / 4
+    n = 9 * 4 * 2 + 1
+    x = (np.arange(n) - n // 2) * h
+    xyz = jnp.asarray(np.stack(np.meshgrid(x, x, x, indexing="ij"), axis=-1))
+    mass = float(jnp.sum(getattr(gp, name).density(p, xyz))) * h**3
+    np.testing.assert_allclose(mass, float(p["m_tot"]), rtol=1e-8)

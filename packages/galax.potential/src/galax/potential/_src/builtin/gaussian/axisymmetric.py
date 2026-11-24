@@ -18,7 +18,6 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from jaxtyping import Array
 from typing import final
 
 import equinox as eqx
@@ -35,6 +34,11 @@ from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
 )
+from galax.potential._src.builtin.gaussian.triaxial import (
+    density as _triaxial_density,
+    potential as _triaxial_potential,
+    rho0_of_m as _triaxial_rho0_of_m,
+)
 from galax.potential._src.kernels import (
     cartesian_gradient,
     cartesian_hessian,
@@ -43,7 +47,6 @@ from galax.potential._src.kernels import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import gauss_legendre
 
 
 @final
@@ -94,19 +97,20 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
     :math:`\rho_0`.
 
     The quadrature has a fixed order, so its error grows where the integrand
-    narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration the
-    relative error of the order-50 potential is below 3e-14 from :math:`10^{-3}`
-    to :math:`30 r_s`, 2e-8 at :math:`100 r_s`, 1e-3 at :math:`300 r_s` and 2e-2
-    at :math:`10^3 r_s`, so raise ``integration_order`` for the far field. The
-    functions are in `galax.potential.axisymmetricgaussian`. The gradient and
-    Hessian of this class come from automatic differentiation of the potential.
+    narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration,
+    for axis ratios from 0.3 to 1.5, the relative error of the order-50
+    potential is at most 3e-14 from :math:`10^{-3}` to :math:`30 r_s`, 2e-8 at
+    :math:`100 r_s`, 1.1e-3 at :math:`300 r_s` and 2e-2 at :math:`10^3 r_s`, so
+    raise ``integration_order`` for the far field. The functions are in
+    `galax.potential.axisymmetricgaussian`. The gradient and Hessian of this
+    class come from automatic differentiation of the potential.
 
     References
     ----------
-    .. [Chandrasekhar1969] Chandrasekhar, S. (1969). Ellipsoidal Figures of
+    .. [Chandrasekhar1969AxiGaussian] Chandrasekhar, S. (1969). Ellipsoidal Figures of
        Equilibrium. Yale University Press. Theorem 12.
        `ADS <https://ui.adsabs.harvard.edu/abs/1969efe..book.....C>`__.
-    .. [MerrittFridman1996] Merritt, D., & Fridman, T. (1996). Triaxial
+    .. [MerrittFridman1996AxiGaussian] Merritt, D., & Fridman, T. (1996). Triaxial
        Galaxies with Cusps. The Astrophysical Journal, 460, 136.
        `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...460..136M>`__.
        The potential is their eq. 2a.
@@ -177,6 +181,14 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
 
 # ===================================================================
 # Functions
+#
+# The axisymmetric model is the `q1 = 1` case of the triaxial one, so each
+# function calls its triaxial counterpart with `q1 = 1`.
+
+
+def _triaxial(p: gt.Params, /) -> gt.Params:
+    """``p`` with the axis ratio ``q1 = 1`` that the triaxial functions need."""
+    return {**p, "q1": jnp.ones_like(p["q2"])}
 
 
 @ft.partial(jax.jit)
@@ -188,7 +200,7 @@ def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
         \rho_0 = \frac{m_{\mathrm{tot}}}{q_2 (2 \pi)^{3/2} r_s^3}.
 
     """
-    return p["m_tot"] / (p["q2"] * (2 * jnp.pi) ** 1.5 * p["r_s"] ** 3)  # type: ignore[no-any-return]
+    return _triaxial_rho0_of_m(_triaxial(p))  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit)
@@ -203,9 +215,7 @@ def density(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:
     with :math:`\rho_0` from :func:`~galax.potential.axisymmetricgaussian.rho0_of_m`.
 
     """
-    R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
-    xi2 = (R2 + xyz[..., 2] ** 2 / p["q2"] ** 2) / p["r_s"] ** 2
-    return rho0_of_m(p) * jnp.exp(-xi2 / 2)  # type: ignore[no-any-return]
+    return _triaxial_density(_triaxial(p), xyz)  # type: ignore[no-any-return]
 
 
 @ft.partial(jax.jit, static_argnames=("integration_order",))
@@ -226,20 +236,9 @@ def potential(
     static argument. The positions may carry leading batch axes.
 
     """
-    r_s, q2 = p["r_s"], p["q2"]
-    qsq = q2**2
-    # The node axis comes first: (N, 1, ..., 1) against the batch of `xyz`.
-    batchdims = xyz.ndim - 1
-    R2 = xyz[..., 0] ** 2 + xyz[..., 1] ** 2
-    z2 = xyz[..., 2] ** 2
-
-    def integrand(s: Array) -> Array:
-        s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
-        xi2 = s2 * (R2 + z2 / (1 + (qsq - 1) * s2)) / r_s**2
-        return 2.0 * jnp.exp(-xi2 / 2) / jnp.sqrt((qsq - 1) * s2 + 1)  # type: ignore[no-any-return]
-
-    integral = gauss_legendre(integrand, integration_order)
-    return (-2.0 * jnp.pi * p["G"] * rho0_of_m(p) * r_s**2 * q2) * integral  # type: ignore[no-any-return]
+    return _triaxial_potential(  # type: ignore[no-any-return]
+        _triaxial(p), xyz, integration_order=integration_order
+    )
 
 
 # Derived quantities, built from the kernels above.

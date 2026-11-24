@@ -18,7 +18,6 @@ __all__ = [
 import functools as ft
 from dataclasses import KW_ONLY
 
-from jaxtyping import Array
 from typing import final
 
 import equinox as eqx
@@ -35,6 +34,7 @@ from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
 )
+from galax.potential._src.builtin.nfw.base import rho0_of_m
 from galax.potential._src.kernels import (
     cartesian_gradient,
     cartesian_hessian,
@@ -43,7 +43,7 @@ from galax.potential._src.kernels import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import gauss_legendre
+from galax.potential._src.utils import chandrasekhar_integral
 
 
 @final
@@ -102,19 +102,20 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     differentiation of a square root of zero. Evaluate away from the origin.
 
     The quadrature has a fixed order, so its error grows where the integrand
-    narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration the
-    relative error of the order-50 potential is below 1e-14 from :math:`10^{-3}`
-    to :math:`30 r_s`, 3e-9 at :math:`100 r_s`, 9e-6 at :math:`300 r_s` and
-    1.4e-3 at :math:`10^3 r_s`, so raise ``integration_order`` for the far
-    field. The functions are in `galax.potential.triaxialnfw`. The gradient and
-    Hessian of this class come from automatic differentiation of the potential.
+    narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration,
+    for axis ratios from 0.3 to 1.5, the relative error of the order-50
+    potential is at most 1e-14 from :math:`10^{-3}` to :math:`30 r_s`, 3e-9 at
+    :math:`100 r_s`, 1e-5 at :math:`300 r_s` and 1.6e-3 at :math:`10^3 r_s`, so
+    raise ``integration_order`` for the far field. The functions are in
+    `galax.potential.triaxialnfw`. The gradient and Hessian of this class come
+    from automatic differentiation of the potential.
 
     References
     ----------
-    .. [Chandrasekhar1969] Chandrasekhar, S. (1969). Ellipsoidal Figures of
+    .. [Chandrasekhar1969TriNFW] Chandrasekhar, S. (1969). Ellipsoidal Figures of
        Equilibrium. Yale University Press. Theorem 12.
        `ADS <https://ui.adsabs.harvard.edu/abs/1969efe..book.....C>`__.
-    .. [MerrittFridman1996] Merritt, D., & Fridman, T. (1996). Triaxial
+    .. [MerrittFridman1996TriNFW] Merritt, D., & Fridman, T. (1996). Triaxial
        Galaxies with Cusps. The Astrophysical Journal, 460, 136.
        `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...460..136M>`__.
        The potential is their eq. 2a.
@@ -194,18 +195,6 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
 
 @ft.partial(jax.jit)
-def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
-    r"""Characteristic density for the triaxial NFW model.
-
-    .. math::
-
-        \rho_0 = \frac{m}{4 \pi r_s^3}.
-
-    """
-    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)  # type: ignore[no-any-return]
-
-
-@ft.partial(jax.jit)
 def density(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:
     r"""Density of the triaxial NFW model.
 
@@ -247,18 +236,9 @@ def potential(
 
     """
     r_s, q1, q2 = p["r_s"], p["q1"], p["q2"]
-    q1sq, q2sq = q1**2, q2**2
-    # The node axis comes first: (N, 1, ..., 1) against the batch of `xyz`.
-    batchdims = xyz.ndim - 1
-    x2, y2, z2 = xyz[..., 0] ** 2, xyz[..., 1] ** 2, xyz[..., 2] ** 2
-
-    def integrand(s: Array) -> Array:
-        s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
-        f1, f2 = (q1sq - 1) * s2 + 1, (q2sq - 1) * s2 + 1
-        x = jnp.sqrt(s2 * (x2 + y2 / f1 + z2 / f2)) / r_s
-        return 2.0 / (1.0 + x) / jnp.sqrt(f1 * f2)  # type: ignore[no-any-return]
-
-    integral = gauss_legendre(integrand, integration_order)
+    integral = chandrasekhar_integral(
+        lambda xi2: 2.0 / (1.0 + jnp.sqrt(xi2)), xyz, r_s, q1, q2, integration_order
+    )
     return (-2.0 * jnp.pi * p["G"] * rho0_of_m(p) * r_s**2 * q1 * q2) * integral  # type: ignore[no-any-return]
 
 

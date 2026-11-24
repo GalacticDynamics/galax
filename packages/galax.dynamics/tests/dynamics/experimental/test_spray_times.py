@@ -145,15 +145,15 @@ TIE_EPS = 1e-3
 TIE_TOL = {"leapfrog": (1e-4, 1e-10), "adaptive": (0.0, 5e-5)}
 
 
-def tie_loss(sim):
+def tie_loss(sim, t1=T1):
     def loss(ts: jax.Array) -> jax.Array:
-        f = flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1)))
+        f = flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, t1)))
         return jnp.sum(f * TIE_W[: f.shape[0]])
 
     return loss
 
 
-def check_tie(sim, ts, sides, tol=TIE_TOL["leapfrog"]):
+def check_tie(sim, ts, sides, tol=TIE_TOL["leapfrog"], t1=T1):
     """Check ``jax.grad`` against second-order one-sided or central differences.
 
     With Leapfrog, the left and right derivatives at a tie differ by 3.4e-4 to
@@ -164,7 +164,7 @@ def check_tie(sim, ts, sides, tol=TIE_TOL["leapfrog"]):
     at a tie; the adaptive gradients before the fix were off by 2.5e-3 or
     more, so atol = 5e-5.
     """
-    loss = tie_loss(sim)
+    loss = tie_loss(sim, t1)
     ts = jnp.asarray(ts)
     g = jax.grad(loss)(ts)
     f0, e = loss(ts), TIE_EPS
@@ -240,6 +240,24 @@ def test_times_tie_grad(mode, solver, case) -> None:
         np.testing.assert_allclose(
             g @ dts, jax.grad(loss)(jnp.asarray(300.0)), rtol=1e-9
         )
+
+
+@pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap"])
+def test_times_tie_at_ends(mode) -> None:
+    """Ties at the ends of the lattice, with fixed steps.
+
+    The last of the releases tied at ``max(ts)`` carries a default ``t1``, so
+    the pair takes one-sided derivatives in order, as at any other tie. At
+    ``min(ts)`` no order fits a lone tied release moving: only the tied group
+    moving together has the right derivative.
+    """
+    sim = make_sim(mode)
+    check_tie(sim, [-300.0, -123.4, -12.5, -12.5], "RCLR", t1=None)
+    ts = jnp.asarray([-300.0, -300.0, -100.5])
+    loss = tie_loss(sim)
+    d = jnp.asarray([1.0, 1.0, 0.0])
+    want = (loss(ts + TIE_EPS * d) - loss(ts - TIE_EPS * d)) / (2 * TIE_EPS)
+    np.testing.assert_allclose(jax.grad(loss)(ts) @ d, want, rtol=1e-6)
 
 
 def test_times_no_leak() -> None:

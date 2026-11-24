@@ -92,9 +92,12 @@ class Times(eqx.Module):
     lattice's ``t1``. A tie gives a step of zero length: it leaves every value
     as it is, and gives the rows that travel it (a released row, from its
     release to the next grid point) the tangent of its length. Gradients at a
-    tie are then the one-sided derivatives of that order: from the left for a
-    release on a lattice point or at ``t1``, and for tied releases the side that
-    keeps their order in ``ts``.
+    tie are then those of the branch that keeps the grid's order. For a release
+    on an interior lattice point or at ``t1``, that is the derivative from the
+    left; for two tied releases, the first takes the left one and the second
+    the right one (the last of the releases tied at ``max(ts)`` carries a
+    default ``t1``). Releases tied at ``min(ts)``, which sets the lattice, are
+    the exception: only their sum, moving them together, is a derivative.
 
     Parameters
     ----------
@@ -131,7 +134,9 @@ class Times(eqx.Module):
         if self.ts.ndim != 1 or self.ts.shape[0] < 1:
             msg = f"ts must have shape (n,) with n >= 1, got {self.ts.shape}"
             raise ValueError(msg)
-        self.t1 = jnp.max(self.ts) if t1 is None else jnp.asarray(t1, dtype=float)
+        # The last of tied maxima: the end of the grid's order (see above).
+        last_max = self.ts[-1 - jnp.argmax(self.ts[::-1])]
+        self.t1 = last_max if t1 is None else jnp.asarray(t1, dtype=float)
         if self.steps < 1:
             msg = f"steps must be at least 1, got {self.steps}"
             raise ValueError(msg)

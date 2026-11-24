@@ -248,8 +248,8 @@ def test_laplacian_is_poisson(abg, r: float) -> None:
 # ===================================================================
 # `from_m_tot`
 
-# alpha <= 2 and beta <= 9, where `spexial.incomplete_beta` is accurate (see the
-# module docstring of `zhao.py`).
+# Small alpha and beta (alpha <= 2, beta <= 9), where `spexial.incomplete_beta` loses
+# no digits (see the accuracy note in the module docstring of `zhao.py`).
 CLEAN_ABG = [(1, 4, 1), (2, 5, 0), (1.5, 4.5, 1.2), (2, 4, 0.5), (0.5, 6, 1.5)]
 
 

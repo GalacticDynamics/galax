@@ -87,8 +87,14 @@ class Times(eqx.Module):
     The lattice has ``steps`` equal steps from ``min(ts)`` to ``t1``, computed
     as `Uniform`'s (`uniform`). A fixed-step solve steps on the merged grid of
     the lattice points and the release times, so every release is a grid point
-    and no release time is snapped. A release that coincides with a lattice
-    point gives a step of zero length, which changes nothing.
+    and no release time is snapped. A release sorts before a lattice point it
+    equals, and tied releases keep the order of ``ts``, so the grid ends at the
+    lattice's ``t1``. A tie gives a step of zero length: it leaves every value
+    as it is, and gives the rows that travel it (a released row, from its
+    release to the next grid point) the tangent of its length. Gradients at a
+    tie are then the one-sided derivatives of that order: from the left for a
+    release on a lattice point or at ``t1``, and for tied releases the side that
+    keeps their order in ``ts``.
 
     Parameters
     ----------
@@ -111,7 +117,7 @@ class Times(eqx.Module):
     >>> sched.grid()
     Array([-250., -250., -200., -150., -120., -100.,  -50.,    0.], dtype=float64)
     >>> sched.release_index()
-    Array([4, 1], dtype=int64)
+    Array([4, 0], dtype=int64)
 
     """
 
@@ -144,19 +150,22 @@ class Times(eqx.Module):
         """Return the ``steps + 1`` lattice points, as `Uniform.lattice`."""
         return self.uniform().lattice()
 
-    def grid(self) -> Array:
-        """Return the merged grid: lattice points and release times, sorted.
+    def _merged(self) -> Array:
+        # Releases first, so the stable sort puts a release before a lattice
+        # point it equals, and tied releases in the order of ``ts``.
+        return jnp.concat([self.ts, self.lattice()])
 
-        It has static length ``steps + 1 + n``; duplicates are kept.
+    def grid(self) -> Array:
+        """Return the merged grid: release times and lattice points, sorted.
+
+        It has static length ``steps + 1 + n``; duplicates are kept. A release
+        comes before a lattice point it equals, so the last point is ``t1``.
         """
-        return jnp.sort(jnp.concat([self.lattice(), self.ts]))
+        return jnp.sort(self._merged())
 
     def release_index(self) -> Array:
         """Grid index of each release, in the order of ``ts``."""
-        # Position in the sorted grid of each entry of concat(lattice, ts). The
-        # sort is stable, so a release sits after a lattice point it equals.
-        order = jnp.argsort(jnp.argsort(jnp.concat([self.lattice(), self.ts])))
-        return order[self.steps + 1 :]
+        return jnp.argsort(jnp.argsort(self._merged()))[: self.ts.shape[0]]
 
     def release_times(self) -> Array:
         """Return the release times ``ts``, in the given order."""
@@ -174,5 +183,8 @@ class Times(eqx.Module):
         # A NaN time gives NaN release states, so NaN rows: solve over zero
         # time, not NaN time.
         grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
-        on = self.ts[None, :] <= u[:, None]
+        # By sorted position, not time: of tied releases, only those before
+        # a segment's start in ``ts`` order move in it.
+        rank = jnp.argsort(jnp.argsort(self.ts))
+        on = rank[None, :] <= jnp.arange(self.ts.shape[0])[:, None]
         return grids, on

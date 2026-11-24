@@ -23,6 +23,8 @@ import galax.fields as gf
 import galax.potential as gp
 from .schedule import Times, Uniform
 
+sg = jax.lax.stop_gradient
+
 
 def default_solver() -> dfxtra.DiffEqSolver:
     """Return the default solver: `Leapfrog` on the schedule's lattice.
@@ -100,15 +102,19 @@ def _solve(
     step_ts: Array,
     saveat: dfx.SaveAt,
     args: Any = None,
+    gate: Callable[[dfx.AbstractTerm], Any] | None = None,
 ) -> Any:
     """Solve and return ``ys``; NaN for a failed solve instead of raising.
 
     A fixed-step solve steps from ``step_ts[k]`` to ``step_ts[k + 1]`` in index
     time (`_IndexTime`), so equal or NaN times never make diffrax raise. The
-    terms still see physical times.
+    terms still see physical times. ``gate`` (fixed steps only) wraps each
+    index-time term, so it sees the step index ``k``.
     """
     if is_lattice(solver):
         terms = map_terms(lambda x: _IndexTime(x, step_ts), terms)
+        if gate is not None:
+            terms = map_terms(gate, terms)
         step_ts = jnp.arange(step_ts.shape[0], dtype=float)
         kw: dict[str, Any] = {
             "dt0": None,
@@ -150,15 +156,27 @@ def solve_on(
     step_ts: Array,
     *,
     args: Any = None,
+    gate: Callable[[dfx.AbstractTerm], Any] | None = None,
 ) -> Any:
     """Return the final state after solving along ``step_ts``.
 
-    A fixed-step solver takes exactly the steps ``step_ts``. An adaptive one
-    runs from ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A
-    failed solve returns NaN, it never raises.
+    A fixed-step solver takes exactly the steps ``step_ts``; ``gate`` wraps
+    each of its terms in index time (`_solve`). An adaptive one runs from
+    ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A failed solve
+    returns NaN, it never raises.
+
+    An adaptive solve over zero time takes no steps, so diffrax drops the
+    tangent of its end times. It gets the first-order one, ``f(y0) (dt1 -
+    dt0)``, which is exact at zero span; the value is unchanged.
     """
-    ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args)
-    return jax.tree.map(lambda y: y[0], ys)
+    ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args, gate)
+    y1 = jax.tree.map(lambda y: y[0], ys)
+    if not is_lattice(solver) and isinstance(terms, dfx.AbstractTerm):
+        t0, t1 = step_ts[0], step_ts[-1]
+        dt = (t1 - sg(t1)) - (t0 - sg(t0))  # zero, with the tangent dt1 - dt0
+        dy = terms.vf_prod(t0, y0, args, dt)
+        y1 = jax.tree.map(lambda a, b: jnp.where(t0 == t1, a + b, a), y1, dy)
+    return y1
 
 
 def progenitor_states(

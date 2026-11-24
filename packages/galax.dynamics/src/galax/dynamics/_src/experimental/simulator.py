@@ -10,6 +10,7 @@ __all__ = [
     "to_mockstream",
 ]
 
+import functools as ft
 import warnings
 from dataclasses import KW_ONLY
 
@@ -37,7 +38,6 @@ from .solve import (
     default_solver,
     host_terms,
     is_lattice,
-    map_terms,
     progenitor_states,
     solve_on,
 )
@@ -222,7 +222,9 @@ class SpraySimulator(eqx.Module):
         It must use the host's unit system.
     solver : diffraxtra.DiffEqSolver
         Settings of the stream's solves. A `diffrax.ConstantStepSize`
-        controller steps on the schedule's lattice; any other is adaptive.
+        controller steps on the schedule's grid (`Uniform`'s lattice, or
+        `Times`'s merged grid of lattice points and release times); any other
+        is adaptive.
     progenitor_solver : diffraxtra.DiffEqSolver | None
         Settings of the progenitor's orbit in the per-particle modes; `None`
         means ``solver``. `WholeStream` integrates the progenitor with the
@@ -342,11 +344,15 @@ def evolve_whole_stream(
     w0: Array,
     grids: Array,
     active: Array,
+    gate: Callable[[dfx.AbstractTerm], Any] | None = None,
 ) -> Array:
     """Evolve the rows ``w0`` (R, 6) with ``terms`` over the segments ``grids``.
 
     Segment ``s`` is one solve along ``grids[s]`` (S, L + 1) with the tracers
-    ``active[s]`` (S, R - 1) moving and the rest frozen. If ``w0`` is not finite
+    ``active[s]`` (S, R - 1) moving and the rest frozen. ``gate`` goes to
+    `solve_on`. The fixed-step `Times` path is one segment with every tracer in
+    ``active``: its ``gate``, `_Gate`, freezes each row until its release, not
+    ``active``. If ``w0`` is not finite
     or a segment fails, every row comes out NaN. After that, an adaptive
     solver's later segments span zero time: a NaN state would make it run to
     ``max_steps``.
@@ -361,7 +367,7 @@ def evolve_whole_stream(
         grid, on = xs
         if adaptive:
             grid = jnp.where(failed, grid[0], grid)
-        y1 = solve_on(solver, terms, y, grid, args={"active": on})
+        y1 = solve_on(solver, terms, y, grid, args={"active": on}, gate=gate)
         bad = jnp.any(~jnp.isfinite(jnp.concat(jax.tree.leaves(y1), axis=None)))
         y1 = jax.tree.map(lambda a, b: jnp.where(bad, a, b), y, y1)
         return (y1, failed | bad), None
@@ -374,21 +380,25 @@ def evolve_whole_stream(
 
 
 class _FromRelease(dfx.AbstractTerm):  # type: ignore[misc]
-    """``term`` with time held at ``t_release`` before it.
+    """An index-time ``term`` held at the release's grid index ``start``.
 
-    Every step that ends by ``t_release`` has a zero control, so it leaves the
-    state exactly as it is; later steps are the plain ``term``'s.
+    Every step ``k < start`` has a zero control, in value and tangent, so it
+    leaves the state exactly as it is; later steps are the plain ``term``'s,
+    and before ``start`` the vector field is read at the release. Held by
+    index, not time, a release tied with the grid point before it never
+    travels the zero step between them, so only the particle's own steps
+    carry tangents.
     """
 
     term: dfx.AbstractTerm
-    t_release: Array
+    start: Array
 
     def vf(self, t: Array, y: Any, args: Any) -> Any:
-        return self.term.vf(jnp.maximum(t, self.t_release), y, args)
+        return self.term.vf(jnp.maximum(t, self.start), y, args)
 
     def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Any:  # noqa: ARG002
-        tr = self.t_release
-        return self.term.contr(jnp.maximum(t0, tr), jnp.maximum(t1, tr))
+        s = self.start
+        return self.term.contr(jnp.maximum(t0, s), jnp.maximum(t1, s))
 
     def prod(self, vf: Any, control: Array) -> Any:
         return self.term.prod(vf, control)
@@ -399,6 +409,7 @@ def evolve_per_particle(
     solver: dfxtra.DiffEqSolver,
     w0: Array,
     t0: Array,
+    i0: Array,
     lattice: Array,
     loop: type[lstrat.Scan | lstrat.VMap],
 ) -> Array:
@@ -406,11 +417,11 @@ def evolve_per_particle(
 
     ``j`` (lead, trail) is vmapped; ``loop`` vmaps or scans over ``i``. A
     fixed-step solve steps over the whole ``lattice`` (static shapes), with
-    no-op steps up to ``t0[i]``, so it takes exactly the lattice steps from
-    ``t0[i]``. An adaptive one starts at ``t0[i]``. A failed solve gives NaN
-    for its particle only. A non-finite ``lattice`` or ``t0`` gives NaN for
-    every particle and never raises: the solves run on stand-in times
-    (``arange``, or zero time when adaptive).
+    no-op steps up to ``t0[i] = lattice[i0[i]]``, so it takes exactly the
+    lattice steps from index ``i0[i]``. An adaptive one starts at ``t0[i]``.
+    A failed solve gives NaN for its particle only. A non-finite ``lattice``
+    or ``t0`` gives NaN for every particle and never raises: the solves run
+    on stand-in times (``arange``, or zero time when adaptive).
     """
     split = isinstance(solver.solver, gf.Leapfrog)
     on_lattice = is_lattice(solver)
@@ -419,43 +430,43 @@ def evolve_per_particle(
     lattice = jnp.where(ok, lattice, stand_in)
     t0 = jnp.where(ok, t0, lattice[0])
 
-    def one(w: Array, t: Array) -> Array:
+    def one(w: Array, t: Array, i: Array) -> Array:
+        y: Any = (w[..., :3], w[..., 3:]) if split else w
         if on_lattice:
-            tm, ts = map_terms(lambda x: _FromRelease(x, t), terms), lattice
+            y = solve_on(solver, terms, y, lattice, gate=lambda x: _FromRelease(x, i))
         else:
-            tm, ts = terms, jnp.stack([t, lattice[-1]])
-        y = solve_on(solver, tm, (w[..., :3], w[..., 3:]) if split else w, ts)
+            y = solve_on(solver, terms, y, jnp.stack([t, lattice[-1]]))
         return jnp.concat(y, axis=-1) if split else y
 
-    pair = jax.vmap(one, in_axes=(0, None))
+    pair = jax.vmap(one, in_axes=(0, None, None))
     if loop is lstrat.Scan:
-        w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0))
+        w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0, i0))
     else:
-        w = jax.vmap(pair)(w0, t0)
+        w = jax.vmap(pair)(w0, t0, i0)
     return jnp.where(ok, w, jnp.nan)
 
 
 class _Gate(dfx.AbstractTerm):  # type: ignore[misc]
-    """A whole-stream term with each row frozen until its release.
+    """An index-time whole-stream term with each row frozen until its release.
 
-    Row ``r`` has a zero control on every step that starts before ``t_rel[r]``
-    (``-inf`` for the progenitor row), and its derivatives are switched off
-    (``args["active"]``) before it.
-    Release times are grid points, so a step either ends by a release or starts
-    at or after it. The step that ends at a release evaluates the row's force
-    at its release state, with the progenitor row at the release time, so
-    `Leapfrog`'s cached force is right for the next step: no kick leaks across
-    the release.
+    Row ``r`` has a zero control on every step ``k < start[r]``, its release's
+    grid index (0 for the progenitor row), and its derivatives are switched off
+    (``args["active"]``) before it. The step that ends at a release evaluates
+    the row's force at its release state, with the progenitor row at the
+    release time, so `Leapfrog`'s cached force is right for the next step: no
+    kick leaks across the release. Gated by index, not time, a zero step at a
+    tie (two releases, or a release and a lattice point) carries its tangent
+    only for the rows that travel it, those released by its start.
     """
 
     term: dfx.AbstractTerm
-    t_rel: Array  # (R,)
+    start: Array  # (R,)
 
     def vf(self, t: Array, y: Any, args: Any) -> Any:  # noqa: ARG002
-        return self.term.vf(t, y, {"active": (t >= self.t_rel)[1:]})
+        return self.term.vf(t, y, {"active": (t >= self.start)[1:]})
 
     def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Array:  # noqa: ARG002
-        return jnp.where(t0 >= self.t_rel, self.term.contr(t0, t1), 0.0)
+        return jnp.where(t0 >= self.start, self.term.contr(t0, t1), 0.0)
 
     def prod(self, vf: Any, control: Array) -> Any:
         return jax.tree.map(lambda v: v * control[:, None], vf)
@@ -494,17 +505,21 @@ def _evolve(
     n = lead0.shape[0]
     terms = _WholeStreamField(pot, prog_pot).terms(sim.solver)
     ts = schedule.release_times()
+    gate = None
     if isinstance(schedule, Times) and is_lattice(sim.solver):
-        # One solve over the merged grid, each row gated by its release time.
-        t_rel = jnp.concat([jnp.full(1, -jnp.inf), ts, ts])
-        terms = map_terms(lambda x: _Gate(x, t_rel), terms)
+        # One solve over the merged grid, each row gated by its release's grid
+        # index; the progenitor row starts at the grid's first point.
+        idx = schedule.release_index()
+        first = jnp.concat([jnp.zeros(1, dtype=idx.dtype), idx, idx])
+        gate = ft.partial(_Gate, start=first)
         grids, on = schedule.grid()[None], jnp.ones((1, n), dtype=bool)
         start = ws[0]
     else:
         # One solve per segment; the tracers released by its start move in it.
         grids, on = schedule.segments()
         # The progenitor at min(ts). Not ws[0]: with `Times`, lattice round-off
-        # can put the grid's first point an ulp before min(ts).
+        # can put the grid's first point an ulp before min(ts) (a release
+        # equal to it sorts first).
         start = ws[schedule.release_index()[jnp.argmin(ts)]]
     w = evolve_whole_stream(
         terms,
@@ -512,6 +527,7 @@ def _evolve(
         jnp.concat([start[None], lead0, trail0]),
         grids,
         jnp.concat([on, on], axis=1),
+        gate,
     )
     return w[1 : n + 1], w[n + 1 :], w[0]
 
@@ -550,7 +566,7 @@ def _evolve(
     # A fixed-step solve steps on the grid (for `Times`, the merged grid, like
     # `WholeStream`): a copy then takes the progenitor's own steps.
     t0, steps = schedule.release_times(), schedule.grid()
-    w = evolve_per_particle(terms, sim.solver, w0, t0, steps, mode.loop)
+    w = evolve_per_particle(terms, sim.solver, w0, t0, idx, steps, mode.loop)
     if prog_pot is not None:
         w = w[:, :, 0]
     return w[:, 0], w[:, 1], ws[-1]

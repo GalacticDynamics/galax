@@ -62,7 +62,7 @@ def test_copies_end_at_progenitor(loop) -> None:
     w0 = jnp.stack([lead0, trail0], axis=1)
     w0 = jnp.stack([w0, jnp.broadcast_to(ws[idx, None], w0.shape)], axis=2)
     terms = _CopiesField(HOST, plummer(MSAT)).terms(LEAP)
-    w = evolve_per_particle(terms, LEAP, w0, lattice[idx], lattice, loop)
+    w = evolve_per_particle(terms, LEAP, w0, lattice[idx], idx, lattice, loop)
     assert w.shape == (5, 2, 2, 6)
     np.testing.assert_allclose(
         w[:, :, 1], jnp.broadcast_to(W_TODAY, (5, 2, 6)), rtol=0, atol=1e-12
@@ -145,7 +145,7 @@ def test_failed_particle_is_nan(loop) -> None:
     w0 = jnp.broadcast_to(jnp.stack([w, W_TODAY]), (2, 2, 2, 6))
     terms = _CopiesField(HOST, plummer(MSAT)).terms(solver)
     out = eqx.filter_jit(evolve_per_particle)(
-        terms, solver, w0, lattice[:2], lattice, loop
+        terms, solver, w0, lattice[:2], jnp.arange(2), lattice, loop
     )
     assert jnp.all(jnp.isnan(out[0]))
     assert jnp.all(jnp.isfinite(out[1]))

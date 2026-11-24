@@ -56,35 +56,28 @@ def angle_system(
     ``theta`` is the (T, 3) toy angle, already unwrapped along T. Returns ``A``
     of shape (6 + 3N, 6 + 3N) and ``b`` of shape (6 + 3N,).
     """
-    N = len(nvecs)
     eye3 = jnp.eye(3, dtype=theta.dtype)
     n = jnp.asarray(nvecs, dtype=theta.dtype)
     sinv = jnp.sin(theta @ n.T)  # (T, N)
     wsin = w[:, None] * sinv
     s1 = -2.0 * wsin.sum(axis=0)  # (N,)
     s2 = -2.0 * (t[:, None] * wsin).sum(axis=0)
+    wt = w * t
     ss = 4.0 * (wsin.T @ sinv)  # (N, N)
 
     # Rows 0:6 are the transpose of columns 0:6; the S block is block-diagonal.
-    left = jnp.zeros((3 * N, 6), dtype=theta.dtype)
-    for i in range(3):
-        left = left.at[i * N : (i + 1) * N, i].set(s1)
-        left = left.at[i * N : (i + 1) * N, 3 + i].set(s2)
-    top = jnp.concat(
-        [
-            jnp.concat([w.sum() * eye3, (w * t).sum() * eye3, left.T[:3]], axis=1),
-            jnp.concat(
-                [(w * t).sum() * eye3, (w * t * t).sum() * eye3, left.T[3:]], axis=1
-            ),
-        ],
-        axis=0,
+    left = jnp.concat(
+        [jnp.kron(eye3, s1[:, None]), jnp.kron(eye3, s2[:, None])], axis=1
     )
-    low = jnp.concat([left, jnp.kron(jnp.eye(3, dtype=theta.dtype), ss)], axis=1)
+    swt = wt.sum()
+    moments = jnp.array([[w.sum(), swt], [swt, (wt * t).sum()]])
+    top = jnp.concat([jnp.kron(moments, eye3), left.T], axis=1)
+    low = jnp.concat([left, jnp.kron(eye3, ss)], axis=1)
     A = jnp.concat([top, low], axis=0)
     b = jnp.concat(
         [
             (w[:, None] * theta).sum(axis=0),
-            (w[:, None] * t[:, None] * theta).sum(axis=0),
+            (wt[:, None] * theta).sum(axis=0),
             (-2.0 * (wsin.T @ theta)).T.reshape(-1),  # (3, N) -> (3N,)
         ]
     )
@@ -157,6 +150,8 @@ def solve_o2gf(
     still linearly dependent, and there the minimum norm picks the S_n, where
     gala's solve is singular.
     """
+    # Mask non-finite samples: weight 0, zeroed J and t, angles filled before
+    # unwrapping.
     ok = jnp.isfinite(J_toy).all(axis=1) & jnp.isfinite(theta_raw).all(axis=1)
     ok &= jnp.isfinite(t)
     w = ok.astype(jnp.result_type(J_toy, theta_raw, float))
@@ -164,17 +159,20 @@ def solve_o2gf(
     tt = jnp.where(ok, t, 0.0)
     theta = jnp.unwrap(fill_masked(theta_raw, ok), axis=0)
 
+    # Span of each n . theta over the kept samples.
     X = theta @ jnp.asarray(nvecs, dtype=theta.dtype).T  # (T, N)
     span = jnp.where(ok[:, None], X, -jnp.inf).max(axis=0) - jnp.where(
         ok[:, None], X, jnp.inf
     ).min(axis=0)
     span = jnp.where(ok.any(), span, 0.0)
+    # Modes that involve an axis at rest are left out and not counted.
     skip = (
         jnp.zeros(len(nvecs), bool)
         if rest is None
         else jnp.any((nvecs != 0) & rest, axis=1)
     )
-    # In float32 the round-off of the unwrapped angles exceeds 1e-6 rad.
+    # Resonance threshold. In float32 the round-off of the unwrapped angles
+    # exceeds 1e-6 rad.
     eps = float(np.finfo(theta.dtype).eps)
     tol = jnp.maximum(
         _RESONANT, 100 * eps * jnp.max(jnp.abs(jnp.where(ok[:, None], X, 0.0)))
@@ -187,21 +185,25 @@ def solve_o2gf(
     ).min(axis=0)
     turns = jnp.where(ok.any(), th_span, 0.0) >= 2 * jnp.pi
     resonant = below & jnp.all((nvecs == 0) | turns, axis=1)
+    # Badly covered: under one turn, more than pi per sample, or the whole
+    # orbit too coarse to unwrap.
     bad = (span < 2 * jnp.pi) | (safe_div(span, w.sum()) > jnp.pi) | coarse
     bad &= ~(skip | resonant)
 
+    # Solve for x = (J, S_n) and y = (theta0, Omega, dS_n/dJ), with the
+    # dropped modes fixed at 0.
     drop = below | skip
     A, b = action_system(J, theta, nvecs, w)
     x = _solve_masked(A, b, jnp.concat([jnp.zeros(3, bool), drop]))
     A, b = angle_system(theta, tt, nvecs, w)
     y = _solve_masked(A, b, jnp.concat([jnp.zeros(6, bool), jnp.tile(drop, 3)]))
     return (
-        x[:3],
-        x[3:],
-        y[:3],
-        y[3:6],
-        y[6:],
-        bad.sum(),
-        (~ok).sum(),
-        resonant.sum(),
+        x[:3],  # J
+        x[3:],  # S_n
+        y[:3],  # theta0
+        y[3:6],  # Omega
+        y[6:],  # dS_n/dJ, (3N,)
+        bad.sum(),  # n_bad_cover
+        (~ok).sum(),  # n_nan
+        resonant.sum(),  # n_resonant
     )

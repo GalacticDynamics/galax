@@ -8,7 +8,6 @@ import pytest
 from galax.actionangle._src._o2gf_orbit import (
     align_circulation_with_z,
     circulating_axes,
-    is_loop,
 )
 
 T = jnp.linspace(0.0, 40.0, 400)
@@ -36,7 +35,7 @@ ORBITS = {
 def _check(q, p, circ, expected, axis_exp, out):
     q2, p2, axis = out
     assert tuple(np.asarray(circ)) == expected
-    assert bool(is_loop(circ)) == any(expected)
+    assert bool(circ.any()) == any(expected)
     assert int(axis) == axis_exp
     if any(expected):
         L = jnp.cross(q2, p2)

@@ -26,7 +26,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.potential as gp
 from ._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
-from ._o2gf_orbit import align_circulation_with_z, circulating_axes, is_loop
+from ._o2gf_orbit import align_circulation_with_z, circulating_axes
 from ._o2gf_solve import solve_o2gf
 from ._o2gf_toy import (
     IsochroneToy,
@@ -87,7 +87,7 @@ class O2GFResult(eqx.Module):
     are then zero-padded to the loop length, per block of ``dsn_dj``.
 
     ``family_mismatch`` is True when the path that ran, fixed by ``family``
-    or by the type of ``toy``, is not the one `is_loop` picks for the orbit
+    or by the type of ``toy``, is not the one the orbit's circulation picks
     (in either direction). It is always False with ``family=None`` and no
     ``toy``.
 
@@ -290,7 +290,7 @@ def _o2gf(
     loop_n, box_n = n_vectors(n_max, LOOP_STEPS), n_vectors(n_max, BOX_STEPS)
 
     def one(q: Array, p: Array, t: Array, toy: Any) -> _Out:
-        sel = is_loop(circulating_axes(q, p, _finite(q, p, t)))
+        sel = circulating_axes(q, p, _finite(q, p, t)).any()
         if family is not None:
             loop = family == "loop"
             out = _path(loop, pot, G, q, p, t, toy, loop_n if loop else box_n)

@@ -62,15 +62,9 @@ class PhaseSpaceInterpolation(eqx.Module):
             u.ustrip(
                 AllowValue,
                 "",
+                # Each time must be in the bounds of every batch member.
                 jnp.logical_not(
-                    # Each time must be in the bounds of every batch member.
-                    jnp.all(
-                        within_bounds(
-                            jnp.reshape(tval, (-1, 1)),
-                            jnp.reshape(self.t0, (1, -1)),
-                            jnp.reshape(self.t1, (1, -1)),
-                        )
-                    )
+                    jnp.all(within_bounds(tval, jnp.max(self.t0), jnp.min(self.t1)))
                 ),
             ),
             "Time out of bounds.",

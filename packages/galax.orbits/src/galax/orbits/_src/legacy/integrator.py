@@ -495,22 +495,21 @@ def call(
         excluded=(0,),
     )
 
-    q0 = FastQ.from_(y0_[0], units["length"])
-    p0 = FastQ.from_(y0_[1], units["speed"])
-    t0, t1 = FastQ.from_(t0, units["time"]), FastQ.from_(t1, units["time"])
-    out = vec_call(field, q0, p0, t0, t1)
+    out = vec_call(
+        field,
+        FastQ.from_(y0_[0], units["length"]),
+        FastQ.from_(y0_[1], units["speed"]),
+        FastQ.from_(t0, units["time"]),
+        FastQ.from_(t1, units["time"]),
+    )
     if not isinstance(out, InterpolatedPhaseSpaceCoordinate):
         return out
 
-    # `jnp.vectorize` stacks the interpolant's arrays but leaves its static
-    # `batch_shape` at `()`. Rebuild the interpolant with the vectorized batch
-    # shape, dropping the length-1 flattened axis of each scalar interpolant.
-    batch = jnp.broadcast_shapes(q0.shape[:-1], p0.shape[:-1], t0.shape, t1.shape)
-    nb = len(batch)
-    scalar = jax.tree.map(
-        lambda x: x.reshape(*x.shape[:nb], *x.shape[nb + 1 :]),
-        out.interpolant.interp.scalar_interpolation,
-    )
+    # `jnp.vectorize` stacks the interpolant's arrays, each (*batch, 1, ...),
+    # but leaves its static `batch_shape` at `()`. Rebuild it with the batch.
+    scalar = out.interpolant.interp.scalar_interpolation
+    batch = scalar.ts.shape[:-2]
+    scalar = jax.tree.map(lambda x: jnp.squeeze(x, axis=len(batch)), scalar)
     interp = dfxtra.VectorizedDenseInterpolation(scalar, batch_shape=batch)
     return eqx.tree_at(lambda w: w.interpolant.interp, out, interp)
 

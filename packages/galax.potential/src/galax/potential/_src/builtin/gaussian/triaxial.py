@@ -241,7 +241,12 @@ def potential(
     """
     r_s, q1, q2 = p["r_s"], p["q1"], p["q2"]
     integral = chandrasekhar_integral(
-        lambda xi2: 2.0 * jnp.exp(-xi2 / 2), xyz, r_s, q1, q2, integration_order
+        lambda w, r_s: 2.0 * jnp.exp(-(w / r_s**2) / 2),
+        xyz,
+        r_s,
+        q1,
+        q2,
+        integration_order,
     )
     return (-2.0 * jnp.pi * p["G"] * rho0_of_m(p) * r_s**2 * q1 * q2) * integral  # type: ignore[no-any-return]
 

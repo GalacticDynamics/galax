@@ -416,7 +416,7 @@ def gauss_legendre(
 
 
 def chandrasekhar_integral(
-    f: Callable[[Array], Array],
+    f: Callable[[Array, Array], Array],
     xyz: Shaped[Array, "*batch 3"],
     r_s: Shaped[Array, ""],
     q1: Shaped[Array, ""],
@@ -428,15 +428,16 @@ def chandrasekhar_integral(
 
     .. math::
 
-        \int_0^1 \frac{f(\xi^2(s))}
+        \int_0^1 \frac{f(w(s), r_s)}
             {\sqrt{\left[(q_1^2 - 1) s^2 + 1\right]
                    \left[(q_2^2 - 1) s^2 + 1\right]}} \, ds,
         \qquad
-        \xi^2(s) = \frac{s^2}{r_s^2} \left[x^2 + \frac{y^2}{1 + (q_1^2 - 1) s^2}
+        w(s) = s^2 \left[x^2 + \frac{y^2}{1 + (q_1^2 - 1) s^2}
             + \frac{z^2}{1 + (q_2^2 - 1) s^2}\right],
 
-    for ``f`` of the squared dimensionless radius. The positions may carry
-    leading batch axes.
+    for ``f(w, r_s)`` of :math:`w = r_s^2 \xi^2(s)`, the squared radius in length
+    units, so that ``f`` forms the dimensionless radius in the way it chooses.
+    The positions may carry leading batch axes.
     """
     # The node axis comes first: (N, 1, ..., 1) against the batch of `xyz`.
     batchdims = xyz.ndim - 1
@@ -445,8 +446,7 @@ def chandrasekhar_integral(
     def integrand(s: Array) -> Array:
         s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
         f1, f2 = (q1**2 - 1) * s2 + 1, (q2**2 - 1) * s2 + 1
-        xi2 = s2 * (x2 + y2 / f1 + z2 / f2) / r_s**2
-        return f(xi2) / jnp.sqrt(f1 * f2)  # type: ignore[no-any-return]
+        return f(s2 * (x2 + y2 / f1 + z2 / f2), r_s) / jnp.sqrt(f1 * f2)  # type: ignore[no-any-return]
 
     return gauss_legendre(integrand, order)
 

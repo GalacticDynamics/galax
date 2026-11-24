@@ -148,13 +148,16 @@ def untie(sched, eps=1e-6):
 
     Of ``m`` equal times, the ``k``-th (in the order of ``ts``) moves left by
     ``m - 1 - k`` units of ``eps``, and by one more if they sit on a lattice
-    point, so each release stays before the lattice point it equalled.
+    point, so each release stays before the lattice point it equalled. At
+    ``min(ts)``, which sets the lattice, the first stays and the ``k``-th
+    moves right by ``k`` units instead, so the lattice stays where it is.
     """
     ts, lat = np.asarray(sched.ts), np.asarray(sched.lattice())
     d = np.zeros_like(ts)
     for v in np.unique(ts):
         (idx,) = np.nonzero(ts == v)
-        d[idx] = -(np.arange(len(idx))[::-1] + np.any(lat == v))
+        k = np.arange(len(idx))
+        d[idx] = k if v == ts.min() else -(k[::-1] + np.any(lat == v))
     return eps * jnp.asarray(d)
 
 
@@ -202,7 +205,13 @@ def test_times_tie_grad(mode, solver, case) -> None:
     ts = jnp.asarray(ts)
     sim = make_sim(mode, SOLVERS[solver])
     grad = jax.grad(wloss(sim, lambda x: gde.Times(x, 30, t1)))
-    g, near = grad(ts), grad(ts + untie(gde.Times(ts, 30, t1)))
+    shifted = ts + untie(gde.Times(ts, 30, t1))
+    # The shift unties the times without changing the grid's order.
+    np.testing.assert_array_equal(
+        gde.Times(shifted, 30, t1).release_index(),
+        gde.Times(ts, 30, t1).release_index(),
+    )
+    g, near = grad(ts), grad(shifted)
     np.testing.assert_allclose(g, near, rtol=0, atol=1e-4 * jnp.max(jnp.abs(near)))
     if case == "uniform":
         loss = wloss(sim, lambda t_age: gde.Uniform(t_age, 4, 10, T1))

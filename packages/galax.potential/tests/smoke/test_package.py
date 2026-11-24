@@ -77,6 +77,7 @@ expected_all = [
     "IsochronePotential",
     "JaffePotential",
     "KeplerPotential",
+    "KoposovEtAl2023HaloPotential",
     "PlummerPotential",
     "PowerLawCutoffPotential",
     "StoneOstriker15Potential",

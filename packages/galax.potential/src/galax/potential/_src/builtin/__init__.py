@@ -15,6 +15,7 @@ from .hernquist import *  # type: ignore[assignment]
 from .isochrone import *  # type: ignore[assignment]
 from .jaffe import *  # type: ignore[assignment]
 from .kepler import *  # type: ignore[assignment]
+from .koposov2023 import *
 from .kuzmin import *
 from .kuzminkutuzov import *
 from .logarithmic import *

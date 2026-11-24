@@ -20,6 +20,7 @@ functions that a shared helper builds.
 
 __all__ = [
     # Modules
+    "axisymmetricgaussian",
     "burkert",
     "gaussian",
     "gnfw",
@@ -45,6 +46,8 @@ __all__ = [
     "satoh",
     "scf",
     "stoneostriker15",
+    "triaxialgaussian",
+    "triaxialnfw",
     "zhao",
     # ABCs
     "AbstractPotential",
@@ -126,6 +129,7 @@ __all__ = [
 ]
 
 from . import (
+    axisymmetricgaussian,
     burkert,
     gaussian,
     gnfw,
@@ -151,6 +155,8 @@ from . import (
     satoh,
     scf,
     stoneostriker15,
+    triaxialgaussian,
+    triaxialnfw,
     zhao,
 )
 from ._src.api import (

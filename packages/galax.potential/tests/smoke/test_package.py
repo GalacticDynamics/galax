@@ -11,6 +11,7 @@ expected_all = [
     "plot",
     "scf",
     # per-potential modules
+    "axisymmetricgaussian",
     "burkert",
     "gaussian",
     "gnfw",
@@ -30,6 +31,8 @@ expected_all = [
     "powerlawcutoff",
     "satoh",
     "stoneostriker15",
+    "triaxialgaussian",
+    "triaxialnfw",
     "zhao",
     # symmetry
     "Symmetry",

@@ -209,3 +209,54 @@ def test_float32_preserved():
     ]
     for o in outs:
         assert o.dtype == jnp.float32
+
+
+# ---------------------------------------------------------------------------
+# Keyword-only static arguments
+
+
+def phi_order(p, xyz, *, order=3):
+    """Return a toy kernel that depends on a static keyword ``order``."""
+    return phi3(p, xyz) * (1 + 1e-3 * order)
+
+
+def test_static_kwargs_are_forwarded():
+    xyz = jnp.array([1.0, 2.0, 3.0])
+    grad = k.cartesian_gradient(phi_order)
+    hess = k.cartesian_hessian(phi_order)
+    lap_ = k.cartesian_laplacian(phi_order)
+
+    want = jax.grad(phi_order, 1)(p, xyz, order=7)
+    assert jnp.allclose(grad(p, xyz, order=7), want)
+    assert jnp.allclose(
+        hess(p, xyz, order=7), jax.hessian(phi_order, 1)(p, xyz, order=7)
+    )
+    assert jnp.allclose(lap_(p, xyz, order=7), jnp.trace(hess(p, xyz, order=7)))
+
+    # A second value retraces: the result changes with `order`.
+    assert not jnp.allclose(grad(p, xyz, order=7), grad(p, xyz, order=70))
+    # The default of the source is used when the keyword is omitted.
+    assert jnp.allclose(grad(p, xyz), grad(p, xyz, order=3))
+
+
+def test_static_kwargs_through_poisson():
+    xyz = jnp.array([1.0, 2.0, 3.0])
+    lap_ = k.cartesian_laplacian(phi_order)
+    dens = k.poisson_density(lap_)
+    lap2 = k.poisson_laplacian(dens)
+
+    want = lap_(p, xyz, order=7) / (4 * jnp.pi * p["G"])
+    assert jnp.allclose(dens(p, xyz, order=7), want)
+    assert jnp.allclose(lap2(p, xyz, order=7), lap_(p, xyz, order=7))
+
+
+def test_static_kwargs_signature():
+    """The keyword-only parameter stays keyword-only; the others are positional-only."""
+    for f in (
+        k.cartesian_gradient(phi_order),
+        k.cartesian_hessian(phi_order),
+        k.cartesian_laplacian(phi_order),
+        k.poisson_density(phi_order),
+        k.poisson_laplacian(phi_order),
+    ):
+        assert str(inspect.signature(f)) == "(p, xyz, /, *, order=3)"

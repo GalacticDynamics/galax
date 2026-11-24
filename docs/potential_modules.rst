@@ -48,6 +48,13 @@ has shape ``(3,)``. To evaluate many points, use ``jax.vmap``.
       - the non-spherical functions
       - ``(p, xyz, t)``
 
+A kernel can also take keyword-only arguments that set a numerical method, such
+as the ``integration_order`` of the Gauss-Legendre quadrature in
+``axisymmetricgaussian``, ``triaxialgaussian`` and ``triaxialnfw``. They follow
+the positional arguments, they are static under ``jax.jit``, and a potential
+class passes its own value. The functions built from such a kernel, here the
+``gradient`` and the ``hessian``, accept the same keyword.
+
 Positions and parameters are bare arrays in the unit system of the potential,
 and the caller keeps track of the units (see `Units`_ below). A module may export
 more than these functions, for example ``mass_total`` or ``rho0_of_m``.
@@ -168,5 +175,6 @@ Spherical
 Non-spherical
 -------------
 
-``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``axisymmetricgaussian``, ``kuzmin``, ``kuzminkutuzov``,
+``leesutotriaxialnfw``, ``longmuralibar``, ``miyamotonagai``,
+``monarietal2016bar``, ``satoh``, ``triaxialgaussian``, ``triaxialnfw``.

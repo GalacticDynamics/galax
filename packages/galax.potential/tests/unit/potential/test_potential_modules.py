@@ -69,6 +69,11 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
+    gp.AxisymmetricGaussianPotential(m_tot=M, r_s=RS, q2=0.7, units=G),
+    gp.TriaxialGaussianPotential(m_tot=M, r_s=RS, q1=0.9, q2=0.6, units=G),
+    gp.TriaxialNFWPotential(m=M, r_s=RS, q1=0.9, q2=0.6, units=G),
+    # A small order, so that the quadrature differs visibly from the default.
+    gp.TriaxialNFWPotential(m=M, r_s=RS, q1=0.9, q2=0.6, integration_order=12, units=G),
 ]
 
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
@@ -109,6 +114,15 @@ def is_radial(pot: gp.AbstractSinglePotential, name: str) -> bool:
     return pot.symmetry == gp.Symmetry.SPHERICAL and name in RADIAL
 
 
+def static_kwargs(pot: gp.AbstractSinglePotential, fn) -> dict:
+    """Return the keyword-only arguments of ``fn``, which the class carries."""
+    return {
+        q.name: getattr(pot, q.name)
+        for q in inspect.signature(fn).parameters.values()
+        if q.kind is q.KEYWORD_ONLY
+    }
+
+
 def extra(pot: gp.AbstractSinglePotential) -> tuple[float, ...]:
     """Return the trailing ``t`` argument of a time-explicit module."""
     return (T,) if module_name(pot) in TIME_EXPLICIT else ()
@@ -117,9 +131,10 @@ def extra(pot: gp.AbstractSinglePotential) -> tuple[float, ...]:
 def point_fn(pot, name):
     """``module.<name>`` as a function of one point ``xyz`` of shape ``(3,)``."""
     fn, p, ex = getattr(module_for(pot), name), pot.params(T), extra(pot)
+    kw = static_kwargs(pot, fn)
     if is_radial(pot, name):
-        return lambda x: fn(p, jnp.linalg.norm(x), *ex)
-    return lambda x: fn(p, x, *ex)
+        return lambda x: fn(p, jnp.linalg.norm(x), *ex, **kw)
+    return lambda x: fn(p, x, *ex, **kw)
 
 
 def ids(pots):
@@ -150,10 +165,15 @@ def test_module_exists_and_exports_contract(pot):
         point = "r" if is_radial(pot, name) else "xyz"
         want = ("p", point, *(("t",) if timed else ()))
         params = inspect.signature(getattr(module, name)).parameters.values()
-        assert tuple(x.name for x in params) == want, name
+        positional = [x for x in params if x.kind is not x.KEYWORD_ONLY]
+        assert tuple(x.name for x in positional) == want, name
         assert all(
-            x.kind in (x.POSITIONAL_ONLY, x.POSITIONAL_OR_KEYWORD) for x in params
+            x.kind in (x.POSITIONAL_ONLY, x.POSITIONAL_OR_KEYWORD) for x in positional
         ), name
+        # A keyword-only argument is a static setting that the class carries.
+        for x in params:
+            if x.kind is x.KEYWORD_ONLY:
+                assert hasattr(pot, x.name), (name, x.name)
 
 
 def test_instances_cover_per_potential_modules():
@@ -200,8 +220,13 @@ def test_autodiff_reference(pot):
         )
 
         point = jnp.linalg.norm(xyz) if spherical else xyz
-        g = jax.jit(jax.grad(module.potential, 1))(p, point, *ex)
-        h = jax.jit(jax.hessian(module.potential, 1))(p, point, *ex)
+        kw = static_kwargs(pot, module.potential)
+        g = jax.jit(jax.grad(module.potential, 1), static_argnames=tuple(kw))(
+            p, point, *ex, **kw
+        )
+        h = jax.jit(jax.hessian(module.potential, 1), static_argnames=tuple(kw))(
+            p, point, *ex, **kw
+        )
         assert jnp.all(jnp.isfinite(g))
         assert jnp.all(jnp.isfinite(h))
 
@@ -306,8 +331,10 @@ def test_param_gradient(pot):
     key = "m_tot" if "m_tot" in p else "m"
     module, xyz = module_for(pot), XYZ[0]
 
+    kw = static_kwargs(pot, module.gradient)
+
     def via_module(m):
-        return module.gradient({**p, key: m}, xyz, *ex).sum()
+        return module.gradient({**p, key: m}, xyz, *ex, **kw).sum()
 
     def via_class(m):
         return dataclasses.replace(pot, **{key: m}).gradient(xyz, T).sum()

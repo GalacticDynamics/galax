@@ -5,6 +5,9 @@ permissions:
 on:
   workflow_dispatch:
   pull_request:
+    # ready_for_review: draft PRs skip the heavy jobs (see `install-shapes`),
+    # so marking one ready has to start a full run.
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches:
       - main
@@ -76,6 +79,9 @@ jobs:
     name: Install shapes
     runs-on: ubuntu-latest
     needs: [smoke]
+    # Draft PRs run only Format and Smoke. The org's free plan runs 20 jobs at
+    # once (5 on macOS) across all PRs, and drafts are pushed most often.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -104,6 +110,7 @@ jobs:
     name: Test each package alone
     runs-on: ubuntu-latest
     needs: [smoke]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install uv
@@ -139,6 +146,7 @@ jobs:
     name: Check Python ${{ matrix.python-version }} on ${{ matrix.runs-on }}
     runs-on: ${{ matrix.runs-on }}
     needs: [smoke]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
@@ -147,7 +155,16 @@ jobs:
         # (Nov 2026) the full-suite jobs lose their runner ("hosted runner lost
         # communication") in ~8% of runs, against ~3% on 24.04. Revisit once
         # 26.04 is stable. See also the worker count in "Test package".
-        runs-on: [ubuntu-24.04, macos-latest, windows-latest]
+        #
+        # On PRs, macOS and Windows run only with the `full-ci` label (add it,
+        # then push; or run the workflow on the branch). They always run on
+        # main pushes and manual runs. macOS has 5 runners for the whole org,
+        # so running it on every PR push queued every PR behind it.
+        runs-on: >-
+          ${{ fromJSON((github.event_name != 'pull_request' ||
+          contains(github.event.pull_request.labels.*.name, 'full-ci')) &&
+          '["ubuntu-24.04", "macos-latest", "windows-latest"]' ||
+          '["ubuntu-24.04"]') }}
         # macOS runners bill at 10x the Linux rate (and run ~3x slower
         # wall-clock for this JAX-heavy suite even with the same xdist
         # settings -- 3 workers vs Linux's 4, but each core is also slower);
@@ -223,6 +240,7 @@ jobs:
     name: Check Interoperability
     runs-on: ${{ matrix.runs-on }}
     needs: [smoke]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
@@ -340,4 +358,7 @@ jobs:
           jobs: ${{ toJSON(needs) }}
           # benchmark only runs on workflow_dispatch / the run-benchmarks label /
           # push to main (see its `if:`), so it's intentionally skipped on most PRs.
-          allowed-skips: benchmark
+          # Draft PRs also skip the heavy jobs (see `install-shapes`).
+          allowed-skips: >-
+            ${{ github.event.pull_request.draft && 'benchmark, install-shapes,
+            packages, checks, check_interop' || 'benchmark' }}

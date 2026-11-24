@@ -246,7 +246,7 @@ def test_laplacian_is_poisson(abg, r: float) -> None:
 
 
 # ===================================================================
-# `from_m_tot`
+# `potential` against mpmath
 
 # Small alpha and beta (alpha <= 2, beta <= 9), where `spexial.incomplete_beta` loses
 # no digits (see the accuracy note in the module docstring of `zhao.py`).
@@ -278,6 +278,9 @@ def test_potential_matches_mpmath(abg, x: float) -> None:
     p = {"G": g, "m": m, "r_s": r_s, "alpha": alpha, "beta": beta, "gamma": gamma}
     np.testing.assert_allclose(zhao.potential(p, x * r_s), ref, rtol=1e-10)
 
+
+# ===================================================================
+# `from_m_tot`
 
 FINITE_MASS_ABG = [
     (1.0, 4.0, 1.0),  # Hernquist

@@ -10,9 +10,28 @@ density (Eq. 1) -- is closed-form in terms of the incomplete beta function
 is obtained by automatic differentiation: `gradient`, `hessian` and `laplacian`
 are all written analytically below. That matters for speed, because the
 alternative is differentiating through that function on every force evaluation.
+
+Accuracy: `spexial.incomplete_beta` loses digits for large $\alpha$ and large
+$\beta$ (JAXtronomy/spexial#65 fixes the cause, and this note goes away with
+it). The error is jagged in $r$, so the numbers are approximate. At
+$(\alpha, \beta, \gamma) = (2, 9, 0)$ every quantity is good to better than
+1e-11. At $(5, 10, 0)$ the potential is off by about 1e-1 and the other
+quantities by about 1e-3.
 """
 
-__all__ = ["ZhaoPotential"]
+__all__ = [
+    # class
+    "ZhaoPotential",
+    # functions
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
+]
 
 import functools as ft
 
@@ -31,6 +50,7 @@ from xmmutablemap import ImmutableMap
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import AbstractSinglePotential
+from galax.potential._src.kernels import spherical_gradient
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -38,6 +58,7 @@ from galax.potential._src.utils import (
     incomplete_beta_zw,
     r_spherical,
     radial_derivatives,
+    safe_vector_norm,
     shell_d2phi_dr2,
     with_r_derivative,
 )
@@ -49,26 +70,109 @@ DimL = u.dimension("length")
 class ZhaoPotential(AbstractSinglePotential):
     r"""Zhao (1996) double power-law potential.
 
-    This model represents a double power law in the density, with an inner slope
-    :math:`\gamma` and an outer slope :math:`\beta`, but with a third parameter
-    :math:`\alpha` that controls the width of the transition region between the two
-    power laws (Zhao 1996, Eq. 1):
+    A spherical model whose density is a double power law: it falls as
+    :math:`r^{-\gamma}` well inside the scale radius and as :math:`r^{-\beta}`
+    well outside it, with a transition between the two whose width is set by
+    :math:`\alpha`. The parameters are the scale radius ``r_s``, the three
+    shape parameters ``alpha``, ``beta`` and ``gamma``, and the scale mass
+    ``m``, which is the mass enclosed within :math:`r_s`. The total mass is
+    finite for :math:`\beta > 3`, and the mass within a finite radius is finite
+    for :math:`\gamma < 3`. The family contains several common profiles, and
+    [Zhao1996Potential]_ gives the potential of all of them in terms of the
+    incomplete beta function.
+
+    With :math:`u = r / r_s` the density (Eq. 1 of [Zhao1996Potential]_) is
 
     .. math::
 
-        \rho(r) = \frac{C}{u^\gamma (1 + u^{1/\alpha})^{(\beta - \gamma)\alpha}},
-        \quad u = r / r_s
+        \rho(r) = \frac{\rho_s}{u^{\gamma}
+                  \left(1 + u^{1/\alpha}\right)^{(\beta - \gamma)\alpha}},
+        \qquad
+        \rho_s = \frac{m}{4 \pi \alpha\, r_s^3\,
+                 B\left(\alpha(3 - \gamma), \alpha(\beta - 3); \tfrac{1}{2}\right)},
 
-    This model has a finite total mass for :math:`\beta > 3`. The other power-law
-    parameters should satisfy :math:`\alpha > 0` and :math:`0 \leq \gamma < 3`.
+    where :math:`B(a, b; x) = \int_0^x t^{a-1} (1 - t)^{b-1}\, dt` is the
+    incomplete beta function (Eq. 43). The constant :math:`\rho_s r_s^3` is
+    Zhao's :math:`C`, normalized here to the mass within :math:`r_s` instead of
+    to unit total mass (Eq. 44), because the total mass is infinite for
+    :math:`\beta \le 3`. With the variable
 
-    This model also reduces to a number of well-known analytic forms for certain values
-    of the parameters (reproduced from Table 1 of Zhao 1996):
-    - :math:`(\alpha, \beta, \gamma) = (1, 4, 1)`: Hernquist model
-    - :math:`(\alpha, \beta, \gamma) = (1, 4, 2)`: Jaffe model
-    - :math:`(\alpha, \beta, \gamma) = (1/2, 5, 0)`: Plummer model
-    - :math:`(\alpha, \beta, \gamma) = (1, 3, 1)`: NFW model
-    - :math:`(\alpha, \beta, \gamma) = (1, 3, \gamma)`: Generalized NFW model
+    .. math::
+
+        \chi = \frac{u^{1/\alpha}}{1 + u^{1/\alpha}}
+
+    (Eq. 5), which equals :math:`1/2` at :math:`r = r_s` for every
+    :math:`\alpha`, the enclosed mass (Eq. 15, without a central black hole) is
+
+    .. math::
+
+        M(<r) = m\,
+            \frac{B\left(\alpha(3 - \gamma), \alpha(\beta - 3); \chi\right)}
+                 {B\left(\alpha(3 - \gamma), \alpha(\beta - 3); \tfrac{1}{2}\right)}.
+
+    For :math:`\beta > 3` the total mass is
+
+    .. math::
+
+        m_{\mathrm{tot}} = 4 \pi \alpha \rho_s r_s^3\,
+            \frac{\Gamma\big(\alpha(3 - \gamma)\big)\,
+                  \Gamma\big(\alpha(\beta - 3)\big)}
+                 {\Gamma\big(\alpha(\beta - \gamma)\big)},
+
+    and :meth:`~galax.potential.ZhaoPotential.from_m_tot` builds the potential
+    from it. The potential (Eqs. 6 and 7)
+    is
+
+    .. math::
+
+        \Phi(r) = -4 \pi G\, \rho(r)\, r^2 f_{0,0}(r),
+
+    .. math::
+
+        f_{0,0}(r) = \frac{\alpha B(c_0 - q_0, q_0; \chi)}
+                          {\chi^{c_0 - q_0} (1 - \chi)^{q_0}}
+                   + \frac{\alpha B(c_0 - p_0, p_0; 1 - \chi)}
+                          {(1 - \chi)^{c_0 - p_0} \chi^{p_0}},
+
+    where :math:`G` is the gravitational constant and, from Eq. 42,
+    :math:`p_0 = \alpha(2 - \gamma)`, :math:`q_0 = \alpha(\beta - 3)` and
+    :math:`c_0 = \alpha(\beta - \gamma)`. The first term is :math:`G M(<r)/r`
+    and the second is the contribution of the mass outside :math:`r`. The
+    force follows from Newton's shell theorem,
+    :math:`d\Phi/dr = G M(<r) / r^2`, and :math:`\nabla^2 \Phi = 4 \pi G \rho`.
+
+    Several named profiles are special cases. With :math:`(\alpha, \beta,
+    \gamma)` as in Table 1 of [Zhao1996Potential]_, the Hernquist model is
+    :math:`(1, 4, 1)`, the Jaffe model :math:`(1, 4, 2)` and the Plummer model
+    :math:`(1/2, 5, 0)`. In each of these :math:`r_s` is the scale length of the
+    named model, and for example :math:`\Phi = -G m_{\mathrm{tot}} / (r + r_s)`
+    for Hernquist and :math:`\Phi = -G m_{\mathrm{tot}} / \sqrt{r^2 + r_s^2}`
+    for Plummer. The Navarro-Frenk-White density is :math:`(1, 3, 1)`, and
+    :math:`(1, 3, \gamma)` is its generalization with inner slope
+    :math:`\gamma`; both follow from Eq. 1 but are not listed in the table.
+
+    Notes
+    -----
+    The parameters are not validated. The model needs :math:`\alpha > 0` and
+    :math:`0 \le \gamma < 3`. For :math:`\beta \le 3` the total mass is infinite
+    but ``m`` is still defined. The potential vanishes at infinity for
+    :math:`\beta > 2`. For :math:`\beta \le 2` the potential cannot be
+    referenced to zero at infinity. At :math:`\beta = 2` the potential evaluates
+    to :math:`-\infty`. For :math:`\beta < 2` it is finite for some parameter
+    sets and infinite or NaN for others (for example :math:`\alpha = 2`,
+    :math:`\beta = 1.5`), and the finite values have no physical zero point, so
+    only the force :math:`G M(<r) / r^2` is meaningful there. The class
+    evaluates the gradient, Hessian and Laplacian analytically from
+    :math:`M(<r)` and :math:`\rho`, without automatic differentiation.
+
+    References
+    ----------
+    .. [Zhao1996Potential] Zhao, H. (1996). Analytical models for galactic
+       nuclei. Monthly Notices of the Royal Astronomical Society, 278, 488.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996MNRAS.278..488Z>`__;
+       `doi:10.1093/mnras/278.2.488 <https://doi.org/10.1093/mnras/278.2.488>`__;
+       `arXiv:astro-ph/9509122 <https://arxiv.org/abs/astro-ph/9509122>`__
+
     """
 
     m: AbstractParameter = ParameterField(
@@ -108,7 +212,7 @@ class ZhaoPotential(AbstractSinglePotential):
     def _gradient(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz3:
         """Analytic, from the enclosed mass; see `gradient`."""
         xyz = u.ustrip(AllowValue, self.units[DimL], xyz)
-        return gradient(self.params(t), xyz)  # type: ignore[no-any-return]
+        return gradient(self.params(t), xyz)
 
     @ft.partial(jax.jit)
     def _laplacian(self, xyz: gt.BBtQorVSz3, /, t: gt.BBtQorVSz0) -> gt.BBtFloatSz0:
@@ -153,11 +257,11 @@ class ZhaoPotential(AbstractSinglePotential):
         r_s
             Scale radius of the halo.
         alpha
-            Inner slope of the halo density profile.
+            Transition width between the two power laws.
         beta
             Outer slope of the halo density profile.
         gamma
-            Transition slope of the halo density profile.
+            Inner slope of the halo density profile.
         units (optional)
             Unit system to use for the potential.
         constants (optional)
@@ -272,8 +376,18 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     .. math::
 
-        \rho(r) = \frac{C}{u^\gamma (1 + u^{1/\alpha})^{(\beta-\gamma)\alpha}},
+        \rho(r) = \frac{\rho_s}{u^\gamma (1 + u^{1/\alpha})^{(\beta-\gamma)\alpha}},
         \quad u = r / r_s
+
+    with :math:`\rho_s = C / r_s^3` and
+
+    .. math::
+
+        \rho_s = \frac{m}{4\pi\alpha r_s^3\,
+            B(\alpha(3-\gamma), \alpha(\beta-3); 1/2)}
+
+    where :math:`m` is the mass within :math:`r_s` and :math:`B(a, b; x)` is
+    the incomplete beta function (Eq. 43).
 
     """
     alpha, beta, gamma = p["alpha"], p["beta"], p["gamma"]
@@ -289,7 +403,12 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     .. math::
 
-        M(r) = 4\pi\alpha C B(\alpha(3-\gamma), \alpha(\beta-3), \chi)
+        M(<r) = 4\pi\alpha C B(\alpha(3-\gamma), \alpha(\beta-3); \chi)
+              = m \frac{B(\alpha(3-\gamma), \alpha(\beta-3); \chi)}
+                       {B(\alpha(3-\gamma), \alpha(\beta-3); 1/2)}
+
+    where :math:`C = \rho_s r_s^3` (see ``_norm``), :math:`m` is the mass within
+    :math:`r_s` and :math:`\chi` is Eq. 5.
 
     """
     c0, _, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
@@ -324,14 +443,16 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
                    + \frac{\alpha B(c_0 - p_0, p_0, 1-\chi)}
                           {(1-\chi)^{c_0-p_0} \chi^{p_0}}
 
-    with $c_0$, $p_0$, $q_0$ from Eq. 42 and $\chi$ from Eq. 5. The first term
-    is the contribution of the mass interior to $r$ (it is $M(r)/r$, Eq. 15),
-    the second that of the shell exterior to it.
+    with :math:`c_0`, :math:`p_0`, :math:`q_0` from Eq. 42 and :math:`\chi` from
+    Eq. 5. The first term is the contribution of the mass interior to
+    :math:`r` (it is :math:`M(r)/r`, Eq. 15), the second that of the shell
+    exterior to it.
 
     Written with the general incomplete beta function of Eq. 43, both terms
     stay finite across the whole valid parameter range: the first for
-    $\beta \leq 3$ (where $q_0 \leq 0$), the second for $\gamma \geq 2$ (where
-    $p_0 \leq 0$, e.g. the Jaffe model, $(\alpha,\beta,\gamma) = (1,4,2)$).
+    :math:`\beta \leq 3` (where :math:`q_0 \leq 0`), the second for
+    :math:`\gamma \geq 2` (where :math:`p_0 \leq 0`, e.g. the Jaffe model,
+    :math:`(\alpha,\beta,\gamma) = (1,4,2)`).
     """
     c0, p0, q0 = _cpq(p["alpha"], p["beta"], p["gamma"])
     chi, chi1 = _r_to_chi(p, r), _r_to_1mchi(p, r)
@@ -354,7 +475,7 @@ def dpotential_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Radial derivative of the potential.
 
     The model is spherical, so by Newton's shell theorem only the mass interior
-    to $r$ (Eq. 15) contributes:
+    to :math:`r` (Eq. 15) contributes:
 
     .. math::
 
@@ -368,16 +489,16 @@ def dpotential_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def d2potential_dr2(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Second radial derivative of the potential.
 
-    Differentiating `dpotential_dr` and substituting $M'(r) = 4\pi r^2 \rho(r)$
-    (Eqs. 15 and 1):
+    Differentiating :func:`dpotential_dr` and substituting
+    :math:`M'(r) = 4\pi r^2 \rho(r)` (Eqs. 15 and 1):
 
     .. math::
 
         \frac{d^2\Phi}{dr^2} = 4\pi G \rho(r) - \frac{2 G M(r)}{r^3}
             = \frac{G M'(r)}{r^2} - \frac{2 G M(r)}{r^3}
 
-    Evaluated in the second form, by `shell_d2phi_dr2`: `density` forms
-    $r_s^3$, and that and $r^3$ overflow float32 in SI units.
+    Evaluated in the second form, by ``shell_d2phi_dr2``: :func:`density` forms
+    :math:`r_s^3`, and that and :math:`r^3` overflow float32 in SI units.
     """
     return _d2phi(p, r)
 
@@ -402,17 +523,8 @@ def laplacian(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     return 4.0 * jnp.pi * p["G"] * density(p, r)  # type: ignore[no-any-return]
 
 
-@ft.partial(jax.jit)
-def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
-    r"""Gradient of the potential.
-
-    .. math::
-
-        \nabla\Phi = \frac{d\Phi}{dr} \hat{r} = \frac{G M(r)}{r^2} \hat{r}
-
-    """
-    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
-    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+# $\nabla\Phi = \Phi'(r)\,\hat{r}$, exactly zero at the origin.
+gradient = spherical_gradient(dpotential_dr)
 
 
 @ft.partial(jax.jit)
@@ -427,26 +539,41 @@ def hessian(p: gt.Params, xyz: gt.Sz3, /) -> gt.Sz33:
             = \frac{\Phi'(r)}{r} \delta_{ij}
             + \left(\Phi''(r) - \frac{\Phi'(r)}{r}\right) \frac{x_i x_j}{r^2}
 
-    with $\Phi'(r)/r$ from `dpotential_dr` and, from `d2potential_dr2`,
+    with :math:`\Phi'(r)/r` from :func:`dpotential_dr` and, from
+    :func:`d2potential_dr2`,
 
     .. math::
 
         \Phi''(r) - \frac{\Phi'(r)}{r} = \frac{G M'(r)}{r^2} - 3 \frac{\Phi'(r)}{r}
 
-    Only $\Phi'/r$ reads $M(r)$. Had both coefficients read it, XLA on CPU would
-    fuse a copy of the incomplete beta series into each and evaluate it twice
-    per point (an `optimization_barrier` does not stop it: the CPU backend
-    removes barriers before fusion). Each division by $r$ is kept separate, as
-    in `shell_d2phi_dr2`, for float32 in SI units.
+    Only :math:`\Phi'/r` reads :math:`M(r)`. Had both coefficients read it, XLA
+    on CPU would fuse a copy of the incomplete beta series into each and
+    evaluate it twice per point (an ``optimization_barrier`` does not stop it:
+    the CPU backend removes barriers before fusion). Each division by :math:`r`
+    is kept separate, as in ``shell_d2phi_dr2``, for float32 in SI units.
+
+    At the origin the Hessian is :math:`\nabla^2\Phi(0)/3\,\delta_{ij}`
+    (:func:`laplacian` at :math:`r = 0`), which is :math:`+\infty` on the
+    diagonal for a cusp.
     """
-    r = jnp.linalg.norm(xyz, axis=-1, keepdims=True)
+    origin = jnp.sum(jnp.square(xyz), axis=-1, keepdims=True) == 0
+    r1 = jnp.where(origin, 1.0, safe_vector_norm(xyz)[..., None])
     # `dpotential_dr`, not `mass_enclosed` directly: its custom jvp keeps a
     # derivative of this Hessian off autodiff of the series.
-    radial = dpotential_dr(p, r) / r
-    coef_outer = p["G"] * dmass_dr(p, r) / r / r - 3 * radial
+    # At the origin the Hessian is isotropic with trace `laplacian(p, 0)`
+    # (as in `spherical_hessian`); the outer term is dropped, and the inner
+    # `where` keeps every radius off 0 so that no inf * 0 = NaN arises.
+    r0 = jnp.where(origin, 0.0, r1)
+    # `* (1 / r1)`: `/ r1` would fuse with the `/ r**2` in `dpotential_dr` into
+    # an r**3 that overflows float32 in SI (as in `spherical_hessian`).
+    radial = jnp.where(origin, laplacian(p, r0) / 3, dpotential_dr(p, r1) * (1 / r1))
+    coef_outer = p["G"] * dmass_dr(p, r1) / r1 / r1 - 3 * radial
+    coef_outer = jnp.where(origin, 0.0, coef_outer)
 
-    rhat = xyz / r
+    rhat = xyz / r1
     outer = rhat[..., :, None] * rhat[..., None, :]
-    eye = jnp.eye(3, dtype=outer.dtype)
-    _result = radial[..., None] * eye + coef_outer[..., None] * outer
+    # `where`, not `radial * eye`: at a cusp's origin `radial` is inf, and inf * 0
+    # is NaN off the diagonal when nothing rewrites the product (`disable_jit`).
+    eye = jnp.eye(3, dtype=bool)
+    _result = jnp.where(eye, radial[..., None], 0.0) + coef_outer[..., None] * outer
     return _result  # type: ignore[no-any-return]

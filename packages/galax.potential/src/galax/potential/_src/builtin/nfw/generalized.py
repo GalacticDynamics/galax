@@ -1,7 +1,20 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `gNFWPotential` and its functions.
+
+The public API is `galax.potential.gnfw`.
+"""
 
 __all__ = [
+    # class
     "gNFWPotential",
+    # functions
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
 ]
 
 import functools as ft
@@ -25,6 +38,12 @@ from galax.potential._src.base_single import (
     LaplacianFromDensityMixin,
 )
 from galax.potential._src.jax import vectorize_method
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -32,7 +51,6 @@ from galax.potential._src.utils import (
     incomplete_beta_zw,
     r_spherical,
     radial_derivatives,
-    safe_vector_norm,
     shell_dphi_dr,
 )
 
@@ -42,50 +60,77 @@ DimT = u.dimension("time")
 
 @final
 class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Generalized NFW Potential.
+    r"""Generalized NFW potential.
 
-    This potential is a generalized version of the NFW potential, which is a
-    popular model for dark matter halos. The density profile is given by:
+    The model is a spherical double power-law density profile with the NFW outer slope
+    and a free inner slope. The density falls as :math:`r^{-\gamma}` inside the scale
+    radius ``r_s`` and as :math:`r^{-3}` outside it, so the enclosed mass grows
+    logarithmically without bound and the total mass is infinite. The parameter
+    ``gamma`` is the inner slope: ``gamma = 0`` is a cored profile, ``gamma = 1`` is the
+    NFW profile [NFW1996gNFW]_ and larger values are steeper cusps. The parameter ``m``
+    is a mass scale, :math:`m = 4 \pi \rho_s r_s^3`, and it is not the total mass. The
+    potential at the centre is finite for :math:`0 \le \gamma < 2`, which is the range
+    these functions are written for.
 
-    $$ \rho(r) = \rho_0 (\frac{r}{r_s})^{-\gamma} (1 + \frac{r}{r_s})^{\gamma-3}
-    $$
+    With :math:`x = r / r_s` the density is
 
-    where $\rho_0$ is the central density, $r_s$ is the scale radius, and
-    $\gamma$ is the inner slope profile.
+    .. math::
 
-    $\gamma$ has some notable properties:
+        \rho(r) = \rho_s\, x^{-\gamma} (1 + x)^{\gamma - 3},
+        \qquad \rho_s = \frac{m}{4 \pi r_s^3},
 
-    - $\gamma = 0$ is a cored density profile.
-    - $\gamma > 0$ is a cuspy density profile.
-    - $\gamma = 1$ is the NFW profile.
-    - $\gamma >= 2$ has an infinite central potential.
+    the enclosed mass is
 
-    Therefore we require $\gamma \in [0, 2)$.
+    .. math::
 
-    We actually parametrize not with $\rho_0$ but by a characteristic mass $m$,
-    defined as
+        M(<r) = m \int_0^x s^{2-\gamma} (1 + s)^{\gamma - 3}\, ds
+              = m\, B_{x/(1+x)}(3 - \gamma, 0)
+              = \frac{m\, x^{3-\gamma}}{3 - \gamma}\,
+                {}_2F_1(3 - \gamma, 3 - \gamma; 4 - \gamma; -x),
 
-    $$ m = 4 \pi \rho_0 r_s^3. $$
+    and the potential, with :math:`\Phi(r) \to 0` as :math:`r \to \infty`, is
 
-    The enclosed mass is given by:
+    .. math::
 
-    $$ M(<r) = m B_{x/(1+x)}(3-\gamma, 0)$$
+        \Phi(r) = -G \left[ \frac{M(<r)}{r}
+            + \frac{m}{r_s} B_{1/(1+x)}(1, 2 - \gamma) \right]
+          = -\frac{G M(<r)}{r}
+            - \frac{G m}{(2 - \gamma) r_s}
+              \left[ 1 - \left(\frac{x}{1 + x}\right)^{2-\gamma} \right],
 
-    where $x = r / r_s$ is the dimensionless radius.
+    where :math:`G` is the gravitational constant,
+    :math:`B_z(a, b) = \int_0^z t^{a-1} (1 - t)^{b-1}\, dt` is the incomplete
+    beta function and :math:`{}_2F_1` is the Gauss hypergeometric function. The
+    central potential is :math:`\Phi(0) = -G m / [(2 - \gamma) r_s]`, and the
+    circular velocity is :math:`v_c^2(r) = G M(<r) / r`.
 
-    The potential is given by:
+    Notes
+    -----
+    This is the member :math:`(\alpha, \beta, \gamma) = (1, 3, \gamma)` of the
+    double power-law family of [Zhao1996gNFW]_ (Eq. 1), and :math:`\gamma = 1` is the
+    NFW profile of :class:`~galax.potential.NFWPotential`.
 
-    $$ \Phi(r) = -G \left( M(<r) / r + m / r_s B_{1/(1+x)}(1, 2-\gamma) \right)
-    $$
+    For :math:`\gamma \ge 2` the central potential diverges.
 
-    where $G$ is the gravitational constant.
+    References
+    ----------
+    .. [Zhao1996gNFW] Zhao, H. (1996). Analytical models for galactic nuclei.
+       Monthly Notices of the Royal Astronomical Society 278, 488.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996MNRAS.278..488Z>`__;
+       `doi:10.1093/mnras/278.2.488 <https://doi.org/10.1093/mnras/278.2.488>`__;
+       `arXiv:astro-ph/9509122 <https://arxiv.org/abs/astro-ph/9509122>`__.
+    .. [NFW1996gNFW] Navarro, J. F., Frenk, C. S., & White, S. D. M. (1996). The
+       Structure of Cold Dark Matter Halos. Astrophysical Journal 462, 563.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...462..563N>`__;
+       `doi:10.1086/177173 <https://doi.org/10.1086/177173>`__;
+       `arXiv:astro-ph/9508025 <https://arxiv.org/abs/astro-ph/9508025>`__.
 
     Examples
     --------
     >>> import jax.numpy as jnp
     >>> import galax.potential as gp
 
-    A gNFW potential matches the NFW potential when $\gamma = 1$:
+    A gNFW potential matches the NFW potential when :math:`\gamma = 1`:
 
     >>> gnfw = gp.gNFWPotential(m=1e12,r_s=1,gamma=1, units="galactic")
     >>> nfw = gp.NFWPotential(m=1e12,r_s=1, units="galactic")
@@ -97,16 +142,16 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
-    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+    Both are finite at the origin, where :math:`\Phi(0) = -G m / r_s`:
 
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
     (Array(-4.49850215, dtype=float64), Array(-4.49850215, dtype=float64))
 
     The gNFW potential is a generalization of the NFW potential, so it can be
-    used to model a wider range of profiles. For example, if we set $\gamma =
-    0.5$, we get a density profile that is steeper than the NFW profile at small
-    radii, so the potential is smaller:
+    used to model a wider range of profiles. For example, if we set
+    :math:`\gamma = 0.5`, we get a density profile that is shallower than the
+    NFW profile at small radii, so the potential is less deep at this radius:
 
     >>> gnfw2 = gp.gNFWPotential(m=1e12,r_s=1,gamma=0.5, units="galactic")
 
@@ -173,21 +218,25 @@ class gNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Density profile for the gNFW model.
 
-    $$ \rho(r) = \rho_0 (\frac{r}{r_s})^{-\gamma} (1 + \frac{r}{r_s})^{\gamma-3}
-    $$
+    .. math::
 
-    where $\rho_0$ is the central density, $r_s$ is the scale radius, and
-    $\gamma$ is the inner slope profile. We actually parametrize not with
-    $\rho_0$ but by a characteristic mass $m$, defined as
+        \rho(r) = \rho_s \left(\frac{r}{r_s}\right)^{-\gamma}
+            \left(1 + \frac{r}{r_s}\right)^{\gamma-3}
 
-    $$ m = 4 \pi \rho_0 r_s^3. $$
+    where :math:`\rho_s` is the characteristic density, :math:`r_s` is the
+    scale radius, and :math:`\gamma` is the inner slope. The parameter is not
+    :math:`\rho_s` but a characteristic mass :math:`m`, defined as
+
+    .. math::
+
+        m = 4 \pi \rho_s r_s^3.
 
     Examples
     --------
     >>> import jax.numpy as jnp
     >>> import galax.potential as gp
 
-    A gNFW potential matches the NFW potential when $\gamma = 1$:
+    A gNFW potential matches the NFW potential when :math:`\gamma = 1`:
 
     >>> gnfw = gp.gNFWPotential(m=1e12,r_s=1,gamma=1, units="galactic")
     >>> nfw = gp.NFWPotential(m=1e12,r_s=1, units="galactic")
@@ -205,8 +254,9 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of density profiles. For example, if we set
-    $\gamma = 0.5$, we get a density profile that is steeper than the NFW
-    profile at small radii and so the density falls off faster:
+    :math:`\gamma = 0.5`, we get a density profile that is shallower than the
+    NFW profile at small radii, and with the same ``m`` the density at this
+    radius is lower:
 
     >>> gnfw2 = gp.gNFWPotential(m=1e12,r_s=1,gamma=0.5, units="galactic")
 
@@ -225,18 +275,25 @@ def density(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
 @ft.partial(jax.jit)
 def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
-    r"""Enclosed mass for the NFW model.
+    r"""Enclosed mass for the gNFW model.
 
-    $$ M(<r) = m B_{x/(1+x)}(3-\gamma, 0)$$
+    .. math::
 
-    where $x = r / r_s$ is the dimensionless radius, $m$ is the characteristic
-    mass, and $\gamma$ is the inner slope profile. $B_{x/(1+x)}$ is the
-    incomplete beta function.
+        M(<r) = m\, B_{x/(1+x)}(3-\gamma, 0)
 
-    Note that `jax.scipy.special.betainc` is the regularized incomplete beta
-    function, which is related to the incomplete beta function by $$ B_z(a, b) =
-    B(a, b) \cdot \text{betainc}(a, b, z) $$. However, $B(a, b)$ diverges for $b
-    = 0$, so we use the 2F2 hypergeometric function instead.
+    where :math:`x = r / r_s` is the dimensionless radius, :math:`m` is the
+    characteristic mass, and :math:`\gamma` is the inner slope. :math:`B_z(a,
+    b)` is the incomplete beta function.
+
+    Note that ``jax.scipy.special.betainc`` is the regularized incomplete beta
+    function, which is related to the incomplete beta function by
+
+    .. math::
+
+        B_z(a, b) = B(a, b) \cdot \text{betainc}(a, b, z).
+
+    However, :math:`B(a, b)` diverges for :math:`b = 0`, so a hypergeometric
+    function is used instead.
 
     """
     x = r / p["r_s"]
@@ -248,7 +305,7 @@ def mass_enclosed(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
 @ft.partial(jax.jit)
 def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
-    r"""$dM/dr = 4\pi r^2 \rho = m x^{2-\gamma} (1+x)^{\gamma-3} / r_s$."""
+    r""":math:`dM/dr = 4\pi r^2 \rho = m x^{2-\gamma} (1+x)^{\gamma-3} / r_s`."""
     x = r / p["r_s"]
     g = p["gamma"]
     return p["m"] / p["r_s"] * x ** (2 - g) * (1 + x) ** (g - 3)
@@ -262,14 +319,24 @@ def dmass_dr(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     r"""Potential for the gNFW model.
 
-    We solve the equation for the gNFW model, which is given by
+    With :math:`x = r / r_s`,
+
+    .. math::
+
+        \Phi(r) = -G \left[ \frac{M(<r)}{r}
+            + \frac{m}{r_s} B_{1/(1+x)}(1, 2 - \gamma) \right]
+
+    where :math:`M(<r)` is the enclosed mass, :math:`m` is the characteristic
+    mass, :math:`B_z(a, b)` is the incomplete beta function and
+    :math:`B_w(1, b) = [1 - (1 - w)^b] / b`, or :math:`-\ln(1 - w)` for
+    :math:`b = 0`. The potential vanishes at infinity.
 
     Examples
     --------
     >>> import jax.numpy as jnp
     >>> import galax.potential as gp
 
-    A gNFW potential matches the NFW potential when $\gamma = 1$:
+    A gNFW potential matches the NFW potential when :math:`\gamma = 1`:
 
     >>> gnfw = gp.gNFWPotential(m=1e12,r_s=1,gamma=1, units="galactic")
     >>> nfw = gp.NFWPotential(m=1e12,r_s=1, units="galactic")
@@ -281,7 +348,7 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
     >>> jnp.isclose(gnfw.potential(x, t), nfw.potential(x, t), atol=1e-8)
     Array(True, dtype=bool)
 
-    Both are finite at the origin, where $\\Phi(0) = -G m / r_s$:
+    Both are finite at the origin, where :math:`\Phi(0) = -G m / r_s`:
 
     >>> x = jnp.array([0, 0, 0])
     >>> gnfw.potential(x, t), nfw.potential(x, t)
@@ -289,8 +356,8 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
     The gNFW potential is a generalization of the NFW potential, so it can be
     used to model a wider range of profiles. For example, if we set
-    $\gamma = 0.5$, we get a density profile that is steeper than the NFW
-    profile at small radii, so the potential is smaller:
+    :math:`\gamma = 0.5`, we get a density profile that is shallower than the
+    NFW profile at small radii, so the potential is less deep at this radius:
 
     >>> gnfw2 = gp.gNFWPotential(m=1e12,r_s=1,gamma=0.5, units="galactic")
 
@@ -321,29 +388,37 @@ def potential(p: gt.Params, r: gt.BBtSz0, /) -> gt.BtFloatSz0:
 
 
 dpotential_dr = shell_dphi_dr(mass_enclosed, dmass_dr)
-r"""$d\Phi/dr = G M(<r) / r^2$, whose $r$-derivative is exact.
+r""":math:`d\Phi/dr = G M(<r) / r^2`, whose :math:`r`-derivative is exact.
 
-A `jax.custom_jvp` from `galax.potential._src.utils.shell_dphi_dr`: its
-derivative is $G M'(r)/r^2 - 2 G M(r)/r^3$, not autodiff of `mass_enclosed`'s
-series, so `gradient` linearizes to the exact Hessian.
+A ``jax.custom_jvp`` from ``galax.potential._src.utils.shell_dphi_dr``: its
+derivative is :math:`G M'(r)/r^2 - 2 G M(r)/r^3`, not autodiff of
+the series in :func:`mass_enclosed`, so :func:`gradient` linearizes to the exact
+Hessian.
 """
+dpotential_dr.__doc__ = shell_dphi_dr.__doc__  # `help()`: a custom_jvp has no doc
+
+
+_spherical_gradient = spherical_gradient(dpotential_dr)
 
 
 @ft.partial(jax.jit)
 def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     r"""Gradient of the potential for the gNFW model.
 
-    $$ \nabla \Phi(r) = G M(<r) / r^2 \hat{r} $$
+    .. math::
 
-    where $M(<r)$ is the enclosed mass, by `dpotential_dr`: its jvp is the
-    exact Hessian, and it is 0 rather than NaN at the origin.
+        \nabla \Phi(r) = \frac{G M(<r)}{r^2} \hat{r}
+
+    where :math:`M(<r)` is the enclosed mass, by :func:`dpotential_dr`: its jvp is
+    the exact Hessian away from the origin, and the gradient is exactly 0 at the
+    origin, as for the other spherical modules.
 
     Examples
     --------
     >>> import jax.numpy as jnp
     >>> import galax.potential as gp
 
-    A gNFW potential matches the NFW potential when $\gamma = 1$:
+    A gNFW potential matches the NFW potential when :math:`\gamma = 1`:
 
     >>> gnfw = gp.gNFWPotential(m=1e12, r_s=1, gamma=1, units="galactic")
     >>> nfw = gp.NFWPotential(m=1e12, r_s=1, units="galactic")
@@ -356,5 +431,11 @@ def gradient(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz3:
     Array(True, dtype=bool)
 
     """
-    r = safe_vector_norm(xyz)[..., None]
-    return dpotential_dr(p, r) * (xyz / r)  # type: ignore[no-any-return]
+    return _spherical_gradient(p, xyz)
+
+
+# Derived quantities, built from the kernels above. `dpotential_dr` and
+# `gradient` are defined above.
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

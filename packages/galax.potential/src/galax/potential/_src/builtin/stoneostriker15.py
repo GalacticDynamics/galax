@@ -1,6 +1,21 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `StoneOstriker15Potential` and its functions.
 
-__all__ = ["StoneOstriker15Potential"]
+The public API is `galax.potential.stoneostriker15`.
+"""
+
+__all__ = [
+    # class
+    "StoneOstriker15Potential",
+    # functions
+    "d2potential_dr2",
+    "density",
+    "dpotential_dr",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "mass_enclosed",
+    "potential",
+]
 
 import functools as ft
 
@@ -15,6 +30,13 @@ from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
 )
+from galax.potential._src.kernels import (
+    poisson_laplacian,
+    radial_gradient,
+    radial_second_derivative,
+    spherical_gradient,
+    spherical_hessian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
@@ -22,35 +44,76 @@ from galax.potential._src.utils import r_spherical, radial_derivatives
 
 
 class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Potential from Stone and Ostriker 2015.
+    r"""Stone and Ostriker (2015) potential.
 
-    http://dx.doi.org/10.1088/2041-8205/806/2/L28.
+    A spherical model with a constant-density core of radius :math:`r_c`, a
+    roughly isothermal zone with :math:`\rho \propto r^{-2}` for
+    :math:`r_c \ll r \ll r_h`, and a density that falls as :math:`r^{-4}` beyond
+    the halo radius :math:`r_h`, so the total mass :math:`m_{\mathrm{tot}}` is
+    finite. [StoneOstriker2015]_ designed it for nearly isothermal star
+    clusters and note that, because the rotation curve is nearly flat between
+    the core and halo radii, it may also be useful for fitting galactic
+    potentials. The three parameters are the total mass ``m_tot``, the core
+    radius ``r_c`` and the halo radius ``r_h``.
 
-    The density profile is given by S&O15 Eq. 1:
+    The density (Eq. 1 of [StoneOstriker2015]_) is
 
-    $$ \rho(r) = \frac{\rho_c}{\left(1 + r^2 / r_c^2\right)\left(1 + r^2 /
-    r_h^2\right)}. $$
+    .. math::
 
-    where we will use later definitions to write $\rho_c$ in terms of total
-    $M_{tot}$, core radius $r_c$, and halo radius $r_h$.
+        \rho(r) = \frac{\rho_c}{\left(1 + r^2 / r_c^2\right)
+                                \left(1 + r^2 / r_h^2\right)},
+        \qquad
+        \rho_c = \frac{m_{\mathrm{tot}} (r_h + r_c)}{2 \pi^2 r_c^2 r_h^2},
 
-    The potential is given by S&O15 Eq. 3:
+    where :math:`\rho_c` is the central density, written here in terms of the
+    total mass by inverting Eq. 5 of the paper (:math:`m_{\mathrm{tot}} =
+    2 \pi^2 r_c^2 r_h^2 \rho_c / (r_h + r_c)`). The enclosed mass (Eq. 4) is
 
-    $$ \Phi = -\frac{2 G M_{tot}}{\pi (r_h - r_c)}
-        \left(
-              \frac{r_h}{r} \atan(r/r_h)
-            - \frac{r_c}{r} \atan(r/r_c)
-            + \frac{1}{2} \log(\frac{r^2 + r_h^2}{r^2 + r_c^2})
-        \right)
-    $$
+    .. math::
 
-    The enclosed mass is given by S&O15 Eq. 4:
+        M(<r) = \frac{2 m_{\mathrm{tot}}}{\pi (r_h - r_c)}
+                \left[ r_h \arctan\frac{r}{r_h} - r_c \arctan\frac{r}{r_c}
+                \right],
 
-    $$ M(<r) = \frac{2 M_{tot}}{\pi (r_h-r_c)} (r_h \atan(r/r_h) - r_c \atan(r/r_c)) $$
+    which tends to :math:`m_{\mathrm{tot}}` as :math:`r \to \infty`, and the
+    potential (Eq. 3) is
 
-    The total mass is given by S&O15 Eq. 5:
+    .. math::
 
-    $$ M_{tot} = \frac{2\pi^2 r_c^2 r_h^2 \rho_c}{r_h + r_c}. $$
+        \Phi(r) = -\frac{2 G m_{\mathrm{tot}}}{\pi (r_h - r_c)}
+            \left[ \frac{r_h}{r} \arctan\frac{r}{r_h}
+                 - \frac{r_c}{r} \arctan\frac{r}{r_c}
+                 + \frac{1}{2} \ln\frac{r^2 + r_h^2}{r^2 + r_c^2} \right],
+
+    where :math:`G` is the gravitational constant. The circular speed is
+    :math:`v_c^2 = G M(<r) / r`. At the centre the potential is finite,
+
+    .. math::
+
+        \Phi(0) = -\frac{2 G m_{\mathrm{tot}}}{\pi (r_h - r_c)}
+                  \ln\frac{r_h}{r_c},
+
+    so the escape speed there is :math:`v_{\mathrm{esc}}(0) = \sqrt{-2 \Phi(0)}`
+    (Eq. 7). At large radii :math:`\Phi \to -G m_{\mathrm{tot}} / r`.
+
+    Notes
+    -----
+    The paper states that :math:`r_h` approaches the half-mass radius when
+    :math:`r_c \ll r_h`. The formulas divide by :math:`r_h - r_c`, so
+    :math:`r_c = r_h` is excluded. The density, enclosed mass and potential are
+    unchanged when :math:`r_c` and :math:`r_h` are exchanged, so the class does
+    not check that :math:`r_c < r_h`. The model has a finite core and a finite
+    mass, unlike the isothermal sphere. The paper reports that a closed form
+    for the isotropic distribution function does not appear to exist.
+
+    References
+    ----------
+    .. [StoneOstriker2015] Stone, N. C., & Ostriker, J. P. (2015). A Dynamical
+       Potential-Density Pair for Star Clusters with Nearly Isothermal
+       Interiors. The Astrophysical Journal Letters, 806, L28.
+       `ADS <https://ui.adsabs.harvard.edu/abs/2015ApJ...806L..28S>`__;
+       `doi:10.1088/2041-8205/806/2/L28 <https://doi.org/10.1088/2041-8205/806/2/L28>`__;
+       `arXiv:1503.03479 <https://arxiv.org/abs/1503.03479>`__
 
     """
 
@@ -90,11 +153,13 @@ class StoneOstriker15Potential(LaplacianFromDensityMixin, AbstractSinglePotentia
 
 @ft.partial(jax.jit)
 def rhoc_of_mtot(p: gt.Params, /) -> gt.FloatSz0:
-    r"""Density from the mass.
+    r"""Central density from the total mass.
 
-    Solving from S&O15 Eq. 5:
+    Solving S&O15 Eq. 5 for the central density,
 
-    $$ \rho_c = \frac{ M_{tot} (r_h + r_c)}{2\pi^2 r_c^2 r_h^2 } $$
+    .. math::
+
+        \rho_c = \frac{m_{\mathrm{tot}} (r_h + r_c)}{2 \pi^2 r_c^2 r_h^2}.
 
     """
     r_c, r_h = p["r_c"], p["r_h"]
@@ -108,10 +173,11 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     S&O15 Eq. 1:
 
-    $$ \rho(r) = \frac{\rho_c}{(1 + r^2 / r_c^2)(1 + r^2 /
-    r_h^2)} $$
+    .. math::
 
-    where $\rho_c$ is given by the function `rhoc_of_mtot`.
+        \rho(r) = \frac{\rho_c}{(1 + r^2 / r_c^2)(1 + r^2 / r_h^2)}
+
+    where :math:`\rho_c` is the central density given by ``rhoc_of_mtot``.
     """
     rho_c = rhoc_of_mtot(p)
     core_term = 1 + (r / p["r_c"]) ** 2
@@ -123,9 +189,13 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Enclosed mass function for Stone-Ostriker 2015 potential.
 
-    S&O15 Eq. 4:
+    S&O15 Eq. 4, with the central density written in terms of the total mass:
 
-    $$ M(<r) = \frac{2 M_{tot}}{\pi (r_h-r_c)} (r_h \atan(r/r_h) - r_c \atan(r/r_c)) $$
+    .. math::
+
+        M(<r) = \frac{2 m_{\mathrm{tot}}}{\pi (r_h - r_c)}
+                \left[ r_h \arctan\frac{r}{r_h} - r_c \arctan\frac{r}{r_c}
+                \right]
 
     """
     r_c, r_h = p["r_c"], p["r_h"]
@@ -194,10 +264,18 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r"""Potential function for Stone-Ostriker 2015 potential.
 
-    The log term of S&O15 Eq. 3 is evaluated as
-    $\ln(1 + (r_h^2 - r_c^2)/(r^2 + r_c^2))$, scaled by $r_h^2$: the ratio
-    inside the log is $\approx 1$ far out, and $r^2$ overflows float32 in SI
-    units.
+    S&O15 Eq. 3, with the central density written in terms of the total mass:
+
+    .. math::
+
+        \Phi(r) = -\frac{2 G m_{\mathrm{tot}}}{\pi (r_h - r_c)}
+            \left[ \frac{r_h}{r} \arctan\frac{r}{r_h}
+                 - \frac{r_c}{r} \arctan\frac{r}{r_c}
+                 + \frac{1}{2} \ln\frac{r^2 + r_h^2}{r^2 + r_c^2} \right]
+
+    The log term is evaluated as :math:`\ln(1 + (r_h^2 - r_c^2)/(r^2 + r_c^2))`,
+    scaled by :math:`r_h^2`: the ratio inside the log is :math:`\approx 1` far
+    out, and :math:`r^2` overflows float32 in SI units.
     """
     r_c, r_h = p["r_c"], p["r_h"]
     A = -2 * p["G"] * p["m_tot"] / (jnp.pi * (r_h - r_c))
@@ -205,3 +283,11 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     k = r_c / r_h
     log_term = 0.5 * jnp.log1p((1 - k) * (1 + k) / ((r / r_h) ** 2 + k**2))
     return A * (atan_term + log_term)  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+dpotential_dr = radial_gradient(potential)
+d2potential_dr2 = radial_second_derivative(dpotential_dr)
+laplacian = poisson_laplacian(density)
+gradient = spherical_gradient(dpotential_dr)
+hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

@@ -7,6 +7,7 @@ of the same integral in its original form, the one over :math:`\tau \in
 [0, \infty)`, at 30 digits.
 """
 
+import jax
 import mpmath as mp
 import numpy as np
 import pytest
@@ -180,3 +181,14 @@ def test_rho0_class_equals_module(name):
         pot.rho0(0.0, ustrip=True), getattr(gp, name).rho0_of_m(pot.params(0.0))
     )
     assert str(pot.rho0(0.0).unit) == "solMass / kpc3"
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_class_matches_vmap_on_a_batch(name):
+    """The class on a batch equals ``jax.vmap`` of the module potential."""
+    pot, module = CASES[name], getattr(gp, name)
+    p = pot.params(0.0)
+    rng = np.random.default_rng(1)
+    xyz = jnp.asarray(rng.normal(size=(7, 3)) * 8.0)
+    want = jax.vmap(lambda x: module.potential(p, x))(xyz)
+    np.testing.assert_allclose(pot.potential(xyz, 0.0), want, rtol=1e-12)

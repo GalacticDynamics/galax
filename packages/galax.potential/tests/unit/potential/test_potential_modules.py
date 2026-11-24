@@ -73,6 +73,10 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     # q1 != q2, so that a swap of the two shows.
     gp.AxisymmetricGaussianPotential(m_tot=M, r_s=RS, q2=0.7, units=G),
     gp.TriaxialGaussianPotential(m_tot=M, r_s=RS, q1=0.9, q2=0.6, units=G),
+    # A non-default order, so that every generic test also runs at it.
+    gp.TriaxialGaussianPotential(
+        m_tot=M, r_s=RS, q1=0.9, q2=0.6, integration_order=12, units=G
+    ),
     gp.TriaxialNFWPotential(m=M, r_s=RS, q1=0.9, q2=0.6, units=G),
 ]
 
@@ -83,8 +87,6 @@ NO_MASS_QUADRATURE: set[str] = {"kepler"}
 TIME_EXPLICIT: set[str] = {"monarietal2016bar"}
 # A time at which Omega * t != 0 for the rotating bar.
 T = 37.0
-# Keyword-only static parameters that a kernel may take, as class fields.
-STATIC_PARAMS = ("integration_order", "positive_density")
 # Modules in `galax.potential.__all__` that are not a per-potential module.
 NOT_PER_POTENTIAL = {"harmonic", "io", "multipole_profile", "params", "plot", "scf"}
 
@@ -123,8 +125,8 @@ def extra(pot: gp.AbstractSinglePotential) -> tuple[float, ...]:
 
 def static_kwargs(pot, fn):
     """Return the static keyword parameters of ``fn``, set to the values of ``pot``."""
-    accepted = inspect.signature(fn).parameters
-    return {n: getattr(pot, n) for n in STATIC_PARAMS if n in accepted}
+    params = inspect.signature(fn).parameters.values()
+    return {q.name: getattr(pot, q.name) for q in params if q.kind is q.KEYWORD_ONLY}
 
 
 def point_fn(pot, name):
@@ -170,9 +172,9 @@ def test_module_exists_and_exports_contract(pot):
         assert all(
             x.kind in (x.POSITIONAL_ONLY, x.POSITIONAL_OR_KEYWORD) for x in positional
         ), name
-        assert {x.name for x in params} - {x.name for x in positional} <= set(
-            STATIC_PARAMS
-        ), name
+        # Each one is a field of the class, with the value the class passes.
+        kwonly = {x.name for x in params} - {x.name for x in positional}
+        assert all(hasattr(pot, n) for n in kwonly), name
 
 
 def test_instances_cover_per_potential_modules():

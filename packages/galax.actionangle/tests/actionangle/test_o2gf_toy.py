@@ -8,24 +8,18 @@ import numpy as np
 import quaxed.numpy as jnp
 
 import galax.actionangle._src._o2gf_toy as _toy
-from ._helpers import HO, HO_OMEGA, ISO, KPC, MYR, integrate
+from ._helpers import HO, HO_OMEGA, HO_TOY, ISO, ISO_TOY, KPC, MYR, integrate
 from galax.actionangle import isochrone_actions_angles_freqs as iaaf
-from galax.actionangle._src._o2gf_toy import (
-    IsochroneToy,
-    OscillatorToy,
-    fit_isochrone,
-    fit_oscillator,
-    toy_aaf,
-)
-from galax.actionangle._src._utils import finite_rows
+from galax.actionangle._src._o2gf_toy import fit_isochrone, fit_oscillator, toy_aaf
+from galax.actionangle._src._utils import G_in_units, finite_rows
 
 RTOL_NEAR_CIRC = 1e-3  # measured 1.1e-4, with margin
-G = ISO.constants["G"].ustrip("kpc3 / (Msun Myr2)")
+G = G_in_units(ISO)
 
 
-def _iso_orbit(x0=8.0):
+def _iso_orbit():
     # loop orbit, e ~ 0.3
-    return integrate(ISO, [x0, 0.0, 1.0], [0.0, 0.12, 0.05], 1500.0, 300)
+    return integrate(ISO, [8.0, 0.0, 1.0], [0.0, 0.12, 0.05], 1500.0, 300)
 
 
 def test_fit_isochrone_recovers():
@@ -45,8 +39,7 @@ def test_fit_oscillator_recovers():
 
 def test_toy_aaf_matches_public():
     q, p, t = _iso_orbit()
-    toy = IsochroneToy(m=jnp.asarray(1e11), b=jnp.asarray(2.0))
-    J, th, om = toy_aaf(toy, G, q, p)
+    J, th, om = toy_aaf(ISO_TOY, G, q, p)
     ref = iaaf(ISO, q, p, t)
     np.testing.assert_allclose(J, ref.actions, rtol=1e-12)
     np.testing.assert_allclose(th, ref.angles, rtol=1e-12)
@@ -55,7 +48,7 @@ def test_toy_aaf_matches_public():
 
 def test_toy_aaf_oscillator():
     q, p, _ = integrate(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 20)
-    J, _, om = toy_aaf(OscillatorToy(omega=jnp.asarray(HO_OMEGA)), G, q, p)
+    J, _, om = toy_aaf(HO_TOY, G, q, p)
     np.testing.assert_allclose(om, np.broadcast_to(HO_OMEGA, (20, 3)))
     np.testing.assert_allclose(J, J[0] + 0 * J, rtol=1e-7)
 

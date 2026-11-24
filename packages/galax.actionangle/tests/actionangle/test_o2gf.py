@@ -8,9 +8,20 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.coordinates as gc
-import galax.dynamics as gd
 import galax.potential as gp
-from ._helpers import HO, HO_OMEGA, ISO, KPC, MYR, TIGHT, angle_diff, integrate, lmj09
+from ._helpers import (
+    HO,
+    HO_OMEGA,
+    HO_TOY,
+    ISO,
+    ISO_TOY,
+    KMS,
+    KPC,
+    MYR,
+    angle_diff,
+    integrate,
+    lmj09,
+)
 from galax.actionangle import (
     IsochroneToy,
     O2GFResult,
@@ -23,8 +34,6 @@ from galax.actionangle._src._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
 from galax.actionangle._src._o2gf_toy import _oscillator_seed
 from galax.actionangle._src._parse import parse_w
 
-ISO_TOY = IsochroneToy(m=jnp.asarray(1e11), b=jnp.asarray(2.0))
-HO_TOY = OscillatorToy(omega=jnp.asarray(HO_OMEGA))
 N_MAX = 6
 # The isochrone loop orbit has T_r = 109 Myr: 10 radial periods, 2000 samples.
 # Its slowest non-resonant n . Omega (|n| <= 6) needs only 590 Myr to cover 2 pi.
@@ -33,8 +42,8 @@ ISO_Q0, ISO_P0, ISO_TMAX = [6.0, 0.0, 1.0], [0.0, 0.13, 0.05], 1100.0
 HO_Q0, HO_P0, HO_TMAX = [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 90.0
 
 
-def _iso_orbit(n=2000):
-    return integrate(ISO, ISO_Q0, ISO_P0, ISO_TMAX, n)
+def _iso_orbit():
+    return integrate(ISO, ISO_Q0, ISO_P0, ISO_TMAX)
 
 
 def _ho_orbit(q0=HO_Q0, p0=HO_P0, n=1000, tmax=HO_TMAX):
@@ -153,15 +162,10 @@ def test_jit_vmap_eager_agree():
 def test_grad_fd():
     # galax orbits only support forward mode, so jacrev covers the O2GF part:
     # dJ/dw0 = dJ/d(q, p) . d(q, p)/dw0, against jacfwd of the whole chain.
-    ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
-    t = jnp.asarray(u.ustrip("Myr", ts))
+    t = jnp.linspace(0.0, ISO_TMAX, 2000)
 
     def orbit(q0):
-        w0 = gc.PhaseSpaceCoordinate(
-            q=u.Q(q0, "kpc"), p=u.Q(jnp.asarray(ISO_P0), "kpc/Myr"), t=u.Q(0.0, "Myr")
-        )
-        orb = gd.evaluate_orbit(ISO, w0, ts, integrator=TIGHT)
-        return parse_w(ISO, orb)[:2]
+        return parse_w(ISO, integrate(ISO, q0, ISO_P0, ISO_TMAX, orbit=True))[:2]
 
     def J_qp(q, p):
         return o2gf(ISO, q, p, t, n_max=N_MAX).aaf.actions
@@ -371,9 +375,8 @@ def test_collapsed_box_toy_flagged():
     # coverage passing. J_z came back as -2e6 kpc^2/Myr, unflagged, while
     # <E_z> / Omega_z is about 2e-3.
     pot = _tnfw()
-    kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
     q, p, t = integrate(
-        pot, [10.0, 6.0, 1.0], [5 * kms, 3 * kms, 0.5 * kms], 15000.0, n=4000
+        pot, [10.0, 6.0, 1.0], [5 * KMS, 3 * KMS, 0.5 * KMS], 15000.0, n=4000
     )
     res = o2gf(pot, q, p, t, n_max=8, family="box")
     assert bool(res.fit_converged)
@@ -453,7 +456,7 @@ def test_box_scan_collapsed_flagged():
     n, rmax = 16, 12.0
     q0 = rng.uniform(-rmax, rmax, (n, 3)) * rng.choice([0.03, 0.1, 0.3, 1.0], (n, 3))
     q0[:, 0] = rng.uniform(0.5, 1.0, n) * rmax
-    v0 = rng.normal(0, 3, (n, 3)) * u.Q(1.0, "km/s").ustrip("kpc/Myr")
+    v0 = rng.normal(0, 3, (n, 3)) * KMS
     q, p, t = integrate(pot, q0, v0, 15000.0, 4000)
     res = o2gf(pot, q, p, t, n_max=6, family="box")
     J = np.asarray(res.aaf.actions)
@@ -634,8 +637,7 @@ def test_gap_flags_on_disk_loop():
     pot = gp.MiyamotoNagaiPotential(
         m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.28, "kpc"), units="galactic"
     )
-    kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
-    q, p, t = integrate(pot, [8.0, 0, 0.3], [10 * kms, 230 * kms, 10 * kms], 6000, 6000)
+    q, p, t = integrate(pot, [8.0, 0, 0.3], [10 * KMS, 230 * KMS, 10 * KMS], 6000, 6000)
     assert not bool(o2gf(pot, q, p, t, n_max=6).flagged)
     keep = np.ones(len(t), bool)
     keep[3000:3056] = False  # toy-predicted step 0.42 pi, actual theta_z step 1.0 pi

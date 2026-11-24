@@ -3,10 +3,12 @@
 __all__ = [
     "HO",
     "HO_OMEGA",
+    "HO_TOY",
     "ISO",
+    "ISO_TOY",
+    "KMS",
     "KPC",
     "MYR",
-    "TIGHT",
     "ScaledKuzminKutuzovPotential",
     "SeparablePotential",
     "angle_diff",
@@ -28,7 +30,12 @@ from unxt.quantity import AllowValue
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from galax.actionangle import O2GFResult, o2gf_actions_angles_freqs
+from galax.actionangle import (
+    IsochroneToy,
+    O2GFResult,
+    OscillatorToy,
+    o2gf_actions_angles_freqs,
+)
 from galax.actionangle._src._parse import parse_w
 from galax.potential.params import AbstractParameter, ParameterField
 
@@ -37,9 +44,12 @@ ISO = gp.IsochronePotential(
 )
 HO_OMEGA = np.array([0.7, 1.3, 2.1])
 HO = gp.HarmonicOscillatorPotential(omega=u.Q(HO_OMEGA, "1/Myr"), units="galactic")
+ISO_TOY = IsochroneToy(m=jnp.asarray(1e11), b=jnp.asarray(2.0))
+HO_TOY = OscillatorToy(omega=jnp.asarray(HO_OMEGA))
 KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
+KMS = u.Q(1.0, "km/s").ustrip("kpc/Myr")
 # The default integrator tolerance (1e-7) would limit the O2GF tests.
-TIGHT = gd.integrate.Integrator(
+_TIGHT = gd.integrate.Integrator(
     gd.OrbitSolver(
         solver=dfx.Dopri8(scan_kind="bounded"),
         stepsize_controller=dfx.PIDController(rtol=1e-12, atol=1e-12),
@@ -171,7 +181,7 @@ def integrate(pot, q0, p0, tmax, n=2000, *, orbit=False):
         t=u.Q(np.zeros(np.shape(q0)[:-1]), "Myr"),
     )
     ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
-    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
+    orb = gd.evaluate_orbit(pot, w0, ts, integrator=_TIGHT)
     return orb if orbit else tuple(np.asarray(x) for x in parse_w(pot, orb))
 
 
@@ -183,8 +193,8 @@ def o2gf_from_point(
     The orbit is sampled 2000 times. Returns the result and its actions in kpc
     km/s, ordered (J_r, J_phi, J_z).
     """
-    p0 = u.ustrip("kpc/Myr", u.Q(xv[3:], "km/s"))
-    q, p, t = integrate(pot, xv[:3], p0, tmax)
-    res = o2gf_actions_angles_freqs(pot, q, p, t, n_max=n_max)
-    unit = pot.units["length"] ** 2 / pot.units["time"]
-    return res, np.asarray(u.ustrip("kpc km/s", u.Q(res.aaf.actions, unit)))
+    orb = integrate(
+        pot, xv[:3], u.ustrip("kpc/Myr", u.Q(xv[3:], "km/s")), tmax, orbit=True
+    )
+    res = o2gf_actions_angles_freqs(pot, orb, n_max=n_max)
+    return res, np.asarray(u.ustrip("kpc km/s", res.aaf.actions))

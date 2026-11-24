@@ -12,6 +12,8 @@ from ._helpers import HO as POT, HO_OMEGA as OMEGA
 from galax.actionangle import harmonic_oscillator_actions_angles_freqs as haaf
 from galax.actionangle._src.harmonic_oscillator import _ho_aaf
 
+Q0, P0 = u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr")
+
 
 def _gala_reference(omega, x, v):
     """Gala's ``harmonic_oscillator_xv_to_aa`` body, on (3, N) arrays.
@@ -61,7 +63,7 @@ def test_grad_finite_at_axis():
 
 
 def test_units():
-    res = haaf(POT, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
+    res = haaf(POT, Q0, P0, 0.0)
     assert str(res.actions.unit) == "kpc2 / Myr"
     assert str(res.angles.unit) == "rad"
     assert str(res.freqs.unit) == "rad / Myr"
@@ -70,7 +72,7 @@ def test_units():
 
 def test_scalar_omega_broadcasts():
     pot = gp.HarmonicOscillatorPotential(omega=u.Q(1.5, "1 / Myr"), units="galactic")
-    res = haaf(pot, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
+    res = haaf(pot, Q0, P0, 0.0)
     np.testing.assert_allclose(u.ustrip("rad/Myr", res.freqs), [1.5, 1.5, 1.5])
 
 
@@ -88,13 +90,9 @@ def test_jit_vmap_eager_agree():
 
 
 def test_phase_space_coordinate():
-    w = gc.PhaseSpaceCoordinate(
-        q=u.Q([1.0, 0.5, 0.2], "kpc"),
-        p=u.Q([5.0, 3.0, 1.0], "kpc/Myr"),
-        t=u.Q(0.0, "Myr"),
-    )
+    w = gc.PhaseSpaceCoordinate(q=Q0, p=P0, t=u.Q(0.0, "Myr"))
     res = haaf(POT, w)
-    ref = haaf(POT, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
+    ref = haaf(POT, Q0, P0, 0.0)
     np.testing.assert_allclose(
         u.ustrip("kpc2/Myr", res.actions), u.ustrip("kpc2/Myr", ref.actions), rtol=1e-12
     )

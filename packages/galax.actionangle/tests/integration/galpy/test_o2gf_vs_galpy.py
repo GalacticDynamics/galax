@@ -105,6 +105,11 @@ RTOL = 7e-2
 G = float(gp.MilkyWayPotential2022().constants["G"].ustrip("kpc km2 / (s2 Msun)"))
 
 
+def _amp(m: float) -> float:
+    """Return galpy's amplitude for a mass ``m`` in Msun."""
+    return G * m / (RO * VO**2)
+
+
 def _galpy_actions(aA, xv: np.ndarray) -> np.ndarray:
     """Return galpy's actions of the point ``xv`` (kpc, km/s), in kpc km/s."""
     R, phi = np.hypot(xv[0], xv[1]), np.arctan2(xv[1], xv[0])
@@ -119,21 +124,18 @@ def _galpy_actions(aA, xv: np.ndarray) -> np.ndarray:
 def _galpy_pot() -> list:
     from galpy import potential as gpp  # deferred: optional
 
-    def amp(m: float) -> float:
-        return G * m / (RO * VO**2)
-
     out = []
     for kind, p in mw2022_parts():
         if kind == "MiyamotoNagai":
             out.append(
                 gpp.MiyamotoNagaiPotential(
-                    amp=amp(p["m"]), a=p["a"] / RO, b=p["b"] / RO
+                    amp=_amp(p["m"]), a=p["a"] / RO, b=p["b"] / RO
                 )
             )
         elif kind == "NFW":
-            out.append(gpp.NFWPotential(amp=amp(p["m"]), a=p["r_s"] / RO))
+            out.append(gpp.NFWPotential(amp=_amp(p["m"]), a=p["r_s"] / RO))
         else:  # galpy's Hernquist amp is twice the total mass
-            out.append(gpp.HernquistPotential(amp=2 * amp(p["m"]), a=p["r_s"] / RO))
+            out.append(gpp.HernquistPotential(amp=2 * _amp(p["m"]), a=p["r_s"] / RO))
     return out
 
 
@@ -149,8 +151,9 @@ def test_vs_galpy_isochroneapprox(point: tuple) -> None:
     assert not bool(res.flagged)
 
     pots = _galpy_pot()
-    R = np.hypot(xv[0], xv[1])
-    b = estimateBIsochrone(pots, R / RO, xv[2] / RO, quantity=False)
+    b = estimateBIsochrone(
+        pots, np.hypot(xv[0], xv[1]) / RO, xv[2] / RO, quantity=False
+    )
     Jp = _galpy_actions(actionAngleIsochroneApprox(pot=pots, b=b), xv)
 
     np.testing.assert_allclose(Jg, Jp, rtol=RTOL)
@@ -178,9 +181,7 @@ def test_vs_galpy_isochrone() -> None:
     res, Jg = o2gf_from_point(pot, xv, ISO_TMAX)
     assert not bool(res.flagged)
 
-    aA = actionAngleIsochrone(
-        ip=IsochronePotential(amp=G * ISO_M / (RO * VO**2), b=ISO_B / RO)
-    )
+    aA = actionAngleIsochrone(ip=IsochronePotential(amp=_amp(ISO_M), b=ISO_B / RO))
     Jp = _galpy_actions(aA, xv)
 
     np.testing.assert_allclose(Jg, Jp, rtol=ISO_RTOL)

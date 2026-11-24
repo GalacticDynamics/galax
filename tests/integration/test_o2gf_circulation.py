@@ -10,6 +10,7 @@ import pytest
 
 import galax.orbits as go
 from galax.actionangle._src._o2gf_orbit import circulating_axes
+from galax.actionangle._src._utils import finite_rows
 
 T = jnp.linspace(0.0, 40.0, 400)
 C, S, Z = jnp.cos(T), jnp.sin(T), jnp.zeros_like(T)
@@ -41,5 +42,5 @@ ORBITS = {
 def test_matches_galax_orbits(name, dtype, scale):
     q, p = ORBITS[name]
     q, p = (scale * q).astype(dtype), p.astype(dtype)
-    circ = circulating_axes(q, p, jnp.ones(len(q), bool))
+    circ = circulating_axes(q, p, finite_rows(q, p))
     np.testing.assert_array_equal(circ, go.circulation(q, p))

@@ -66,20 +66,6 @@ class Uniform(eqx.Module):
         """Return the solve's time grid, the lattice itself."""
         return self.lattice()
 
-    def segments(self) -> tuple[Array, Array]:
-        """Return the whole-stream segments ``(grids, on)``.
-
-        One segment per stretch between releases (one for a single release):
-        ``grids`` (S, L + 1) are its lattice points and ``on`` (S, n_release)
-        the releases made by its start, which move in it.
-        """
-        n_seg = max(self.n_release - 1, 1)
-        L = self.n_steps() // n_seg
-        starts = jnp.arange(n_seg) * L
-        grids = self.lattice()[starts[:, None] + jnp.arange(L + 1)]
-        on = self.release_index()[None, :] <= starts[:, None]
-        return grids, on
-
 
 class Times(eqx.Module):
     """Releases at arbitrary times ``ts``, between the points of a lattice.
@@ -187,21 +173,3 @@ class Times(eqx.Module):
     def release_times(self) -> Array:
         """Return the release times ``ts``, in the given order."""
         return self.ts
-
-    def segments(self) -> tuple[Array, Array]:
-        """Return the whole-stream segments ``(grids, on)`` for an adaptive solve.
-
-        One segment between each pair of consecutive sorted release times, then
-        one to ``t1``: ``grids`` (n, 2) are its ends and ``on`` (n, n) the
-        releases made by its start, which move in it.
-        """
-        u = jnp.sort(self.ts)
-        grids = jnp.stack([u, jnp.concat([u[1:], self.t1[None]])], axis=1)
-        # A NaN time gives NaN release states, so NaN rows: solve over zero
-        # time, not NaN time.
-        grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
-        # By sorted position, not time: of tied releases, only those before
-        # a segment's start in ``ts`` order move in it.
-        rank = jnp.argsort(jnp.argsort(self.ts))
-        on = rank[None, :] <= jnp.arange(self.ts.shape[0])[:, None]
-        return grids, on

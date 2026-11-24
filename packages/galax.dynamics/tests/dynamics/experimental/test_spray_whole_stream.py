@@ -87,37 +87,6 @@ def test_whole_stream_runs(df_cls, prog) -> None:
     assert float(res.t1) == 0.0
 
 
-def test_gate_no_leak() -> None:
-    """A tracer released at lattice point k moves as a lone solve from k.
-
-    And it doesn't move at all before k: no half-kick leaks across the release.
-    """
-    sched = gde.Uniform(jnp.asarray(400.0), 9, 5)  # 40 steps, segments of 5
-    lattice = sched.lattice()
-    ws = progenitor_states(HOST, W_TODAY, sched, LEAP)
-    prog_pot = plummer(MSAT)
-    k = 15  # a release index (segment start)
-    # Unbound from the cluster: a bound orbit at 10 Myr steps amplifies round-off.
-    w_tr = ws[k] + jnp.asarray([0.1, -0.05, 0.02, 5e-3, -5e-3, 2e-3])
-    w0 = jnp.stack([ws[0], w_tr])
-    L, n_seg = 5, 8
-    starts = jnp.arange(n_seg) * L
-    grids = lattice[starts[:, None] + jnp.arange(L + 1)]
-    active = (k <= starts)[:, None]
-    terms = _WholeStreamField(HOST, prog_pot).terms(LEAP)
-
-    before = evolve_whole_stream(terms, LEAP, w0, grids[: k // L], active[: k // L])
-    np.testing.assert_array_equal(before[1], w_tr)
-    np.testing.assert_allclose(before[0], ws[k], rtol=0, atol=1e-12)
-
-    got = evolve_whole_stream(terms, LEAP, w0, grids, active)
-    copies = _CopiesField(HOST, prog_pot)
-    y0 = (jnp.stack([w_tr[:3], ws[k, :3]]), jnp.stack([w_tr[3:], ws[k, 3:]]))
-    want = jnp.concat(solve_on(LEAP, copies.terms(LEAP), y0, lattice[k:]), axis=-1)
-    np.testing.assert_allclose(got[1], want[0], rtol=0, atol=1e-12)
-    np.testing.assert_allclose(got[0], want[1], rtol=0, atol=1e-12)
-
-
 @pytest.mark.parametrize("df_cls", DFS)
 def test_whole_stream_matches_lone_solves(df_cls) -> None:
     sched = gde.Uniform(jnp.asarray(300.0), 5, 8)

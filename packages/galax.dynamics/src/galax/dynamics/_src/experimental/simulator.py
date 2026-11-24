@@ -57,13 +57,13 @@ class WholeStream(eqx.Module):
 
     The state holds the progenitor and every tracer. A tracer is frozen at its
     release state until its release time, then moves in the host plus the
-    progenitor potential centred on the progenitor row. With a `Uniform`
-    schedule, or with `Times` and an adaptive controller, each stretch between
-    consecutive release times is its own solve, so a tracer's first step uses
-    the force at its release state. With `Times` and fixed steps, it is one
-    solve over the merged grid, in which each tracer's steps have zero length
-    until its release; the step that ends at the release computes the force at
-    the release state, so the first step after it uses that force too.
+    progenitor potential centred on the progenitor row. With fixed steps, it is
+    one solve over the schedule's grid, in which each tracer's steps have zero
+    length until its release; the step that ends at the release computes the
+    force at the release state, so the first step after it uses that force too.
+    With an adaptive controller, each stretch between consecutive release times
+    is its own solve, so a tracer's first step uses the force at its release
+    state.
 
     With an adaptive controller, diffrax's default error norm is the RMS over
     the whole state, frozen tracers included. So one particle's error can reach
@@ -337,6 +337,27 @@ def simulate(
     return SprayResult(lead, trail, ts, prog, jnp.asarray(schedule.t1, dtype=float))
 
 
+def _segments(ts: Array, t1: Array) -> tuple[Array, Array]:
+    """Return the adaptive whole-stream segments ``(grids, on)``.
+
+    One segment between each pair of consecutive sorted release times ``ts``,
+    then one to ``t1``: ``grids`` (n, 2) are its ends and ``on`` (n, n) the
+    releases made by its start, which move in it.
+    """
+    u = jnp.sort(ts)
+    grids = jnp.stack(
+        [u, jnp.concat([u[1:], jnp.asarray(t1, dtype=float)[None]])], axis=1
+    )
+    # A NaN time gives NaN release states, so NaN rows: solve over zero time,
+    # not NaN time.
+    grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
+    # By sorted position, not time: of tied releases, only those before a
+    # segment's start in ``ts`` order move in it.
+    rank = jnp.argsort(jnp.argsort(ts))
+    on = rank[None, :] <= jnp.arange(ts.shape[0])[:, None]
+    return grids, on
+
+
 def evolve_whole_stream(
     terms: Any,
     solver: dfxtra.DiffEqSolver,
@@ -349,7 +370,7 @@ def evolve_whole_stream(
 
     Segment ``s`` is one solve along ``grids[s]`` (S, L + 1) with the tracers
     ``active[s]`` (S, R - 1) moving and the rest frozen. ``gate`` goes to
-    `solve_on`. The fixed-step `Times` path is one segment with every tracer in
+    `solve_on`. A fixed-step solve is one segment with every tracer in
     ``active``: its ``gate``, `_Gate`, freezes each row until its release, not
     ``active``. If ``w0`` is not finite
     or a segment fails, every row comes out NaN. After that, an adaptive
@@ -502,16 +523,15 @@ def _evolve(
     n = lead0.shape[0]
     terms = _WholeStreamField(pot, prog_pot).terms(sim.solver)
     gate = None
-    if isinstance(schedule, Times) and is_lattice(sim.solver):
-        # One solve over the merged grid, each row gated by its release's grid
-        # index; the progenitor row starts at the grid's first point.
+    if is_lattice(sim.solver):
+        # One solve over the grid, each row gated by its release's grid index;
+        # the progenitor row starts at the grid's first point.
         idx = schedule.release_index()
         first = jnp.concat([jnp.zeros(1, dtype=idx.dtype), idx, idx])
         gate = lambda x: _Gate(x, first)
         grids, on = schedule.grid()[None], jnp.ones((1, n), dtype=bool)
     else:
-        # One solve per segment; the tracers released by its start move in it.
-        grids, on = schedule.segments()
+        grids, on = _segments(schedule.release_times(), schedule.t1)
     w = evolve_whole_stream(
         terms,
         sim.solver,

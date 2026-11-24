@@ -1,9 +1,18 @@
 """Test helpers: test potentials, KK Delta, and O2GF runs for the oracle tests."""
 
 __all__ = [
+    "HO",
+    "HO_OMEGA",
+    "ISO",
+    "KPC",
+    "MYR",
+    "TIGHT",
     "ScaledKuzminKutuzovPotential",
     "SeparablePotential",
+    "angle_diff",
+    "integrate",
     "kk_delta",
+    "lmj09",
     "mw2022_parts",
     "o2gf_from_point",
 ]
@@ -22,6 +31,21 @@ import galax.potential as gp
 from galax.actionangle import O2GFResult, o2gf_actions_angles_freqs
 from galax.actionangle._src._parse import parse_w
 from galax.potential.params import AbstractParameter, ParameterField
+
+ISO = gp.IsochronePotential(
+    m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
+)
+HO_OMEGA = np.array([0.7, 1.3, 2.1])
+HO = gp.HarmonicOscillatorPotential(omega=u.Q(HO_OMEGA, "1/Myr"), units="galactic")
+KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
+# The default integrator tolerance (1e-7) would limit the O2GF tests.
+TIGHT = gd.integrate.Integrator(
+    gd.OrbitSolver(
+        solver=dfx.Dopri8(scan_kind="bounded"),
+        stepsize_controller=dfx.PIDController(rtol=1e-12, atol=1e-12),
+        max_steps=2**18,
+    )
+)
 
 
 class ScaledKuzminKutuzovPotential(gp.AbstractSinglePotential):
@@ -117,13 +141,38 @@ def mw2022_parts() -> list[tuple[str, dict[str, float]]]:
     return parts
 
 
-_TIGHT = gd.integrate.Integrator(
-    gd.OrbitSolver(
-        solver=dfx.Dopri8(scan_kind="bounded"),
-        stepsize_controller=dfx.PIDController(rtol=1e-12, atol=1e-12),
-        max_steps=2**18,
+def lmj09(q2: float, q3: float) -> gp.LMJ09LogarithmicPotential:
+    """Triaxial LMJ09 logarithmic potential with axis ratios ``q2`` and ``q3``."""
+    return gp.LMJ09LogarithmicPotential(
+        v_c=u.Q(200.0, "km/s"),
+        r_s=u.Q(3.0, "kpc"),
+        q1=1.0,
+        q2=q2,
+        q3=q3,
+        phi=u.Q(0.0, "rad"),
+        units="galactic",
     )
-)
+
+
+def angle_diff(a, b):
+    """Difference of two angles, wrapped into [-pi, pi)."""
+    return (np.asarray(a) - np.asarray(b) + np.pi) % (2 * np.pi) - np.pi
+
+
+def integrate(pot, q0, p0, tmax, n=2000, *, orbit=False):
+    """Integrate from ``q0`` (kpc) and ``p0`` (kpc/Myr) at t = 0 to ``tmax`` Myr.
+
+    ``q0`` and ``p0`` may carry batch axes. The orbit is sampled ``n`` times.
+    Returns the orbit, or ``(q, p, t)`` as NumPy arrays in ``pot.units``.
+    """
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(q0, "kpc"),
+        p=u.Q(p0, "kpc/Myr"),
+        t=u.Q(np.zeros(np.shape(q0)[:-1]), "Myr"),
+    )
+    ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
+    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
+    return orb if orbit else tuple(np.asarray(x) for x in parse_w(pot, orb))
 
 
 def o2gf_from_point(
@@ -134,11 +183,8 @@ def o2gf_from_point(
     The orbit is sampled 2000 times. Returns the result and its actions in kpc
     km/s, ordered (J_r, J_phi, J_z).
     """
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(xv[:3], "kpc"), p=u.Q(xv[3:], "km/s"), t=u.Q(0.0, "Myr")
-    )
-    ts = u.Q(jnp.linspace(0.0, tmax, 2000), "Myr")
-    q, p, t = parse_w(pot, gd.evaluate_orbit(pot, w0, ts, integrator=_TIGHT))
+    p0 = u.ustrip("kpc/Myr", u.Q(xv[3:], "km/s"))
+    q, p, t = integrate(pot, xv[:3], p0, tmax)
     res = o2gf_actions_angles_freqs(pot, q, p, t, n_max=n_max)
     unit = pot.units["length"] ** 2 / pot.units["time"]
     return res, np.asarray(u.ustrip("kpc km/s", u.Q(res.aaf.actions, unit)))

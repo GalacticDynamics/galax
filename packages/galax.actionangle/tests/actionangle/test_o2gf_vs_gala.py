@@ -17,6 +17,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
+from ._helpers import angle_diff, lmj09
 from galax.actionangle import (
     IsochroneToy,
     OscillatorToy,
@@ -38,15 +39,7 @@ POTS = {
         m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.3, "kpc"), units="galactic"
     ),
     "triaxial_nfw_xtube": _NFW,
-    "log_box": gp.LMJ09LogarithmicPotential(
-        v_c=u.Q(200.0, "km/s"),
-        r_s=u.Q(3.0, "kpc"),
-        q1=1.0,
-        q2=0.9,
-        q3=0.8,
-        phi=u.Q(0.0, "rad"),
-        units="galactic",
-    ),
+    "log_box": lmj09(0.9, 0.8),
 }
 G = float(POTS["mw2022_loop"].constants["G"].ustrip("kpc3 / (solMass Myr2)"))
 
@@ -97,11 +90,6 @@ def _scatter(toy, q, p):
     return np.sum((H - H.mean()) ** 2)
 
 
-def _angle_diff(a, b):
-    """Difference of two angles, wrapped into [-pi, pi)."""
-    return (np.asarray(a) - np.asarray(b) + np.pi) % (2 * np.pi) - np.pi
-
-
 def _expected_axis(circ):
     """Return the axis swapped with z, by gala's rule: z, then x before y."""
     return 2 if circ[2] or not circ.any() else int(np.argmax(circ[:2]))
@@ -127,7 +115,7 @@ def test_matches_gala_fixed_toy(name):
 
     np.testing.assert_allclose(res.aaf.actions, c["actions"], rtol=1e-10)
     np.testing.assert_allclose(res.aaf.freqs, c["freqs"], rtol=1e-10)
-    np.testing.assert_allclose(_angle_diff(res.aaf.angles, c["angles"]), 0, atol=1e-10)
+    np.testing.assert_allclose(angle_diff(res.aaf.angles, c["angles"]), 0, atol=1e-10)
     # S_n holds entries near 0, so rtol is taken relative to the largest |S_n|.
     np.testing.assert_allclose(
         res.sn, c["sn"], rtol=1e-10, atol=1e-10 * np.max(np.abs(c["sn"]))
@@ -159,6 +147,4 @@ def test_matches_gala_own_fit(name):
     rtol_j, rtol_om, atol_th = OWN_FIT_TOL[name]
     np.testing.assert_allclose(res.aaf.actions, c["actions"], rtol=rtol_j)
     np.testing.assert_allclose(res.aaf.freqs, c["freqs"], rtol=rtol_om)
-    np.testing.assert_allclose(
-        _angle_diff(res.aaf.angles, c["angles"]), 0, atol=atol_th
-    )
+    np.testing.assert_allclose(angle_diff(res.aaf.angles, c["angles"]), 0, atol=atol_th)

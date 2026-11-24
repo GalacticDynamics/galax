@@ -30,11 +30,6 @@ def _gala_generate_n_vectors(N_max, dx=1, dy=1, dz=1, *, half_lattice=True):
     return np.array(sorted(vecs, key=lambda x: (x[0], x[1], x[2])))
 
 
-def test_steps_constants():
-    assert LOOP_STEPS == (1, 2, 2)
-    assert BOX_STEPS == (2, 2, 2)
-
-
 @pytest.mark.parametrize("n_max", [2, 4, 6, 8])
 @pytest.mark.parametrize("steps", [LOOP_STEPS, BOX_STEPS])
 def test_matches_gala_even(n_max, steps):

@@ -35,7 +35,6 @@ ORBITS = {
 def _check(q, p, circ, expected, axis_exp, out):
     q2, p2, axis = out
     assert tuple(np.asarray(circ)) == expected
-    assert bool(circ.any()) == any(expected)
     assert int(axis) == axis_exp
     if any(expected):
         L = jnp.cross(q2, p2)

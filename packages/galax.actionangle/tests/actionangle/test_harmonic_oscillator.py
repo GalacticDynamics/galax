@@ -8,10 +8,9 @@ import unxt as u
 
 import galax.coordinates as gc
 import galax.potential as gp
+from ._helpers import HO as POT, HO_OMEGA as OMEGA
 from galax.actionangle import harmonic_oscillator_actions_angles_freqs as haaf
 from galax.actionangle._src.harmonic_oscillator import _ho_aaf
-
-OMEGA = np.array([0.7, 1.3, 2.1])
 
 
 def _gala_reference(omega, x, v):
@@ -34,11 +33,10 @@ def test_round_trip():
     th = rng.uniform(0.0, 2 * np.pi, size=(50, 3))
     x = np.sqrt(2 * J / OMEGA) * np.cos(th)
     v = -np.sqrt(2 * J * OMEGA) * np.sin(th)
-    for i in range(50):
-        J_, th_, freqs = _ho_aaf(jnp.asarray(OMEGA), x[i], v[i])
-        np.testing.assert_allclose(J_, J[i], rtol=1e-12)
-        np.testing.assert_allclose(th_, th[i], rtol=1e-12)
-        np.testing.assert_allclose(freqs, OMEGA)
+    J_, th_, freqs = jax.vmap(_ho_aaf, (None, 0, 0))(jnp.asarray(OMEGA), x, v)
+    np.testing.assert_allclose(J_, J, rtol=1e-12)
+    np.testing.assert_allclose(th_, th, rtol=1e-12)
+    np.testing.assert_allclose(freqs, np.broadcast_to(OMEGA, (50, 3)))
 
 
 def test_matches_gala_formula():
@@ -63,10 +61,7 @@ def test_grad_finite_at_axis():
 
 
 def test_units():
-    pot = gp.HarmonicOscillatorPotential(
-        omega=u.Q([0.7, 1.3, 2.1], "1 / Myr"), units="galactic"
-    )
-    res = haaf(pot, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
+    res = haaf(POT, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
     assert str(res.actions.unit) == "kpc2 / Myr"
     assert str(res.angles.unit) == "rad"
     assert str(res.freqs.unit) == "rad / Myr"
@@ -80,36 +75,26 @@ def test_scalar_omega_broadcasts():
 
 
 def test_jit_vmap_eager_agree():
-    pot = gp.HarmonicOscillatorPotential(
-        omega=u.Q([0.7, 1.3, 2.1], "1 / Myr"), units="galactic"
-    )
     rng = np.random.default_rng(3)
     q = rng.normal(size=(8, 3))
     p = rng.normal(size=(8, 3))
-    batched = haaf(pot, q, p, 0.0)
-
-    def fields(r):
-        return (r.actions, r.angles, r.freqs)
-
-    jitted = jax.jit(lambda q, p: fields(haaf(pot, q, p, 0.0)))(q, p)
+    batched = haaf(POT, q, p, 0.0)
+    jitted = jax.jit(lambda q, p: haaf(POT, q, p, 0.0))(q, p)
     for i in range(8):
-        one = fields(haaf(pot, q[i], p[i], 0.0))
-        for a, b, c in zip(one, fields(batched), jitted, strict=True):
+        one = haaf(POT, q[i], p[i], 0.0)
+        for a, b, c in zip(*map(jax.tree.leaves, (one, batched, jitted)), strict=True):
             np.testing.assert_allclose(a, b[i], rtol=1e-12)
             np.testing.assert_allclose(a, c[i], rtol=1e-12)
 
 
 def test_phase_space_coordinate():
-    pot = gp.HarmonicOscillatorPotential(
-        omega=u.Q([0.7, 1.3, 2.1], "1 / Myr"), units="galactic"
-    )
     w = gc.PhaseSpaceCoordinate(
         q=u.Q([1.0, 0.5, 0.2], "kpc"),
         p=u.Q([5.0, 3.0, 1.0], "kpc/Myr"),
         t=u.Q(0.0, "Myr"),
     )
-    res = haaf(pot, w)
-    ref = haaf(pot, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
+    res = haaf(POT, w)
+    ref = haaf(POT, u.Q([1.0, 0.5, 0.2], "kpc"), u.Q([5.0, 3.0, 1.0], "kpc/Myr"), 0.0)
     np.testing.assert_allclose(
         u.ustrip("kpc2/Myr", res.actions), u.ustrip("kpc2/Myr", ref.actions), rtol=1e-12
     )

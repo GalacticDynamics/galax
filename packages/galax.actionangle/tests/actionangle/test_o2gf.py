@@ -1,6 +1,5 @@
 """Tests for the public O2GF entry point."""
 
-import diffrax as dfx
 import jax
 import numpy as np
 import pytest
@@ -11,6 +10,7 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
+from ._helpers import HO, HO_OMEGA, ISO, KPC, MYR, TIGHT, angle_diff, integrate, lmj09
 from galax.actionangle import (
     IsochroneToy,
     O2GFResult,
@@ -23,20 +23,8 @@ from galax.actionangle._src._o2gf_nvecs import BOX_STEPS, LOOP_STEPS, n_vectors
 from galax.actionangle._src._o2gf_toy import _oscillator_seed
 from galax.actionangle._src._parse import parse_w
 
-ISO = gp.IsochronePotential(
-    m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-)
 ISO_TOY = IsochroneToy(m=jnp.asarray(1e11), b=jnp.asarray(2.0))
-HO_OMEGA = np.array([0.7, 1.3, 2.1])
-HO = gp.HarmonicOscillatorPotential(omega=u.Q(HO_OMEGA, "1/Myr"), units="galactic")
 HO_TOY = OscillatorToy(omega=jnp.asarray(HO_OMEGA))
-TIGHT = gd.integrate.Integrator(
-    gd.OrbitSolver(
-        solver=dfx.Dopri8(scan_kind="bounded"),
-        stepsize_controller=dfx.PIDController(rtol=1e-12, atol=1e-12),
-        max_steps=2**18,
-    )
-)
 N_MAX = 6
 # The isochrone loop orbit has T_r = 109 Myr: 10 radial periods, 2000 samples.
 # Its slowest non-resonant n . Omega (|n| <= 6) needs only 590 Myr to cover 2 pi.
@@ -45,36 +33,18 @@ ISO_Q0, ISO_P0, ISO_TMAX = [6.0, 0.0, 1.0], [0.0, 0.13, 0.05], 1100.0
 HO_Q0, HO_P0, HO_TMAX = [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 90.0
 
 
-def _w0(q0, p0):
-    return gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(p0, "kpc/Myr"), t=u.Q(0.0, "Myr")
-    )
-
-
-def _orbit(pot, q0, p0, tmax, n=2000):
-    ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
-    orb = gd.evaluate_orbit(pot, _w0(q0, p0), ts, integrator=TIGHT)
-    q, p, t = parse_w(pot, orb)
-    return np.asarray(q), np.asarray(p), np.asarray(t)
-
-
 def _iso_orbit(n=2000):
-    return _orbit(ISO, ISO_Q0, ISO_P0, ISO_TMAX, n)
+    return integrate(ISO, ISO_Q0, ISO_P0, ISO_TMAX, n)
 
 
-def _ho_orbit(q0=HO_Q0, p0=HO_P0, n=1000):
+def _ho_orbit(q0=HO_Q0, p0=HO_P0, n=1000, tmax=HO_TMAX):
     """Exact oscillator orbit, so integration error does not enter."""
-    t = np.linspace(0.0, HO_TMAX, n)
+    t = np.linspace(0.0, tmax, n)
     wt = HO_OMEGA * t[:, None]
     q0, p0 = np.asarray(q0), np.asarray(p0)
     q = q0 * np.cos(wt) + p0 / HO_OMEGA * np.sin(wt)
     p = -q0 * HO_OMEGA * np.sin(wt) + p0 * np.cos(wt)
     return q, p, t
-
-
-def _angle_diff(a, b):
-    """Difference of two angles, wrapped into [-pi, pi)."""
-    return (np.asarray(a) - np.asarray(b) + np.pi) % (2 * np.pi) - np.pi
 
 
 def test_isochrone_fixed_toy_exact():
@@ -86,7 +56,7 @@ def test_isochrone_fixed_toy_exact():
     np.testing.assert_allclose(J, ref.actions, rtol=1e-10)
     np.testing.assert_allclose(res.aaf.freqs, ref.freqs, rtol=1e-10)
     assert np.max(np.abs(res.sn)) < 1e-10 * np.linalg.norm(J)
-    np.testing.assert_allclose(_angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-10)
+    np.testing.assert_allclose(angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-10)
     assert bool(res.is_loop)
     assert int(res.aligned_axis) == 2
     assert int(res.n_nan) == 0
@@ -101,7 +71,7 @@ def test_isochrone_fitted_toy():
     ref = iaaf(ISO, q[0], p[0], t[0])
     np.testing.assert_allclose(res.aaf.actions, ref.actions, rtol=1e-6)
     np.testing.assert_allclose(res.aaf.freqs, ref.freqs, rtol=1e-6)
-    np.testing.assert_allclose(_angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-6)
+    np.testing.assert_allclose(angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-6)
     assert bool(res.fit_converged)
 
 
@@ -111,7 +81,7 @@ def test_box_orbit_oscillator():
     ref = haaf(HO, q[0], p[0], t[0])
     np.testing.assert_allclose(res.aaf.actions, ref.actions, rtol=1e-10)
     np.testing.assert_allclose(res.aaf.freqs, ref.freqs, rtol=1e-10)
-    np.testing.assert_allclose(_angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-10)
+    np.testing.assert_allclose(angle_diff(res.aaf.angles, ref.angles), 0, atol=1e-10)
     assert not bool(res.is_loop)
     assert not bool(res.toy_degenerate)
     assert not bool(res.flagged)
@@ -160,7 +130,7 @@ def test_classify_auto_matches_fixed(fam):
 
 def test_jit_vmap_eager_agree():
     q1, p1, t1 = _iso_orbit()
-    q2, p2, _ = _orbit(ISO, [6.0, 1.0, 0.5], [0.02, 0.13, 0.04], ISO_TMAX)
+    q2, p2, _ = integrate(ISO, [6.0, 1.0, 0.5], [0.02, 0.13, 0.04], ISO_TMAX)
     eager = o2gf(ISO, q1, p1, t1, n_max=N_MAX).aaf
     jitted = jax.jit(lambda q, p, t: o2gf(ISO, q, p, t, n_max=N_MAX).aaf)(q1, p1, t1)
     batch = o2gf(ISO, np.stack([q1, q2]), np.stack([p1, p2]), t1, n_max=N_MAX).aaf
@@ -210,7 +180,7 @@ def test_grad_fd():
 
 
 def test_short_orbit_flags_coverage():
-    q, p, t = _orbit(ISO, ISO_Q0, ISO_P0, 55.0, 200)  # half a radial period
+    q, p, t = integrate(ISO, ISO_Q0, ISO_P0, 55.0, 200)  # half a radial period
     res = o2gf(ISO, q, p, t, n_max=N_MAX, toy=ISO_TOY)
     assert int(res.n_bad_cover) > 0
     assert bool(res.flagged)
@@ -219,11 +189,7 @@ def test_short_orbit_flags_coverage():
 def test_short_window_flagged():
     # Over 1e-7 Myr every n . theta is nearly constant, but no toy angle turns
     # through 2 pi, so the modes are badly covered rather than resonant.
-    t = np.linspace(0.0, 1e-7, 200)
-    wt = HO_OMEGA * t[:, None]
-    q0, p0 = np.asarray(HO_Q0), np.asarray(HO_P0)
-    q = q0 * np.cos(wt) + p0 / HO_OMEGA * np.sin(wt)
-    p = -q0 * HO_OMEGA * np.sin(wt) + p0 * np.cos(wt)
+    q, p, t = _ho_orbit(n=200, tmax=1e-7)
     for kw in ({"family": "box"}, {"toy": HO_TOY}):
         res = o2gf(HO, q, p, t, n_max=N_MAX, **kw)
         assert int(res.n_resonant) == 0, kw
@@ -265,7 +231,7 @@ def test_toy_param_jacobians():
 @pytest.mark.slow
 def test_planar_loop_orbit():
     pot = gp.MilkyWayPotential2022()
-    q, p, t = _orbit(pot, [8.0, 0.0, 0.0], [0.02, 0.22, 0.0], 2000.0, 2000)
+    q, p, t = integrate(pot, [8.0, 0.0, 0.0], [0.02, 0.22, 0.0], 2000.0, 2000)
     res = o2gf(pot, q, p, t, n_max=N_MAX)
     J = np.asarray(res.aaf.actions)
     assert np.all(np.isfinite(J))
@@ -326,8 +292,8 @@ def test_planar_box_grad_finite(kw):
 def test_batched_toys_match_single():
     orbits = [
         _iso_orbit(),
-        _orbit(ISO, [6.0, 1.0, 0.5], [0.02, 0.13, 0.04], ISO_TMAX),
-        _orbit(ISO, [6.0, -1.0, 1.5], [0.03, 0.12, 0.06], ISO_TMAX),
+        integrate(ISO, [6.0, 1.0, 0.5], [0.02, 0.13, 0.04], ISO_TMAX),
+        integrate(ISO, [6.0, -1.0, 1.5], [0.03, 0.12, 0.06], ISO_TMAX),
     ]
     q = np.stack([o[0] for o in orbits])
     p = np.stack([o[1] for o in orbits])
@@ -353,16 +319,8 @@ def test_batched_toys_match_single():
 
 def _log_box():
     """Integrate a box orbit from rest in a triaxial logarithmic potential."""
-    pot = gp.LMJ09LogarithmicPotential(
-        v_c=u.Q(200.0, "km/s"),
-        r_s=u.Q(3.0, "kpc"),
-        q1=1.0,
-        q2=0.9,
-        q3=0.8,
-        phi=u.Q(0.0, "rad"),
-        units="galactic",
-    )
-    return pot, _orbit(pot, [4.0, 3.0, 2.0], [0.0, 0.0, 0.0], 12000.0)
+    pot = lmj09(0.9, 0.8)
+    return pot, integrate(pot, [4.0, 3.0, 2.0], [0.0, 0.0, 0.0], 12000.0)
 
 
 @pytest.mark.slow
@@ -414,7 +372,7 @@ def test_collapsed_box_toy_flagged():
     # <E_z> / Omega_z is about 2e-3.
     pot = _tnfw()
     kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
-    q, p, t = _orbit(
+    q, p, t = integrate(
         pot, [10.0, 6.0, 1.0], [5 * kms, 3 * kms, 0.5 * kms], 15000.0, n=4000
     )
     res = o2gf(pot, q, p, t, n_max=8, family="box")
@@ -429,41 +387,20 @@ def test_collapsed_box_toy_flagged():
     assert bool(auto.flagged)
 
 
-def _lmj():
-    return gp.LMJ09LogarithmicPotential(
-        v_c=u.Q(200.0, "km/s"),
-        r_s=u.Q(3.0, "kpc"),
-        q1=1.0,
-        q2=0.85,
-        q3=0.7,
-        phi=u.Q(0.0, "rad"),
-        units="galactic",
-    )
-
-
-def _batch(pot, q0, v0, tmax, n):
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(len(q0)), "Myr")
-    )
-    ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
-    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
-    return tuple(np.asarray(x) for x in parse_w(pot, orb))
-
-
 def test_thin_box_flagged():
     # Near-planar boxes, with z0 = 1e-5 and 1e-4 kpc, and a 3-D box from the
     # same in-plane start. On the thin ones the n_z != 0 modes absorb the
     # in-plane fit residual, and the fitted toy collapses or not depending on
     # round-off, so they must be flagged whatever the round-off. The 3-D box
     # has a smallest toy action fraction of 4e-2 and must stay unflagged.
-    pot = _lmj()
+    pot = lmj09(0.85, 0.7)
     zs = np.array([1e-5, 1e-4, 1.0])
     q0 = np.tile([4.78033055, 0.120120631, 0.0], (3, 1))
     q0[:, 2] = zs
     v0 = np.tile([0.06884186, -0.09733735, 0.0], (3, 1))
     want = np.array([True, True, False])
     for n in (3999, 4000, 4001):
-        q, p, t = _batch(pot, q0, v0, 12000.0, n)
+        q, p, t = integrate(pot, q0, v0, 12000.0, n)
         res = o2gf(pot, q, p, t, n_max=6)
         assert not np.any(np.asarray(res.is_loop))
         np.testing.assert_array_equal(np.asarray(res.flagged), want, err_msg=str(n))
@@ -479,7 +416,7 @@ def test_thin_box_flagged():
     )
     # The thin-box check is on the box path only, so a near-planar loop is
     # not flagged by it.
-    q, p, t = _orbit(ISO, [6.0, 0.0, 1e-5], [0.0, 0.13, 0.0], ISO_TMAX)
+    q, p, t = integrate(ISO, [6.0, 0.0, 1e-5], [0.0, 0.13, 0.0], ISO_TMAX)
     for kw in ({}, {"family": "loop"}):
         res = o2gf(ISO, q, p, t, n_max=N_MAX, **kw)
         assert not bool(res.thin_box), kw
@@ -491,9 +428,14 @@ def test_thin_box_audit_reproducers_flagged():
     # of the sum of |J| and in-plane actions 4 to 9 percent off, unflagged.
     for pot, q0, v0, tmax in (
         (_tnfw(), [-5.27204, -3.44235, 1.11e-5], [0.0089927, -0.0156182, 0.0], 20000.0),
-        (_lmj(), [1.63905, 7.60687, 1.047e-4], [0.0245734, -0.0044446, 0.0], 12000.0),
+        (
+            lmj09(0.85, 0.7),
+            [1.63905, 7.60687, 1.047e-4],
+            [0.0245734, -0.0044446, 0.0],
+            12000.0,
+        ),
     ):
-        q, p, t = _batch(pot, np.array([q0]), np.array([v0]), tmax, 5000)
+        q, p, t = integrate(pot, np.array([q0]), np.array([v0]), tmax, 5000)
         for n_max in (6, 8):
             res = o2gf(pot, q, p, t, n_max=n_max)
             assert not bool(res.is_loop[0])
@@ -512,12 +454,7 @@ def test_box_scan_collapsed_flagged():
     q0 = rng.uniform(-rmax, rmax, (n, 3)) * rng.choice([0.03, 0.1, 0.3, 1.0], (n, 3))
     q0[:, 0] = rng.uniform(0.5, 1.0, n) * rmax
     v0 = rng.normal(0, 3, (n, 3)) * u.Q(1.0, "km/s").ustrip("kpc/Myr")
-    w0 = gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(v0, "kpc/Myr"), t=u.Q(np.zeros(n), "Myr")
-    )
-    ts = u.Q(jnp.linspace(0.0, 15000.0, 4000), "Myr")
-    orb = gd.evaluate_orbit(pot, w0, ts, integrator=TIGHT)
-    q, p, t = (np.asarray(x) for x in parse_w(pot, orb))
+    q, p, t = integrate(pot, q0, v0, 15000.0, 4000)
     res = o2gf(pot, q, p, t, n_max=6, family="box")
     J = np.asarray(res.aaf.actions)
     om = np.stack(
@@ -568,8 +505,11 @@ def test_bad_inputs_raise():
         o2gf(ISO, q, p, t, n_max=N_MAX, toy=toy)
     with pytest.raises(TypeError, match="IsochroneToy or OscillatorToy"):
         o2gf(ISO, q, p, t, n_max=N_MAX, toy=(1e11, 2.0))
+    w0 = gc.PhaseSpaceCoordinate(
+        q=u.Q(ISO_Q0, "kpc"), p=u.Q(ISO_P0, "kpc/Myr"), t=u.Q(0.0, "Myr")
+    )
     with pytest.raises(ValueError, match="time axis"):
-        o2gf(ISO, _w0(ISO_Q0, ISO_P0), n_max=N_MAX)
+        o2gf(ISO, w0, n_max=N_MAX)
     with pytest.raises(ValueError, match="time axis"):
         o2gf(ISO, q[:1], p[:1], t[:1], n_max=N_MAX)
 
@@ -588,7 +528,7 @@ def test_float32():
         assert a.dtype == np.float32
     np.testing.assert_allclose(res.actions, ref.actions, rtol=1e-4)
     np.testing.assert_allclose(res.freqs, ref.freqs, rtol=1e-4)
-    np.testing.assert_allclose(_angle_diff(res.angles, ref.angles), 0, atol=1e-4)
+    np.testing.assert_allclose(angle_diff(res.angles, ref.angles), 0, atol=1e-4)
 
 
 def test_units():
@@ -603,16 +543,12 @@ def test_units():
         u.ustrip("kpc2/Myr", withq.actions), plain.aaf.actions, rtol=1e-12
     )
 
-    ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
-    orb = gd.evaluate_orbit(ISO, _w0(ISO_Q0, ISO_P0), ts, integrator=TIGHT)
+    orb = integrate(ISO, ISO_Q0, ISO_P0, ISO_TMAX, orbit=True)
     fromw = o2gf(ISO, orb, n_max=N_MAX).aaf
     assert fromw.actions.unit == u.unit("kpc2 / Myr")
     np.testing.assert_allclose(
         u.ustrip("kpc2/Myr", fromw.actions), plain.aaf.actions, rtol=1e-10
     )
-
-
-KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
 
 
 def _mn(units):
@@ -639,7 +575,7 @@ def test_si_matches_galactic(mk, q0, v0, tmax):
     # that, in SI the damping could not shorten the first step and the fit
     # stopped at its seed.
     p0 = u.Q(v0, "km/s").ustrip("kpc/Myr")
-    q, p, t = _orbit(mk("galactic"), q0, p0, tmax)
+    q, p, t = integrate(mk("galactic"), q0, p0, tmax)
     gal = o2gf(mk("galactic"), q, p, t, n_max=N_MAX)
     si = o2gf(mk("si"), q * KPC, p * KPC / MYR, t * MYR, n_max=N_MAX)
     assert bool(si.flagged) == bool(gal.flagged)
@@ -656,8 +592,7 @@ def test_sn_units_follow_actions():
     assert not isinstance(plain.aaf.actions, u.AbstractQuantity)
     assert not isinstance(plain.dsn_dj, u.AbstractQuantity)
 
-    ts = u.Q(jnp.linspace(0.0, ISO_TMAX, 2000), "Myr")
-    orb = gd.evaluate_orbit(ISO, _w0(ISO_Q0, ISO_P0), ts, integrator=TIGHT)
+    orb = integrate(ISO, ISO_Q0, ISO_P0, ISO_TMAX, orbit=True)
     res = o2gf(ISO, orb, n_max=N_MAX, toy=ISO_TOY)
     assert isinstance(res.sn, u.AbstractQuantity)
     assert res.sn.unit == res.aaf.actions.unit
@@ -700,7 +635,7 @@ def test_gap_flags_on_disk_loop():
         m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.28, "kpc"), units="galactic"
     )
     kms = u.Q(1.0, "km/s").ustrip("kpc/Myr")
-    q, p, t = _orbit(pot, [8.0, 0, 0.3], [10 * kms, 230 * kms, 10 * kms], 6000, 6000)
+    q, p, t = integrate(pot, [8.0, 0, 0.3], [10 * kms, 230 * kms, 10 * kms], 6000, 6000)
     assert not bool(o2gf(pot, q, p, t, n_max=6).flagged)
     keep = np.ones(len(t), bool)
     keep[3000:3056] = False  # toy-predicted step 0.42 pi, actual theta_z step 1.0 pi

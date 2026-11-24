@@ -102,10 +102,22 @@ POINTS = [
 RTOL = 7e-2
 
 
+G = float(gp.MilkyWayPotential2022().constants["G"].ustrip("kpc km2 / (s2 Msun)"))
+
+
+def _galpy_actions(aA, xv: np.ndarray) -> np.ndarray:
+    """Return galpy's actions of the point ``xv`` (kpc, km/s), in kpc km/s."""
+    R, phi = np.hypot(xv[0], xv[1]), np.arctan2(xv[1], xv[0])
+    v_R = (xv[0] * xv[3] + xv[1] * xv[4]) / R
+    v_T = (xv[0] * xv[4] - xv[1] * xv[3]) / R
+    jr, lz, jz = aA(
+        R / RO, v_R / VO, v_T / VO, xv[2] / RO, xv[5] / VO, phi, quantity=False
+    )
+    return np.ravel([jr, lz, jz]) * RO * VO  # (r, phi, z)
+
+
 def _galpy_pot() -> list:
     from galpy import potential as gpp  # deferred: optional
-
-    G = float(gp.MilkyWayPotential2022().constants["G"].ustrip("kpc km2 / (s2 Msun)"))
 
     def amp(m: float) -> float:
         return G * m / (RO * VO**2)
@@ -137,15 +149,9 @@ def test_vs_galpy_isochroneapprox(point: tuple) -> None:
     assert not bool(res.flagged)
 
     pots = _galpy_pot()
-    R, phi = np.hypot(xv[0], xv[1]), np.arctan2(xv[1], xv[0])
-    v_R = (xv[0] * xv[3] + xv[1] * xv[4]) / R
-    v_T = (xv[0] * xv[4] - xv[1] * xv[3]) / R
+    R = np.hypot(xv[0], xv[1])
     b = estimateBIsochrone(pots, R / RO, xv[2] / RO, quantity=False)
-    aA = actionAngleIsochroneApprox(pot=pots, b=b)
-    jr, lz, jz = aA(
-        R / RO, v_R / VO, v_T / VO, xv[2] / RO, xv[5] / VO, phi, quantity=False
-    )
-    Jp = np.ravel([jr, lz, jz]) * RO * VO  # kpc km/s, (r, phi, z)
+    Jp = _galpy_actions(actionAngleIsochroneApprox(pot=pots, b=b), xv)
 
     np.testing.assert_allclose(Jg, Jp, rtol=RTOL)
 
@@ -172,16 +178,9 @@ def test_vs_galpy_isochrone() -> None:
     res, Jg = o2gf_from_point(pot, xv, ISO_TMAX)
     assert not bool(res.flagged)
 
-    G = float(pot.constants["G"].ustrip("kpc km2 / (s2 Msun)"))
     aA = actionAngleIsochrone(
         ip=IsochronePotential(amp=G * ISO_M / (RO * VO**2), b=ISO_B / RO)
     )
-    R, phi = np.hypot(xv[0], xv[1]), np.arctan2(xv[1], xv[0])
-    v_R = (xv[0] * xv[3] + xv[1] * xv[4]) / R
-    v_T = (xv[0] * xv[4] - xv[1] * xv[3]) / R
-    jr, lz, jz = aA(
-        R / RO, v_R / VO, v_T / VO, xv[2] / RO, xv[5] / VO, phi, quantity=False
-    )
-    Jp = np.ravel([jr, lz, jz]) * RO * VO  # kpc km/s, (r, phi, z)
+    Jp = _galpy_actions(aA, xv)
 
     np.testing.assert_allclose(Jg, Jp, rtol=ISO_RTOL)

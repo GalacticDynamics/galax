@@ -2,17 +2,13 @@
 
 import pathlib
 
-import diffrax as dfx
 import jax
 import numpy as np
 
 import quaxed.numpy as jnp
-import unxt as u
 
 import galax.actionangle._src._o2gf_toy as _toy
-import galax.coordinates as gc
-import galax.dynamics as gd
-import galax.potential as gp
+from ._helpers import HO, HO_OMEGA, ISO, KPC, MYR, integrate
 from galax.actionangle import isochrone_actions_angles_freqs as iaaf
 from galax.actionangle._src._o2gf_toy import (
     IsochroneToy,
@@ -21,40 +17,15 @@ from galax.actionangle._src._o2gf_toy import (
     fit_oscillator,
     toy_aaf,
 )
-from galax.actionangle._src._parse import parse_w
 from galax.actionangle._src._utils import finite_rows
 
-ISO = gp.IsochronePotential(
-    m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-)
-HO_OMEGA = np.array([0.7, 1.3, 2.1])
-HO = gp.HarmonicOscillatorPotential(omega=u.Q(HO_OMEGA, "1/Myr"), units="galactic")
-# the default integrator tolerance (1e-7) limits the toy fit, not the fit itself
-TIGHT = gd.integrate.Integrator(
-    gd.OrbitSolver(
-        solver=dfx.Dopri8(scan_kind="bounded"),
-        stepsize_controller=dfx.PIDController(rtol=1e-12, atol=1e-12),
-        max_steps=2**18,
-    )
-)
 RTOL_NEAR_CIRC = 1e-3  # measured 1.1e-4, with margin
 G = ISO.constants["G"].ustrip("kpc3 / (Msun Myr2)")
-KPC, MYR = u.Q(1.0, "kpc").ustrip("m"), u.Q(1.0, "Myr").ustrip("s")
-
-
-def _orbit(pot, q0, p0, tmax, n):
-    w = gc.PhaseSpaceCoordinate(
-        q=u.Q(q0, "kpc"), p=u.Q(p0, "kpc/Myr"), t=u.Q(0.0, "Myr")
-    )
-    ts = u.Q(jnp.linspace(0.0, tmax, n), "Myr")
-    orb = gd.evaluate_orbit(pot, w, ts, integrator=TIGHT)
-    q, p, t = parse_w(pot, orb)
-    return np.asarray(q), np.asarray(p), np.asarray(t)
 
 
 def _iso_orbit(x0=8.0):
     # loop orbit, e ~ 0.3
-    return _orbit(ISO, [x0, 0.0, 1.0], [0.0, 0.12, 0.05], 1500.0, 300)
+    return integrate(ISO, [x0, 0.0, 1.0], [0.0, 0.12, 0.05], 1500.0, 300)
 
 
 def test_fit_isochrone_recovers():
@@ -66,25 +37,10 @@ def test_fit_isochrone_recovers():
 
 
 def test_fit_oscillator_recovers():
-    q, p, t = _orbit(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 200)
+    q, p, t = integrate(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 200)
     toy, ok = fit_oscillator(q, p, t, finite_rows(q, p, t))
     assert bool(ok)
     np.testing.assert_allclose(toy.omega, HO_OMEGA, rtol=1e-8)
-
-
-def test_fit_grad_fd():
-    q, p, t = _iso_orbit()
-    q, p, t = jnp.asarray(q), jnp.asarray(p), jnp.asarray(t)
-
-    @jax.jit
-    def b_fit(x0):
-        return fit_isochrone(ISO, q.at[0, 0].set(x0), p, t, finite_rows(q, p, t))[0].b
-
-    x0 = q[0, 0]
-    g = jax.grad(b_fit)(x0)
-    h = 1e-4
-    fd = (b_fit(x0 + h) - b_fit(x0 - h)) / (2 * h)
-    np.testing.assert_allclose(g, fd, rtol=1e-5)
 
 
 def test_toy_aaf_matches_public():
@@ -98,7 +54,7 @@ def test_toy_aaf_matches_public():
 
 
 def test_toy_aaf_oscillator():
-    q, p, _ = _orbit(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 20)
+    q, p, _ = integrate(HO, [1.0, 0.5, 0.3], [0.1, -0.2, 0.3], 30.0, 20)
     J, _, om = toy_aaf(OscillatorToy(omega=jnp.asarray(HO_OMEGA)), G, q, p)
     np.testing.assert_allclose(om, np.broadcast_to(HO_OMEGA, (20, 3)))
     np.testing.assert_allclose(J, J[0] + 0 * J, rtol=1e-7)
@@ -118,6 +74,11 @@ def _grad_vs_fd(q, p, t, h=1e-4):
     return g, fd, fit(x0)[1]
 
 
+def test_fit_grad_fd():
+    g, fd, _ = _grad_vs_fd(*_iso_orbit())
+    np.testing.assert_allclose(g, fd, rtol=1e-5)
+
+
 def test_circular_orbit_grad_finite():
     # H is constant for every (m, b) on an exactly circular orbit
     r = 8.0
@@ -134,7 +95,7 @@ def test_circular_orbit_grad_finite():
 
 def test_near_circular_grad_bounded():
     # e ~ 0.02 (r in 7.6-8.0 kpc): gradient vs FD differs by 1.1e-4 (measured)
-    q, p, t = _orbit(ISO, [8.0, 0.0, 0.0], [0.0, 0.1789, 0.0], 1500.0, 300)
+    q, p, t = integrate(ISO, [8.0, 0.0, 0.0], [0.0, 0.1789, 0.0], 1500.0, 300)
     # the valley is nearly flat, so the FD step must be well above the solver noise
     g, fd, ok = _grad_vs_fd(q, p, t, h=1e-3)
     assert bool(ok)
@@ -181,7 +142,7 @@ def test_fit_out_of_steps(monkeypatch):
 
 def test_oscillator_axis_at_rest_grad_finite():
     # H does not depend on omega_z when the orbit never leaves z = 0, v_z = 0
-    q, p, t = _orbit(HO, [1.0, 0.5, 0.0], [0.1, -0.2, 0.0], 30.0, 200)
+    q, p, t = integrate(HO, [1.0, 0.5, 0.0], [0.1, -0.2, 0.0], 30.0, 200)
     q, p, t = jnp.asarray(q), jnp.asarray(p), jnp.asarray(t)
     g = jax.jit(
         jax.grad(

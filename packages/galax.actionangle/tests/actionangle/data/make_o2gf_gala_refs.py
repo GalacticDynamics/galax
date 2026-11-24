@@ -145,25 +145,15 @@ def main():
             out[f"{name}__toy_omega"] = (
                 toy.parameters["omega"].decompose(galactic).value
             )
-        out[f"{name}__actions"] = row["actions"].decompose(galactic).value
-        out[f"{name}__angles"] = row["angles"].decompose(galactic).value
-        out[f"{name}__freqs"] = row["freqs"].decompose(galactic).value
+        for k in ("actions", "angles", "freqs"):
+            out[f"{name}__{k}"] = row[k].decompose(galactic).value
         out[f"{name}__sn"] = np.asarray(row["Sn"])
         out[f"{name}__dsn_dj"] = np.asarray(row["dSn_dJ"])
         out[f"{name}__nvecs"] = np.asarray(row["nvecs"])
         print(
-            name,
-            "T =",
-            len(orbit.t),
-            "circulation",
-            circ,
-            "toy",
-            dict(toy.parameters),
-            "J",
-            out[f"{name}__actions"],
-            "Omega",
-            out[f"{name}__freqs"],
+            f"{name} T = {len(orbit.t)} circulation {circ} toy {dict(toy.parameters)}"
         )
+        print(f"J {out[f'{name}__actions']} Omega {out[f'{name}__freqs']}")
     path = pathlib.Path(__file__).with_name("o2gf_gala_refs.npz")
     np.savez_compressed(path, **out)
 

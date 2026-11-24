@@ -10,7 +10,11 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.potential._src.symmetry import invariances
+from galax.potential._src.symmetry import (
+    common_symmetry,
+    from_invariances,
+    invariances,
+)
 from galax.potential.scf import phi_nl
 
 G = "galactic"
@@ -29,11 +33,13 @@ _SCF_TABLE = u.Q(
     * jnp.moveaxis(phi_nl(1, 2, _R_KNOTS / 5.0), -1, 0),
     "kpc2 / Myr2",
 )
-# A bar rotated in the x-y plane. It is still even in z (and in (x, y) -> (-x, -y)),
-# but no `Symmetry` member captures that alone, so it declares `NONE`.
+# A bar rotated in the x-y plane. It is even in z, and its other symmetry planes
+# turn with `alpha`, so it declares `ZREFLECTION`.
 _BAR = gp.LongMuraliBarPotential(
     m_tot=M, a=RS, b=u.Q(1, "kpc"), c=u.Q(1, "kpc"), alpha=u.Q(0.3, "rad"), units=G
 )
+# Off the z = 0 plane, so even the z-reflection is lost.
+_SHIFT = u.Q([1.0, 0, 0.5], "kpc")
 _PROFILE = {"r_min": u.Q(1e-2, "kpc"), "r_max": u.Q(1e3, "kpc"), "n_r": 128}
 
 # One instance of every concrete public potential (see
@@ -121,12 +127,8 @@ BUILTINS = [
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
     gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
-    gp.TransformedPotential(
-        _HERNQUIST, cx.ops.GalileanSpatialTranslation(u.Q([1.0, 0, 0], "kpc"))
-    ),
-    gp.TranslatedPotential(
-        base_potential=_HERNQUIST, translation=u.Q([1.0, 0, 0], "kpc")
-    ),
+    gp.TransformedPotential(_HERNQUIST, cx.ops.GalileanSpatialTranslation(_SHIFT)),
+    gp.TranslatedPotential(base_potential=_HERNQUIST, translation=_SHIFT),
     gp.TriaxialGaussianPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
     gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.8, q2=0.6, units=G),
     gp.TriaxialInThePotential(base_potential=_HERNQUIST, y_over_x=0.8, z_over_x=0.6),
@@ -170,6 +172,41 @@ def test_unknown_value_raises(value: str) -> None:
     with pytest.raises(ValueError, match="Unknown symmetry") as excinfo:
         gp.Symmetry(value)
     assert "spherical" in str(excinfo.value)
+
+
+# ============================================================================
+# Combining invariances
+
+
+@pytest.mark.parametrize(
+    ("invs", "expected"),
+    [
+        ({"z_reflection"}, "zreflection"),
+        # x and y reflections alone are no member, so they are dropped.
+        ({"x_reflection", "z_reflection"}, "zreflection"),
+        ({"x_reflection", "y_reflection", "z_reflection"}, "plane_reflection"),
+        ({"z_rotation", "x_reflection", "y_reflection"}, "zrotation"),
+        ({"x_reflection", "y_reflection"}, "none"),
+    ],
+)
+def test_from_invariances(invs: set[str], expected: str) -> None:
+    assert from_invariances(invs) is gp.Symmetry(expected)
+
+
+@pytest.mark.parametrize(
+    ("symmetries", "expected"),
+    [
+        (["spherical", "zreflection"], "zreflection"),
+        (["zrotation_zreflection", "zreflection"], "zreflection"),
+        (["plane_reflection", "zreflection"], "zreflection"),
+        (["plane_reflection", "zrotation_zreflection"], "plane_reflection"),
+        (["zrotation", "zreflection"], "none"),
+        (["zrotation", "plane_reflection"], "none"),
+        ([], "spherical"),
+    ],
+)
+def test_common_symmetry(symmetries: list[str], expected: str) -> None:
+    assert common_symmetry(symmetries) is gp.Symmetry(expected)
 
 
 # ============================================================================
@@ -295,7 +332,26 @@ def test_no_stronger_symmetry_than_declared(
             ),
             "plane_reflection",
         ),
-        (gp.CompositePotential(halo=_HERNQUIST, bar=_BAR), "none"),
+        (gp.CompositePotential(halo=_HERNQUIST, bar=_BAR), "zreflection"),
+        (gp.CompositePotential(disk=_MN, bar=_BAR), "zreflection"),
+        (
+            gp.CompositePotential(
+                bar=_BAR,
+                shifted=gp.TranslatedPotential(
+                    base_potential=_HERNQUIST, translation=_SHIFT
+                ),
+            ),
+            "none",
+        ),
+        (gp.FlattenedInThePotential(base_potential=_BAR, q_z=0.7), "zreflection"),
+        (
+            gp.TriaxialInThePotential(base_potential=_BAR, y_over_x=0.8, z_over_x=0.6),
+            "zreflection",
+        ),
+        (
+            gp.MultipoleProfilePotential.from_potential(_BAR, l_max=2, **_PROFILE),
+            "zreflection",
+        ),
         (
             gp.FlattenedInThePotential(base_potential=_HERNQUIST, q_z=0.7),
             "zrotation_zreflection",
@@ -309,9 +365,7 @@ def test_no_stronger_symmetry_than_declared(
             "plane_reflection",
         ),
         (
-            gp.TranslatedPotential(
-                base_potential=_HERNQUIST, translation=u.Q([1.0, 0, 0], "kpc")
-            ),
+            gp.TranslatedPotential(base_potential=_HERNQUIST, translation=_SHIFT),
             "none",
         ),
     ],
@@ -323,7 +377,11 @@ def test_derived_symmetry(pot: gp.AbstractPotential, expected: str) -> None:
 
 
 def test_undeclared_is_none() -> None:
-    assert _BAR.symmetry is gp.Symmetry.NONE
+    """A potential that declares nothing asserts no symmetry."""
+    pot = gp.SCFPotential(
+        m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G
+    )
+    assert pot.symmetry is gp.Symmetry.NONE
 
 
 # ============================================================================

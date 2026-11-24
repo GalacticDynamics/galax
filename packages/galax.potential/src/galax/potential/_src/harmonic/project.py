@@ -66,6 +66,14 @@ def lm_keys(
             return tuple(
                 (l, m) for l in range(0, l_max + 1, 2) for m in range(0, l + 1, 2)
             )
+        case Symmetry.ZREFLECTION:
+            # Y_lm(-z) = (-1)^(l+m) Y_lm(z): keep the modes even in z.
+            return tuple(
+                (l, m)
+                for l in range(l_max + 1)
+                for m in range(-l, l + 1)
+                if (l + m) % 2 == 0
+            )
         case _ as never:  # pragma: no cover
             assert_never(never)
 

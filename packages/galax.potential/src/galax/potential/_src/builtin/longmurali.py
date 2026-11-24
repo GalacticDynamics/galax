@@ -36,6 +36,7 @@ from galax.potential._src.kernels import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 from galax.potential._src.utils import with_r_derivative
 
 
@@ -148,6 +149,10 @@ class LongMuraliBarPotential(LaplacianFromDensityMixin, AbstractSinglePotential)
     alpha: AbstractParameter = ParameterField(  # type: ignore[assignment]
         dimensions="angle", doc="Position angle of the bar in the x-y plane."
     )
+
+    symmetry = Symmetry.ZREFLECTION
+    """`Symmetry.ZREFLECTION`: the potential is even in $z$. The bar's other
+    symmetry planes, $x' = 0$ and $y' = 0$, turn with ``alpha``."""
 
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:

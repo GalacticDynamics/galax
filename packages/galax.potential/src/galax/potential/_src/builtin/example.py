@@ -169,6 +169,9 @@ class HenonHeilesPotential(AbstractSinglePotential):
     """,
     )
 
+    symmetry = Symmetry.ZREFLECTION
+    """`Symmetry.ZREFLECTION`: the potential does not depend on $z$."""
+
     @ft.partial(jax.jit)
     def _potential(
         self,

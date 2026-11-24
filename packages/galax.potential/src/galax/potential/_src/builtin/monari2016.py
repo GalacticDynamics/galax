@@ -38,6 +38,7 @@ from galax.potential._src.kernels import (
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
+from galax.potential._src.symmetry import Symmetry
 
 
 @final
@@ -195,6 +196,9 @@ class MonariEtAl2016BarPotential(LaplacianFromDensityMixin, AbstractSinglePotent
         dimensions="frequency",
         doc="Bar pattern speed.",
     )
+
+    symmetry = Symmetry.ZREFLECTION
+    """`Symmetry.ZREFLECTION`: the potential depends on $z$ only through $z^2$."""
 
     @ft.partial(jax.jit)
     @vectorize_method(signature="(3),()->()")

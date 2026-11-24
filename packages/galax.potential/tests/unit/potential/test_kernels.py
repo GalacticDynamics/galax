@@ -209,3 +209,53 @@ def test_float32_preserved():
     ]
     for o in outs:
         assert o.dtype == jnp.float32
+
+
+# ---------------------------------------------------------------------------
+# Keyword-only static parameters
+
+
+def phi_order(p, xyz, *, order=3):
+    """Toy ``phi`` with a static ``order``: ``-G m / (|x|^2 + a^2)^(order / 6)``."""
+    return -p["G"] * p["m"] / (jnp.sum(xyz**2) + p["a"] ** 2) ** (order / 6)
+
+
+def test_static_kwarg_signature_and_forwarding():
+    xyz = jnp.array([1.0, 2.0, 3.0])
+    for factory in (k.cartesian_gradient, k.cartesian_hessian, k.cartesian_laplacian):
+        f = factory(phi_order)
+        assert str(inspect.signature(f)) == "(p, xyz, /, *, order=3)"
+        # A different `order` changes the value: the keyword reaches `phi`.
+        assert not jnp.allclose(f(p, xyz), f(p, xyz, order=6))
+        assert jnp.allclose(f(p, xyz), f(p, xyz, order=3))
+
+    want = jax.grad(phi_order, 1)(p, xyz, order=7)
+    assert jnp.allclose(k.cartesian_gradient(phi_order)(p, xyz, order=7), want)
+
+
+def test_static_kwarg_is_static_under_jit():
+    traces = []
+
+    def phi_counted(p, xyz, *, order=3):
+        traces.append(order)
+        return phi_order(p, xyz, order=order)
+
+    f = k.cartesian_gradient(phi_counted)
+    xyz = jnp.array([1.0, 2.0, 3.0])
+    f(p, xyz, order=7)
+    f(p, xyz * 2, order=7)  # same order: cached
+    assert traces == [7]
+    f(p, xyz, order=5)  # a new order retraces, with a Python value
+    assert traces == [7, 5]
+
+
+def test_static_kwarg_poisson_density_equals_trace_hessian():
+    xyz = jnp.array([1.0, 2.0, 3.0])
+    lap_ = k.cartesian_laplacian(phi_order)
+    rho = k.poisson_density(lap_)
+    assert str(inspect.signature(rho)) == "(p, xyz, /, *, order=3)"
+    want = jnp.trace(jax.hessian(phi_order, 1)(p, xyz, order=7)) / (4 * jnp.pi * p["G"])
+    assert jnp.allclose(rho(p, xyz, order=7), want)
+    assert jnp.allclose(
+        k.poisson_laplacian(rho)(p, xyz, order=7), lap_(p, xyz, order=7)
+    )

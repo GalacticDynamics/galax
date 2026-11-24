@@ -7,7 +7,6 @@ import textwrap
 import pytest
 
 
-@pytest.mark.slow
 def test_constant_parameter_call_under_runtime_type_checking() -> None:
     """Both returns of ``__call__`` pass jaxtyping's import hook with beartype.
 

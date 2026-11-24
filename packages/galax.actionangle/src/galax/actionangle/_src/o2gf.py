@@ -422,7 +422,8 @@ def o2gf_actions_angles_freqs(
     family: str | None = None,
 ) -> O2GFResult:
     """O2GF from positions and velocities (..., T, 3) and times (..., T)."""
-    if jnp.ndim(t) == 0 or jnp.shape(t)[-1] != jnp.shape(q)[-2]:
+    # A q without a time axis is left to _run, which raises its own ValueError.
+    if jnp.ndim(q) >= 2 and (jnp.ndim(t) == 0 or jnp.shape(t)[-1] != jnp.shape(q)[-2]):
         msg = (
             f"t needs a time axis of length T: q has shape {jnp.shape(q)}, "
             f"so t needs shape (..., {jnp.shape(q)[-2]}), but t has shape "

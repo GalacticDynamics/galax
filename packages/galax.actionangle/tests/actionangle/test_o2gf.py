@@ -717,3 +717,7 @@ def test_t_without_time_axis_raises_and_equal_times_flag():
             o2gf(ISO, q, p, bad, n_max=6)
     r = o2gf(ISO, q, p, np.full_like(t, 5.0), n_max=6)
     assert bool(r.flagged)
+    # A single phase-space point still raises the documented ValueError.
+    for t1 in (0.0, t[:1]):
+        with pytest.raises(ValueError, match="time axis of at least 2 samples"):
+            o2gf(ISO, q[0], p[0], t1, n_max=6)

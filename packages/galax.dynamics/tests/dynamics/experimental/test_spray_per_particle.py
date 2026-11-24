@@ -57,7 +57,7 @@ def test_unknown_loop_raises() -> None:
 def test_copies_end_at_progenitor(loop) -> None:
     """Each copy takes the progenitor's lattice steps, so it ends at w_today."""
     sched = gde.Uniform(jnp.asarray(300.0), 5, 8)
-    ws, lead0, trail0 = release_ics(gde.Chen2024DF(), HOST, plummer, sched, LEAP)
+    ws, lead0, trail0 = release_ics(sched, df=gde.Chen2024DF())
     idx, lattice = sched.release_index(), sched.lattice()
     w0 = jnp.stack([lead0, trail0], axis=1)
     w0 = jnp.stack([w0, jnp.broadcast_to(ws[idx, None], w0.shape)], axis=2)

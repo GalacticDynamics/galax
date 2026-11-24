@@ -24,8 +24,8 @@ from .test_spray_whole_stream import (
     W_TODAY,
     adaptive,
     plummer,
+    release_ics,
 )
-from galax.dynamics._src.experimental.df import sample_releases
 from galax.dynamics._src.experimental.fields import _CopiesField
 from galax.dynamics._src.experimental.simulator import _evolve
 from galax.dynamics._src.experimental.solve import progenitor_states, solve_on
@@ -61,15 +61,6 @@ PER = [m for m in ALL if m != "whole"]
 
 def make_sim(mode="whole", solver=LEAP, *, prog=plummer, df=FARDAL):
     return gde.SpraySimulator(df, ALL[mode], progenitor_potential=prog, solver=solver)
-
-
-def release_ics(sched, solver=LEAP, pot=HOST, df=FARDAL):
-    ws = progenitor_states(pot, W_TODAY, sched, solver)
-    idx = sched.release_index()
-    ts = sched.release_times()
-    Ms = jnp.broadcast_to(MSAT, ts.shape)
-    xl, vl, xt, vt = sample_releases(df, KEY, pot, ts, ws[idx, :3], ws[idx, 3:], Ms)
-    return ws, jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)
 
 
 def flat(r) -> jax.Array:

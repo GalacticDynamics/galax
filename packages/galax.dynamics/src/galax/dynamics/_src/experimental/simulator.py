@@ -418,14 +418,14 @@ def evolve_per_particle(
     no-op steps up to index ``i0[i]``, so it takes exactly the lattice steps
     from there. An adaptive one starts at ``lattice[i0[i]]``. A failed solve
     gives NaN for its particle only. A non-finite ``lattice`` gives NaN for
-    every particle and never raises: the solves run on stand-in times
-    (``arange``, or zero time when adaptive).
+    every particle and never raises (an adaptive solve runs over zero time
+    instead).
     """
     split = isinstance(solver.solver, gf.Leapfrog)
     on_lattice = is_lattice(solver)
     ok = jnp.all(jnp.isfinite(lattice))
-    stand_in = jnp.arange(lattice.shape[0], dtype=float) if on_lattice else 0.0
-    lattice = jnp.where(ok, lattice, stand_in)
+    if not on_lattice:
+        lattice = jnp.where(ok, lattice, 0.0)
 
     def one(w: Array, i: Array) -> Array:
         y: Any = (w[..., :3], w[..., 3:]) if split else w

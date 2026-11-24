@@ -168,7 +168,7 @@ def solve_on(
     """
     ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args, gate)
     y1 = jax.tree.map(lambda y: y[0], ys)
-    if not is_lattice(solver) and isinstance(terms, dfx.AbstractTerm):
+    if not is_lattice(solver):
         t0, t1 = step_ts[0], step_ts[-1]
         dt = (t1 - sg(t1)) - (t0 - sg(t0))  # zero, with the tangent dt1 - dt0
         dy = terms.vf_prod(t0, y0, args, dt)

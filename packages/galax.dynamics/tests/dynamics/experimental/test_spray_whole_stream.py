@@ -52,14 +52,13 @@ def adaptive(tol: float, max_steps: int, adjoint=None) -> dfxtra.DiffEqSolver:
     )
 
 
-def release_ics(df, pot, prog, sched, solver):
+def release_ics(sched, solver=LEAP, pot=HOST, df=gde.Fardal2015DF()):  # noqa: B008
     """Return the release states the simulator samples (same key and orbit)."""
     ws = progenitor_states(pot, W_TODAY, sched, solver)
     idx = sched.release_index()
-    Ms = jnp.broadcast_to(MSAT, (sched.n_release,))
-    xl, vl, xt, vt = sample_releases(
-        df, KEY, pot, sched.release_times(), ws[idx, :3], ws[idx, 3:], Ms
-    )
+    ts = sched.release_times()
+    Ms = jnp.broadcast_to(MSAT, ts.shape)
+    xl, vl, xt, vt = sample_releases(df, KEY, pot, ts, ws[idx, :3], ws[idx, 3:], Ms)
     return ws, jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)
 
 
@@ -126,7 +125,7 @@ def test_whole_stream_matches_lone_solves(df_cls) -> None:
     sim = gde.SpraySimulator(df, gde.WholeStream(), progenitor_potential=plummer)
     res = sim(KEY, HOST, W_TODAY, MSAT, sched)
 
-    ws, lead0, trail0 = release_ics(df, HOST, plummer, sched, LEAP)
+    ws, lead0, trail0 = release_ics(sched, df=df)
     lattice, idx = sched.lattice(), sched.release_index()
     copies = _CopiesField(HOST, plummer(MSAT))
     terms = copies.terms(LEAP)
@@ -199,7 +198,7 @@ def test_one_release() -> None:
     assert jnp.all(jnp.isfinite(jnp.concat([res.lead, res.trail])))
     np.testing.assert_allclose(res.release_times, [-300.0])
     # The pair moved over the whole age.
-    _, lead0, _ = release_ics(gde.Fardal2015DF(), HOST, plummer, sched, LEAP)
+    _, lead0, _ = release_ics(sched)
     assert jnp.linalg.norm(res.lead[0, :3] - lead0[0, :3]) > 1.0
 
 
@@ -226,7 +225,7 @@ def _legacy_setup():
         df, gde.WholeStream(), progenitor_potential=plummer, solver=solver
     )
     res = sim(KEY, HOST, W_TODAY, MSAT, sched)
-    ws, lead0, trail0 = release_ics(df, HOST, plummer, sched, solver)
+    ws, lead0, trail0 = release_ics(sched, solver, df=df)
     return sched, res, ws, lead0, trail0
 
 

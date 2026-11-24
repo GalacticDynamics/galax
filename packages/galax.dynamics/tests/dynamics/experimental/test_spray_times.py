@@ -72,20 +72,6 @@ def release_ics(sched, solver=LEAP, pot=HOST, df=FARDAL):
     return ws, jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)
 
 
-def check_fd(loss, x, eps=1e-4):
-    """Check ``jax.grad(loss)`` is nonzero and matches central differences."""
-    g = jax.grad(loss)(x)
-    fd = jnp.stack(
-        [
-            (loss(x.at[i].add(eps)) - loss(x.at[i].add(-eps))) / (2 * eps)
-            for i in range(x.shape[0])
-        ]
-    )
-    assert jnp.all(g != 0), g
-    np.testing.assert_allclose(g, fd, rtol=1e-5)
-    return g
-
-
 def flat(r) -> jax.Array:
     return jnp.concat([r.lead, r.trail, r.progenitor[None]])
 
@@ -117,19 +103,62 @@ def test_times_checks(kw) -> None:
         gde.Times(**kw)
 
 
-def _loss(sim, make=lambda ts: gde.Times(ts, 30, T1), pot=HOST):
+# Loss weights, one row per output state (up to 6 releases).
+LOSS_W = jax.random.normal(jax.random.key(7), (2 * 6 + 1, 6))
+TIE_EPS = 1e-3
+# (rtol, atol) per solver; see `check_grad`.
+TIE_TOL = {"leapfrog": (1e-4, 1e-10), "adaptive": (0.0, 5e-5)}
+
+
+def wloss(sim, make=lambda ts: gde.Times(ts, 30, T1), pot=HOST):
+    """Return a weighted sum of every output state, as a function of ``x``."""
+
     def loss(x: jax.Array) -> jax.Array:
-        r = sim(KEY, pot, W_TODAY, MSAT, make(x))
-        return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
+        f = flat(sim(KEY, pot, W_TODAY, MSAT, make(x)))
+        return jnp.sum(f * LOSS_W[: f.shape[0]])
 
     return loss
+
+
+def check_grad(loss, ts, sides=None, tol=TIE_TOL["leapfrog"]):
+    """Check ``jax.grad(loss)`` against one-sided or central differences.
+
+    ``sides`` gives each entry's side: "L" or "R" (second order) or "C"
+    (central, the default for every entry).
+
+    With Leapfrog, the left and right derivatives at a tie differ by 3.4e-4 to
+    1.2 relative (the grid's steps change there). The right side matches AD to
+    5.3e-6 relative (measured), so rtol = 1e-4 tells the sides apart. Adaptive
+    step control makes the differences noisy, up to 1.8e-5 (0.7%, for min(ts),
+    which moves the first solve's start), and an adaptive solve has no kink
+    at a tie; the adaptive gradients before the fix were off by 2.5e-3 or
+    more, so atol = 5e-5.
+    """
+    ts = jnp.asarray(ts)
+    sides = "C" * ts.shape[0] if sides is None else sides
+    g = jax.grad(loss)(ts)
+    f0, e = loss(ts), TIE_EPS
+
+    def fd(i, side):
+        def f(k):
+            return loss(ts.at[i].add(k * e))
+
+        if side == "C":
+            return (f(1) - f(-1)) / (2 * e)
+        s = 1 if side == "R" else -1
+        return s * (-3 * f0 + 4 * f(s) - f(2 * s)) / (2 * e)
+
+    want = jnp.stack([fd(i, side) for i, side in enumerate(sides)])
+    np.testing.assert_allclose(g, want, rtol=tol[0], atol=tol[1])
+    return g
 
 
 @pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap", "track-scan"])
 def test_times_grad(mode) -> None:
     """Release-time gradients match finite differences and `jax.jacfwd`."""
-    g = check_fd(_loss(make_sim(mode)), TS)
-    jf = jax.jacfwd(_loss(make_sim(mode, LEAP_FWD)))(TS)
+    g = check_grad(wloss(make_sim(mode)), TS, tol=(1e-5, 0))
+    assert jnp.all(g != 0), g
+    jf = jax.jacfwd(wloss(make_sim(mode, LEAP_FWD)))(TS)
     np.testing.assert_allclose(jf, g, rtol=1e-10)
 
 
@@ -147,48 +176,6 @@ TIES = {
     "pair": ([-300.0, -123.4, -123.4, -12.5], "CLRC", "CLRC"),
     "uniform": (gde.Uniform(jnp.asarray(300.0), 4, 10).release_times(), "RLLL", "CCCL"),
 }
-TIE_W = jax.random.normal(jax.random.key(7), (2 * 4 + 1, 6))
-TIE_EPS = 1e-3
-# (rtol, atol) per solver; see `check_tie`.
-TIE_TOL = {"leapfrog": (1e-4, 1e-10), "adaptive": (0.0, 5e-5)}
-
-
-def tie_loss(sim, t1=T1):
-    def loss(ts: jax.Array) -> jax.Array:
-        f = flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, t1)))
-        return jnp.sum(f * TIE_W[: f.shape[0]])
-
-    return loss
-
-
-def check_tie(sim, ts, sides, tol=TIE_TOL["leapfrog"], t1=T1):
-    """Check ``jax.grad`` against second-order one-sided or central differences.
-
-    With Leapfrog, the left and right derivatives at a tie differ by 3.4e-4 to
-    1.2 relative (the grid's steps change there). The right side matches AD to
-    5.3e-6 relative (measured), so rtol = 1e-4 tells the sides apart. Adaptive
-    step control makes the differences noisy, up to 1.8e-5 (0.7%, for min(ts),
-    which moves the first solve's start), and an adaptive solve has no kink
-    at a tie; the adaptive gradients before the fix were off by 2.5e-3 or
-    more, so atol = 5e-5.
-    """
-    loss = tie_loss(sim, t1)
-    ts = jnp.asarray(ts)
-    g = jax.grad(loss)(ts)
-    f0, e = loss(ts), TIE_EPS
-
-    def fd(i, side):
-        def f(k):
-            return loss(ts.at[i].add(k * e))
-
-        if side == "C":
-            return (f(1) - f(-1)) / (2 * e)
-        s = 1 if side == "R" else -1
-        return s * (-3 * f0 + 4 * f(s) - f(2 * s)) / (2 * e)
-
-    want = jnp.stack([fd(i, side) for i, side in enumerate(sides)])
-    np.testing.assert_allclose(g, want, rtol=tol[0], atol=tol[1])
-    return g
 
 
 def test_times_coincident_point() -> None:
@@ -212,7 +199,7 @@ def test_times_coincident_point() -> None:
     _, lead0, trail0 = release_ics(sched)
     np.testing.assert_allclose(res.lead[-1], lead0[-1], rtol=0, atol=1e-13)
     np.testing.assert_allclose(res.trail[-1], trail0[-1], rtol=0, atol=1e-13)
-    check_tie(make_sim(), ts, sides)
+    check_grad(wloss(make_sim()), ts, sides)
 
 
 TIE_RUNS = [
@@ -236,12 +223,10 @@ def test_times_tie_grad(mode, solver, case) -> None:
         pytest.skip("in test_times_coincident_point")
     ts, fixed, adapt = TIES[case]
     sim = make_sim(mode, SOLVERS[solver])
-    g = check_tie(sim, ts, fixed if solver == "leapfrog" else adapt, TIE_TOL[solver])
+    sides = fixed if solver == "leapfrog" else adapt
+    g = check_grad(wloss(sim), ts, sides, TIE_TOL[solver])
     if case == "uniform":
-
-        def loss(t_age):
-            f = flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(t_age, 4, 10, T1)))
-            return jnp.sum(f * TIE_W[: f.shape[0]])
+        loss = wloss(sim, lambda t_age: gde.Uniform(t_age, 4, 10, T1))
 
         # d ts / d t_age, from ts = t1 - t_age + 10 k h with h = t_age / 30.
         dts = -jnp.asarray([1.0, 2 / 3, 1 / 3, 0.0])
@@ -260,9 +245,10 @@ def test_times_tie_at_ends(mode) -> None:
     moving together has the right derivative.
     """
     sim = make_sim(mode)
-    check_tie(sim, [-300.0, -123.4, -12.5, -12.5], "RCLR", t1=None)
+    ts = jnp.asarray([-300.0, -123.4, -12.5, -12.5])
+    check_grad(wloss(sim, lambda ts: gde.Times(ts, 30)), ts, "RCLR")
     ts = jnp.asarray([-300.0, -300.0, -100.5])
-    loss = tie_loss(sim)
+    loss = wloss(sim)
     d = jnp.asarray([1.0, 1.0, 0.0])
     want = (loss(ts + TIE_EPS * d) - loss(ts - TIE_EPS * d)) / (2 * TIE_EPS)
     np.testing.assert_allclose(jax.grad(loss)(ts) @ d, want, rtol=1e-6)
@@ -521,7 +507,8 @@ def test_time_dependent_host_time_grads(mode, kind) -> None:
     else:
         x = jnp.concat([TD_T1[None], base.ts])
         make = lambda x: gde.Times(x[1:], 30, x[0])
-    check_fd(_loss(make_sim(mode), make, TD_HOST), x)
+    g = check_grad(wloss(make_sim(mode), make, TD_HOST), x, tol=(1e-5, 0))
+    assert jnp.all(g != 0), g
 
 
 ON_LATTICE = [

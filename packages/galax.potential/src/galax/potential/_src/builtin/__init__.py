@@ -32,6 +32,8 @@ from .multipole_profile import (
     AbstractMultipoleProfilePotential as AbstractMultipoleProfilePotential,
     MultipoleProfilePotential as MultipoleProfilePotential,
 )
+from .multipoleinner import MultipoleInnerPotential as MultipoleInnerPotential
+from .multipoleouter import MultipoleOuterPotential as MultipoleOuterPotential
 from .nfw import *
 from .null import *
 from .plummer import *

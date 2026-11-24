@@ -48,6 +48,9 @@ has shape ``(3,)``. To evaluate many points, use ``jax.vmap``.
       - the non-spherical functions
       - ``(p, xyz, t)``
 
+The multipole modules read the maximum degree ``l_max`` from the shape of the
+coefficient arrays in ``p``, so their kernels take no ``l_max`` argument.
+
 Positions and parameters are bare arrays in the unit system of the potential,
 and the caller keeps track of the units (see `Units`_ below). A module may export
 more than these functions, for example ``mass_total`` or ``rho0_of_m``.
@@ -169,4 +172,5 @@ Non-spherical
 -------------
 
 ``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``miyamotonagai``, ``monarietal2016bar``, ``multipole``, ``multipoleinner``, ``multipoleouter``,
+``satoh``.

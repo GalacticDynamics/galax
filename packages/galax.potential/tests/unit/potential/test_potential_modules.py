@@ -27,6 +27,12 @@ G = "galactic"
 M = u.Q(1e12, "Msun")
 RS = u.Q(5, "kpc")
 
+# Multipole coefficients, of shape (l_max + 1, l_max + 1) with l_max = 2, with
+# terms in m = 0, 1 and 2 and in both the cos and the sin coefficients.
+SLM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[1, 0].set(0.2).at[1, 1].set(0.3)
+SLM = SLM.at[2, 1].set(0.3).at[2, 2].set(-0.1)
+TLM = jnp.zeros((3, 3)).at[1, 1].set(0.25).at[2, 2].set(0.15)
+
 # At least one instance per module. Constructor arguments follow
 # `test_symmetry.BUILTINS`. Length parameters avoid 1 kpc, where an exponent
 # error (b**2 -> b**2.002) would not show.
@@ -69,6 +75,11 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
+    gp.MultipoleInnerPotential(m_tot=M, r_s=RS, l_max=2, Slm=SLM, Tlm=TLM, units=G),
+    gp.MultipoleOuterPotential(m_tot=M, r_s=RS, l_max=2, Slm=SLM, Tlm=TLM, units=G),
+    gp.MultipolePotential(
+        m_tot=M, r_s=RS, l_max=2, ISlm=SLM, ITlm=TLM, OSlm=0.5 * SLM, OTlm=-TLM, units=G
+    ),
 ]
 
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
@@ -176,7 +187,10 @@ def test_class_matches_vmap(pot, name, shape):
     want = jax.vmap(point_fn(pot, name))(flat)
     want = want.reshape(*batch, *want.shape[1:])
     assert got.shape == want.shape
-    np.testing.assert_allclose(got, want, rtol=1e-10)
+    # Entries that are zero in exact arithmetic differ at round-off.
+    np.testing.assert_allclose(
+        got, want, rtol=1e-10, atol=1e-13 * np.abs(want).max(initial=0.0)
+    )
 
 
 def test_autodiff_reference(pot):
@@ -185,11 +199,23 @@ def test_autodiff_reference(pot):
     phi = point_fn(pot, "potential")  # a function of xyz, through the norm
 
     for xyz in XYZ:
+        # An entry that is zero in exact arithmetic can come out as round-off
+        # that differs between the two paths, so also allow a few 1e-12 of the
+        # largest entry.
+        grad = jax.grad(phi)(xyz)
         np.testing.assert_allclose(
-            point_fn(pot, "gradient")(xyz), jax.grad(phi)(xyz), rtol=1e-8
+            point_fn(pot, "gradient")(xyz),
+            grad,
+            rtol=1e-8,
+            atol=1e-12 * np.abs(grad).max(),
         )
         hess = jax.hessian(phi)(xyz)
-        np.testing.assert_allclose(point_fn(pot, "hessian")(xyz), hess, rtol=1e-8)
+        np.testing.assert_allclose(
+            point_fn(pot, "hessian")(xyz),
+            hess,
+            rtol=1e-8,
+            atol=1e-12 * np.abs(hess).max(),
+        )
         # Where the laplacian is exactly 0 (a thin disk, a point mass, outside a
         # bar) the hessian trace is round-off, a few 1e-16 of the largest entry.
         np.testing.assert_allclose(

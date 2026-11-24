@@ -22,6 +22,7 @@ import numpy as np
 from plum import dispatch
 
 import unxt as u
+from unxt.quantity import is_any_quantity
 
 import galax.coordinates as gc
 import galax.potential as gp
@@ -338,10 +339,7 @@ def _run(
             msg = f"toy must be an IsochroneToy or OscillatorToy, got {type(toy)}"
             raise TypeError(msg)
 
-        def isq(x: Any) -> bool:
-            return isinstance(x, u.AbstractQuantity)
-
-        if any(isq(x) for x in jax.tree.leaves(toy, is_leaf=isq)):
+        if any(map(is_any_quantity, jax.tree.leaves(toy, is_leaf=is_any_quantity))):
             msg = (
                 f"the fields of {type(toy).__name__} must be bare arrays in "
                 f"pot.units ({pot.units}), not Quantities"

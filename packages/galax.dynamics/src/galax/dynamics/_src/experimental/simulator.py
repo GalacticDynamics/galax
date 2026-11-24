@@ -501,7 +501,6 @@ def _evolve(
         raise ValueError(msg)
     n = lead0.shape[0]
     terms = _WholeStreamField(pot, prog_pot).terms(sim.solver)
-    ts = schedule.release_times()
     gate = None
     if isinstance(schedule, Times) and is_lattice(sim.solver):
         # One solve over the merged grid, each row gated by its release's grid
@@ -510,18 +509,13 @@ def _evolve(
         first = jnp.concat([jnp.zeros(1, dtype=idx.dtype), idx, idx])
         gate = lambda x: _Gate(x, first)
         grids, on = schedule.grid()[None], jnp.ones((1, n), dtype=bool)
-        start = ws[0]
     else:
         # One solve per segment; the tracers released by its start move in it.
         grids, on = schedule.segments()
-        # The progenitor at min(ts). Not ws[0]: with `Times`, lattice round-off
-        # can put the grid's first point an ulp before min(ts) (a release
-        # equal to it sorts first).
-        start = ws[schedule.release_index()[jnp.argmin(ts)]]
     w = evolve_whole_stream(
         terms,
         sim.solver,
-        jnp.concat([start[None], lead0, trail0]),
+        jnp.concat([ws[:1], lead0, trail0]),  # the progenitor at min(ts)
         grids,
         jnp.concat([on, on], axis=1),
         gate,

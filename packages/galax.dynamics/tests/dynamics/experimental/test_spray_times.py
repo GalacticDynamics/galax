@@ -94,11 +94,8 @@ def test_times_checks(kw) -> None:
         gde.Times(**kw)
 
 
-# Loss weights, one row per output state (up to 6 releases).
-LOSS_W = jax.random.normal(jax.random.key(7), (2 * 6 + 1, 6))
-TIE_EPS = 1e-3
-# (rtol, atol) per solver; see `check_grad`.
-TIE_TOL = {"leapfrog": (1e-4, 1e-10), "adaptive": (0.0, 5e-5)}
+# Loss weights, one row per output state (up to 8 releases).
+LOSS_W = jax.random.normal(jax.random.key(7), (2 * 8 + 1, 6))
 
 
 def wloss(sim, make=lambda ts: gde.Times(ts, 30, T1), pot=HOST):
@@ -111,43 +108,22 @@ def wloss(sim, make=lambda ts: gde.Times(ts, 30, T1), pot=HOST):
     return loss
 
 
-def check_grad(loss, ts, sides=None, tol=TIE_TOL["leapfrog"]):
-    """Check ``jax.grad(loss)`` against one-sided or central differences.
-
-    ``sides`` gives each entry's side: "L" or "R" (second order) or "C"
-    (central, the default for every entry).
-
-    With Leapfrog, the left and right derivatives at a tie differ by 3.4e-4 to
-    1.2 relative (the grid's steps change there). The right side matches AD to
-    5.3e-6 relative (measured), so rtol = 1e-4 tells the sides apart. Adaptive
-    step control makes the differences noisy, up to 1.8e-5 (0.7%, for min(ts),
-    which moves the first solve's start), and an adaptive solve has no kink
-    at a tie; the adaptive gradients before the fix were off by 2.5e-3 or
-    more, so atol = 5e-5.
-    """
-    ts = jnp.asarray(ts)
-    sides = "C" * ts.shape[0] if sides is None else sides
-    g = jax.grad(loss)(ts)
-    f0, e = loss(ts), TIE_EPS
-
-    def fd(i, side):
-        def f(k):
-            return loss(ts.at[i].add(k * e))
-
-        if side == "C":
-            return (f(1) - f(-1)) / (2 * e)
-        s = 1 if side == "R" else -1
-        return s * (-3 * f0 + 4 * f(s) - f(2 * s)) / (2 * e)
-
-    want = jnp.stack([fd(i, side) for i, side in enumerate(sides)])
-    np.testing.assert_allclose(g, want, rtol=tol[0], atol=tol[1])
+def check_grad(loss, x, eps=1e-3, rtol=1e-5):
+    """Check ``jax.grad(loss)`` at ``x`` against central differences."""
+    x = jnp.asarray(x)
+    g = jax.grad(loss)(x)
+    fd = [
+        (loss(x.at[i].add(eps)) - loss(x.at[i].add(-eps))) / (2 * eps)
+        for i in range(x.shape[0])
+    ]
+    np.testing.assert_allclose(g, jnp.stack(fd), rtol=rtol)
     return g
 
 
 @pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap", "track-scan"])
 def test_times_grad(mode) -> None:
     """Release-time gradients match finite differences and `jax.jacfwd`."""
-    g = check_grad(wloss(make_sim(mode)), TS, tol=(1e-5, 0))
+    g = check_grad(wloss(make_sim(mode)), TS)
     assert jnp.all(g != 0), g
     jf = jax.jacfwd(wloss(make_sim(mode, LEAP_FWD)))(TS)
     np.testing.assert_allclose(jf, g, rtol=1e-10)
@@ -155,32 +131,42 @@ def test_times_grad(mode) -> None:
 
 # The lattice of `Times(ts, 30, T1)` with min(ts) = -300: h = 10 Myr.
 TIE_LATTICE = gde.Uniform(jnp.asarray(300.0), 31, 1).lattice()
-# Release times with ties, and per release the side of the derivative that AD
-# must match with fixed steps and with adaptive ones: "L" or "R" one-sided,
-# "C" central (no tie). A release sorts before a lattice point it equals, and
-# tied releases keep their order in ts, so a release on a lattice point or at
-# t1 takes the left derivative, and of two tied releases the first the left
-# and the second the right. min(ts) sets the lattice: moving it right keeps
-# every other release before its lattice point, so it takes the right one.
+L7 = float(TIE_LATTICE[7])
+# Every kind of tie, as (ts, t1); t1 None is the default, max(ts).
 TIES = {
-    "coincident": ([-300.0, float(TIE_LATTICE[7]), -123.4, 0.0], "RLCL", "CCCL"),
-    "pair": ([-300.0, -123.4, -123.4, -12.5], "CLRC", "CLRC"),
-    "uniform": (gde.Uniform(jnp.asarray(300.0), 4, 10).release_times(), "RLLL", "CCCL"),
+    # Pairs at min(ts), on a lattice point, off the lattice and at t1.
+    "explicit-t1": ([-300.0, -300.0, L7, L7, -123.4, -123.4, 0.0, 0.0], T1),
+    # One on a lattice point, and a pair at max(ts) that sets t1.
+    "default-t1": ([-300.0, L7, -123.4, -12.5, -12.5], None),
+    # Uniform's release times: every one on a lattice point.
+    "uniform": (gde.Uniform(jnp.asarray(300.0), 4, 10).release_times(), T1),
 }
 
 
-def test_times_coincident_point() -> None:
-    """Releases on a lattice point (and at t1) run and are differentiable.
+def untie(sched, eps=1e-6):
+    """Return a shift of ``sched.ts`` that unties it in the grid's order.
 
-    Their gradients are the one-sided derivatives of the grid's order.
+    Of ``m`` equal times, the ``k``-th (in the order of ``ts``) moves left by
+    ``m - 1 - k`` units of ``eps``, and by one more if they sit on a lattice
+    point, so each release stays before the lattice point it equalled.
     """
-    ts, sides, _ = TIES["coincident"]
+    ts, lat = np.asarray(sched.ts), np.asarray(sched.lattice())
+    d = np.zeros_like(ts)
+    for v in np.unique(ts):
+        (idx,) = np.nonzero(ts == v)
+        d[idx] = -(np.arange(len(idx))[::-1] + np.any(lat == v))
+    return eps * jnp.asarray(d)
+
+
+def test_times_coincident_point() -> None:
+    """Releases on a lattice point (and at t1) run, and sort before it."""
+    ts = [-300.0, L7, -123.4, 0.0]
     sched = gde.Times(jnp.asarray(ts), 30, T1)
-    assert jnp.sum(sched.grid() == TIE_LATTICE[7]) == 2
+    assert jnp.sum(sched.grid() == L7) == 2
     # The release sorts before the lattice point, and the grid ends at t1.
     i = int(sched.release_index()[1])
-    assert sched.grid()[i] == sched.grid()[i + 1] == TIE_LATTICE[7]
-    assert int(jnp.searchsorted(sched.grid(), TIE_LATTICE[7])) == i
+    assert sched.grid()[i] == sched.grid()[i + 1] == L7
+    assert int(jnp.searchsorted(sched.grid(), L7)) == i
     assert int(sched.release_index()[-1]) == sched.grid().shape[0] - 2
     res = make_sim()(KEY, HOST, W_TODAY, MSAT, sched)
     for a in (res.lead, res.trail, res.progenitor):
@@ -190,7 +176,6 @@ def test_times_coincident_point() -> None:
     _, lead0, trail0 = release_ics(sched)
     np.testing.assert_allclose(res.lead[-1], lead0[-1], rtol=0, atol=1e-13)
     np.testing.assert_allclose(res.trail[-1], trail0[-1], rtol=0, atol=1e-13)
-    check_grad(wloss(make_sim()), ts, sides)
 
 
 TIE_RUNS = [
@@ -205,44 +190,27 @@ TIE_RUNS = [
 @pytest.mark.parametrize("case", list(TIES))
 @pytest.mark.parametrize(("mode", "solver"), TIE_RUNS)
 def test_times_tie_grad(mode, solver, case) -> None:
-    """Release-time gradients at ties are the right one-sided derivatives.
+    """At a tie, the gradient is the limit of the gradients at nearby untied times.
 
-    For releases on `Uniform`'s, every one on a lattice point, they also give
-    `Uniform`'s ``t_age`` gradient by the chain rule.
+    With fixed steps the derivative jumps at a tie, by up to 28% of the
+    gradient here for a wrong order, so the gradient a 1e-6 Myr shift away
+    (which moves it by at most 1.5e-5) tells a right limit from a wrong one.
+    For `Uniform`'s release times, the gradient also gives `Uniform`'s
+    ``t_age`` gradient by the chain rule.
     """
-    if (mode, solver, case) == ("whole", "leapfrog", "coincident"):
-        pytest.skip("in test_times_coincident_point")
-    ts, fixed, adapt = TIES[case]
+    ts, t1 = TIES[case]
+    ts = jnp.asarray(ts)
     sim = make_sim(mode, SOLVERS[solver])
-    sides = fixed if solver == "leapfrog" else adapt
-    g = check_grad(wloss(sim), ts, sides, TIE_TOL[solver])
+    grad = jax.grad(wloss(sim, lambda x: gde.Times(x, 30, t1)))
+    g, near = grad(ts), grad(ts + untie(gde.Times(ts, 30, t1)))
+    np.testing.assert_allclose(g, near, rtol=0, atol=1e-4 * jnp.max(jnp.abs(near)))
     if case == "uniform":
         loss = wloss(sim, lambda t_age: gde.Uniform(t_age, 4, 10, T1))
-
         # d ts / d t_age, from ts = t1 - t_age + 10 k h with h = t_age / 30.
         dts = -jnp.asarray([1.0, 2 / 3, 1 / 3, 0.0])
         np.testing.assert_allclose(
             g @ dts, jax.grad(loss)(jnp.asarray(300.0)), rtol=1e-9
         )
-
-
-@pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap"])
-def test_times_tie_at_ends(mode) -> None:
-    """Ties at the ends of the lattice, with fixed steps.
-
-    The last of the releases tied at ``max(ts)`` carries a default ``t1``, so
-    the pair takes one-sided derivatives in order, as at any other tie. At
-    ``min(ts)`` no order fits a lone tied release moving: only the tied group
-    moving together has the right derivative.
-    """
-    sim = make_sim(mode)
-    ts = jnp.asarray([-300.0, -123.4, -12.5, -12.5])
-    check_grad(wloss(sim, lambda ts: gde.Times(ts, 30)), ts, "RCLR")
-    ts = jnp.asarray([-300.0, -300.0, -100.5])
-    loss = wloss(sim)
-    d = jnp.asarray([1.0, 1.0, 0.0])
-    want = (loss(ts + TIE_EPS * d) - loss(ts - TIE_EPS * d)) / (2 * TIE_EPS)
-    np.testing.assert_allclose(jax.grad(loss)(ts) @ d, want, rtol=1e-6)
 
 
 def test_times_no_leak() -> None:
@@ -498,7 +466,7 @@ def test_time_dependent_host_time_grads(mode, kind) -> None:
     else:
         x = jnp.concat([TD_T1[None], base.ts])
         make = lambda x: gde.Times(x[1:], 30, x[0])
-    g = check_grad(wloss(make_sim(mode), make, TD_HOST), x, tol=(1e-5, 0))
+    g = check_grad(wloss(make_sim(mode), make, TD_HOST), x)
     assert jnp.all(g != 0), g
 
 

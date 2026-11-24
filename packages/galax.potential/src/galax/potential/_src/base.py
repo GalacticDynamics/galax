@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Final
 
 import equinox as eqx
 import jax
+import numpy as np
 from astropy.constants import G as _CONST_G  # pylint: disable=no-name-in-module
 from astropy.units import Quantity as APYQuantity
 from plum import dispatch
@@ -39,36 +40,47 @@ from galax.potential.dataclasses import ModuleMeta
 #: With x64 on, ``G`` becomes a strongly typed float64 (it comes from NumPy
 #: float64), as it was when x64 was turned on before import. A strong ``G``
 #: promotes float32 inputs to float64. Making it weakly typed would not by
-#: itself keep them float32, because the potential functions also cast their
-#: inputs to the default float type.
+#: itself keep every result float32, because some potential functions (the
+#: acceleration, for example) also cast their inputs to the default float type.
 default_constants: Final = ImmutableMap(
     {"G": u.StaticQuantity(_CONST_G.value, str(_CONST_G.unit))}
 )
 
 
 def _jax_constant(v: Any, usys: u.AbstractUnitSystem | None = None, /) -> Any:
-    """Return constant ``v`` as a JAX `unxt.Quantity` in ``usys`` (if given)."""
-    if isinstance(v, u.StaticQuantity):
-        return _jax_static_constant(v, usys, jax.dtypes.canonicalize_dtype(float))
-    return v if usys is None else v.decompose(usys)
+    """Return constant ``v`` in the unit system ``usys`` (if given).
+
+    A default constant (see `default_constants`) becomes a JAX `unxt.Quantity`.
+    Any other constant is converted as it is.
+    """
+    name = next((k for k, d in default_constants.items() if v is d), None)
+    if name is None:
+        return v if usys is None else v.decompose(usys)
+    value, unit = _default_constant(name, usys, jax.dtypes.canonicalize_dtype(float))
+    # A new JAX array for each potential. If the potentials shared one, donating
+    # any of them to a jitted function would delete it for all of them.
+    return u.Q(jax.numpy.asarray(value), unit)
 
 
 @ft.cache
 @jax.ensure_compile_time_eval()
-def _jax_static_constant(
-    v: u.StaticQuantity, usys: u.AbstractUnitSystem | None, dtype: Any, /
-) -> Any:
-    """Convert ``v`` once per unit system and float precision.
+def _default_constant(
+    name: str, usys: u.AbstractUnitSystem | None, dtype: Any, /
+) -> tuple[np.ndarray, Any]:
+    """Convert default constant ``name`` once per unit system and float precision.
 
     The unit conversion is most of the cost of constructing a simple potential,
-    so the result is shared by the potentials. ``dtype`` is only the cache key.
-    It runs under `jax.ensure_compile_time_eval`, so a first call inside a trace
-    caches a concrete array, not a tracer.
+    so it is done once, and the value is kept as a NumPy array. ``dtype`` is only
+    the cache key. It runs under `jax.ensure_compile_time_eval`, so a first call
+    inside a trace does not see a tracer.
     """
     del dtype  # only the cache key
+    v = default_constants[name]
     # Not `u.Q.from_(v)`, which takes about 4 times as long.
     q = u.Q(jax.numpy.asarray(v.value), v.unit)
-    return q if usys is None else q.decompose(usys)
+    if usys is not None:
+        q = q.decompose(usys)
+    return np.asarray(q.value), q.unit
 
 
 DimL = u.dimension("length")

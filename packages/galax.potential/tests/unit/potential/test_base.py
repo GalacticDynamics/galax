@@ -382,3 +382,16 @@ def test_default_constants() -> None:
     assert isinstance(pot.constants["G"], u.Q)
     assert pot.constants["G"].unit == G.decompose(pot.units).unit
     assert pot.constants["G"].value == u.Q.from_(G).decompose(pot.units).value
+
+
+# Some of the potential's buffers can't be reused for the output.
+@pytest.mark.filterwarnings("ignore:Some donated buffers were not usable")
+def test_donating_a_potential_keeps_others_usable() -> None:
+    """Potentials share no ``G`` array, so donating one leaves the others intact."""
+    q = jnp.asarray([8.0, 0.0, 0.0])
+    pot = gp.KeplerPotential(m_tot=u.Q(1e10, "Msun"), units="galactic")
+    jax.jit(lambda p: p.potential(q, 0.0), donate_argnums=0)(pot)
+    assert pot.constants["G"].value.is_deleted()
+    other = gp.KeplerPotential(m_tot=u.Q(1e10, "Msun"), units="galactic")
+    assert not other.constants["G"].value.is_deleted()
+    other.potential(q, 0.0)

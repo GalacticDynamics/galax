@@ -57,10 +57,6 @@ BUILTINS = [
     gp.IsochronePotential(m_tot=M, r_s=RS, units=G),
     gp.JaffePotential(m_tot=M, r_s=RS, units=G),
     gp.KeplerPotential(m_tot=M, units=G),
-    # Coarse: only the declared symmetry is checked here.
-    gp.KoposovEtAl2023HaloPotential.from_params(
-        M, RS, q_in=0.8, q_out=0.9, axis=(0.2, 0.3, 0.9), l_max=2, n_r=16, units=G
-    ),
     gp.KuzminPotential(m_tot=M, r_s=RS, units=G),
     gp.KuzminKutuzovPotential(m_tot=M, a=RS, c=u.Q(1, "kpc"), units=G),
     gp.LM10Potential(),
@@ -115,6 +111,8 @@ BUILTINS = [
         l_max=2,
         **_PROFILE,
     ),
+    # Coarse: only the declared symmetry is checked here.
+    gp.flattened_gnfw_halo(M, RS, q_in=0.8, q_out=0.9, l_max=2, n_r=16, units=G),
     gp.NFWPotential(m=M, r_s=RS, units=G),
     gp.NullPotential(),
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),

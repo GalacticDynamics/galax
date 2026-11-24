@@ -30,6 +30,7 @@ pieces of :mod:`gala` work together to meet more realistic research needs.
 
     glossary
     potential_modules
+    papers
 
 
 Recent additions and changes

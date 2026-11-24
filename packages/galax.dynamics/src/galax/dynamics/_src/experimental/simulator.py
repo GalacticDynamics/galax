@@ -294,13 +294,11 @@ def simulate(
 ) -> SprayResult:
     """Sample the releases on the progenitor's orbit and integrate them."""
     w_today = jnp.asarray(w_today, dtype=float)
-    if isinstance(schedule, Times):
-        times, want = schedule.ts, 1
-    else:
-        times, want = schedule.t_age, 0
+    # Times has 1-d ts, Uniform a scalar t_age.
+    times = schedule.ts if isinstance(schedule, Times) else schedule.t_age
     if (
         jnp.shape(w_today) != (6,)
-        or jnp.ndim(times) != want
+        or jnp.ndim(times) != int(isinstance(schedule, Times))
         or jnp.ndim(schedule.t1) != 0
     ):
         msg = (
@@ -339,20 +337,20 @@ def simulate(
 
 
 def evolve_whole_stream(
-    field: _WholeStreamField,
+    terms: Any,
     solver: dfxtra.DiffEqSolver,
     w0: Array,
     grids: Array,
     active: Array,
 ) -> Array:
-    """Evolve the rows ``w0`` (R, 6) over the segments ``grids`` (S, L + 1).
+    """Evolve the rows ``w0`` (R, 6) with ``terms`` over the segments ``grids``.
 
-    Segment ``s`` is one solve along ``grids[s]`` with the tracers ``active[s]``
-    (S, R - 1) moving and the rest frozen. If ``w0`` is not finite or a segment
-    fails, every row comes out NaN. After that, an adaptive solver's later
-    segments span zero time: a NaN state would make it run to ``max_steps``.
+    Segment ``s`` is one solve along ``grids[s]`` (S, L + 1) with the tracers
+    ``active[s]`` (S, R - 1) moving and the rest frozen. If ``w0`` is not finite
+    or a segment fails, every row comes out NaN. After that, an adaptive
+    solver's later segments span zero time: a NaN state would make it run to
+    ``max_steps``.
     """
-    terms = field.terms(solver)
     split = isinstance(solver.solver, gf.Leapfrog)
     adaptive = not is_lattice(solver)
 
@@ -437,22 +435,6 @@ def evolve_per_particle(
     return jnp.where(ok, w, jnp.nan)
 
 
-def _check_one_solver(sim: SpraySimulator) -> None:
-    # The tracers orbit the progenitor row, so it must start from (and its
-    # release states come from) the same solver.
-    psolver = sim.progenitor_solver
-    if (
-        psolver is not None
-        and psolver is not sim.solver
-        and eqx.tree_equal(psolver, sim.solver) is not True
-    ):
-        msg = (
-            "WholeStream integrates the progenitor with the stream: "
-            "progenitor_solver must be None or equal to solver"
-        )
-        raise ValueError(msg)
-
-
 class _Gate(dfx.AbstractTerm):  # type: ignore[misc]
     """A whole-stream term with each row frozen until its release.
 
@@ -490,75 +472,47 @@ def _evolve(
     sim: SpraySimulator,
     pot: gp.AbstractPotential,
     prog_pot: gp.AbstractPotential | None,
-    schedule: Uniform,
+    schedule: Uniform | Times,
     w_today: Array,  # noqa: ARG001
     ws: Array,
     lead0: Array,
     trail0: Array,
 ) -> tuple[Array, Array, Array]:
-    _check_one_solver(sim)
-    # One segment per stretch between releases (one for a single release); the
-    # tracers released by a segment's start move in it.
-    n = schedule.n_release
-    n_seg = max(n - 1, 1)
-    L = schedule.n_steps() // n_seg
-    starts = jnp.arange(n_seg) * L
-    grids = schedule.lattice()[starts[:, None] + jnp.arange(L + 1)]
-    on = schedule.release_index()[None, :] <= starts[:, None]
+    # The tracers orbit the progenitor row, so it must start from (and its
+    # release states come from) the same solver.
+    psolver = sim.progenitor_solver
+    if (
+        psolver is not None
+        and psolver is not sim.solver
+        and eqx.tree_equal(psolver, sim.solver) is not True
+    ):
+        msg = (
+            "WholeStream integrates the progenitor with the stream: "
+            "progenitor_solver must be None or equal to solver"
+        )
+        raise ValueError(msg)
+    n = lead0.shape[0]
+    terms = _WholeStreamField(pot, prog_pot).terms(sim.solver)
+    ts = schedule.release_times()
+    if isinstance(schedule, Times) and is_lattice(sim.solver):
+        # One solve over the merged grid, each row gated by its release time.
+        t_rel = jnp.concat([jnp.full(1, -jnp.inf), ts, ts])
+        terms = map_terms(lambda x: _Gate(x, t_rel), terms)
+        grids, on = schedule.grid()[None], jnp.ones((1, n), dtype=bool)
+        start = ws[0]
+    else:
+        # One solve per segment; the tracers released by its start move in it.
+        grids, on = schedule.segments()
+        # The progenitor at min(ts). Not ws[0]: with `Times`, lattice round-off
+        # can put the grid's first point an ulp before min(ts).
+        start = ws[schedule.release_index()[jnp.argmin(ts)]]
     w = evolve_whole_stream(
-        _WholeStreamField(pot, prog_pot),
+        terms,
         sim.solver,
-        jnp.concat([ws[:1], lead0, trail0]),
+        jnp.concat([start[None], lead0, trail0]),
         grids,
         jnp.concat([on, on], axis=1),
     )
-    return w[1 : n + 1], w[n + 1 :], w[0]
-
-
-@dispatch
-def _evolve(
-    mode: WholeStream,  # noqa: ARG001
-    sim: SpraySimulator,
-    pot: gp.AbstractPotential,
-    prog_pot: gp.AbstractPotential | None,
-    schedule: Times,
-    w_today: Array,  # noqa: ARG001
-    ws: Array,
-    lead0: Array,
-    trail0: Array,
-) -> tuple[Array, Array, Array]:
-    _check_one_solver(sim)
-    n = lead0.shape[0]
-    field = _WholeStreamField(pot, prog_pot)
-    ts = schedule.release_times()
-    if is_lattice(sim.solver):
-        # One solve over the merged grid, each row gated by its release time.
-        t_rel = jnp.concat([jnp.full(1, -jnp.inf), ts, ts])
-        terms = map_terms(lambda x: _Gate(x, t_rel), field.terms(sim.solver))
-        w0 = jnp.concat([ws[:1], lead0, trail0])
-        split = isinstance(sim.solver.solver, gf.Leapfrog)
-        y0 = (w0[:, :3], w0[:, 3:]) if split else w0
-        y = solve_on(sim.solver, terms, y0, schedule.grid())
-        w = jnp.concat(y, axis=-1) if split else y
-        w = jnp.where(jnp.all(jnp.isfinite(w)), w, jnp.nan)
-    else:
-        # PR-1 segments: between consecutive sorted releases, then to t1.
-        u = jnp.sort(ts)
-        grids = jnp.stack([u, jnp.concat([u[1:], schedule.t1[None]])], axis=1)
-        # A NaN time gives NaN release states, so NaN rows: solve over zero
-        # time, not NaN time.
-        grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
-        on = ts[None, :] <= u[:, None]
-        # The progenitor at min(ts). Not ws[0]: lattice round-off can put the
-        # grid's first point an ulp before min(ts).
-        start = ws[schedule.release_index()[jnp.argmin(ts)]]
-        w = evolve_whole_stream(
-            field,
-            sim.solver,
-            jnp.concat([start[None], lead0, trail0]),
-            grids,
-            jnp.concat([on, on], axis=1),
-        )
     return w[1 : n + 1], w[n + 1 :], w[0]
 
 

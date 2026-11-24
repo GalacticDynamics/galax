@@ -105,13 +105,13 @@ def test_gate_no_leak() -> None:
     starts = jnp.arange(n_seg) * L
     grids = lattice[starts[:, None] + jnp.arange(L + 1)]
     active = (k <= starts)[:, None]
-    field = _WholeStreamField(HOST, prog_pot)
+    terms = _WholeStreamField(HOST, prog_pot).terms(LEAP)
 
-    before = evolve_whole_stream(field, LEAP, w0, grids[: k // L], active[: k // L])
+    before = evolve_whole_stream(terms, LEAP, w0, grids[: k // L], active[: k // L])
     np.testing.assert_array_equal(before[1], w_tr)
     np.testing.assert_allclose(before[0], ws[k], rtol=0, atol=1e-12)
 
-    got = evolve_whole_stream(field, LEAP, w0, grids, active)
+    got = evolve_whole_stream(terms, LEAP, w0, grids, active)
     copies = _CopiesField(HOST, prog_pot)
     y0 = (jnp.stack([w_tr[:3], ws[k, :3]]), jnp.stack([w_tr[3:], ws[k, 3:]]))
     want = jnp.concat(solve_on(LEAP, copies.terms(LEAP), y0, lattice[k:]), axis=-1)
@@ -358,13 +358,15 @@ def test_failed_segment_is_nan_and_cheap() -> None:
     ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
     w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
     field = _WholeStreamField(HOST, plummer(MSAT))
+    terms = field.terms(solver)
     active = jnp.ones((6, 1), bool)
 
     def grids(span):
         ends = jnp.concat([jnp.asarray([0.0, span]), span + jnp.arange(1.0, 6.0)])
         return jnp.stack([ends[:-1], ends[1:]], axis=1)
 
-    run = jax.jit(lambda g: evolve_whole_stream(_Counted(field), solver, w0, g, active))
+    counted = _Counted(field).terms(solver)
+    run = jax.jit(lambda g: evolve_whole_stream(counted, solver, w0, g, active))
     COUNT.clear()
     good = run(grids(1.0))
     jax.effects_barrier()
@@ -380,7 +382,7 @@ def test_failed_segment_is_nan_and_cheap() -> None:
 
     # Under vmap, a failing lane leaves the good one as it was.
     both = jax.jit(
-        jax.vmap(lambda g: evolve_whole_stream(field, solver, w0, g, active))
+        jax.vmap(lambda g: evolve_whole_stream(terms, solver, w0, g, active))
     )(jnp.stack([grids(1.0), grids(1000.0)]))
     np.testing.assert_allclose(both[0], good, rtol=1e-13, atol=1e-13)
     assert jnp.all(jnp.isnan(both[1]))
@@ -394,11 +396,11 @@ def test_nan_start_is_nan_and_cheap() -> None:
     solver = adaptive(1e-10, 30)
     ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
     w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
-    field = _Counted(_WholeStreamField(HOST, plummer(MSAT)))
+    terms = _Counted(_WholeStreamField(HOST, plummer(MSAT))).terms(solver)
     ends = jnp.arange(0.0, 7.0)
     grids = jnp.stack([ends[:-1], ends[1:]], axis=1)
     active = jnp.ones((6, 1), bool)
-    run = jax.jit(lambda w: evolve_whole_stream(field, solver, w, grids, active))
+    run = jax.jit(lambda w: evolve_whole_stream(terms, solver, w, grids, active))
 
     COUNT.clear()
     assert jnp.all(jnp.isfinite(run(w0)))

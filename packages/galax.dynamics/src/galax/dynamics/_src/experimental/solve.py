@@ -2,7 +2,6 @@
 
 __all__ = [
     "default_solver",
-    "grid_time",
     "host_terms",
     "is_lattice",
     "map_terms",
@@ -63,13 +62,6 @@ def host_terms(pot: gp.AbstractPotential, solver: dfxtra.DiffEqSolver) -> Any:
     )
 
 
-def grid_time(grid: Array, s: Array) -> Array:
-    """Physical time at index time ``s``: linear in ``grid``, exact at integers."""
-    i = jnp.clip(jnp.floor(s), 0, grid.shape[0] - 1).astype(int)
-    j = jnp.minimum(i + 1, grid.shape[0] - 1)
-    return grid[i] + (s - i) * (grid[j] - grid[i])
-
-
 class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
     """``term`` in index time: the step ``s -> s + 1`` is ``grid[s] -> grid[s + 1]``.
 
@@ -80,11 +72,17 @@ class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
     term: dfx.AbstractTerm
     grid: Array
 
+    def _time(self, s: Array) -> Array:
+        """Physical time at index time ``s``: linear in ``grid``, exact at integers."""
+        i = jnp.clip(jnp.floor(s), 0, self.grid.shape[0] - 1).astype(int)
+        j = jnp.minimum(i + 1, self.grid.shape[0] - 1)
+        return self.grid[i] + (s - i) * (self.grid[j] - self.grid[i])
+
     def vf(self, t: Array, y: Any, args: Any) -> Any:
-        return self.term.vf(grid_time(self.grid, t), y, args)
+        return self.term.vf(self._time(t), y, args)
 
     def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Any:  # noqa: ARG002
-        return self.term.contr(grid_time(self.grid, t0), grid_time(self.grid, t1))
+        return self.term.contr(self._time(t0), self._time(t1))
 
     def prod(self, vf: Any, control: Any) -> Any:
         return self.term.prod(vf, control)

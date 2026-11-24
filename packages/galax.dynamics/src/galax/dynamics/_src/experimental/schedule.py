@@ -66,6 +66,20 @@ class Uniform(eqx.Module):
         """Return the solve's time grid, the lattice itself."""
         return self.lattice()
 
+    def segments(self) -> tuple[Array, Array]:
+        """Return the whole-stream segments ``(grids, on)``.
+
+        One segment per stretch between releases (one for a single release):
+        ``grids`` (S, L + 1) are its lattice points and ``on`` (S, n_release)
+        the releases made by its start, which move in it.
+        """
+        n_seg = max(self.n_release - 1, 1)
+        L = self.n_steps() // n_seg
+        starts = jnp.arange(n_seg) * L
+        grids = self.lattice()[starts[:, None] + jnp.arange(L + 1)]
+        on = self.release_index()[None, :] <= starts[:, None]
+        return grids, on
+
 
 class Times(eqx.Module):
     """Releases at arbitrary times ``ts``, between the points of a lattice.
@@ -112,8 +126,6 @@ class Times(eqx.Module):
             msg = f"ts must have shape (n,) with n >= 1, got {self.ts.shape}"
             raise ValueError(msg)
         self.t1 = jnp.max(self.ts) if t1 is None else jnp.asarray(t1, dtype=float)
-
-    def __check_init__(self) -> None:
         if self.steps < 1:
             msg = f"steps must be at least 1, got {self.steps}"
             raise ValueError(msg)
@@ -132,11 +144,6 @@ class Times(eqx.Module):
         """Return the ``steps + 1`` lattice points, as `Uniform.lattice`."""
         return self.uniform().lattice()
 
-    def _order(self) -> Array:
-        # Position in the sorted grid of each entry of concat(lattice, ts). The
-        # sort is stable, so a release sits after a lattice point it equals.
-        return jnp.argsort(jnp.argsort(jnp.concat([self.lattice(), self.ts])))
-
     def grid(self) -> Array:
         """Return the merged grid: lattice points and release times, sorted.
 
@@ -146,8 +153,26 @@ class Times(eqx.Module):
 
     def release_index(self) -> Array:
         """Grid index of each release, in the order of ``ts``."""
-        return self._order()[self.steps + 1 :]
+        # Position in the sorted grid of each entry of concat(lattice, ts). The
+        # sort is stable, so a release sits after a lattice point it equals.
+        order = jnp.argsort(jnp.argsort(jnp.concat([self.lattice(), self.ts])))
+        return order[self.steps + 1 :]
 
     def release_times(self) -> Array:
         """Return the release times ``ts``, in the given order."""
         return self.ts
+
+    def segments(self) -> tuple[Array, Array]:
+        """Return the whole-stream segments ``(grids, on)`` for an adaptive solve.
+
+        One segment between each pair of consecutive sorted release times, then
+        one to ``t1``: ``grids`` (n, 2) are its ends and ``on`` (n, n) the
+        releases made by its start, which move in it.
+        """
+        u = jnp.sort(self.ts)
+        grids = jnp.stack([u, jnp.concat([u[1:], self.t1[None]])], axis=1)
+        # A NaN time gives NaN release states, so NaN rows: solve over zero
+        # time, not NaN time.
+        grids = jnp.where(jnp.all(jnp.isfinite(grids)), grids, 0.0)
+        on = self.ts[None, :] <= u[:, None]
+        return grids, on

@@ -115,6 +115,7 @@ BUILTINS = [
     gp.NullPotential(),
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
     gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
+    gp.RotatingPotential(_BAR, Omega=u.Q(0.05, "1/Myr")),
     gp.SCFPotential(m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G),
     gp.TabulatedRadialBasisPotential.from_knots(
         u.Q(_R_KNOTS, "kpc"), _SCF_TABLE, _NLM, jnp.zeros_like(_NLM), units=G
@@ -308,6 +309,11 @@ def test_no_stronger_symmetry_than_declared(
             gp.TriaxialInThePotential(base_potential=_MN, y_over_x=0.8, z_over_x=0.6),
             "plane_reflection",
         ),
+        (
+            gp.RotatingPotential(_MN, Omega=u.Q(0.05, "1/Myr")),
+            "zrotation_zreflection",
+        ),
+        (gp.RotatingPotential(_HERNQUIST, Omega=u.Q(0.05, "1/Myr")), "spherical"),
         (
             gp.TranslatedPotential(
                 base_potential=_HERNQUIST, translation=u.Q([1.0, 0, 0], "kpc")

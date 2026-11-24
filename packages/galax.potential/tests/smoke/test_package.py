@@ -91,6 +91,7 @@ expected_all = [
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",
+    "RotatingPotential",
     "TransformedPotential",
     "TriaxialInThePotential",
     "TranslatedPotential",

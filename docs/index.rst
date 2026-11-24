@@ -95,6 +95,10 @@ What derives from Agama:
      - Agama's convention, shared with :mod:`scipy`
    * - ``galax.dynamics`` Milky-Way/LMC interaction example
      - ``py/example_lmc_mw_interaction.py``
+   * - :class:`~galax.potential.SormaniEtAl2022BarPotential` --- the
+       parameter values of the Sormani et al. (2022) bar, at full precision
+       (they round to the paper's Table 1)
+     - ``makeBarDensity`` in ``py/example_mw_bar_potential.py``
 
 Agama was also the numerical reference while this machinery was developed: it
 is what established that the boundary tail was the dominant error source, and

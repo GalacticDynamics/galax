@@ -104,6 +104,11 @@ def _solve(
     time (`_IndexTime`), so equal or NaN times never make diffrax raise. The
     terms still see physical times. ``gate`` (fixed steps only) wraps each
     index-time term, so it sees the step index ``k``.
+
+    An adaptive solve over zero time takes no steps, so diffrax drops the
+    tangents of its times. Each saved state (at ``saveat.ts``, else at the end)
+    gets the first-order one, ``f(y0) (dt_save - dt0)``, which is exact at zero
+    span; the values are unchanged. The terms are then a single term.
     """
     if is_lattice(solver):
         gate = (lambda x: x) if gate is None else gate
@@ -143,7 +148,14 @@ def _solve(
         **kw,
     )
     ok = sol.result == dfx.RESULTS.successful
-    return jax.tree.map(lambda y: jnp.where(ok, y, jnp.nan), sol.ys)
+    ys = jax.tree.map(lambda y: jnp.where(ok, y, jnp.nan), sol.ys)
+    if not is_lattice(solver):
+        t0, t1 = step_ts[0], step_ts[-1]
+        save = step_ts[-1:] if saveat.subs.ts is None else saveat.subs.ts
+        dt = (save - sg(save)) - (t0 - sg(t0))  # zeros, with the tangents
+        dy = jax.vmap(lambda d: terms.vf_prod(t0, y0, args, d))(dt)
+        ys = jax.tree.map(lambda a, b: jnp.where(t0 == t1, a + b, a), ys, dy)
+    return ys
 
 
 def solve_on(
@@ -161,19 +173,9 @@ def solve_on(
     each of its terms in index time (`_solve`). An adaptive one runs from
     ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A failed solve
     returns NaN, it never raises.
-
-    An adaptive solve over zero time takes no steps, so diffrax drops the
-    tangent of its end times. It gets the first-order one, ``f(y0) (dt1 -
-    dt0)``, which is exact at zero span; the value is unchanged.
     """
     ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args, gate)
-    y1 = jax.tree.map(lambda y: y[0], ys)
-    if not is_lattice(solver):
-        t0, t1 = step_ts[0], step_ts[-1]
-        dt = (t1 - sg(t1)) - (t0 - sg(t0))  # zero, with the tangent dt1 - dt0
-        dy = terms.vf_prod(t0, y0, args, dt)
-        y1 = jax.tree.map(lambda a, b: jnp.where(t0 == t1, a + b, a), y1, dy)
-    return y1
+    return jax.tree.map(lambda y: y[0], ys)
 
 
 def progenitor_states(

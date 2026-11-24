@@ -294,6 +294,28 @@ def test_zero_span(mode, solver) -> None:
             np.testing.assert_allclose(got[-1], W_TODAY, rtol=0, atol=1e-13)
 
 
+@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("mode", ["whole", "copies-vmap"])
+def test_zero_span_grad(mode, solver) -> None:
+    """Gradients over zero time are the one-sided derivatives into the domain.
+
+    A `Uniform` at ``t_age = 0`` can only grow ``t_age``; of two releases at an
+    explicit ``t1``, the first moving left keeps the grid's order. An adaptive
+    solve takes no steps there, so its tangents come from `_solve`'s
+    first-order term; without it they were 30-170 times off.
+    """
+    sim = make_sim(mode, SOLVERS[solver])
+    e = 1e-4
+    loss = wloss(sim, lambda a: gde.Uniform(a, 4, 5, T1))
+    a = jnp.asarray(0.0)
+    want = (loss(a + e) - loss(a)) / e
+    np.testing.assert_allclose(jax.grad(loss)(a), want, rtol=1e-3)
+    loss = wloss(sim, lambda ts: gde.Times(ts, 30, jnp.asarray(-100.0)))
+    ts = jnp.asarray([-100.0, -100.0])
+    want = (loss(ts) - loss(ts.at[0].add(-e))) / e
+    np.testing.assert_allclose(jax.grad(loss)(ts)[0], want, rtol=1e-3)
+
+
 @pytest.mark.parametrize("mode", list(ALL))
 def test_release_after_t1_is_nan(mode) -> None:
     """A release time after ``t1`` gives NaN under jit, not a wrong stream."""

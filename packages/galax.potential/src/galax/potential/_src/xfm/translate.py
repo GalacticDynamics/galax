@@ -174,7 +174,7 @@ class TimeDependentTranslationParameter(AbstractParameter):
         *,
         ustrip: u.AbstractUnit | None = None,
         **_: Any,
-    ) -> gt.BBtQuSz3:
+    ) -> gt.BBtQorVSz3:
         t = u.ustrip(u.quantity.AllowValue, self.units["time"], t)
         out = u.Q.from_(self.translation(t), self.units["length"])
         return out if ustrip is None else u.ustrip(AllowValue, ustrip, out)

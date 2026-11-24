@@ -180,10 +180,8 @@ def fit_isochrone(
 ) -> tuple[IsochroneToy, Bool[Array, ""]]:
     """Fit the isochrone toy to one orbit; ``q``, ``p`` are (T, 3), ``t`` (T,).
 
-    Everything is in ``pot.units``.  The caller jits.  A weak pull toward
-    the seed keeps the problem full rank, so circular orbits give a finite fit
-    and gradient. ``ok`` marks the samples to fit. Returns the toy and
-    whether the solver converged.
+    Everything is in ``pot.units``.  The caller jits. ``ok`` marks the
+    samples to fit. Returns the toy and whether the solver converged.
     """
     G = G_in_units(pot)
     # Masked rows take a kept row's values, so values and gradients stay finite.

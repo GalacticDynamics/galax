@@ -29,11 +29,7 @@ from galax.potential import HarmonicOscillatorPotential
 def _ho_aaf(omega: Array, x: Array, v: Array) -> tuple[Array, Array, Array]:
     """Actions, angles and frequencies of one point, in the (x, y, z) order.
 
-    ``omega``, ``x`` and ``v`` have shape (3,). The angle of an axis is
-    undefined at ``J_i = 0`` (the particle at rest at the origin) and is 0
-    there. Angles are in ``[0, 2 pi)``, with ``x_i = sqrt(2 J_i / omega_i)
-    cos(theta_i)`` and ``v_i = -sqrt(2 J_i omega_i) sin(theta_i)``. The
-    gradient of the angle at ``J_i = 0`` is set to 0.
+    ``omega``, ``x`` and ``v`` have shape (3,).
     """
     actions = (v**2 + (omega * x) ** 2) / (2 * omega)
     # atan2(0, 0) has a NaN gradient, so an axis at rest takes atan2(0, 1)
@@ -49,10 +45,9 @@ def _aaf(
 ) -> tuple[Array, Array, Array]:
     """Unitless batched transform; ``q``, ``p`` (..., 3) and ``t`` (...)."""
     usys = pot.units
-    batch = q.shape[:-1]
     tq = u.Q(t, usys["time"])
     omega = pot.omega(tq, ustrip=usys["frequency"])
-    omega = jnp.broadcast_to(jnp.asarray(omega), (*batch, 3))
+    omega = jnp.broadcast_to(jnp.asarray(omega), (*q.shape[:-1], 3))
     f = jnp.vectorize(_ho_aaf, signature="(3),(3),(3)->(3),(3),(3)")
     out: tuple[Array, Array, Array] = f(omega, q, p)
     return out

@@ -253,13 +253,11 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
         Fixed toy parameters, which skip the fit. The fields are bare arrays
         in ``pot.units``; Quantity fields raise `TypeError`. They may carry
         the batch axes of the orbits. An isochrone toy always takes the loop
-        path and an oscillator toy the box path. An orbit of the other family
-        gets ``family_mismatch`` and is flagged.
+        path and an oscillator toy the box path; see ``family_mismatch``.
     family : {None, "loop", "box"}, optional
         ``None`` classifies each orbit and runs both paths. A fixed family
-        runs only that path, and an orbit that is not of that family gets
-        ``family_mismatch`` and is flagged. A family that contradicts
-        ``toy`` raises `ValueError`.
+        runs only that path; see ``family_mismatch``. A family that
+        contradicts ``toy`` raises `ValueError`.
 
     Returns
     -------
@@ -273,8 +271,7 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           and ordered (R, φ, z); box orbits are ordered (x, y, z). J_phi is
           signed.
         - ``toy``: the toy each orbit used, fitted or given. Its fields are
-          bare arrays in ``pot.units``, a unit system the code controls,
-          and a ``toy`` passed in must be in ``pot.units`` too.
+          bare arrays in ``pot.units``, a unit system the code controls.
         - ``is_loop``: whether the orbit took the loop path.
         - ``aligned_axis``: the axis (0, 1 or 2) that was swapped with z
           before the loop path, 2 when none was. To go back, swap axis 2
@@ -327,11 +324,12 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
           Always False on the loop path.
         - ``thin_box``: whether a box orbit is nearly planar or nearly
           linear, that is, the smallest mean toy action on an axis not at
-          rest is below 3e-4 of the sum. The fit modes that involve J_z
-          then absorb the in-plane fit error, which moves every action, J_z
-          by up to the whole of it. The flag also catches thin
-          boxes whose actions are right. A planar orbit, with J_z at rest,
-          is not affected. Always False on the loop path.
+          rest is below 3e-4 of the sum. The fit modes that involve the
+          thin axis then absorb the fit error on the other axes. That moves
+          every action, and the thin axis's action can be off by up to the
+          whole of it. The flag also catches thin boxes whose actions are
+          right. A planar orbit, with an axis at rest, is not affected.
+          Always False on the loop path.
         - ``family_mismatch``: whether the path forced by ``family`` or by
           the type of ``toy`` disagrees with the orbit's classification, in
           either direction. Always False with ``family=None`` and no ``toy``.

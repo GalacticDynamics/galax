@@ -8,8 +8,6 @@ from typing import Final
 import jax.numpy as jnp
 import numpy as np
 
-from ._utils import finite_rows
-
 _FLOOR: Final = 1e-13
 _FLOOR_EPS: Final = 64
 
@@ -24,11 +22,10 @@ def circulating_axes(q: Array, p: Array, ok: Bool[Array, " T"]) -> Bool[Array, "
 
     ``q`` and ``p`` have shape ``(T, 3)``. Axis ``i`` circulates when ``L_i``
     keeps one sign at every kept sample and stays at or above
-    ``max(1e-13, 64 eps) |q| |p|``. ``ok`` marks the kept samples, of which
-    those with a non-finite ``q`` or ``p`` are dropped too. An orbit with no kept
-    samples circulates about no axis.
+    ``max(1e-13, 64 eps) |q| |p|``. ``ok`` marks the kept samples, which the
+    caller must limit to finite ``q`` and ``p``. An orbit with no kept samples
+    circulates about no axis.
     """
-    ok = ok & finite_rows(q, p)
     # Divide each sample by a power of 2, which is exact, so |L|^2 cannot
     # overflow and the signs of L do not change.
     q = jnp.ldexp(q, -jnp.frexp(jnp.max(jnp.abs(q), axis=1, keepdims=True))[1])

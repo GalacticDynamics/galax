@@ -234,10 +234,10 @@ class KoposovEtAl2023HaloPotential(AbstractSinglePotential):
             p,
             val(r_min, "length"),
             val(r_max, "length"),
-            ImmutableMap(constants),
             n_r=n_r,
             l_max=l_max,
             units=usys,
+            constants=ImmutableMap(constants),
         )
         return cls(
             expansion=expansion,
@@ -319,19 +319,23 @@ def log_density(p: dict[str, Any], xyz: gt.BBtSz3, t: gt.BBtSz0, /) -> gt.BBtSz0
     return out
 
 
-@ft.partial(jax.jit, static_argnames=("n_r", "l_max", "units"))
+@ft.partial(jax.jit, static_argnames=("n_r", "l_max", "units", "constants"))
 def _build(
     p: dict[str, Any],
     r_min: Any,
     r_max: Any,
-    constants: Any,
     /,
     *,
     n_r: int,
     l_max: int,
     units: u.AbstractUnitSystem,
+    constants: ImmutableMap[str, Any],
 ) -> MultipoleProfilePotential:
-    """Expand the halo-frame density; jitted so re-construction is cached."""
+    """Expand the halo-frame density; jitted so re-construction is cached.
+
+    ``constants`` is static: galax builds its constants as static quantities,
+    which cannot hold traced values.
+    """
     return MultipoleProfilePotential.from_density(
         log_rho=ft.partial(log_density, p),
         r_min=r_min,

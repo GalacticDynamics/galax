@@ -64,7 +64,7 @@ def test_single_term_matches_mpmath(l, m, which, kind):
 
 
 def test_combined_term_is_the_sum_of_inner_and_outer():
-    ins = (table(2, 1, 0.7), table(1, 1, -0.4))
+    ins = (table(2, 1, 0.7), table(2, 1, -0.4))  # off-diagonal: [l, m] != [m, l]
     out = (table(2, 0, 1.3), table(3, 2, 0.2))
     both = gp.MultipolePotential(
         l_max=L_MAX, ISlm=ins[0], ITlm=ins[1], OSlm=out[0], OTlm=out[1], **KW
@@ -124,11 +124,21 @@ def test_class_equals_kernel_for_any_l_max(l_max):
         )
 
 
-def test_wrong_shape_is_rejected_by_the_class():
-    with pytest.raises(Exception, match="shape"):
-        gp.MultipoleInnerPotential(
-            l_max=3, Slm=np.zeros((5, 5)), Tlm=np.zeros((5, 5)), **KW
-        )
+@pytest.mark.parametrize(
+    ("cls", "names"),
+    [
+        (gp.MultipoleInnerPotential, ("Slm", "Tlm")),
+        (gp.MultipoleOuterPotential, ("Slm", "Tlm")),
+        (gp.MultipolePotential, ("ISlm", "ITlm", "OSlm", "OTlm")),
+    ],
+    ids=["inner", "outer", "multipole"],
+)
+def test_wrong_shape_is_rejected_by_the_class(cls, names):
+    """Each table is checked: one table of the wrong shape is enough."""
+    for bad in names:
+        tables = {n: np.zeros((5, 5) if n == bad else (4, 4)) for n in names}
+        with pytest.raises(Exception, match="shape"):
+            cls(l_max=3, **tables, **KW)
 
 
 def test_density_is_one_shared_function():
@@ -139,20 +149,42 @@ def test_density_is_one_shared_function():
     assert out == 0.0
 
 
-@pytest.mark.parametrize("kind", ["inner", "outer", ""])
-def test_laplacian_is_exactly_zero(kind):
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+@pytest.mark.parametrize("shape", [(3,), (4, 3), (0, 3)])
+def test_density_keeps_shape_and_dtype(dtype, shape):
+    xyz = jnp.zeros(shape, dtype=dtype)
+    for module in (gp.multipole, gp.multipoleinner, gp.multipoleouter):
+        out = module.density({}, xyz)
+        assert out.shape == shape[:-1]
+        assert out.dtype == dtype
+
+
+def _pot(kind):
     ones = table(1, 1)
     if kind == "":
-        pot = gp.MultipolePotential(
+        return gp.MultipolePotential(
             l_max=L_MAX, ISlm=ones, ITlm=ones, OSlm=ones, OTlm=ones, **KW
         )
-    else:
-        cls = (
-            gp.MultipoleInnerPotential
-            if kind == "inner"
-            else gp.MultipoleOuterPotential
-        )
-        pot = cls(l_max=L_MAX, Slm=ones, Tlm=ones, **KW)
+    cls = gp.MultipoleInnerPotential if kind == "inner" else gp.MultipoleOuterPotential
+    return cls(l_max=L_MAX, Slm=ones, Tlm=ones, **KW)
+
+
+@pytest.mark.parametrize("kind", ["inner", "outer", ""])
+def test_class_converts_the_length_unit(kind):
+    """The class strips positions in its own unit system, from any length unit."""
+    pot = _pot(kind)
+    kpc = pot.potential(u.Q(XYZ, "kpc"), 0.0)
+    for x in (
+        u.Q(np.asarray(XYZ) * 1000, "pc"),
+        u.Q(np.asarray(XYZ) * 3.0856775814913673e19, "m"),
+    ):
+        np.testing.assert_allclose(pot.potential(x, 0.0).value, kpc.value, rtol=1e-12)
+        assert pot.density(x, 0.0).value == 0.0
+
+
+@pytest.mark.parametrize("kind", ["inner", "outer", ""])
+def test_laplacian_is_exactly_zero(kind):
+    pot = _pot(kind)
     module = getattr(gp, f"multipole{kind}")
     out = module.laplacian(pot.params(0.0), jnp.asarray(XYZ))
     assert out.shape == ()
@@ -160,20 +192,49 @@ def test_laplacian_is_exactly_zero(kind):
     assert pot.laplacian(u.Q(XYZ, "kpc"), 0.0) == 0.0
 
 
-@pytest.mark.parametrize("kind", ["inner", "outer"])
+@pytest.mark.parametrize("kind", ["inner", "outer", ""])
 def test_gradient_on_the_z_axis(kind):
-    """The (1, 1) term is ``∝ x``-like; its z-axis gradient is finite and exact."""
-    cls = gp.MultipoleInnerPotential if kind == "inner" else gp.MultipoleOuterPotential
-    pot = cls(l_max=L_MAX, Slm=table(1, 1), Tlm=table(1, 1, 0.5), **KW)
+    """On the z axis the (1, 1) terms have a closed-form gradient.
+
+    ``Re Y_1^1 = -k sin(theta) cos(phi)`` and ``Im Y_1^1 = -k sin(theta)
+    sin(phi)`` with ``k = sqrt(3/8 pi)``, so the inner term is ``-k x`` and
+    ``-k y`` times ``G m / r_s^2``, uniform, and the outer term is ``-k x / r^3``
+    and ``-k y / r^3`` times ``G m r_s``. Slm = 1 and Tlm = 0.5 (at ``[1, 1]``).
+    """
+    ones = table(1, 1)
+    if kind == "":
+        pot = gp.MultipolePotential(
+            l_max=L_MAX, ISlm=ones, ITlm=0.5 * ones, OSlm=ones, OTlm=0.5 * ones, **KW
+        )
+    else:
+        cls = (
+            gp.MultipoleInnerPotential
+            if kind == "inner"
+            else gp.MultipoleOuterPotential
+        )
+        pot = cls(l_max=L_MAX, Slm=ones, Tlm=0.5 * ones, **KW)
     module = getattr(gp, f"multipole{kind}")
     p = pot.params(0.0)
+    k = np.sqrt(3 / (8 * np.pi))
+    gm = float(p["G"] * p["m_tot"])
+    r_s = float(p["r_s"])
     for z in (0.5, 3.0, -4.0):
+        scale = 0.0
+        if kind in ("inner", ""):
+            scale += gm / r_s**2
+        if kind in ("outer", ""):
+            scale += gm * r_s / abs(z) ** 3
+        want = -k * scale * np.array([1.0, 0.5, 0.0])
         x = jnp.array([0.0, 0.0, z])
         got = module.gradient(p, x)
-        assert jnp.all(jnp.isfinite(got))
-        np.testing.assert_allclose(got, jax.grad(module.potential, 1)(p, x))
-        np.testing.assert_allclose(got, pot.gradient(x, 0.0), rtol=1e-12)
+        np.testing.assert_allclose(got, want, rtol=1e-12, atol=1e-14 * abs(want).max())
+        np.testing.assert_allclose(
+            pot.gradient(x, 0.0), want, rtol=1e-12, atol=1e-14 * abs(want).max()
+        )
         assert jnp.all(jnp.isfinite(module.hessian(p, x)))
+        np.testing.assert_allclose(
+            module.hessian(p, x), jax.hessian(module.potential, 1)(p, x)
+        )
 
 
 def test_inner_dipole_gradient_is_the_closed_form():

@@ -30,8 +30,9 @@ an outer coefficient is non-zero. Every term solves Laplace's equation, so the
 The functions take bare arrays in the unit system of the potential, and
 ``pot.params(t)`` returns the dictionary ``p`` in that system, ``G`` included.
 They evaluate one point at a time, so ``xyz`` has shape ``(3,)``; use
-``jax.vmap`` to evaluate many points, or pass an array of shape ``(..., 3)``
-directly, which these functions also accept. The page :doc:`/potential_modules`
+``jax.vmap`` to evaluate many points. Only ``potential``, ``density`` and
+``laplacian`` also accept an array of shape ``(..., 3)`` directly; ``gradient``
+and ``hessian`` take a single point. The page :doc:`/potential_modules`
 describes the contract, the units, the rule at the origin and the float32
 limits.
 

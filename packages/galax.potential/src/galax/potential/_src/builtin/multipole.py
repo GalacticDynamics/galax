@@ -16,11 +16,12 @@ __all__ = [
     "laplacian",
     "potential",
     "scaled_radius_and_direction",
-]
+]  # `expansion_potential` is shared with the inner and outer modules, not public
 
 import functools as ft
 from dataclasses import KW_ONLY
 
+from collections.abc import Callable
 from typing import final
 
 import equinox as eqx
@@ -76,13 +77,9 @@ class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotent
     l_max: int = field(static=True)
 
     @ft.partial(jax.jit, inline=True)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-
-        # Compute
-        params = self.params(t)
-        return density(params, xyz)  # type: ignore[no-any-return]
+    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+        # The density is zero and reads only the shape and dtype of `xyz`.
+        return density({}, xyz)  # type: ignore[no-any-return]
 
 
 @final
@@ -124,7 +121,7 @@ class MultipolePotential(AbstractMultipolePotential):
     -----
     The potential is not defined at the origin when any outer coefficient is
     non-zero, because :math:`s^{-(l+1)}` diverges there. With only inner terms
-    it is a polynomial in :math:`x, y, z` and smooth everywhere.
+    it is a polynomial in :math:`x, y, z`.
 
     The direction is carried by the Cartesian unit vector rather than by
     :math:`(\theta, \phi)`, so the gradient and Hessian are finite on the
@@ -210,12 +207,31 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     works on one point of shape ``(3,)`` and also on a leading batch
     ``(..., 3)``, so the class calls it directly on a batch of points.
     """
-    l_max = p["ISlm"].shape[0] - 1
+    return expansion_potential(
+        p,
+        xyz,
+        (p["ISlm"], p["ITlm"], lambda l: l),
+        (p["OSlm"], p["OTlm"], lambda l: -l - 1),
+    )
+
+
+def expansion_potential(
+    p: gt.Params,
+    xyz: gt.BBtSz3,
+    /,
+    *parts: tuple[jax.Array, jax.Array, Callable[[int], int]],
+) -> gt.BBtFloatSz0:
+    r"""Sum of ``s**e(l) * (S_lm Re Y_lm + T_lm Im Y_lm)`` over the ``parts``.
+
+    Each part is a table ``S``, a table ``T`` and the exponent ``e(l)`` of
+    :math:`s = r / r_s`. The maximum degree is the shape of the first table
+    minus one. The prefactor :math:`G m_{\mathrm{tot}} / r_s` is included.
+    """
+    l_max = parts[0][0].shape[0] - 1
     # Leading axis so that a single point and a batch take the same path.
     s, uvec = scaled_radius_and_direction(xyz[None], p["r_s"])
     terms = [
-        jnp.pow(s, l) * (p["ISlm"][l, m] * cYlm + p["ITlm"][l, m] * sYlm)
-        + jnp.pow(s, -l - 1) * (p["OSlm"][l, m] * cYlm + p["OTlm"][l, m] * sYlm)
+        sum(jnp.pow(s, e(l)) * (S[l, m] * cYlm + T[l, m] * sYlm) for S, T, e in parts)
         for l, m, cYlm, sYlm in iter_Ylm(l_max, uvec)
     ]
     summation = jnp.sum(jnp.stack(terms), axis=0)[0]

@@ -177,6 +177,7 @@ tables (``Slm`` and ``Tlm``, or ``ISlm``, ``ITlm``, ``OSlm`` and ``OTlm``) are
 2-D arrays of shape ``(l_max + 1, l_max + 1)``, and the functions read
 ``l_max`` from that shape, so the tables and the degree cannot disagree. The
 ``density`` is exactly zero for all three, because every term is a solid
-harmonic, and it is the same function in each module. These functions also
-accept an array of positions of shape ``(..., 3)`` directly, and the classes
-call them that way.
+harmonic, and it is the same function in each module. ``potential``,
+``density`` and ``laplacian`` also accept an array of positions of shape
+``(..., 3)`` directly, and the classes call them that way. ``gradient`` and
+``hessian`` take a single point of shape ``(3,)``; use ``jax.vmap`` for many.

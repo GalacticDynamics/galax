@@ -4,9 +4,10 @@ The potential is a sum of solid harmonics that grow with radius, :math:`s^l
 Y_l^m` with :math:`s = r / r_s`, up to a maximum degree :math:`l_\mathrm{max}`.
 The tables ``Slm`` and ``Tlm`` weight the real and imaginary parts of
 :math:`Y_l^m`, and ``m_tot`` and ``r_s`` set the scale :math:`G m_{\mathrm{tot}}
-/ r_s` of the potential. It is a polynomial in :math:`x, y, z`, smooth
-everywhere. Every term solves Laplace's equation, so the ``density`` function is
-exactly zero.
+/ r_s` of the potential. It is a polynomial in :math:`x, y, z`, so its value is
+smooth everywhere; the ``gradient`` and ``hessian`` at the exact origin are not
+the limits of the polynomial, so evaluate them away from there. Every term
+solves Laplace's equation, so the ``density`` function is exactly zero.
 
 .. rubric:: Functions
 
@@ -28,8 +29,9 @@ exactly zero.
 The functions take bare arrays in the unit system of the potential, and
 ``pot.params(t)`` returns the dictionary ``p`` in that system, ``G`` included.
 They evaluate one point at a time, so ``xyz`` has shape ``(3,)``; use
-``jax.vmap`` to evaluate many points, or pass an array of shape ``(..., 3)``
-directly, which these functions also accept. The page :doc:`/potential_modules`
+``jax.vmap`` to evaluate many points. Only ``potential``, ``density`` and
+``laplacian`` also accept an array of shape ``(..., 3)`` directly; ``gradient``
+and ``hessian`` take a single point. The page :doc:`/potential_modules`
 describes the contract, the units, the rule at the origin and the float32
 limits.
 

@@ -28,12 +28,15 @@ import unxt as u
 from unxt.quantity import AllowValue
 
 import galax.potential.custom_types as gt
-from .multipole import AbstractMultipolePotential, density, scaled_radius_and_direction
-from galax.potential._src.harmonic.ylm import iter_Ylm
+from .multipole import (
+    AbstractMultipolePotential,
+    density,
+    expansion_potential,
+    laplacian,
+)
 from galax.potential._src.kernels import (
     cartesian_gradient,
     cartesian_hessian,
-    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -69,16 +72,24 @@ class MultipoleInnerPotential(AbstractMultipolePotential):
     Every term is a solid harmonic, so :math:`\nabla^2 \Phi = 0` for all
     :math:`r` and the density is exactly zero. The :math:`l = 0` term is the
     constant :math:`G m_{\mathrm{tot}} S_{00} / (r_s \sqrt{4\pi})`, and the
-    :math:`l = 1` terms are a uniform field.
+    :math:`l = 1` terms are linear in :math:`x, y, z`, a uniform field.
 
     Notes
     -----
     The potential is a polynomial in :math:`x, y, z` of degree
-    :math:`l_\mathrm{max}`, so it is smooth everywhere, including the origin and
-    the :math:`z` axis. It grows without bound at large radius, so it models
-    the field in a region and not an isolated system. For the field outside
-    the sources use :class:`~galax.potential.MultipoleOuterPotential`, and for
-    both together :class:`~galax.potential.MultipolePotential`.
+    :math:`l_\mathrm{max}`, so its value is smooth everywhere, including the
+    origin and the :math:`z` axis. The gradient and the Hessian are by automatic
+    differentiation, and they are exact and finite on the :math:`z` axis. At the
+    exact origin they are not the limits of the polynomial: the direction
+    :math:`\vec{q}/r` is floored there, so with an :math:`l = 1` term the
+    gradient is about zero instead of the uniform field, and the Hessian loses
+    accuracy as :math:`r \to 0`. Evaluate them away from the origin. It grows
+    without bound at large radius, so it models the field in a region and not an
+    isolated system.
+
+    For the field outside the sources use
+    :class:`~galax.potential.MultipoleOuterPotential`, and for both together
+    :class:`~galax.potential.MultipolePotential`.
 
     References
     ----------
@@ -136,20 +147,11 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     works on one point of shape ``(3,)`` and also on a leading batch
     ``(..., 3)``, so the class calls it directly on a batch of points.
     """
-    l_max = p["Slm"].shape[0] - 1
-    # Leading axis so that a single point and a batch take the same path.
-    s, uvec = scaled_radius_and_direction(xyz[None], p["r_s"])
-    terms = [
-        jnp.pow(s, l) * (p["Slm"][l, m] * cYlm + p["Tlm"][l, m] * sYlm)
-        for l, m, cYlm, sYlm in iter_Ylm(l_max, uvec)
-    ]
-    summation = jnp.sum(jnp.stack(terms), axis=0)[0]
-    return p["G"] * p["m_tot"] / p["r_s"] * summation  # type: ignore[no-any-return]
+    return expansion_potential(p, xyz, (p["Slm"], p["Tlm"], lambda l: l))
 
 
 # `density` is the exact zero shared by the multipole modules (see
 # `galax.potential._src.builtin.multipole.density`), imported above.
 # Derived quantities, built from the kernels above.
-laplacian = poisson_laplacian(density)
 gradient = cartesian_gradient(potential)
 hessian = cartesian_hessian(potential)

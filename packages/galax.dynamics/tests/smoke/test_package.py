@@ -1,6 +1,9 @@
 """Testing :mod:`galax.dynamics` module."""
 
+import pytest
+
 import galax.dynamics as gd
+import galax.orbits as go
 
 
 def test_all() -> None:
@@ -47,3 +50,11 @@ def test_all() -> None:
         "integrate",
         "evaluate_orbit",
     }
+
+
+def test_omega_is_deprecated_alias() -> None:
+    """`gd.omega` still works but warns; unknown names still raise."""
+    with pytest.warns(DeprecationWarning, match="use `angular_speed`"):
+        assert gd.omega is go.angular_speed
+    with pytest.raises(AttributeError):
+        _ = gd.not_a_name

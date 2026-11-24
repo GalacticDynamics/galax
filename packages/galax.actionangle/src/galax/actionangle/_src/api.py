@@ -399,9 +399,10 @@ def o2gf_actions_angles_freqs(*args: Any, **kwargs: Any) -> Any:
     Near the 3:2 resonance of Omega_z and Omega_r, J_z came out 10 to 22
     percent off on unflagged orbits, and a longer orbit did not fix it. The
     actions of tubes about the long axis of a triaxial potential are
-    sensitive to the toy fit, and can move by up to 10 percent as ``n_max``
-    changes without being flagged: on one x-tube J_r moved by 10 percent
-    across ``n_max`` = 6, 8 and 10. Regular box orbits can be sensitive too:
+    sensitive to the toy fit, and can move by 10 percent or more as
+    ``n_max`` changes without being flagged: on one x-tube J_r moved by 11
+    percent across ``n_max`` = 6, 8 and 10, and by a factor of 10 between
+    ``n_max`` = 4 and 6. Regular box orbits can be sensitive too:
     on an LMJ09 box J_x moved by about 4 percent across ``n_max`` = 4 to 10
     without a flag, while staying stable with orbit length.
 

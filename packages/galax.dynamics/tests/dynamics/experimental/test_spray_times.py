@@ -35,26 +35,51 @@ T1 = jnp.asarray(0.0)
 # Off the 30-step lattice over [-290.3, 0] (h ~ 9.68 Myr), except the first.
 TS = jnp.asarray([-290.3, -201.7, -150.2, -42.9, -12.5])
 SOLVERS = {"leapfrog": LEAP, "adaptive": adaptive(1e-10, 10_000)}
+LEAP_FWD = dfxtra.DiffEqSolver(
+    gf.Leapfrog(),
+    stepsize_controller=dfx.ConstantStepSize(),
+    adjoint=dfx.ForwardMode(),
+)
+FARDAL = gde.Fardal2015DF()
+ALL = {
+    "whole": gde.WholeStream(),
+    "copies-vmap": gde.PerParticle(gde.Copies()),
+    "copies-scan": gde.PerParticle(gde.Copies(), lstrat.Scan),
+    "track-vmap": gde.PerParticle(gde.SharedTrack()),
+    "track-scan": gde.PerParticle(gde.SharedTrack(), lstrat.Scan),
+}
+PER = [m for m in ALL if m != "whole"]
 
 
-def whole(solver=LEAP) -> gde.SpraySimulator:
-    return gde.SpraySimulator(
-        gde.Fardal2015DF(),
-        gde.WholeStream(),
-        progenitor_potential=plummer,
-        solver=solver,
-    )
+def make_sim(mode="whole", solver=LEAP, *, prog=plummer, df=FARDAL):
+    return gde.SpraySimulator(df, ALL[mode], progenitor_potential=prog, solver=solver)
 
 
-def release_ics(sched, solver=LEAP):
-    ws = progenitor_states(HOST, W_TODAY, sched, solver)
+def release_ics(sched, solver=LEAP, pot=HOST, df=FARDAL):
+    ws = progenitor_states(pot, W_TODAY, sched, solver)
     idx = sched.release_index()
     ts = sched.release_times()
     Ms = jnp.broadcast_to(MSAT, ts.shape)
-    xl, vl, xt, vt = sample_releases(
-        gde.Fardal2015DF(), KEY, HOST, ts, ws[idx, :3], ws[idx, 3:], Ms
-    )
+    xl, vl, xt, vt = sample_releases(df, KEY, pot, ts, ws[idx, :3], ws[idx, 3:], Ms)
     return ws, jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)
+
+
+def check_fd(loss, x, eps=1e-4):
+    """Check ``jax.grad(loss)`` is nonzero and matches central differences."""
+    g = jax.grad(loss)(x)
+    fd = jnp.stack(
+        [
+            (loss(x.at[i].add(eps)) - loss(x.at[i].add(-eps))) / (2 * eps)
+            for i in range(x.shape[0])
+        ]
+    )
+    assert jnp.all(g != 0), g
+    np.testing.assert_allclose(g, fd, rtol=1e-5)
+    return g
+
+
+def flat(r) -> jax.Array:
+    return jnp.concat([r.lead, r.trail, r.progenitor[None]])
 
 
 def test_times_schedule() -> None:
@@ -84,33 +109,19 @@ def test_times_checks(kw) -> None:
         gde.Times(**kw)
 
 
-def _loss(sim):
-    def loss(ts: jax.Array) -> jax.Array:
-        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
+def _loss(sim, make=lambda ts: gde.Times(ts, 30, T1), pot=HOST):
+    def loss(x: jax.Array) -> jax.Array:
+        r = sim(KEY, pot, W_TODAY, MSAT, make(x))
         return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
 
     return loss
 
 
-def test_times_off_lattice_grad() -> None:
-    loss = _loss(whole())
-    g = jax.grad(loss)(TS)
-    eps = 1e-4
-    fd = jnp.stack(
-        [
-            (loss(TS.at[i].add(eps)) - loss(TS.at[i].add(-eps))) / (2 * eps)
-            for i in range(TS.shape[0])
-        ]
-    )
-    assert jnp.all(g != 0), g
-    np.testing.assert_allclose(g, fd, rtol=1e-5)
-
-    fwd = dfxtra.DiffEqSolver(
-        gf.Leapfrog(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        adjoint=dfx.ForwardMode(),
-    )
-    jf = jax.jacfwd(_loss(whole(fwd)))(TS)
+@pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap", "track-scan"])
+def test_times_grad(mode) -> None:
+    """Release-time gradients match finite differences and `jax.jacfwd`."""
+    g = check_fd(_loss(make_sim(mode)), TS)
+    jf = jax.jacfwd(_loss(make_sim(mode, LEAP_FWD)))(TS)
     np.testing.assert_allclose(jf, g, rtol=1e-10)
 
 
@@ -120,7 +131,7 @@ def test_times_coincident_point() -> None:
     ts = jnp.asarray([-300.0, float(lattice[7]), -123.4, 0.0])
     sched = gde.Times(ts, 30, T1)
     assert jnp.sum(sched.grid() == lattice[7]) == 2
-    res = whole()(KEY, HOST, W_TODAY, MSAT, sched)
+    res = make_sim()(KEY, HOST, W_TODAY, MSAT, sched)
     for a in (res.lead, res.trail, res.progenitor):
         assert jnp.all(jnp.isfinite(a))
     np.testing.assert_allclose(res.progenitor, W_TODAY, rtol=0, atol=1e-12)
@@ -128,12 +139,7 @@ def test_times_coincident_point() -> None:
     _, lead0, trail0 = release_ics(sched)
     np.testing.assert_allclose(res.lead[-1], lead0[-1], rtol=0, atol=1e-13)
     np.testing.assert_allclose(res.trail[-1], trail0[-1], rtol=0, atol=1e-13)
-
-    def loss(ts: jax.Array) -> jax.Array:
-        r = whole()(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
-        return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
-
-    assert jnp.all(jnp.isfinite(jax.grad(loss)(ts)))
+    assert jnp.all(jnp.isfinite(jax.grad(_loss(make_sim()))(ts)))
 
 
 def test_times_no_leak() -> None:
@@ -144,14 +150,13 @@ def test_times_no_leak() -> None:
     the release.
     """
     sched = gde.Times(TS, 30, T1)
-    res = whole()(KEY, HOST, W_TODAY, MSAT, sched)
+    res = make_sim()(KEY, HOST, W_TODAY, MSAT, sched)
     ws, lead0, trail0 = release_ics(sched)
     grid, idx = sched.grid(), sched.release_index()
-    copies = _CopiesField(HOST, plummer(MSAT))
+    terms = _CopiesField(HOST, plummer(MSAT)).terms(LEAP)
     for i in range(TS.shape[0]):
         j = int(idx[i])
         sub = grid[j:]
-        terms = copies.terms(LEAP)
         for got, w0 in ((res.lead[i], lead0[i]), (res.trail[i], trail0[i])):
             y0 = (jnp.stack([w0[:3], ws[j, :3]]), jnp.stack([w0[3:], ws[j, 3:]]))
             want = jnp.concat(solve_on(LEAP, terms, y0, sub), axis=-1)
@@ -159,22 +164,21 @@ def test_times_no_leak() -> None:
     np.testing.assert_allclose(res.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
 
-@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("solver", list(SOLVERS.values()), ids=list(SOLVERS))
 def test_times_unsorted(solver) -> None:
     """Shuffled release times give the same per-release results, permuted.
 
     The DF's draws follow the position in ``ts``, so this feeds the same
     release states in, permuted.
     """
-    s = SOLVERS[solver]
     perm = jnp.asarray([3, 0, 4, 2, 1])
     sched, schedp = gde.Times(TS, 30, T1), gde.Times(TS[perm], 30, T1)
-    ws, lead0, trail0 = release_ics(sched, s)
-    wsp = progenitor_states(HOST, W_TODAY, schedp, s)
+    ws, lead0, trail0 = release_ics(sched, solver)
+    wsp = progenitor_states(HOST, W_TODAY, schedp, solver)
     np.testing.assert_allclose(
         wsp[schedp.release_index()], ws[sched.release_index()][perm], atol=1e-13
     )
-    sim = whole(s)
+    sim = make_sim(solver=solver)
     args = (sim, HOST, plummer(MSAT))
     out = _evolve(sim.mode, *args, sched, W_TODAY, ws, lead0, trail0)
     outp = _evolve(sim.mode, *args, schedp, W_TODAY, wsp, lead0[perm], trail0[perm])
@@ -183,34 +187,7 @@ def test_times_unsorted(solver) -> None:
     np.testing.assert_allclose(outp[2], out[2], rtol=0, atol=1e-12)
 
 
-PER = {
-    "copies-vmap": gde.PerParticle(gde.Copies()),
-    "copies-scan": gde.PerParticle(gde.Copies(), lstrat.Scan),
-    "track-vmap": gde.PerParticle(gde.SharedTrack()),
-    "track-scan": gde.PerParticle(gde.SharedTrack(), lstrat.Scan),
-}
-
-
-def per(mode, solver=LEAP, prog=plummer) -> gde.SpraySimulator:
-    return gde.SpraySimulator(
-        gde.Fardal2015DF(), PER[mode], progenitor_potential=prog, solver=solver
-    )
-
-
-ALL = {"whole": gde.WholeStream(), **PER}
-
-
-def any_mode(mode, solver=LEAP) -> gde.SpraySimulator:
-    return gde.SpraySimulator(
-        gde.Fardal2015DF(), ALL[mode], progenitor_potential=plummer, solver=solver
-    )
-
-
-def flat(r) -> jax.Array:
-    return jnp.concat([r.lead, r.trail, r.progenitor[None]])
-
-
-@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("solver", list(SOLVERS.values()), ids=list(SOLVERS))
 @pytest.mark.parametrize("mode", list(ALL))
 def test_zero_span(mode, solver) -> None:
     """Schedules over zero time run, eagerly and under jit, and never raise.
@@ -219,14 +196,13 @@ def test_zero_span(mode, solver) -> None:
     ``t_age = 0``: every release is at ``t1``, so the stream is its release
     states.
     """
-    s = SOLVERS[solver]
-    sim = any_mode(mode, s)
+    sim = make_sim(mode, solver)
     cases = (
         (lambda ts: gde.Times(ts, 10), jnp.asarray([-100.0])),
         (lambda a: gde.Uniform(a, 4, 5), jnp.asarray(0.0)),
     )
     for make, x in cases:
-        _, lead0, trail0 = release_ics(make(x), s)
+        _, lead0, trail0 = release_ics(make(x), solver)
 
         def run(x, make=make):
             return flat(sim(KEY, HOST, W_TODAY, MSAT, make(x)))
@@ -241,7 +217,7 @@ def test_zero_span(mode, solver) -> None:
 @pytest.mark.parametrize("mode", list(ALL))
 def test_release_after_t1_is_nan(mode) -> None:
     """A release time after ``t1`` gives NaN under jit, not a wrong stream."""
-    sim = any_mode(mode)
+    sim = make_sim(mode)
 
     def run(ts):
         return flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 20, T1)))
@@ -251,7 +227,7 @@ def test_release_after_t1_is_nan(mode) -> None:
 
 
 @pytest.mark.parametrize("prog", ["plummer", "none"])
-@pytest.mark.parametrize("mode", list(PER))
+@pytest.mark.parametrize("mode", PER)
 def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
     """Per-particle `Times` with Leapfrog equals the whole stream.
 
@@ -264,11 +240,8 @@ def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
     """
     pp = plummer if prog == "plummer" else None
     sched = gde.Times(TS, 30, T1)
-    sim_w = gde.SpraySimulator(
-        gde.Fardal2015DF(), gde.WholeStream(), progenitor_potential=pp
-    )
-    want = sim_w(KEY, HOST, W_TODAY, MSAT, sched)
-    got = per(mode, prog=pp)(KEY, HOST, W_TODAY, MSAT, sched)
+    want = make_sim(prog=pp)(KEY, HOST, W_TODAY, MSAT, sched)
+    got = make_sim(mode, prog=pp)(KEY, HOST, W_TODAY, MSAT, sched)
     exact = mode.startswith("copies") or pp is None
     xtol, vtol = (1e-11, 1e-11) if exact else (1e-2, 1e-3)
     for g, w in ((got.lead, want.lead), (got.trail, want.trail)):
@@ -279,29 +252,6 @@ def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
     np.testing.assert_allclose(got.progenitor, W_TODAY, rtol=0, atol=1e-12)
 
 
-@pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap", "track-scan"])
-def test_times_per_particle_grad(mode) -> None:
-    """Release-time gradients match finite differences and `jax.jacfwd`."""
-    loss = _loss(per(mode))
-    g = jax.grad(loss)(TS)
-    eps = 1e-4
-    fd = jnp.stack(
-        [
-            (loss(TS.at[i].add(eps)) - loss(TS.at[i].add(-eps))) / (2 * eps)
-            for i in range(TS.shape[0])
-        ]
-    )
-    assert jnp.all(g != 0), g
-    np.testing.assert_allclose(g, fd, rtol=1e-5)
-    fwd = dfxtra.DiffEqSolver(
-        gf.Leapfrog(),
-        stepsize_controller=dfx.ConstantStepSize(),
-        adjoint=dfx.ForwardMode(),
-    )
-    jf = jax.jacfwd(_loss(per(mode, fwd)))(TS)
-    np.testing.assert_allclose(jf, g, rtol=1e-10)
-
-
 @pytest.mark.parametrize("mode", ["copies-vmap", "track-vmap"])
 def test_times_per_particle_adaptive(mode) -> None:
     """Adaptive per-particle solves start at each release time.
@@ -309,58 +259,48 @@ def test_times_per_particle_adaptive(mode) -> None:
     They match a tight whole-stream reference.
     """
     sched = gde.Times(TS, 30, T1)
-    ref = whole(adaptive(1e-13, 100_000))(KEY, HOST, W_TODAY, MSAT, sched)
-    got = per(mode, adaptive(1e-10, 10_000))(KEY, HOST, W_TODAY, MSAT, sched)
+    ref = make_sim(solver=adaptive(1e-13, 100_000))(KEY, HOST, W_TODAY, MSAT, sched)
+    got = make_sim(mode, adaptive(1e-10, 10_000))(KEY, HOST, W_TODAY, MSAT, sched)
     d = jnp.linalg.norm(
         jnp.concat([got.lead - ref.lead, got.trail - ref.trail])[:, :3], axis=1
     )
     assert jnp.max(d) < 1e-6, d
 
 
-@pytest.mark.parametrize("solver", list(SOLVERS))
+@pytest.mark.parametrize("solver", list(SOLVERS.values()), ids=list(SOLVERS))
 @pytest.mark.parametrize("mode", ["copies-vmap", "track-scan"])
 def test_per_particle_nan_time(mode, solver) -> None:
     """A NaN release time or ``t_age`` gives NaN under jit(vmap).
 
     It never raises, for `Times` and for `Uniform`.
     """
-    sim = per(mode, SOLVERS[solver])
+    sim = make_sim(mode, solver)
+    cases = (
+        (lambda ts: gde.Times(ts, 30, T1), jnp.stack([TS, TS.at[2].set(jnp.nan)])),
+        (lambda t_age: gde.Uniform(t_age, 4, 5), jnp.asarray([300.0, jnp.nan])),
+    )
+    for make, xs in cases:
 
-    def run_times(ts):
-        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
-        return jnp.concat([r.lead, r.trail])
+        def run(x, make=make):
+            r = sim(KEY, HOST, W_TODAY, MSAT, make(x))
+            return jnp.concat([r.lead, r.trail])
 
-    def run_uniform(t_age):
-        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(t_age, 4, 5))
-        return jnp.concat([r.lead, r.trail])
-
-    got = jax.jit(jax.vmap(run_times))(jnp.stack([TS, TS.at[2].set(jnp.nan)]))
-    assert jnp.all(jnp.isfinite(got[0]))
-    assert jnp.all(jnp.isnan(got[1]))
-    got = jax.jit(jax.vmap(run_uniform))(jnp.asarray([300.0, jnp.nan]))
-    assert jnp.all(jnp.isfinite(got[0]))
-    assert jnp.all(jnp.isnan(got[1]))
+        got = jax.jit(jax.vmap(run))(xs)
+        assert jnp.all(jnp.isfinite(got[0]))
+        assert jnp.all(jnp.isnan(got[1]))
 
 
 def test_batched_t1_raises() -> None:
-    sim = gde.SpraySimulator(gde.Fardal2015DF(), gde.WholeStream())
+    sched = gde.Uniform(jnp.asarray(300.0), 2, 5, jnp.zeros(2))
     with pytest.raises(ValueError, match="t1"):
-        sim(
-            KEY,
-            HOST,
-            W_TODAY,
-            MSAT,
-            gde.Uniform(jnp.asarray(300.0), 2, 5, jnp.zeros(2)),
-        )
-    with pytest.raises(ValueError, match="t1"):
-        gde.Times(TS, 30, jnp.zeros(2))
+        make_sim(prog=None)(KEY, HOST, W_TODAY, MSAT, sched)
 
 
 @pytest.mark.parametrize(
     "sched", [gde.Uniform(jnp.asarray(300.0), 4, 5), gde.Times(TS, 30)]
 )
 def test_list_w_today(sched) -> None:
-    sim = whole()
+    sim = make_sim()
     want = sim(KEY, HOST, W_TODAY, MSAT, sched)
     got = sim(KEY, HOST, [float(x) for x in W_TODAY], MSAT, sched)
     np.testing.assert_array_equal(got.lead, want.lead)
@@ -375,12 +315,11 @@ def test_times_vmap_and_nan(solver) -> None:
     adaptive comparison is at 1e-7. A NaN lane leaves the others bitwise as
     they are.
     """
-    sim = whole(SOLVERS[solver])
+    sim = make_sim(solver=SOLVERS[solver])
     atol = 1e-12 if solver == "leapfrog" else 1e-7
 
     def run(ts):
-        r = sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1))
-        return jnp.concat([r.lead, r.trail, r.progenitor[None]])
+        return flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1)))
 
     tss = jnp.stack([TS, TS + 3.1, TS.at[2].set(jnp.nan)])
     got = jax.jit(jax.vmap(run))(tss)
@@ -403,11 +342,7 @@ TD_HOST = gp.NFWPotential(
     units=USYS,
 )
 TD_T1 = jnp.asarray(250.0)
-TD_MODES = {
-    "whole": gde.WholeStream(),
-    "copies": gde.PerParticle(gde.Copies()),
-    "track": gde.PerParticle(gde.SharedTrack()),
-}
+TD_MODES = ["whole", "copies-vmap", "track-vmap"]  # keys of ALL
 
 
 def td_schedule(kind: str, t1=TD_T1):
@@ -422,20 +357,9 @@ def td_legacy(kind: str):
     """Return the legacy generator's solves from our release states to ``t1``."""
     solver = adaptive(1e-7, 2**16)
     sched = td_schedule(kind)
-    ws = progenitor_states(TD_HOST, W_TODAY, sched, solver)
+    ws, lead0, trail0 = release_ics(sched, solver, TD_HOST, gde.Chen2024DF())
     idx, ts = sched.release_index(), sched.release_times()
-    xl, vl, xt, vt = sample_releases(
-        gde.Chen2024DF(),
-        KEY,
-        TD_HOST,
-        ts,
-        ws[idx, :3],
-        ws[idx, 3:],
-        jnp.broadcast_to(MSAT, ts.shape),
-    )
-    w0s = jnp.stack(
-        [jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)], axis=1
-    )
+    w0s = jnp.stack([lead0, trail0], axis=1)
     gen = gd.MockStreamGenerator(
         gd.ChenStreamDF(), TD_HOST, progenitor_potential=plummer(MSAT)
     )
@@ -448,15 +372,10 @@ def td_legacy(kind: str):
 
 
 @pytest.mark.parametrize("kind", ["uniform", "times"])
-@pytest.mark.parametrize("mode", list(TD_MODES))
+@pytest.mark.parametrize("mode", TD_MODES)
 def test_time_dependent_host_matches_legacy(mode, kind) -> None:
     keep, (lead, trail) = td_legacy(kind)
-    sim = gde.SpraySimulator(
-        gde.Chen2024DF(),
-        TD_MODES[mode],
-        progenitor_potential=plummer,
-        solver=adaptive(1e-7, 2**16),
-    )
+    sim = make_sim(mode, adaptive(1e-7, 2**16), df=gde.Chen2024DF())
     res = sim(KEY, TD_HOST, W_TODAY, MSAT, td_schedule(kind))
     d = jnp.linalg.norm(
         jnp.concat([lead - res.lead[keep], trail - res.trail[keep]])[:, :3], axis=1
@@ -466,36 +385,17 @@ def test_time_dependent_host_matches_legacy(mode, kind) -> None:
 
 
 @pytest.mark.parametrize("kind", ["uniform", "times"])
-@pytest.mark.parametrize("mode", list(TD_MODES))
+@pytest.mark.parametrize("mode", TD_MODES)
 def test_time_dependent_host_time_grads(mode, kind) -> None:
     """Gradients in ``t1`` and the release times (``t_age`` or ``ts``)."""
-    sim = gde.SpraySimulator(
-        gde.Fardal2015DF(), TD_MODES[mode], progenitor_potential=plummer
-    )
     base = td_schedule(kind)
-
-    def loss(x: jax.Array) -> jax.Array:
-        if kind == "uniform":
-            sched = gde.Uniform(x[1], 4, 5, x[0])
-        else:
-            sched = gde.Times(x[1:], 30, x[0])
-        r = sim(KEY, TD_HOST, W_TODAY, MSAT, sched)
-        return jnp.sum(r.lead[:, :3]) + jnp.sum(r.trail[:, :3])
-
     if kind == "uniform":
         x = jnp.stack([TD_T1, base.t_age])
+        make = lambda x: gde.Uniform(x[1], 4, 5, x[0])
     else:
         x = jnp.concat([TD_T1[None], base.ts])
-    g = jax.grad(loss)(x)
-    eps = 1e-4
-    fd = jnp.stack(
-        [
-            (loss(x.at[i].add(eps)) - loss(x.at[i].add(-eps))) / (2 * eps)
-            for i in range(x.shape[0])
-        ]
-    )
-    assert jnp.all(g != 0), g
-    np.testing.assert_allclose(g, fd, rtol=1e-5)
+        make = lambda x: gde.Times(x[1:], 30, x[0])
+    check_fd(_loss(make_sim(mode), make, TD_HOST), x)
 
 
 ON_LATTICE = [
@@ -514,7 +414,7 @@ def test_times_on_lattice_equals_uniform(solver, mode, host) -> None:
     pot, t1 = (HOST, T1) if host == "static" else (TD_HOST, TD_T1)
     uni = gde.Uniform(jnp.asarray(300.0), 5, 8, t1)
     times = gde.Times(uni.release_times(), uni.n_steps(), uni.t1)
-    sim = any_mode(mode, SOLVERS[solver])
+    sim = make_sim(mode, SOLVERS[solver])
     a = sim(KEY, pot, W_TODAY, MSAT, uni)
     b = sim(KEY, pot, W_TODAY, MSAT, times)
     for x, y in ((a.lead, b.lead), (a.trail, b.trail), (a.progenitor, b.progenitor)):
@@ -534,7 +434,7 @@ def test_times_fixed_step_runge_kutta() -> None:
         adjoint=dfx.RecursiveCheckpointAdjoint(),
     )
     sched = gde.Times(TS, 30, T1)
-    want = flat(any_mode("whole", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
-    got = flat(any_mode("copies-vmap", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
+    want = flat(make_sim("whole", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
+    got = flat(make_sim("copies-vmap", tsit)(KEY, HOST, W_TODAY, MSAT, sched))
     assert jnp.all(jnp.isfinite(want))
     np.testing.assert_allclose(got, want, rtol=0, atol=1e-11)

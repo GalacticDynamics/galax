@@ -4,7 +4,6 @@ __all__ = [
     "default_solver",
     "host_terms",
     "is_lattice",
-    "map_terms",
     "progenitor_states",
     "solve_on",
 ]
@@ -90,11 +89,6 @@ class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
         return self.term.prod(vf, control)
 
 
-def map_terms(f: Callable[[dfx.AbstractTerm], Any], terms: Any) -> Any:
-    """Apply ``f`` to each term in ``terms`` (one term, or a tuple of them)."""
-    return jax.tree.map(f, terms, is_leaf=lambda x: isinstance(x, dfx.AbstractTerm))
-
-
 def _solve(
     solver: dfxtra.DiffEqSolver,
     terms: Any,
@@ -112,9 +106,12 @@ def _solve(
     index-time term, so it sees the step index ``k``.
     """
     if is_lattice(solver):
-        terms = map_terms(lambda x: _IndexTime(x, step_ts), terms)
-        if gate is not None:
-            terms = map_terms(gate, terms)
+        gate = (lambda x: x) if gate is None else gate
+        terms = jax.tree.map(
+            lambda x: gate(_IndexTime(x, step_ts)),
+            terms,
+            is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
+        )
         step_ts = jnp.arange(step_ts.shape[0], dtype=float)
         kw: dict[str, Any] = {
             "dt0": None,

@@ -10,7 +10,6 @@ __all__ = [
     "to_mockstream",
 ]
 
-import functools as ft
 import warnings
 from dataclasses import KW_ONLY
 
@@ -408,41 +407,39 @@ def evolve_per_particle(
     terms: Any,
     solver: dfxtra.DiffEqSolver,
     w0: Array,
-    t0: Array,
     i0: Array,
     lattice: Array,
     loop: type[lstrat.Scan | lstrat.VMap],
 ) -> Array:
-    """Evolve each ``w0[i, j]`` (..., 6) alone, from ``t0[i]`` to ``lattice[-1]``.
+    """Evolve each ``w0[i, j]`` (..., 6) alone, from ``lattice[i0[i]]`` to the end.
 
     ``j`` (lead, trail) is vmapped; ``loop`` vmaps or scans over ``i``. A
     fixed-step solve steps over the whole ``lattice`` (static shapes), with
-    no-op steps up to ``t0[i] = lattice[i0[i]]``, so it takes exactly the
-    lattice steps from index ``i0[i]``. An adaptive one starts at ``t0[i]``.
-    A failed solve gives NaN for its particle only. A non-finite ``lattice``
-    or ``t0`` gives NaN for every particle and never raises: the solves run
-    on stand-in times (``arange``, or zero time when adaptive).
+    no-op steps up to index ``i0[i]``, so it takes exactly the lattice steps
+    from there. An adaptive one starts at ``lattice[i0[i]]``. A failed solve
+    gives NaN for its particle only. A non-finite ``lattice`` gives NaN for
+    every particle and never raises: the solves run on stand-in times
+    (``arange``, or zero time when adaptive).
     """
     split = isinstance(solver.solver, gf.Leapfrog)
     on_lattice = is_lattice(solver)
-    ok = jnp.all(jnp.isfinite(lattice)) & jnp.all(jnp.isfinite(t0))
+    ok = jnp.all(jnp.isfinite(lattice))
     stand_in = jnp.arange(lattice.shape[0], dtype=float) if on_lattice else 0.0
     lattice = jnp.where(ok, lattice, stand_in)
-    t0 = jnp.where(ok, t0, lattice[0])
 
-    def one(w: Array, t: Array, i: Array) -> Array:
+    def one(w: Array, i: Array) -> Array:
         y: Any = (w[..., :3], w[..., 3:]) if split else w
         if on_lattice:
             y = solve_on(solver, terms, y, lattice, gate=lambda x: _FromRelease(x, i))
         else:
-            y = solve_on(solver, terms, y, jnp.stack([t, lattice[-1]]))
+            y = solve_on(solver, terms, y, jnp.stack([lattice[i], lattice[-1]]))
         return jnp.concat(y, axis=-1) if split else y
 
-    pair = jax.vmap(one, in_axes=(0, None, None))
+    pair = jax.vmap(one, in_axes=(0, None))
     if loop is lstrat.Scan:
-        w: Array = jax.lax.map(lambda x: pair(*x), (w0, t0, i0))
+        w: Array = jax.lax.map(lambda x: pair(*x), (w0, i0))
     else:
-        w = jax.vmap(pair)(w0, t0, i0)
+        w = jax.vmap(pair)(w0, i0)
     return jnp.where(ok, w, jnp.nan)
 
 
@@ -511,7 +508,7 @@ def _evolve(
         # index; the progenitor row starts at the grid's first point.
         idx = schedule.release_index()
         first = jnp.concat([jnp.zeros(1, dtype=idx.dtype), idx, idx])
-        gate = ft.partial(_Gate, start=first)
+        gate = lambda x: _Gate(x, first)
         grids, on = schedule.grid()[None], jnp.ones((1, n), dtype=bool)
         start = ws[0]
     else:
@@ -565,8 +562,7 @@ def _evolve(
         w0 = w0[:, :, None]
     # A fixed-step solve steps on the grid (for `Times`, the merged grid, like
     # `WholeStream`): a copy then takes the progenitor's own steps.
-    t0, steps = schedule.release_times(), schedule.grid()
-    w = evolve_per_particle(terms, sim.solver, w0, t0, idx, steps, mode.loop)
+    w = evolve_per_particle(terms, sim.solver, w0, idx, schedule.grid(), mode.loop)
     if prog_pot is not None:
         w = w[:, :, 0]
     return w[:, 0], w[:, 1], ws[-1]

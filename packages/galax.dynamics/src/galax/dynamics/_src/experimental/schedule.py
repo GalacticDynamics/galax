@@ -92,12 +92,14 @@ class Times(eqx.Module):
     lattice's ``t1``. A tie gives a step of zero length: it leaves every value
     as it is, and gives the rows that travel it (a released row, from its
     release to the next grid point) the tangent of its length. Gradients at a
-    tie are then those of the branch that keeps the grid's order. For a release
-    on an interior lattice point or at ``t1``, that is the derivative from the
-    left; for two tied releases, the first takes the left one and the second
-    the right one (the last of the releases tied at ``max(ts)`` carries a
-    default ``t1``). Releases tied at ``min(ts)``, which sets the lattice, are
-    the exception: only their sum, moving them together, is a derivative.
+    tie are then those of the branch that keeps the grid's order. For a single
+    release on an interior lattice point or at ``t1``, that is the derivative
+    from the left; for two tied releases off the lattice, the first takes the
+    left one and the second the right one (the last of the releases tied at
+    ``max(ts)`` carries a default ``t1``). In other ties of more than two points,
+    such as two releases on a lattice point, at an explicit ``t1`` or at
+    ``min(ts)`` (which sets the lattice), only the sum over the tied releases,
+    moving them together, is a derivative.
 
     Parameters
     ----------

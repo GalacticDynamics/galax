@@ -1,13 +1,24 @@
-"""galax: Galactic Dynamix in Jax."""
+"""Private module that defines `TriaxialNFWPotential` and its functions.
+
+The public API is `galax.potential.triaxialnfw`.
+"""
 
 __all__ = [
+    # class
     "TriaxialNFWPotential",
+    # functions
+    "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
+    "rho0_of_m",
 ]
 
 import functools as ft
 from dataclasses import KW_ONLY
 
-from jaxtyping import Array, Float, Shaped
+from jaxtyping import Array
 from typing import final
 
 import equinox as eqx
@@ -15,6 +26,7 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
+from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
@@ -22,6 +34,11 @@ from galax.potential._src.base import default_constants
 from galax.potential._src.base_single import (
     AbstractSinglePotential,
     LaplacianFromDensityMixin,
+)
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
@@ -31,17 +48,77 @@ from galax.potential._src.utils import gauss_legendre
 
 @final
 class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
-    r"""Triaxial (density) NFW Potential.
+    r"""Triaxial NFW potential.
+
+    The NFW density law on ellipsoids: the density is the spherical NFW profile
+    of the ellipsoidal radius :math:`\xi`, with different axis lengths along the
+    Cartesian axes. The parameter ``m`` is the mass scale (it is the mass
+    parameter of :class:`~galax.potential.NFWPotential`), ``r_s`` is the scale
+    radius along the :math:`x` axis, and ``q1`` and ``q2`` are the axis ratios
+    :math:`y / x` and :math:`z / x`. For :math:`q_1 = q_2 = 1` it is
+    :class:`~galax.potential.NFWPotential`.
+
+    The density is
 
     .. math::
 
-        \rho(q) = \frac{G M}{4\pi r_s^3} \frac{1}{(\xi/r_s) (1 + \xi/r_s)^2}
+        \rho(\mathbf{x}) = \frac{\rho_0}{(\xi / r_s) (1 + \xi / r_s)^2},
+        \qquad \rho_0 = \frac{m}{4 \pi r_s^3},
 
-    where
+    where :math:`\xi^2 = x^2 + y^2 / q_1^2 + z^2 / q_2^2`. The density diverges
+    at the centre as :math:`\rho_0 r_s / \xi`, and falls as :math:`\xi^{-3}`
+    far out, so the total mass diverges logarithmically, as for the spherical
+    NFW. The potential has no closed form. With :math:`\Phi \to 0` at infinity
+    it is the one-dimensional integral
 
     .. math::
 
-        \xi^2 = x^2 + \frac{y^2}{q_1^2} + \frac{z^2}{q_2^2}
+        \Phi = -2 \pi G \rho_0 r_s^2 q_1 q_2 \int_0^1
+            \frac{2 / (1 + \xi(s) / r_s)}
+                 {\sqrt{\left[(q_1^2 - 1) s^2 + 1\right]
+                        \left[(q_2^2 - 1) s^2 + 1\right]}} \, ds,
+
+    with
+
+    .. math::
+
+        \xi^2(s) = s^2 \left[x^2 + \frac{y^2}{1 + (q_1^2 - 1) s^2}
+                                 + \frac{z^2}{1 + (q_2^2 - 1) s^2}\right],
+
+    where :math:`G` is the gravitational constant. It is evaluated by
+    Gauss-Legendre quadrature of order ``integration_order``.
+
+    Notes
+    -----
+    The integral is Chandrasekhar's (1969) potential of a heterogeneous
+    ellipsoid, in the form of Merritt & Fridman (1996), after the change of
+    variable :math:`\tau = 1 / s^2 - 1`. The potential at the centre is finite,
+    and for :math:`q_1 = q_2 = 1` it is :math:`-G m / r_s`. Far from the centre
+    it is :math:`-G m q_1 q_2 \ln(r / r_s) / r` to leading order in the
+    logarithm.
+
+    The density diverges at exactly :math:`\xi = 0`, and the gradient and the
+    Hessian of the potential there are NaN, as they come from automatic
+    differentiation of a square root of zero. Evaluate away from the origin.
+
+    The quadrature has a fixed order, so its error grows where the integrand
+    narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration the
+    relative error of the order-50 potential is below 1e-14 from :math:`10^{-3}`
+    to :math:`30 r_s`, 3e-9 at :math:`100 r_s`, 9e-6 at :math:`300 r_s` and
+    1.4e-3 at :math:`10^3 r_s`, so raise ``integration_order`` for the far
+    field. The functions are in `galax.potential.triaxialnfw`. The gradient and
+    Hessian of this class come from automatic differentiation of the potential.
+
+    References
+    ----------
+    .. [Chandrasekhar1969] Chandrasekhar, S. (1969). Ellipsoidal Figures of
+       Equilibrium. Yale University Press. Theorem 12.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1969efe..book.....C>`__.
+    .. [MerrittFridman1996] Merritt, D., & Fridman, T. (1996). Triaxial
+       Galaxies with Cusps. The Astrophysical Journal, 460, 136.
+       `ADS <https://ui.adsabs.harvard.edu/abs/1996ApJ...460..136M>`__.
+       The potential is their eq. 2a.
+
     """
 
     m: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -84,147 +161,108 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     def rho0(
         self, t: gt.BBtQuSz0, /, *, ustrip: bool = False
     ) -> gt.BtFloatQuSz0 | gt.BtFloatSz0:
-        r"""Central density.
+        r"""Characteristic density.
 
-        $$ \rho_0 = \frac{M}{4 \pi r_s^3} $$
+        $$ \rho_0 = \frac{m}{4 \pi r_s^3} $$
 
         """
-        p = self.params(t, ustrip=ustrip)
-        return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)
+        return rho0_of_m(self.params(t, ustrip=ustrip))
 
     # ==========================================================================
-    # Potential energy
 
     @ft.partial(jax.jit, inline=True)
-    def _ellipsoid_surface(
-        self,
-        q: Shaped[Array, "1 *batch 3"],
-        q1sq: Shaped[Array, ""],
-        q2sq: Shaped[Array, ""],
-        s2: Shaped[Array, "N *#batch"],
-    ) -> Shaped[u.Quantity["area"], "N *batch"]:
-        r"""Compute coordinates on the ellipse.
-
-        .. math::
-
-            r_s^2 \xi^2(\tau) = \frac{x^2}{1 + \tau} + \frac{y^2}{q_1^2 + \tau}
-            + \frac{z^2}{q_2^2 + \tau}
-
-        """
-        return s2 * (
-            q[..., 0] ** 2
-            + q[..., 1] ** 2 / (1 + (q1sq - 1) * s2)
-            + q[..., 2] ** 2 / (1 + (q2sq - 1) * s2)
-        )
-
-    # TODO: fix this to enable non-Quantity mode.
-    @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        r"""Potential energy for the triaxial NFW.
-
-        The NFW potential is spherically symmetric. For the triaxial (density)
-        case, we define ellipsoidal (and dimensionless) coordinates
-
-        .. math::
-
-            r_s^2 \xi^2 = x^2 + y^2/q_1^2 + z^2/q_2^2
-
-        Which maps ellipsoids to spheres. The spherical potential is then
-        evaluated under this mapping.
-
-        Chandrasekhar (1969) [1]_ Theorem 12 (though more clearly written in
-        Merritt & Fridman (1996) [2]_ eq 2a) gives the form of the gravitational
-        potential.
-
-        .. math::
-
-            \Phi = -\pi G q_1 q_2 \int_{0}^{\infty}
-                \frac{\Delta \psi(\xi(\tau))}{\sqrt{(1+\tau)(q_1^2 + \tau)(q_2^2
-                + \tau)}} d\tau
-
-        with:
-
-        .. math::
-
-            \Delta \psi(\xi) = \psi(\infty) - \psi(\xi)
-                             = \int_{\xi^2}^{\infty} \rho(\xi^2) d\xi^2 = \rho_0
-                             r_s^2 \frac{2}{1 + \xi}
-
-        and
-
-        .. math::
-
-            r_s^2 \xi^2(\tau) = x^2 + \frac{y^2}{q_1^2+\tau} +
-            \frac{z^2}{q_2^2+\tau}
-
-        We apply the change of variables :math:`\tau = 1/s^2 - 1` to map the
-        integral to the interval [0, 1].
-
-        .. math::
-
-            \Phi = -2 \pi G q_1 q_2 \int_{s=0}^{1} \frac{
-                (1+\tau) \Delta\psi(\xi(s))}{\sqrt{(q_1^2+\tau)(q_2^2+\tau)}} ds
-                 = -2 \pi G q_1 q_2 \int_{s=0}^{1} \frac{\Delta\psi(\xi(s))}
-                    {\sqrt{((q_1^2-1)s^2 + 1)((q_2^2-1)s^2 + 1)}} ds
-
-        References
-        ----------
-        .. [1] Chandrasekhar, S. (1969). Ellipsoidal figures of equilibrium.
-               https://ui.adsabs.harvard.edu/abs/1969efe..book.....C
-        .. [2] Merritt, D., & Fridman, T. (1996). Triaxial Galaxies with Cusps.
-            Astrophysical Journal, 460, 136.
-
-        """
         # Parse inputs
-        xyz = u.Q.from_(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # Compute parameters
-        r_s = self.r_s(t)
-        rho0 = self.rho0(t)
-        q1, q2 = self.q1(t), self.q2(t)
+        p = self.params(t)
+        return potential(p, xyz, integration_order=self.integration_order)  # type: ignore[no-any-return]
 
-        # A batch dimension is added here and below for the integration.
-        xyz = xyz[None]
-        batchdims: int = xyz.ndim - 2
-
-        q1sq, q2sq = q1**2, q2**2
-
-        # Delta(ψ) = ψ(∞) - ψ(ξ)
-        # This factors out the rho0 * r_s^2, moving it to the end
-        def delta_psi_factor(
-            s2: Float[Array | u.AbstractQuantity, "N *#batch"],
-        ) -> Float[Array | u.AbstractQuantity, "N *batch"]:
-            xi = jnp.sqrt(self._ellipsoid_surface(xyz, q1sq, q2sq, s2)) / r_s
-            return 2.0 / (1.0 + xi)
-
-        def integrand(s: Float[Array, "N"]) -> Float[Array, "N *batch"]:
-            s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
-            denom = jnp.sqrt(((q1sq - 1) * s2 + 1) * ((q2sq - 1) * s2 + 1))
-            return delta_psi_factor(s2) / denom  # type: ignore[no-any-return]
-
-        # TODO: option to do integrate.quad
-        integral = gauss_legendre(integrand, self.integration_order)
-
-        out = (-2.0 * jnp.pi * self.constants["G"] * rho0 * r_s**2 * q1 * q2) * integral
-        return out.ustrip(self.units["specific energy"])  # type: ignore[no-any-return]
-
-    # ==========================================================================
-
-    # TODO: make this work w/out units
-    @ft.partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Parse inputs  # TODO: work w/out units
-        xyz = u.Q.from_(xyz, self.units["length"])
-        t = u.Q.from_(t, self.units["time"])
+    @ft.partial(jax.jit, inline=True)
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
+        # Parse inputs
+        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
         # Compute parameters
-        rho0 = self.rho0(t)
-        r_s = self.r_s(t)
-        q1sq, q2sq = self.q1(t) ** 2, self.q2(t) ** 2
+        p = self.params(t)
+        return density(p, xyz)  # type: ignore[no-any-return]
 
-        s2 = jnp.asarray([1])
-        xi = jnp.sqrt(self._ellipsoid_surface(xyz[None], q1sq, q2sq, s2)[0]) / r_s
 
-        dens = rho0 / xi / (1.0 + xi) ** 2
-        return dens.ustrip(self.units["mass density"])  # type: ignore[no-any-return]
+# ===================================================================
+# Functions
+
+
+@ft.partial(jax.jit)
+def rho0_of_m(p: gt.Params, /) -> gt.Sz0:
+    r"""Characteristic density for the triaxial NFW model.
+
+    .. math::
+
+        \rho_0 = \frac{m}{4 \pi r_s^3}.
+
+    """
+    return p["m"] / (4 * jnp.pi * p["r_s"] ** 3)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, xyz: gt.BBtSz3) -> gt.BBtSz0:
+    r"""Density of the triaxial NFW model.
+
+    .. math::
+
+        \rho(\mathbf{x}) = \frac{\rho_0}{(\xi / r_s) (1 + \xi / r_s)^2},
+        \qquad \xi^2 = x^2 + \frac{y^2}{q_1^2} + \frac{z^2}{q_2^2},
+
+    with :math:`\rho_0` from :func:`~galax.potential.triaxialnfw.rho0_of_m`.
+    The density is infinite at exactly :math:`\xi = 0`.
+
+    """
+    xi2 = (
+        xyz[..., 0] ** 2
+        + xyz[..., 1] ** 2 / p["q1"] ** 2
+        + xyz[..., 2] ** 2 / p["q2"] ** 2
+    )
+    x = jnp.sqrt(xi2) / p["r_s"]
+    return rho0_of_m(p) / x / (1.0 + x) ** 2  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit, static_argnames=("integration_order",))
+def potential(
+    p: gt.Params, xyz: gt.BBtSz3, *, integration_order: int = 50
+) -> gt.BBtSz0:
+    r"""Potential of the triaxial NFW model.
+
+    .. math::
+
+        \Phi = -2 \pi G \rho_0 r_s^2 q_1 q_2 \int_0^1
+            \frac{2 / (1 + \xi(s) / r_s)}
+                 {\sqrt{\left[(q_1^2 - 1) s^2 + 1\right]
+                        \left[(q_2^2 - 1) s^2 + 1\right]}} \, ds,
+
+    with :math:`\xi^2(s) = s^2 \left[x^2 + y^2 / (1 + (q_1^2 - 1) s^2) + z^2 /
+    (1 + (q_2^2 - 1) s^2)\right]`, by Gauss-Legendre quadrature of order
+    ``integration_order``, which is a static argument. The positions may carry
+    leading batch axes.
+
+    """
+    r_s, q1, q2 = p["r_s"], p["q1"], p["q2"]
+    q1sq, q2sq = q1**2, q2**2
+    # The node axis comes first: (N, 1, ..., 1) against the batch of `xyz`.
+    batchdims = xyz.ndim - 1
+    x2, y2, z2 = xyz[..., 0] ** 2, xyz[..., 1] ** 2, xyz[..., 2] ** 2
+
+    def integrand(s: Array) -> Array:
+        s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
+        f1, f2 = (q1sq - 1) * s2 + 1, (q2sq - 1) * s2 + 1
+        x = jnp.sqrt(s2 * (x2 + y2 / f1 + z2 / f2)) / r_s
+        return 2.0 / (1.0 + x) / jnp.sqrt(f1 * f2)  # type: ignore[no-any-return]
+
+    integral = gauss_legendre(integrand, integration_order)
+    return (-2.0 * jnp.pi * p["G"] * rho0_of_m(p) * r_s**2 * q1 * q2) * integral  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)

@@ -119,48 +119,30 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
 
 
 @ft.partial(jax.jit)
-def r_e(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
-    r"""Ellipsoidal radius :math:`r_e = \sqrt{x^2 + y^2/q_1^2 + z^2/q_2^2}`.
-
-    Here :math:`q_2^2 = 3 - q_1^2`. The square root is `safe_sqrt`.
-    """
-    q1sq = p["q1"] ** 2
-    q2sq = 3 - q1sq
-    x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
-    _result = safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
-    return _result  # type: ignore[no-any-return]
-
-
-@ft.partial(jax.jit)
-def r_tilde(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
-    r"""Radius :math:`\tilde{r}` that the NFW potential is evaluated at.
-
-    .. math::
-
-        \tilde{r} = \frac{(r_a + r)\, r_e}{r_a + r_e}, \qquad r_a = a_r r_s
-
-    which tends to :math:`r_e` well inside :math:`r_a` and to :math:`r` well
-    outside it, where :math:`r` is the spherical radius.
-    """
-    r_a = p["a_r"] * p["r_s"]
-    re = r_e(p, xyz)
-    r = safe_vector_norm(xyz)
-    return (r_a + r) * re / (r_a + re)  # type: ignore[no-any-return]
-
-
-@ft.partial(jax.jit)
 def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz0:
     r"""Potential for the Vogelsberger et al. (2008) triaxial NFW potential.
 
     .. math::
 
-        \Phi(\mathbf{x}) = \Phi_{\mathrm{NFW}}\left(\tilde{r}\right)
+        \Phi(\mathbf{x}) = \Phi_{\mathrm{NFW}}\left(\tilde{r}\right),
+        \qquad
+        \tilde{r} = \frac{(r_a + r)\, r_e}{r_a + r_e},
+        \qquad r_a = a_r r_s,
 
-    where :math:`\Phi_{\mathrm{NFW}}` is `galax.potential.nfw.potential` and
-    :math:`\tilde{r}` is `r_tilde`.
+    where :math:`\Phi_{\mathrm{NFW}}` is `galax.potential.nfw.potential`,
+    :math:`r` is the spherical radius and :math:`r_e = \sqrt{x^2 + y^2/q_1^2 +
+    z^2/q_2^2}` with :math:`q_2^2 = 3 - q_1^2`; the square root is `safe_sqrt`.
+    The radius :math:`\tilde{r}` tends to :math:`r_e` well inside :math:`r_a` and
+    to :math:`r` well outside it.
     """
+    q1sq = p["q1"] ** 2
+    q2sq = 3 - q1sq
+    x, y, z = xyz[..., 0], xyz[..., 1], xyz[..., 2]
+    r_e = safe_sqrt(x**2 + y**2 / q1sq + z**2 / q2sq)
+    r_a = p["a_r"] * p["r_s"]
+    r_tilde = (r_a + safe_vector_norm(xyz)) * r_e / (r_a + r_e)
     # NFW's radial function of r~, whose derivatives do not cancel.
-    return nfw_potential(p, r_tilde(p, xyz))  # type: ignore[no-any-return]
+    return nfw_potential(p, r_tilde)  # type: ignore[no-any-return]
 
 
 # Derived quantities, built from the kernel above.

@@ -119,14 +119,14 @@ class O2GFResult(eqx.Module):
     with coverage that passes. It is always False on the loop path.
     ``thin_box`` is True when a box orbit is nearly planar or nearly linear:
     the smallest mean toy action on an axis not at rest is below 3e-4 of the
-    sum. The fit then moves every action, by up to a few percent in plane
-    and up to the whole J_z. It is always False on the loop path. An
-    orbit is ``flagged`` when ``n_bad_cover > 0``, more than `NAN_MAX`
-    samples were dropped, the fit did not converge, ``toy_degenerate`` is
-    True, ``thin_box`` is True, or ``family_mismatch`` is True. A flagged
-    orbit keeps its values, so check ``flagged`` before using them. When
-    the toy fit is ill-conditioned, the result for an orbit can change when
-    the other orbits in the batch change.
+    sum. The fit then moves every action, J_z by up to the whole of it. It
+    is always False on the loop path. An orbit is ``flagged`` when
+    ``n_bad_cover > 0``, more than ``NAN_MAX = 1`` sample was dropped, the
+    fit did not converge, ``toy_degenerate`` is True, ``thin_box`` is True,
+    or ``family_mismatch`` is True. A flagged orbit keeps its values, so
+    check ``flagged`` before using them. When the toy fit is
+    ill-conditioned, the result for an orbit can change when the other
+    orbits in the batch change.
     """
 
     aaf: ActionsAnglesFrequencies

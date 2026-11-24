@@ -387,3 +387,18 @@ def test_errors_do_not_exceed_the_old_code(name, group, dtype):
             assert err <= bound("gradient"), (r, d, "gradient", err)
             err = worst(module.hessian(p, xyz), h)
             assert err <= bound("hessian"), (r, d, "hessian", err)
+
+
+@pytest.mark.parametrize("name", CASES)
+def test_class_rho0(name):
+    """The class ``rho0`` is the central density, with and without units."""
+    pot = CASES[name]
+    p = pot.params(0.0)
+    r_s3 = float(p["r_s"]) ** 3
+    if name == "triaxialnfw":
+        want = float(p["m"]) / (4 * np.pi * r_s3)
+    else:
+        q1 = float(p["q1"]) if "q1" in p else 1.0
+        want = float(p["m_tot"]) / (q1 * float(p["q2"]) * (2 * np.pi) ** 1.5 * r_s3)
+    np.testing.assert_allclose(pot.rho0(0.0, ustrip=True), want, rtol=1e-14)
+    assert str(pot.rho0(0.0).unit) == "solMass / kpc3"

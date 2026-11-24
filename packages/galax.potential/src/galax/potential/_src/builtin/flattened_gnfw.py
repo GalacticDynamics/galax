@@ -274,8 +274,11 @@ def doi_10_1093_mnras_stad551(
     z_\mathrm{NFW})`; it need not be normalized. Its azimuth :math:`\theta` and
     polar angle :math:`\phi` (Eqs. 10-11, with the two-argument arctangent)
     give the rotation of their Eq. 12, :math:`\mathbf{x}' = R\,\mathbf{x}`,
-    which takes ``axis`` to :math:`z'`. ``axis`` and ``-axis`` give the same
-    halo. Koposov et al. evaluate the halo with GalPot (Dehnen & Binney 1998);
+    which takes ``axis`` to :math:`z'`. The returned `TransformedPotential`
+    moves the z-aligned halo by the active rotation :math:`R^{-1} = R^T`, which
+    turns its :math:`z`-axis onto ``axis``, and so evaluates the halo at
+    :math:`R\,\mathbf{x}`. ``axis`` and ``-axis`` give the same halo.
+    Koposov et al. evaluate the halo with GalPot (Dehnen & Binney 1998);
     here it is a multipole expansion (see `flattened_gnfw_halo` for its
     accuracy).
 
@@ -317,6 +320,6 @@ def doi_10_1093_mnras_stad551(
     )
     x, y, z = jnp.asarray(axis, dtype=float)
     theta, phi = jnp.atan2(y, x), jnp.atan2(jnp.hypot(x, y), z)
-    # Base frame -> simulation frame, so its inverse is their R (Eq. 12).
+    # Active rotation R^T, turning z onto `axis`; its inverse is their R (Eq. 12).
     rot = cxo.GalileanRotation.from_euler("ZY", u.Q(jnp.stack([theta, phi]), "rad"))
     return TransformedPotential(base_potential=halo, xop=rot)

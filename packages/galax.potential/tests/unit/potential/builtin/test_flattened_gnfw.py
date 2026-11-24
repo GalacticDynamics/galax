@@ -106,19 +106,69 @@ def test_q_of_r_limits(r_q: u.Q, q: str) -> None:
 # doi_10_1093_mnras_stad551
 
 
+def _in_frame(x: jax.Array) -> jax.Array:
+    """Positions in the halo's frame, up to a rotation about its axis."""
+    n = AXIS / jnp.linalg.norm(AXIS)
+    along = x @ n
+    across = jnp.sqrt(jnp.sum(x**2, axis=-1) - along**2)
+    return jnp.stack([across, jnp.zeros_like(along), along], axis=-1)
+
+
 def test_koposov_axis() -> None:
     """The halo is the z-aligned one, with ``axis`` as its z-axis.
 
     An axisymmetric halo's potential depends only on the distance along its
     axis and the distance from it.
     """
-    n = AXIS / jnp.linalg.norm(AXIS)
-    along = X @ n
-    across = jnp.sqrt(jnp.sum(X**2, axis=-1) - along**2)
-    in_frame = jnp.stack([across, jnp.zeros_like(along), along], axis=-1)
     aligned = _koposov(axis=[0.0, 0.0, 1.0])
-    got, exp = _koposov().potential(X, 0), aligned.potential(in_frame, 0)
+    got, exp = _koposov().potential(X, 0), aligned.potential(_in_frame(X), 0)
     assert jnp.allclose(got, exp, rtol=1e-12, atol=0)
+
+
+@pytest.mark.parametrize("axis", [[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]])
+def test_koposov_along_z_is_unrotated(axis: list[float]) -> None:
+    """Along +-z, where the axis's azimuth is undefined, nothing is rotated."""
+    halo = _koposov(axis=axis)
+    base = halo.base_potential
+    assert jnp.allclose(halo.potential(X, 0), base.potential(X, 0), rtol=1e-14)
+    assert jnp.allclose(halo.gradient(X, 0), base.gradient(X, 0), rtol=1e-10)
+    assert jnp.allclose(halo.hessian(X, 0), base.hessian(X, 0), rtol=1e-10)
+
+
+def test_koposov_force_on_axis() -> None:
+    """On the axis the force points along it, as the z-aligned halo's does on z."""
+    s = jnp.asarray([0.5, 10.0, 100.0])[:, None]
+    n = AXIS / jnp.linalg.norm(AXIS)
+    got = _koposov().gradient(s * n, 0)
+    on_z = _koposov(axis=[0.0, 0.0, 1.0]).gradient(s * jnp.asarray([0, 0, 1.0]), 0)
+    exp = on_z[:, 2:] * n
+    assert jnp.allclose(got, exp, rtol=1e-10, atol=1e-12 * jnp.max(jnp.abs(exp)))
+
+
+def test_koposov_poisson() -> None:
+    r"""Tilting keeps $\nabla^2\Phi = 4\pi G\rho$ as good as the z-aligned halo's.
+
+    The Laplacian through the rotation equals the z-aligned halo's at the same
+    halo-frame positions, and both match the closed-form density.
+    """
+    halo = _koposov(12)
+    lap = jnp.trace(halo.hessian(X, 0), axis1=-2, axis2=-1)
+    aligned = _koposov(12, axis=[0.0, 0.0, 1.0])
+    lap_z = jnp.trace(aligned.hessian(_in_frame(X), 0), axis1=-2, axis2=-1)
+    assert jnp.allclose(lap, lap_z, rtol=1e-10, atol=0)
+    p = {
+        "m": M_NFW.ustrip("Msun") / (jnp.log(16.0) - 15 / 16),
+        "r_s": FLAT_RS.ustrip("kpc"),
+        "gamma": KOPOSOV["gamma"],
+        "beta": KOPOSOV["beta"],
+        "q_in": KOPOSOV["q"],
+        "q_out": KOPOSOV["q"],
+        "r_q": 30.0,
+        "r_cut": 500.0,
+    }
+    rho = jnp.exp(log_density(p, _in_frame(X), 0.0))
+    G = halo.constants["G"].ustrip("kpc3 / (Msun Myr2)")
+    assert jnp.allclose(lap, 4 * jnp.pi * G * rho, rtol=1e-3, atol=0)
 
 
 @pytest.mark.parametrize("axis", [[0.5, 0.9, 1.7], [-0.25, -0.45, -0.85]])

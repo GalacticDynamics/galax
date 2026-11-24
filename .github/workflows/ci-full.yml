@@ -1,0 +1,17 @@
+name: CI full
+permissions:
+  contents: read
+
+# Adding the `full-ci` label runs all of CI, macOS and Windows included, on the
+# PR's current head, so a PR can get the full check without a new push. This is
+# a separate workflow so that adding any other label starts nothing in CI and
+# never replaces or cancels the PR's `CI Pass` check.
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  ci:
+    if: github.event.label.name == 'full-ci'
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit

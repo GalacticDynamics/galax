@@ -104,6 +104,26 @@ def test_l_max_comes_from_the_shape():
     )
 
 
+@pytest.mark.parametrize("l_max", [0, 1, 4])
+def test_class_equals_kernel_for_any_l_max(l_max):
+    """A kernel given ``(l_max + 1, l_max + 1)`` tables equals the class."""
+    rng = np.random.default_rng(l_max)
+    slm, tlm = (np.tril(rng.normal(size=(l_max + 1, l_max + 1))) for _ in range(2))
+    pot = gp.MultipoleInnerPotential(l_max=l_max, Slm=slm, Tlm=tlm, **KW)
+    p = pot.params(0.0)
+    np.testing.assert_allclose(
+        gp.multipoleinner.potential(p, jnp.asarray(XYZ)),
+        pot.potential(u.Q(XYZ, "kpc"), 0.0).value,
+        rtol=1e-14,
+    )
+    if l_max > 0:
+        # Dropping the highest degree from the tables changes the value.
+        short = {**p, "Slm": p["Slm"][:l_max, :l_max], "Tlm": p["Tlm"][:l_max, :l_max]}
+        assert gp.multipoleinner.potential(short, jnp.asarray(XYZ)) != (
+            gp.multipoleinner.potential(p, jnp.asarray(XYZ))
+        )
+
+
 def test_wrong_shape_is_rejected_by_the_class():
     with pytest.raises(Exception, match="shape"):
         gp.MultipoleInnerPotential(
@@ -117,6 +137,27 @@ def test_density_is_one_shared_function():
     out = gp.multipole.density({}, jnp.asarray(XYZ))
     assert out.shape == ()
     assert out == 0.0
+
+
+@pytest.mark.parametrize("kind", ["inner", "outer", ""])
+def test_laplacian_is_exactly_zero(kind):
+    ones = table(1, 1)
+    if kind == "":
+        pot = gp.MultipolePotential(
+            l_max=L_MAX, ISlm=ones, ITlm=ones, OSlm=ones, OTlm=ones, **KW
+        )
+    else:
+        cls = (
+            gp.MultipoleInnerPotential
+            if kind == "inner"
+            else gp.MultipoleOuterPotential
+        )
+        pot = cls(l_max=L_MAX, Slm=ones, Tlm=ones, **KW)
+    module = getattr(gp, f"multipole{kind}")
+    out = module.laplacian(pot.params(0.0), jnp.asarray(XYZ))
+    assert out.shape == ()
+    assert out == 0.0
+    assert pot.laplacian(u.Q(XYZ, "kpc"), 0.0) == 0.0
 
 
 @pytest.mark.parametrize("kind", ["inner", "outer"])

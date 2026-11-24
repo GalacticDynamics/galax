@@ -27,6 +27,13 @@ G = "galactic"
 M = u.Q(1e12, "Msun")
 RS = u.Q(5, "kpc")
 
+
+def coeffs(seed: int, l_max: int = 3) -> np.ndarray:
+    """Return a random lower-triangular ``(l_max + 1, l_max + 1)`` table."""
+    rng = np.random.default_rng(seed)
+    return np.tril(rng.normal(size=(l_max + 1, l_max + 1)))
+
+
 # At least one instance per module. Constructor arguments follow
 # `test_symmetry.BUILTINS`. Length parameters avoid 1 kpc, where an exponent
 # error (b**2 -> b**2.002) would not show.
@@ -69,6 +76,23 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
+    # Dimensionless 2-D coefficient tables; `l_max` is read from their shape.
+    gp.MultipoleInnerPotential(
+        m_tot=M, r_s=RS, l_max=3, Slm=coeffs(0), Tlm=coeffs(1), units=G
+    ),
+    gp.MultipoleOuterPotential(
+        m_tot=M, r_s=RS, l_max=3, Slm=coeffs(2), Tlm=coeffs(3), units=G
+    ),
+    gp.MultipolePotential(
+        m_tot=M,
+        r_s=RS,
+        l_max=3,
+        ISlm=coeffs(4),
+        ITlm=coeffs(5),
+        OSlm=coeffs(6),
+        OTlm=coeffs(7),
+        units=G,
+    ),
 ]
 
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.

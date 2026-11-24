@@ -169,4 +169,14 @@ Non-spherical
 -------------
 
 ``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``miyamotonagai``, ``monarietal2016bar``, ``multipole``, ``multipoleinner``,
+``multipoleouter``, ``satoh``.
+
+The three multipole modules have no ``l_max`` argument. Their coefficient
+tables (``Slm`` and ``Tlm``, or ``ISlm``, ``ITlm``, ``OSlm`` and ``OTlm``) are
+2-D arrays of shape ``(l_max + 1, l_max + 1)``, and the functions read
+``l_max`` from that shape, so the tables and the degree cannot disagree. The
+``density`` is exactly zero for all three, because every term is a solid
+harmonic, and it is the same function in each module. These functions also
+accept an array of positions of shape ``(..., 3)`` directly, and the classes
+call them that way.

@@ -1,10 +1,21 @@
-"""Multipole potential."""
+"""Private module that defines `MultipolePotential`, its base class and its functions.
+
+The public API is `galax.potential.multipole`. The inner and the outer
+expansions are in `multipoleinner` and `multipoleouter`; they share the base
+class, the zero `density` and `scaled_radius_and_direction` defined here.
+"""
 
 __all__ = [
+    # classes
     "AbstractMultipolePotential",
-    "MultipoleInnerPotential",
-    "MultipoleOuterPotential",
     "MultipolePotential",
+    # functions
+    "density",
+    "gradient",
+    "hessian",
+    "laplacian",
+    "potential",
+    "scaled_radius_and_direction",
 ]
 
 import functools as ft
@@ -26,6 +37,11 @@ from galax.potential._src.base_single import (
     LaplacianFromDensityMixin,
 )
 from galax.potential._src.harmonic.ylm import iter_Ylm
+from galax.potential._src.kernels import (
+    cartesian_gradient,
+    cartesian_hessian,
+    poisson_laplacian,
+)
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.utils import safe_vector_norm
@@ -44,6 +60,10 @@ class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotent
     everywhere these potentials are evaluated (:math:`r>0`); all of the
     represented mass sits, formally, at :math:`r=0` (for outer/mixed terms)
     or at infinity (for inner terms only).
+
+    The maximum degree ``l_max`` is a static field. The coefficient tables have
+    shape ``(l_max + 1, l_max + 1)``, and the module functions read
+    :math:`l_\mathrm{max}` back from that shape, so the two cannot disagree.
     """
 
     m_tot: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -56,140 +76,65 @@ class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotent
     l_max: int = field(static=True)
 
     @ft.partial(jax.jit, inline=True)
-    def _density(self, xyz: gt.BBtQorVSz3, _: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
-
-
-@final
-class MultipoleInnerPotential(AbstractMultipolePotential):
-    r"""Multipole inner expansion potential.
-
-    .. math::
-
-        \Phi^l_\mathrm{max}(r,\theta,\phi) =
-            \sum_{l=0}^{l=l_\mathrm{max}}\sum_{m=0}^{m=l}
-            r^l \, (S_{lm} \, \cos{m\,\phi} + T_{lm} \, \sin{m\,\phi})
-            \, P_l^m(\cos\theta)
-
-    """
-
-    Slm: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless",
-        doc=r"Spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
-    )
-
-    Tlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless",
-        doc=r"Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
-    )
-
-    def __check_init__(self) -> None:
-        shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Q(0.0, "Gyr")
-        s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
-        # TODO: check shape across time.
-        msg = (
-            "Slm and Tlm must have the shape (l_max + 1, l_max + 1). "
-            f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
-        )
-        _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
+    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
-        # Compute parameters
-        p = self.params(t)
-
-        # scaled radius and unit direction
-        is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
-
-        # Compute the summation over l and m
-        terms = [
-            jnp.pow(s, l) * (p["Slm"][l, m] * cYlm + p["Tlm"][l, m] * sYlm)
-            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
-        ]
-        summation = jnp.sum(jnp.stack(terms), axis=0)
-        if is_scalar:
-            summation = summation[0]
-
-        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
-        return _result  # type: ignore[no-any-return]
-
-
-@final
-class MultipoleOuterPotential(AbstractMultipolePotential):
-    r"""Multipole outer expansion potential.
-
-    .. math::
-
-        \Phi^l_\mathrm{max}(r,\theta,\phi) =
-            \sum_{l=0}^{l=l_\mathrm{max}}\sum_{m=0}^{m=l}
-            r^{-(l+1)} \, (S_{lm} \, \cos{m\,\phi} + T_{lm} \, \sin{m\,\phi})
-            \, P_l^m(\cos\theta)
-
-    """
-
-    Slm: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless",
-        doc=r"Spherical harmonic coefficients for the $\cos(m \phi)$ terms.",
-    )
-
-    Tlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="dimensionless",
-        doc=r"Spherical harmonic coefficients for the $\sin(m \phi)$ terms.",
-    )
-
-    def __check_init__(self) -> None:
-        shape = (self.l_max + 1, self.l_max + 1)
-        t = u.Q(0.0, "Gyr")
-        s_shape, t_shape = self.Slm(t).shape, self.Tlm(t).shape
-        # TODO: check shape across time.
-        msg = (
-            "Slm and Tlm must have the shape (l_max + 1, l_max + 1). "
-            f"Slm shape: {s_shape}, Tlm shape: {t_shape}"
-        )
-        _ = eqx.error_if(t, jnp.logical_or(s_shape != shape, t_shape != shape), msg)
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-
-        # Compute parameters
-        p = self.params(t)
-
-        # scaled radius and unit direction
-        is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
-
-        # Compute the summation over l and m
-        terms = [
-            jnp.pow(s, -(l + 1)) * (p["Slm"][l, m] * cYlm + p["Tlm"][l, m] * sYlm)
-            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
-        ]
-        summation = jnp.sum(jnp.stack(terms), axis=0)
-        if is_scalar:
-            summation = summation[0]
-
-        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
-        return _result  # type: ignore[no-any-return]
+        # Compute
+        params = self.params(t)
+        return density(params, xyz)  # type: ignore[no-any-return]
 
 
 @final
 class MultipolePotential(AbstractMultipolePotential):
     r"""Multipole inner and outer expansion potential.
 
+    The potential of a source-free expansion in solid harmonics, with a
+    regular part that grows with radius and a singular part that falls with
+    radius. With :math:`s = r / r_s` and the orthonormal spherical harmonics
+    :math:`Y_l^m(\theta, \phi)`, it is
+
     .. math::
 
-        \Phi^l_\mathrm{max}(r,\theta,\phi) =
-            \sum_{l=0}^{l=l_\mathrm{max}}\sum_{m=0}^{m=l}
-            [  (r^l IS_{lm} + r^{-(l+1)} OS_{lm}) \, \cos{m\,\phi}
-             + (r^l IT_{lm} + r^{-(l+1)} OT_{lm}) \, \sin{m\,\phi}]
-            \, P_l^m(\cos\theta)
+        \Phi(r,\theta,\phi) = \frac{G m_{\mathrm{tot}}}{r_s}
+            \sum_{l=0}^{l_\mathrm{max}} \sum_{m=0}^{l}
+            \Big[ \big(s^l\, IS_{lm} + s^{-(l+1)}\, OS_{lm}\big)
+                  \,\mathrm{Re}\,Y_l^m
+                + \big(s^l\, IT_{lm} + s^{-(l+1)}\, OT_{lm}\big)
+                  \,\mathrm{Im}\,Y_l^m \Big],
 
+    where :math:`\mathrm{Re}\,Y_l^m \propto P_l^m(\cos\theta)\cos m\phi` and
+    :math:`\mathrm{Im}\,Y_l^m \propto P_l^m(\cos\theta)\sin m\phi`. Here
+    :math:`m_{\mathrm{tot}}` is a mass, :math:`r_s` a length and :math:`G` the
+    gravitational constant, so :math:`G m_{\mathrm{tot}} / r_s` has the units
+    of a potential and the four coefficient tables ``ISlm``, ``ITlm``,
+    ``OSlm`` and ``OTlm`` are dimensionless. Each is an array of shape
+    ``(l_max + 1, l_max + 1)``; only the entries with :math:`m \le l` are used.
+    The functions in `galax.potential.multipole` take :math:`l_\mathrm{max}` from
+    that shape. The harmonics are the orthonormal ones with the
+    Condon-Shortley phase, the same as ``mpmath.spherharm`` and
+    ``scipy.special.sph_harm_y`` [BT08Multipole]_.
+
+    Every term is a solid harmonic, so :math:`\nabla^2 \Phi = 0` for
+    :math:`r > 0` and the density is exactly zero there. The mass of the
+    model sits formally at the origin (the outer terms) and at infinity (the
+    inner terms).
+
+    Notes
+    -----
+    The potential is not defined at the origin when any outer coefficient is
+    non-zero, because :math:`s^{-(l+1)}` diverges there. With only inner terms
+    it is a polynomial in :math:`x, y, z` and smooth everywhere.
+
+    The direction is carried by the Cartesian unit vector rather than by
+    :math:`(\theta, \phi)`, so the gradient and Hessian are finite on the
+    :math:`z` axis. The ``l_max`` argument of the class is static, and the
+    cost grows as :math:`l_\mathrm{max}^2`.
+
+    References
+    ----------
+    .. [BT08Multipole] Binney, J., & Tremaine, S. (2008). Galactic Dynamics,
+       2nd ed. Princeton University Press, Sec. 2.4.
     """
 
     ISlm: AbstractParameter = ParameterField(  # type: ignore[assignment]
@@ -227,25 +172,60 @@ class MultipolePotential(AbstractMultipolePotential):
         # Parse inputs
         xyz = u.ustrip(AllowValue, self.units["length"], xyz)
 
-        # Compute parameters
-        p = self.params(t)
+        # Compute
+        params = self.params(t)
+        return potential(params, xyz)  # type: ignore[no-any-return]
 
-        # scaled radius and unit direction
-        is_scalar = xyz.ndim == 1
-        s, uvec = scaled_radius_and_direction(jnp.atleast_2d(xyz), p["r_s"])
 
-        # Compute the summation over l and m
-        terms = [
-            jnp.pow(s, l) * (p["ISlm"][l, m] * cYlm + p["ITlm"][l, m] * sYlm)
-            + jnp.pow(s, -l - 1) * (p["OSlm"][l, m] * cYlm + p["OTlm"][l, m] * sYlm)
-            for l, m, cYlm, sYlm in iter_Ylm(self.l_max, uvec)
-        ]
-        summation = jnp.sum(jnp.stack(terms), axis=0)
-        if is_scalar:
-            summation = summation[0]
+# ===================================================================
 
-        _result = p["G"] * p["m_tot"] / p["r_s"] * summation
-        return _result  # type: ignore[no-any-return]
+
+@ft.partial(jax.jit)
+def density(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:  # noqa: ARG001
+    r"""Density of a multipole expansion: exactly zero.
+
+    Every term is a solid harmonic, :math:`\nabla^2 \Phi = 0` for :math:`r > 0`,
+    so there is no mass away from the origin. The same function is the
+    ``density`` of `galax.potential.multipoleinner`,
+    `galax.potential.multipoleouter` and `galax.potential.multipole`.
+    """
+    return jnp.zeros(xyz.shape[:-1], dtype=xyz.dtype)  # type: ignore[no-any-return]
+
+
+@ft.partial(jax.jit)
+def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
+    r"""Potential of the combined inner and outer multipole expansion.
+
+    .. math::
+
+        \Phi = \frac{G m_{\mathrm{tot}}}{r_s}
+            \sum_{l=0}^{l_\mathrm{max}} \sum_{m=0}^{l}
+            \Big[ \big(s^l\, IS_{lm} + s^{-(l+1)}\, OS_{lm}\big)
+                  \,\mathrm{Re}\,Y_l^m
+                + \big(s^l\, IT_{lm} + s^{-(l+1)}\, OT_{lm}\big)
+                  \,\mathrm{Im}\,Y_l^m \Big]
+
+    with :math:`s = r / r_s`. The maximum degree is read from the coefficient
+    shape, :math:`l_\mathrm{max} =` ``p["ISlm"].shape[0] - 1``. The function
+    works on one point of shape ``(3,)`` and also on a leading batch
+    ``(..., 3)``, so the class calls it directly on a batch of points.
+    """
+    l_max = p["ISlm"].shape[0] - 1
+    # Leading axis so that a single point and a batch take the same path.
+    s, uvec = scaled_radius_and_direction(xyz[None], p["r_s"])
+    terms = [
+        jnp.pow(s, l) * (p["ISlm"][l, m] * cYlm + p["ITlm"][l, m] * sYlm)
+        + jnp.pow(s, -l - 1) * (p["OSlm"][l, m] * cYlm + p["OTlm"][l, m] * sYlm)
+        for l, m, cYlm, sYlm in iter_Ylm(l_max, uvec)
+    ]
+    summation = jnp.sum(jnp.stack(terms), axis=0)[0]
+    return p["G"] * p["m_tot"] / p["r_s"] * summation  # type: ignore[no-any-return]
+
+
+# Derived quantities, built from the kernels above.
+laplacian = poisson_laplacian(density)
+gradient = cartesian_gradient(potential)
+hessian = cartesian_hessian(potential)
 
 
 # ===== Helper functions =====

@@ -376,10 +376,10 @@ def test_vmap_and_bad_points(mode, solver) -> None:
 
     The bad lanes are a NaN release time, a release after t1, and a NaN or
     negative ``t_age``. They never raise (that they don't grind to
-    ``max_steps`` is checked in test_spray_per_particle.py). They leave the good lanes
-    bitwise as they are. Batched and unbatched round-off differ in the last
+    ``max_steps`` is checked in test_spray_per_particle.py), and leave the good
+    lanes as they are, to round-off. Batch size changes round-off in the last
     bits, which adaptive step control amplifies to about its tolerance, so the
-    adaptive comparison is at 1e-7.
+    adaptive comparisons are at 1e-7.
     """
     sim = make_sim(mode, SOLVERS[solver])
     atol = 1e-12 if solver == "leapfrog" else 1e-7
@@ -399,7 +399,8 @@ def test_vmap_and_bad_points(mode, solver) -> None:
         got = jax.jit(jax.vmap(run))(xs)
         for k in range(2):
             np.testing.assert_allclose(got[k], run(xs[k]), rtol=0, atol=atol)
-        np.testing.assert_array_equal(got[:2], jax.jit(jax.vmap(run))(xs[:2]))
+        alone = jax.jit(jax.vmap(run))(xs[:2])
+        np.testing.assert_allclose(got[:2], alone, rtol=0, atol=atol)
         assert jnp.all(jnp.isnan(got[2:]))
 
 

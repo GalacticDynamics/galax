@@ -1,4 +1,8 @@
 ci:
+  # pre-commit.ci runs every hook over every file on its own runners and autofixes by
+  # pushing a commit. The graph is not byte-reproducible across platforms, so a rebuild
+  # there would push a reshuffled graph into every branch.
+  skip: [graphify-update]
   autoupdate_schedule: "quarterly"
   autoupdate_commit_msg: "chore: update pre-commit hooks"
   autofix_commit_msg: "style: pre-commit fixes"
@@ -25,11 +29,16 @@ repos:
     rev: "v5.0.0"
     hooks:
       - id: check-added-large-files
+        # The committed code graph is a few megabytes of generated JSON.
+        exclude: ^graphify-out/graph\.json$
       - id: check-case-conflict
       - id: check-merge-conflict
       - id: check-yaml
       - id: debug-statements
       - id: end-of-file-fixer
+        # graphify writes no trailing newline; adding one makes the hook and the
+        # rebuild rewrite the file in turn, for ever.
+        exclude: ^graphify-out/graph\.json$
       - id: mixed-line-ending
       - id: name-tests-test
         args: ["--pytest-test-first"]
@@ -81,6 +90,9 @@ repos:
       - id: prettier
         types_or: [yaml, markdown, html, css, scss, javascript, json]
         args: [--prose-wrap=always]
+        # The graph is one long line by design; reformatting it to hundreds of
+        # thousands destroys the diff and merge properties it is committed for.
+        exclude: ^graphify-out/graph\.json$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.14.1"
@@ -106,7 +118,7 @@ repos:
     rev: "v2.3.0"
     hooks:
       - id: codespell
-        exclude: ^(notebooks|AUTHORS\.rst)$
+        exclude: ^(notebooks|AUTHORS\.rst|graphify-out/graph\.json)$
         additional_dependencies:
           - tomli
 
@@ -120,3 +132,21 @@ repos:
   #   hooks:
   #     - id: validate-pyproject
   #       additional_dependencies: ["validate-pyproject-schema-store[all]"]
+
+  # Keeps the committed code graph (graphify-out/graph.json) in step with the code.
+  # Like a formatter: if the graph changed, stage it and commit again.
+  # Skip once with `SKIP=graphify-update git commit ...`.
+  - repo: local
+    hooks:
+      - id: graphify-update
+        name: graphify update
+        language: python
+        additional_dependencies: ["graphifyy==0.9.119"]
+        entry: env PYTHONHASHSEED=0 graphify update . --force
+        pass_filenames: false
+        # Without this a commit that only deletes files reports "no files to check",
+        # skips, and leaves the deleted code in the graph.
+        always_run: true
+        # `default_stages` includes pre-push; without this the hook runs a second full
+        # rebuild on every push, which can only repeat what this one already enforced.
+        stages: [pre-commit]

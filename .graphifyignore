@@ -1,0 +1,34 @@
+# What graphify indexes: the library source, and nothing else. Committed, and read
+# by both `extract` and `update`, so a fresh clone -- which is what CI and the
+# weekly drift job are -- rebuilds the same graph as a working checkout. The
+# `--code-only` scope lives in an untracked cache and would not survive the trip.
+
+# Configuration and prose: mapping keys and headings, not structure. The CI
+# workflows alone were 533 of the 8791 nodes in the unscoped survey graph.
+*.yml
+*.yaml
+*.md
+*.rst
+*.txt
+*.svg
+*.png
+
+# Project metadata. Also stops a dependency bump from moving the graph: every
+# pyproject.toml is otherwise indexed, so bumping a pin churns the committed file
+# for no change in the code.
+*.toml
+
+# Tests. The 202 test modules were 3910 nodes and 11353 edges -- 44% of the
+# survey graph and half its bytes -- for the one part of the tree whose layout
+# is already predictable: packages/<dist>/tests mirrors packages/<dist>/src.
+# Grep the tests; query the graph for the 262 modules under src/.
+tests/
+
+# Not library code: the benchmark harness, the one-off plot scripts, the Sphinx
+# config and the dev-task runners. Nothing an agent navigating galax routes
+# through, and the graph is a map of the library.
+benchmarks/
+scripts/
+docs/
+noxfile.py
+conftest.py

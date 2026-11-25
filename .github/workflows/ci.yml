@@ -45,8 +45,10 @@ jobs:
         with:
           extra-args: --all-files
         env:
-          # Not a real commit -- no-commit-to-branch would always fail here.
-          SKIP: no-commit-to-branch
+          # Not a real commit -- no-commit-to-branch would always fail here. And the
+          # graph rebuild is not byte-reproducible across platforms, so rebuilding it
+          # here would fail whenever the committed copy was last built elsewhere.
+          SKIP: no-commit-to-branch,graphify-update
 
   # Where there's smoke, there's fire!
   smoke:

@@ -96,6 +96,9 @@ uv sync --no-default-groups --package galax.coordinates --group test
 uv run --no-sync pytest packages/galax.coordinates
 ```
 
+Contributors and AI assistants: this repository ships a queryable code graph —
+see [CONTRIBUTING.md](.github/CONTRIBUTING.md#the-code-graph).
+
 ### Contributors
 
 See the

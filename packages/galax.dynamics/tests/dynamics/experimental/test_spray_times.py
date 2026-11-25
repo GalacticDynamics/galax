@@ -316,18 +316,6 @@ def test_zero_span_grad(mode, solver) -> None:
     np.testing.assert_allclose(jax.grad(loss)(ts)[0], want, rtol=1e-3)
 
 
-@pytest.mark.parametrize("mode", list(ALL))
-def test_release_after_t1_is_nan(mode) -> None:
-    """A release time after ``t1`` gives NaN under jit, not a wrong stream."""
-    sim = make_sim(mode)
-
-    def run(ts):
-        return flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 20, T1)))
-
-    got = jax.jit(run)(jnp.asarray([-200.0, -50.0, 40.0]))
-    assert jnp.all(jnp.isnan(got))
-
-
 @pytest.mark.parametrize("prog", ["plummer", "none"])
 @pytest.mark.parametrize("mode", PER)
 def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
@@ -377,7 +365,7 @@ def test_list_w_today() -> None:
 
 
 @pytest.mark.parametrize("solver", list(SOLVERS))
-@pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-scan"])
+@pytest.mark.parametrize("mode", list(ALL))
 def test_vmap_and_bad_points(mode, solver) -> None:
     """Under jit(vmap), good lanes equal separate calls; bad lanes give NaN.
 

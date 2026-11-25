@@ -36,6 +36,7 @@ from galax.potential._src.base_single import (
     LaplacianFromDensityMixin,
 )
 from galax.potential._src.kernels import (
+    mass_from_dpotential,
     poisson_laplacian,
     spherical_gradient,
     spherical_hessian,
@@ -159,19 +160,8 @@ def d2potential_dr2(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     return p["v_c"] ** 2 * (p["r_s"] ** 2 - r2) / (p["r_s"] ** 2 + r2) ** 2
 
 
-@ft.partial(jax.jit)
-def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
-    r"""Enclosed mass for the logarithmic potential.
-
-    .. math::
-
-        M(<r) = \frac{v_c^2\, r^3}{G (r_s^2 + r^2)}
-    """
-    _result = p["v_c"] ** 2 * r**3 / (p["G"] * (p["r_s"] ** 2 + r**2))
-    return _result
-
-
 # Derived quantities, built from the kernels above.
+mass_enclosed = mass_from_dpotential(dpotential_dr)
 laplacian = poisson_laplacian(density)
 gradient = spherical_gradient(dpotential_dr)
 hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)

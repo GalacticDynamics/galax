@@ -137,3 +137,25 @@ def test_density_is_laplacian_over_4piG() -> None:
         jnp.trace(pot.hessian(xyz, 0.0), axis1=-2, axis2=-1) / four_pi_G,
         rtol=1e-12,
     )
+
+
+def test_origin_is_finite_and_the_hessian_is_zero() -> None:
+    """At ``xyz = 0`` the value and gradient are finite and the Hessian is zero.
+
+    `safe_sqrt` floors the radius, so nothing is NaN, and the second derivative
+    comes out 0 and not the NFW cusp.
+    """
+    v08 = gp.vogelsberger08triaxialnfw
+    pot = gp.Vogelsberger08TriaxialNFWPotential(
+        m=u.Q(1e12, "Msun"),
+        r_s=u.Q(8.0, "kpc"),
+        q1=1.1,
+        a_r=u.Q(1.5, ""),
+        units="galactic",
+    )
+    p, o = pot.params(0.0), jnp.zeros(3)
+
+    assert jnp.isfinite(v08.potential(p, o))
+    assert jnp.all(jnp.isfinite(v08.gradient(p, o)))
+    assert jnp.all(v08.hessian(p, o) == 0.0)
+    assert v08.laplacian(p, o) == 0.0

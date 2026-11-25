@@ -29,21 +29,18 @@ from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
 from galax.potential._src.base import default_constants
-from galax.potential._src.base_single import (
-    AbstractSinglePotential,
-    LaplacianFromDensityMixin,
-)
+from galax.potential._src.base_single import AbstractSinglePotential
 from galax.potential._src.kernels import (
     cartesian_gradient,
     cartesian_hessian,
-    poisson_laplacian,
+    poisson_density,
 )
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 
 
 @final
-class HenonHeilesPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
+class HenonHeilesPotential(AbstractSinglePotential):
     r"""Henon-Heiles potential.
 
     This is a modified version of the [classical Henon-Heiles
@@ -63,6 +60,9 @@ class HenonHeilesPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     .. math::
 
         \rho = \frac{1}{2 \pi G\, t_s^2}.
+
+    The density needs the gravitational constant, so it fails if ``constants``
+    has no ``"G"``; the Laplacian does not.
 
     Examples
     --------
@@ -151,21 +151,20 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtSz0:
 
 
 @ft.partial(jax.jit)
-def density(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
-    r"""Density of the Henon-Heiles model, uniform in space.
+def laplacian(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
+    r"""Laplacian of the Henon-Heiles potential, uniform in space.
 
     .. math::
 
-        \rho = \frac{1}{2 \pi G\, t_s^2}
+        \nabla^2 \Phi = \frac{2}{t_s^2}
 
-    which is :math:`\nabla^2 \Phi / (4 \pi G)` with :math:`\nabla^2 \Phi =
-    2 / t_s^2`.
+    The cubic terms are harmonic. The result does not need the gravitational
+    constant.
     """
-    _result = 2 / (4 * jnp.pi * p["G"] * p["timescale"] ** 2)
-    return jnp.broadcast_to(_result, xyz.shape[:-1])  # type: ignore[no-any-return]
+    return jnp.broadcast_to(2 / p["timescale"] ** 2, xyz.shape[:-1])  # type: ignore[no-any-return]
 
 
 # Derived quantities, built from the kernels above.
-laplacian = poisson_laplacian(density)
+density = poisson_density(laplacian)
 gradient = cartesian_gradient(potential)
 hessian = cartesian_hessian(potential)

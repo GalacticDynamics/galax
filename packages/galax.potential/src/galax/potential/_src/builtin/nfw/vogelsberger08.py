@@ -22,7 +22,6 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
@@ -104,15 +103,6 @@ class Vogelsberger08TriaxialNFWPotential(AbstractSinglePotential):
         # Compute
         params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-
-        # Compute. `density` is built by autodiff, so it takes one point.
-        params = self.params(t)
-        return jnp.vectorize(lambda x: density(params, x), signature="(3)->()")(xyz)  # type: ignore[no-any-return]
 
 
 # ====================================================================

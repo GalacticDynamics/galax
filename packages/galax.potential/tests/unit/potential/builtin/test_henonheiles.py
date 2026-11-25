@@ -167,3 +167,19 @@ def test_module_closed_forms() -> None:
     np.testing.assert_allclose(hh.laplacian(p, xyz), 2 / ts**2)
     np.testing.assert_allclose(hh.density(p, xyz), 2 / (4 * np.pi * G * ts**2))
     assert hh.density(p, jnp.ones((4, 3))).shape == (4,)
+
+
+def test_laplacian_does_not_need_G() -> None:
+    """The Laplacian is ``2 / timescale**2`` with or without ``G`` in ``constants``."""
+    hh = gp.henonheiles
+    p = {"coeff": 1.0, "timescale": 1.5}  # no "G"
+    np.testing.assert_allclose(hh.laplacian(p, jnp.array([1.0, 2.0, 3.0])), 2 / 1.5**2)
+
+    pot = gp.HenonHeilesPotential(
+        coeff=u.Q(1.0, "1/kpc"),
+        timescale=u.Q(1.5, "Myr"),
+        units="galactic",
+        constants={},
+    )
+    q, t = u.Q([1.0, 2.0, 3.0], "kpc"), u.Q(0.0, "Gyr")
+    np.testing.assert_allclose(pot.laplacian(q, t).ustrip("1/Myr2"), 2 / 1.5**2)

@@ -51,10 +51,10 @@ class LMJ09LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
     The potential is a triaxial logarithmic potential, rotated by the angle
     :math:`\phi` in the :math:`x`-:math:`y` plane,
 
-    $$
-    \Phi = \frac{1}{2} v_c^2 \ln\left(r_s^2 + \frac{x^2}{q_1^2}
-            + \frac{y^2}{q_2^2} + \frac{z^2}{q_3^2}\right).
-    $$
+    .. math::
+
+        \Phi = \frac{1}{2} v_c^2 \ln\left(r_s^2 + \frac{x^2}{q_1^2}
+                + \frac{y^2}{q_2^2} + \frac{z^2}{q_3^2}\right).
 
     The corresponding (triaxial) density, derived from the potential above
     via Poisson's equation, is (using the bar-frame coordinates :math:`x,

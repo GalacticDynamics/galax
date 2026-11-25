@@ -109,3 +109,23 @@ def test_density_is_laplacian_over_4piG() -> None:
         jnp.trace(pot.hessian(xyz, 0.0), axis1=-2, axis2=-1) / four_pi_G,
         rtol=1e-12,
     )
+
+
+def test_origin_is_finite_and_the_hessian_is_the_square_root_floor() -> None:
+    """At ``xyz = 0`` the value and gradient are finite and the Hessian is huge.
+
+    `safe_sqrt` floors the radius, so nothing is NaN. The second derivative is
+    set by the floor, not by the profile, so it is only bounded from below.
+    """
+    th = gp.triaxialhernquist
+    pot = gp.TriaxialHernquistPotential(
+        m_tot=u.Q(1e12, "Msun"), r_s=u.Q(8.0, "kpc"), q1=0.9, q2=0.7, units="galactic"
+    )
+    p, o = pot.params(0.0), jnp.zeros(3)
+
+    np.testing.assert_allclose(th.potential(p, o), -p["G"] * p["m_tot"] / p["r_s"])
+    assert jnp.all(jnp.isfinite(th.gradient(p, o)))
+    hess = th.hessian(p, o)
+    assert jnp.all(jnp.isfinite(hess))
+    assert jnp.all(jnp.diag(hess) > 1e100)
+    assert 1e100 < th.laplacian(p, o) < jnp.inf

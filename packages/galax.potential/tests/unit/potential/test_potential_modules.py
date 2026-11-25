@@ -80,7 +80,7 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     gp.LMJ09LogarithmicPotential(
         v_c=u.Q(220.0, "km/s"),
         r_s=RS,
-        q1=1.0,
+        q1=0.9,
         q2=0.8,
         q3=0.6,
         phi=u.Q(0.3, "rad"),
@@ -92,6 +92,9 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     ),
 ]
 
+# Modules whose `density` a helper builds by autodiff: the class keeps the
+# base-class default, which is the same computation.
+HELPER_DENSITY: set[str] = {"triaxialhernquist", "vogelsberger08triaxialnfw"}
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
 # Kepler: point mass, so the density is a delta.
 NO_MASS_QUADRATURE: set[str] = {"kepler"}
@@ -432,6 +435,10 @@ def test_float32_si_zhao_class_gradient():
 def test_class_methods_call_module_kernels(pot, name):
     """``_<name>`` of the class calls the module-level ``<name>``: no formula twice."""
     module = module_for(pot)
+    if name == "density" and module_name(pot) in HELPER_DENSITY:
+        pytest.skip(
+            "density is built by a helper, and the class keeps the base default"
+        )
     method = inspect.unwrap(getattr(type(pot), f"_{name}"))
     tree = ast.parse(textwrap.dedent(inspect.getsource(method)))
     called = {

@@ -22,7 +22,6 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
@@ -114,13 +113,13 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
     q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
         default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
-        doc="Scale length in the y direction divided by ``c``.",
+        doc="Axis ratio of the y axis to the x axis.",
     )
 
     q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
         default=u.StaticQuantity(1.0, ""),
         dimensions="dimensionless",
-        doc="Scale length in the z direction divided by ``c``.",
+        doc="Axis ratio of the z axis to the x axis.",
     )
 
     _: KW_ONLY
@@ -140,15 +139,6 @@ class TriaxialHernquistPotential(AbstractSinglePotential):
         # Compute
         params = self.params(t)
         return potential(params, xyz)  # type: ignore[no-any-return]
-
-    @ft.partial(jax.jit)
-    def _density(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtFloatSz0:
-        # Parse inputs
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-
-        # Compute. `density` is built by autodiff, so it takes one point.
-        params = self.params(t)
-        return jnp.vectorize(lambda x: density(params, x), signature="(3)->()")(xyz)  # type: ignore[no-any-return]
 
 
 # ====================================================================

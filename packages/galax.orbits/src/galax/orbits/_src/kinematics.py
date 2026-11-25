@@ -90,8 +90,6 @@ def angular_speed(x: Any, v: Any, /) -> gt.BBtQuSz0:
 
         \omega = \frac{|\mathbf{x} \times \mathbf{v}|}{|\mathbf{x}|^2}
 
-    This was called ``omega`` before; that name still works but is deprecated.
-
     Examples
     --------
     >>> import jax.numpy as jnp

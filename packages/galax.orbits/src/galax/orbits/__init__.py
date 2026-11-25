@@ -13,9 +13,7 @@ __all__ = [
     "specific_angular_momentum",
 ]
 
-import warnings
-
-from typing import Any
+from typing import TYPE_CHECKING
 
 from ._src.api import circulation, compute_orbit
 from ._src.base import AbstractOrbit
@@ -44,17 +42,22 @@ from . import experimental  # noqa: F401
 ProxyAbstractOrbit.deliver(AbstractOrbit)
 
 
-def __getattr__(name: str) -> Any:
-    """Serve the deprecated ``omega`` alias of `angular_speed`."""
-    if name == "omega":
+if not TYPE_CHECKING:  # so type checkers still flag unknown attributes
+
+    def __getattr__(name: str) -> object:
+        """Serve the deprecated ``omega`` alias of `angular_speed`."""
+        if name != "omega":
+            msg = f"module {__name__!r} has no attribute {name!r}"
+            raise AttributeError(msg)
+
+        import warnings
+
         warnings.warn(
             "`omega` is deprecated; use `angular_speed`.",
             DeprecationWarning,
             stacklevel=2,
         )
         return angular_speed
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)
 
 
 # Cleanup

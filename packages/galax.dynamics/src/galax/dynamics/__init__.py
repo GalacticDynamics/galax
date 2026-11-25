@@ -44,9 +44,7 @@ __all__ = [
 ]
 
 
-import warnings
-
-from typing import Any
+from typing import TYPE_CHECKING
 
 from diffraxtra import DiffEqSolver
 
@@ -78,14 +76,19 @@ load_interop_plugins("galax.dynamics.interop")
 del load_interop_plugins
 
 
-def __getattr__(name: str) -> Any:
-    """Serve the deprecated ``omega`` alias of `angular_speed`."""
-    if name == "omega":
+if not TYPE_CHECKING:  # so type checkers still flag unknown attributes
+
+    def __getattr__(name: str) -> object:
+        """Serve the deprecated ``omega`` alias of `angular_speed`."""
+        if name != "omega":
+            msg = f"module {__name__!r} has no attribute {name!r}"
+            raise AttributeError(msg)
+
+        import warnings
+
         warnings.warn(
             "`omega` is deprecated; use `angular_speed`.",
             DeprecationWarning,
             stacklevel=2,
         )
         return angular_speed
-    msg = f"module {__name__!r} has no attribute {name!r}"
-    raise AttributeError(msg)

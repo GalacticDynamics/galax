@@ -401,10 +401,10 @@ solver = go.OrbitSolver(gf.Leapfrog(), stepsize_controller=dfx.ConstantStepSize(
 orbit = go.compute_orbit(pot, w0, ts, solver=solver, dt0=u.Q(1, "Myr"))
 assert orbit.q.shape == (2,), orbit.q.shape
 
-# The legacy integrator and `omega` live in `galax.orbits` too.
+# The legacy integrator and `angular_speed` live in `galax.orbits` too.
 orbit = go.integrate.evaluate_orbit(pot, w0, ts)
 assert orbit.q.shape == (2,), orbit.q.shape
-assert float(go.omega(jnp.array([8.0, 0, 0]), jnp.array([0.0, 8, 0]))) == 1.0
+assert float(go.angular_speed(jnp.array([8.0, 0, 0]), jnp.array([0.0, 8, 0]))) == 1.0
 
 for absent in ("galax.dynamics", "galax.actionangle", "galax.interop", "gala",
                "galpy", "matplotlib"):

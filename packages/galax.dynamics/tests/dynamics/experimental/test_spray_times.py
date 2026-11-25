@@ -305,7 +305,7 @@ def test_zero_span_grad(mode, solver) -> None:
     A `Uniform` at ``t_age = 0`` can only grow ``t_age``; of two releases at an
     explicit ``t1``, the first moving left keeps the grid's order. An adaptive
     solve takes no steps there, so its tangents come from `_solve`'s
-    first-order term; without it they were 30-170 times off.
+    first-order term; without it they were far outside the tolerance.
     """
     sim = make_sim(mode, SOLVERS[solver])
     e = 1e-4
@@ -326,11 +326,9 @@ def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
 
     Copies and the host alone step on the merged grid like the whole stream,
     so they match it to round-off. The track's knots come from a separate
-    Leapfrog solve on the uniform lattice, a few 1e-3 kpc from the
-    merged-grid orbit the releases come from, so the track matches only to
-    the tolerances below (1e-2 kpc, 1e-3 kpc/Myr). Both are inside Leapfrog's
-    own error at this step: a median of a few 1e-2 kpc against an adaptive
-    solve from the same release states.
+    Leapfrog solve on the uniform lattice, a slightly different orbit from the
+    merged-grid one the releases come from, so the track matches only to the
+    tolerances below (1e-2 kpc, 1e-3 kpc/Myr).
     """
     pp = plummer if prog == "plummer" else None
     sched = gde.Times(TS, 30, T1)

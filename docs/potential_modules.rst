@@ -169,4 +169,18 @@ Non-spherical
 -------------
 
 ``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``miyamotonagai``, ``monarietal2016bar``, ``multipole``, ``multipoleinner``,
+``multipoleouter``, ``satoh``.
+
+The three multipole modules have no ``l_max`` argument. Their coefficient
+tables (``Slm`` and ``Tlm``, or ``ISlm``, ``ITlm``, ``OSlm`` and ``OTlm``) are
+2-D arrays of shape ``(l_max + 1, l_max + 1)``, and the functions read
+``l_max`` from that shape, so the tables and the degree cannot disagree. The
+``density`` is exactly zero for all three, because every term is a solid
+harmonic, and it is the same function in each module. ``potential``,
+``density`` and ``laplacian`` also accept an array of positions of shape
+``(..., 3)`` directly, and the classes call the module ``potential`` and
+``density`` that way. The class Laplacian is :math:`4 \pi G` times the class
+density, equal to the module ``laplacian`` (both are exactly 0). ``gradient``
+and ``hessian`` take a single point of shape ``(3,)``; use ``jax.vmap`` for
+many.

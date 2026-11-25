@@ -23,7 +23,15 @@ from .milkyway import *
 from .miyamotonagai import *
 from .mn3 import *
 from .monari2016 import *
-from .multipole import *
+
+# Not `import *`: `multipole.__all__` also carries the function set and
+# `scaled_radius_and_direction`, which are not potentials. The functions stay
+# reachable through the public `galax.potential.multipole`, and
+# `scaled_radius_and_direction` through this private module.
+from .multipole import (
+    AbstractMultipolePotential as AbstractMultipolePotential,
+    MultipolePotential as MultipolePotential,
+)
 
 # Not `import *`: `multipole_profile.__all__` also carries the projection,
 # Poisson, build and evaluation functions, which are not potentials. They stay
@@ -32,6 +40,8 @@ from .multipole_profile import (
     AbstractMultipoleProfilePotential as AbstractMultipoleProfilePotential,
     MultipoleProfilePotential as MultipoleProfilePotential,
 )
+from .multipoleinner import MultipoleInnerPotential as MultipoleInnerPotential
+from .multipoleouter import MultipoleOuterPotential as MultipoleOuterPotential
 from .nfw import *
 from .null import *
 from .plummer import *

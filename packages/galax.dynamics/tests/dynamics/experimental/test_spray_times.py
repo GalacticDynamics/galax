@@ -139,7 +139,7 @@ L7 = float(TIE_LATTICE[7])
 TIES = {
     # Pairs at min(ts), on a lattice point, off the lattice and at t1.
     "explicit-t1": ([-300.0, -300.0, L7, L7, -123.4, -123.4, 0.0, 0.0], T1),
-    # One on a lattice point, and a pair at max(ts) that sets t1.
+    # A pair at max(ts) that sets t1 (L7 is off this lattice).
     "default-t1": ([-300.0, L7, -123.4, -12.5, -12.5], None),
     # Uniform's release times: every one on a lattice point.
     "uniform": (gde.Uniform(jnp.asarray(300.0), 4, 10).release_times(), T1),

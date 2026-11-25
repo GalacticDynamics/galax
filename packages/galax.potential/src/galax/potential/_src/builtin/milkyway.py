@@ -19,7 +19,7 @@ from xmmutablemap import ImmutableMap
 
 from .const import SQRT2
 from .hernquist import HernquistPotential
-from .logarithmic import LMJ09LogarithmicPotential
+from .lmj09logarithmic import LMJ09LogarithmicPotential
 from .miyamotonagai import MiyamotoNagaiPotential
 from .mn3 import MN3Sech2Potential
 from .nfw import NFWPotential

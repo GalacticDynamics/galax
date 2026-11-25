@@ -1,13 +1,11 @@
 """Private module that defines `HernquistPotential` and its functions.
 
-The module also holds the triaxial variant. The public API is
-`galax.potential.hernquist`.
+The public API is `galax.potential.hernquist`.
 """
 
 __all__ = [
     # class
     "HernquistPotential",
-    "TriaxialHernquistPotential",
     # functions
     "d2potential_dr2",
     "density",
@@ -29,7 +27,6 @@ import jax
 
 import quaxed.numpy as jnp
 import unxt as u
-from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
 
 import galax.potential.custom_types as gt
@@ -49,7 +46,7 @@ from galax.potential._src.kernels import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical, safe_sqrt
+from galax.potential._src.utils import r_spherical
 
 
 @final
@@ -186,94 +183,3 @@ mass_enclosed = mass_from_dpotential(dpotential_dr)
 laplacian = poisson_laplacian(density)
 gradient = spherical_gradient(dpotential_dr)
 hessian = spherical_hessian(dpotential_dr, d2potential_dr2, laplacian)
-
-
-##############################################################################
-
-
-@final
-class TriaxialHernquistPotential(AbstractSinglePotential):
-    """Triaxial Hernquist Potential.
-
-    Parameters
-    ----------
-    m_tot : :class:`~galax.potential.AbstractParameter`['mass']
-        Mass parameter. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    r_s : :class:`~galax.potential.AbstractParameter`['length']
-        A scale length that determines the concentration of the system.  This
-        can be a :class:`~galax.potential.AbstractParameter` or an appropriate
-        callable or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    q1 : :class:`~galax.potential.AbstractParameter`['length']
-        Scale length in the y direction. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-    a2 : :class:`~galax.potential.AbstractParameter`['length']
-        Scale length in the z direction. This can be a
-        :class:`~galax.potential.AbstractParameter` or an appropriate callable
-        or constant, like a Quantity. See
-        :class:`~galax.potential.ParameterField` for details.
-
-    units : :class:`~unxt.AbstractUnitSystem`, keyword-only
-        The unit system to use for the potential.  This parameter accepts a
-        :class:`~unxt.AbstractUnitSystem` or anything that can be converted to a
-        :class:`~unxt.AbstractUnitSystem` using :func:`~unxt.unitsystem`.
-
-    Examples
-    --------
-    >>> import unxt as u
-    >>> import galax.potential as gp
-
-    >>> pot = gp.TriaxialHernquistPotential(m_tot=1e12, r_s=8, q1=1, q2=0.5,
-    ...                                     units="galactic")
-
-    >>> q = u.Q([1, 0, 0], "kpc")
-    >>> t = u.Q(0, "Gyr")
-    >>> pot.potential(q, t)
-    Q(-0.49983357, 'kpc2 / Myr2')
-    """
-
-    m_tot: AbstractParameter = ParameterField(dimensions="mass", doc="Total mass.")  # type: ignore[assignment]
-
-    r_s: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        dimensions="length",
-        doc="Scale a scale length that determines the concentration of the system.",
-    )
-
-    # TODO: move to a triaxial wrapper
-    q1: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.StaticQuantity(1.0, ""),
-        dimensions="dimensionless",
-        doc="Scale length in the y direction divided by ``c``.",
-    )
-
-    q2: AbstractParameter = ParameterField(  # type: ignore[assignment]
-        default=u.StaticQuantity(1.0, ""),
-        dimensions="dimensionless",
-        doc="Scale length in the z direction divided by ``c``.",
-    )
-
-    _: KW_ONLY
-    units: u.AbstractUnitSystem = eqx.field(converter=u.unitsystem, static=True)
-    constants: ImmutableMap[str, u.AbstractQuantity] = eqx.field(
-        converter=ImmutableMap, default=default_constants
-    )
-
-    symmetry = Symmetry.PLANE_REFLECTION
-    """`Symmetry.PLANE_REFLECTION`: the potential is even in $x$, $y$ and $z$."""
-
-    @ft.partial(jax.jit)
-    def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz)
-
-        params = self.params(t)
-        rprime = safe_sqrt(
-            xyz[..., 0] ** 2
-            + (xyz[..., 1] / params["q1"]) ** 2
-            + (xyz[..., 2] / params["q2"]) ** 2
-        )
-        return potential(params, rprime)  # type: ignore[no-any-return]

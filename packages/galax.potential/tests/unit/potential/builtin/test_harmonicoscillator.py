@@ -2,6 +2,7 @@
 
 from typing import Any, override
 
+import numpy as np
 import pytest
 from plum import convert
 from unxts.parametric import ParametricQuantity
@@ -218,3 +219,40 @@ class TestHarmonicOscillatorVectorOmega:
         t = u.Q(1.0, "Myr")
         assert pot.omega(t).shape == (3,)
         assert jnp.allclose(pot.potential(q, t).ustrip("kpc2/Myr2"), 28.0)
+
+
+# ==============================================================================
+# The module functions
+
+
+def test_module_closed_forms() -> None:
+    """`galax.potential.harmonicoscillator` equals the closed forms."""
+    ho = gp.harmonicoscillator
+    xyz = jnp.array([1.0, 1.0, 1.0])
+
+    # A vector omega: one frequency per axis.
+    p = {"omega": jnp.array([1.0, 2.0, 3.0]), "G": 2.0}
+    assert ho.potential(p, xyz) == 7.0
+    np.testing.assert_array_equal(ho.gradient(p, xyz), [1.0, 4.0, 9.0])
+    np.testing.assert_array_equal(ho.hessian(p, xyz), np.diag([1.0, 4.0, 9.0]))
+    np.testing.assert_allclose(ho.laplacian(p, xyz), 14.0)
+    np.testing.assert_allclose(ho.density(p, xyz), 14.0 / (4 * np.pi * 2.0))
+
+    # A scalar omega is shared by the three axes.
+    p = {"omega": jnp.asarray(2.0), "G": 2.0}
+    assert ho.potential(p, xyz) == 6.0
+    np.testing.assert_array_equal(ho.gradient(p, xyz), [4.0, 4.0, 4.0])
+    np.testing.assert_allclose(ho.laplacian(p, xyz), 12.0)
+    np.testing.assert_allclose(ho.density(p, xyz), 12.0 / (4 * np.pi * 2.0))
+
+
+def test_density_without_G_names_the_constant() -> None:
+    """Without ``G`` in ``constants`` the density fails clearly; the Laplacian works."""
+    pot = gp.HarmonicOscillatorPotential(
+        omega=u.Q(1.0, "1/Myr"), units="galactic", constants={}
+    )
+    q, t = u.Q([1.0, 0.0, 0.0], "kpc"), u.Q(0.0, "Gyr")
+
+    with pytest.raises(ValueError, match="'G'"):
+        pot.density(q, t)
+    np.testing.assert_allclose(pot.laplacian(q, t).ustrip("1/Myr2"), 3.0)

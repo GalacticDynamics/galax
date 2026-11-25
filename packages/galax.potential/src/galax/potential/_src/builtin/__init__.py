@@ -9,15 +9,19 @@ See the public API in `galax.potential`.
 # and `mass_enclosed` is a `jax.jit` function in some and a kernel-factory
 # result in others. Nothing reads these names from here (see `galax.potential.<name>`).
 from .burkert import *
-from .example import *
 from .gaussian import *
+from .harmonicoscillator import (
+    HarmonicOscillatorPotential as HarmonicOscillatorPotential,
+)
+from .henonheiles import HenonHeilesPotential as HenonHeilesPotential
 from .hernquist import *  # type: ignore[assignment]
 from .isochrone import *  # type: ignore[assignment]
 from .jaffe import *  # type: ignore[assignment]
 from .kepler import *  # type: ignore[assignment]
 from .kuzmin import *
 from .kuzminkutuzov import *
-from .logarithmic import *
+from .lmj09logarithmic import LMJ09LogarithmicPotential as LMJ09LogarithmicPotential
+from .logarithmic import LogarithmicPotential as LogarithmicPotential
 from .longmurali import *
 from .milkyway import *
 from .miyamotonagai import *
@@ -33,7 +37,7 @@ from .multipole_profile import (
     MultipoleProfilePotential as MultipoleProfilePotential,
 )
 from .nfw import *
-from .null import *
+from .null import NullPotential as NullPotential
 from .plummer import *
 from .powerlawcutoff import *
 from .satoh import *
@@ -48,4 +52,7 @@ from .sph_expansion import (
 )
 from .stoneostriker15 import *
 from .tabulated_basis import *
+from .triaxialhernquist import (
+    TriaxialHernquistPotential as TriaxialHernquistPotential,
+)
 from .zhao import *

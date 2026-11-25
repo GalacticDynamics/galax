@@ -69,8 +69,32 @@ INSTANCES: list[gp.AbstractSinglePotential] = [
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1.3, "kpc"), units=G),
     gp.LeeSutoTriaxialNFWPotential(m=M, r_s=RS, a1=1.0, a2=0.8, a3=0.6, units=G),
+    # A vector `omega` makes the potential anisotropic, a scalar one isotropic.
+    gp.HarmonicOscillatorPotential(omega=u.Q([1.0, 2.0, 3.0], "1/Myr"), units=G),
+    gp.HarmonicOscillatorPotential(omega=u.Q(2.0, "1/Myr"), units=G),
+    gp.HenonHeilesPotential(
+        coeff=u.Q(1.0, "1/kpc"), timescale=u.Q(1.5, "Myr"), units=G
+    ),
+    gp.NullPotential(units=G),
+    gp.LogarithmicPotential(v_c=u.Q(220.0, "km/s"), r_s=RS, units=G),
+    gp.LMJ09LogarithmicPotential(
+        v_c=u.Q(220.0, "km/s"),
+        r_s=RS,
+        q1=0.9,
+        q2=0.8,
+        q3=0.6,
+        phi=u.Q(0.3, "rad"),
+        units=G,
+    ),
+    gp.TriaxialHernquistPotential(m_tot=M, r_s=RS, q1=0.9, q2=0.7, units=G),
+    gp.Vogelsberger08TriaxialNFWPotential(
+        m=M, r_s=RS, q1=1.1, a_r=u.Q(1.5, ""), units=G
+    ),
 ]
 
+# Modules whose `density` a helper builds by autodiff: the class keeps the
+# base-class default, which is the same computation.
+HELPER_DENSITY: set[str] = {"triaxialhernquist", "vogelsberger08triaxialnfw"}
 # Modules whose `mass_enclosed` is not the integral of `4 pi r^2 density`.
 # Kepler: point mass, so the density is a delta.
 NO_MASS_QUADRATURE: set[str] = {"kepler"}
@@ -107,6 +131,14 @@ def module_for(pot: gp.AbstractSinglePotential) -> ModuleType:
 
 def is_radial(pot: gp.AbstractSinglePotential, name: str) -> bool:
     return pot.symmetry == gp.Symmetry.SPHERICAL and name in RADIAL
+
+
+def scale_key(p: dict) -> str:
+    """Name of the parameter that scales the potential: a mass, ``v_c``, or ``G``.
+
+    ``NullPotential`` has no such parameter, so ``G`` stands in for it.
+    """
+    return next((k for k in ("m_tot", "m", "v_c") if k in p), "G")
 
 
 def extra(pot: gp.AbstractSinglePotential) -> tuple[float, ...]:
@@ -259,7 +291,7 @@ def test_origin(pot):
     if pot.symmetry != gp.Symmetry.SPHERICAL:
         pytest.skip("origin handling is a spherical-kernel contract")
     module, p, x0 = module_for(pot), pot.params(0.0), jnp.zeros(3)
-    key = "m_tot" if "m_tot" in p else "m"
+    key = scale_key(p)
 
     def at_origin(fn):
         """``fn(p, 0)`` as a function of the mass parameter."""
@@ -301,9 +333,9 @@ def test_origin_hessian_without_jit(pot):
 
 def test_param_gradient(pot):
     p, ex = pot.params(T), extra(pot)
-    if "m_tot" not in p and "m" not in p:
-        pytest.skip("no mass parameter")
-    key = "m_tot" if "m_tot" in p else "m"
+    key = scale_key(p)
+    if key == "G":
+        pytest.skip("no scale parameter")
     module, xyz = module_for(pot), XYZ[0]
 
     def via_module(m):
@@ -345,11 +377,14 @@ F32_SI_RADII = (1e16, 3e17, 3.0857e18, 1e19)  # m
 # methods equally so: their radial derivatives are autodiff of a closed form.
 _PHI1_SUM = "Phi' forms r**2 + r_s**2 ~ 2e40"
 _PHI2_INV = "Phi'' forms r**-3, which underflows float32 beyond 4.4e12 m"
+_NO_SCALE = "every value is zero, and there is no mass parameter to set in SI"
 F32_SI_EXCLUDED = {
     "gradient": {
         "plummer": _PHI1_SUM,
         "isochrone": _PHI1_SUM,
         "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
+        "logarithmic": _PHI1_SUM,
+        "null": _NO_SCALE,
     },
     "hessian": {
         "plummer": _PHI1_SUM,
@@ -357,6 +392,8 @@ F32_SI_EXCLUDED = {
         "hernquist": "Phi' forms (r + r_s)**2 ~ 2e40",
         "jaffe": _PHI2_INV,
         "kepler": _PHI2_INV,
+        "logarithmic": _PHI1_SUM,
+        "null": _NO_SCALE,
     },
 }
 # Their Phi' forms r**-2, which underflows float32 beyond 9.2e18 m.
@@ -398,6 +435,10 @@ def test_float32_si_zhao_class_gradient():
 def test_class_methods_call_module_kernels(pot, name):
     """``_<name>`` of the class calls the module-level ``<name>``: no formula twice."""
     module = module_for(pot)
+    if name == "density" and module_name(pot) in HELPER_DENSITY:
+        pytest.skip(
+            "density is built by a helper, and the class keeps the base default"
+        )
     method = inspect.unwrap(getattr(type(pot), f"_{name}"))
     tree = ast.parse(textwrap.dedent(inspect.getsource(method)))
     called = {

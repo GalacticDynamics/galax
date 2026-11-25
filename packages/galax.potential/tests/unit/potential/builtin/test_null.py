@@ -77,3 +77,35 @@ class TestNullPotential(AbstractSinglePotential_Test):
     def test_tidal_tensor(self, pot: gp.AbstractPotential, x: gt.QuSz3) -> None:
         """Test the `AbstractPotential.tidal_tensor` method."""
         return pot.tidal_tensor(x, t=0).ustrip("1/Myr2")
+
+
+# ==============================================================================
+# The module functions
+
+
+@pytest.mark.parametrize("dtype", [jnp.float32, jnp.float64])
+def test_module_zeros(dtype: Any) -> None:
+    """Every function of `galax.potential.null` is zero, in the dtype of its input."""
+    p = {"G": jnp.asarray(1.0, dtype=dtype)}
+    r, xyz = jnp.asarray(2.0, dtype=dtype), jnp.ones(3, dtype=dtype)
+
+    for name in (
+        "potential",
+        "density",
+        "laplacian",
+        "mass_enclosed",
+        "dpotential_dr",
+        "d2potential_dr2",
+    ):
+        out = getattr(gp.null, name)(p, r)
+        assert out.shape == (), name
+        assert out.dtype == dtype, name
+        assert out == 0, name
+
+    grad, hess = gp.null.gradient(p, xyz), gp.null.hessian(p, xyz)
+    assert grad.shape == (3,)
+    assert grad.dtype == dtype
+    assert hess.shape == (3, 3)
+    assert hess.dtype == dtype
+    assert not grad.any()
+    assert not hess.any()

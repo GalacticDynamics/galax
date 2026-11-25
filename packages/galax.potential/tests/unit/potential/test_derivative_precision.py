@@ -366,7 +366,7 @@ def _lmj09() -> General:
     pot = gp.LMJ09LogarithmicPotential(
         v_c=u.Q(200, "km/s"),
         r_s=RS,
-        q1=1.0,
+        q1=0.85,
         q2=0.9,
         q3=0.8,
         phi=u.Q(0.4, "rad"),

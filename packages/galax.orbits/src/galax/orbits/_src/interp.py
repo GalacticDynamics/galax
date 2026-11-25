@@ -62,16 +62,19 @@ class PhaseSpaceInterpolation(eqx.Module):
             u.ustrip(
                 AllowValue,
                 "",
-                jnp.logical_not(jnp.all(within_bounds(tval, self.t0, self.t1))),
+                # Each time must be in the bounds of every batch member.
+                jnp.logical_not(
+                    jnp.all(within_bounds(tval, jnp.max(self.t0), jnp.min(self.t1)))
+                ),
             ),
             "Time out of bounds.",
         )
 
         # Evaluate the interpolation
         ys = self.interp.evaluate(tval)
-        # Reshape (T, *batch) to (*batch, T)
+        # Reshape (*interp_batch, T, *y_batch) to (*interp_batch, *y_batch, T)
         if jnp.ndim(ts) != 0:
-            ys = jax.tree.map(lambda x: jnp.moveaxis(x, 0, -2), ys)
+            ys = jax.tree.map(lambda x: jnp.moveaxis(x, self.batch_ndim, -2), ys)
 
         q = FastQ(ys[0], usys["length"])
         p = FastQ(ys[1], usys["speed"])

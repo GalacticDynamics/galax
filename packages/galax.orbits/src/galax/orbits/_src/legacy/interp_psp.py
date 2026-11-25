@@ -102,7 +102,7 @@ def from_(
     return cls(
         q=cx.CartesianPos3D.from_(q, units["length"]),
         p=cx.CartesianVel3D.from_(p, units["speed"]),
-        t=FastQ(soln.ts, units["time"]),
+        t=FastQ(t, units["time"]),
         frame=frame,
         interpolant=interpolant,
     )

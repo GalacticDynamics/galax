@@ -10,8 +10,10 @@ from typing import Any, Literal, TypeAlias, final
 
 import diffrax as dfx
 import equinox as eqx
+import jax
 from plum import dispatch
 
+import diffraxtra as dfxtra
 import quaxed.numpy as jnp
 from unxt.quantity import AbstractQuantity, Quantity as FastQ
 from xmmutablemap import ImmutableMap
@@ -493,13 +495,23 @@ def call(
         excluded=(0,),
     )
 
-    return vec_call(
+    out = vec_call(
         field,
         FastQ.from_(y0_[0], units["length"]),
         FastQ.from_(y0_[1], units["speed"]),
         FastQ.from_(t0, units["time"]),
         FastQ.from_(t1, units["time"]),
     )
+    if not isinstance(out, InterpolatedPhaseSpaceCoordinate):
+        return out
+
+    # `jnp.vectorize` stacks the interpolant's arrays, each (*batch, 1, ...),
+    # but leaves its static `batch_shape` at `()`. Rebuild it with the batch.
+    scalar = out.interpolant.interp.scalar_interpolation
+    batch = scalar.ts.shape[:-2]
+    scalar = jax.tree.map(lambda x: jnp.squeeze(x, axis=len(batch)), scalar)
+    interp = dfxtra.VectorizedDenseInterpolation(scalar, batch_shape=batch)
+    return eqx.tree_at(lambda w: w.interpolant.interp, out, interp)
 
 
 # -------------------------------------------

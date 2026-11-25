@@ -103,9 +103,9 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
     :math:`100 r_s`, 1.1e-3 at :math:`300 r_s` and 2e-2 at :math:`10^3 r_s`, so
     raise ``integration_order`` for the far field. The gradient and Hessian,
     which are derivatives of the quadrature, lose accuracy faster: for
-    :math:`q_1 = 0.9`, :math:`q_2 = 0.6` the gradient error is below 3e-15 at
-    :math:`30 r_s`, 3e-6 at :math:`100 r_s`, 9e-4 at :math:`300 r_s` and 0.4 at
-    :math:`10^3 r_s`. The functions are in
+    :math:`q_2 = 0.6` the largest gradient error over six directions is below
+    3.1e-15 at :math:`30 r_s`, 3.3e-6 at :math:`100 r_s`, 9e-4 at :math:`300
+    r_s` and 0.41 at :math:`10^3 r_s`. The functions are in
     `galax.potential.axisymmetricgaussian`. The gradient and Hessian of this
     class come from automatic differentiation of the potential.
 

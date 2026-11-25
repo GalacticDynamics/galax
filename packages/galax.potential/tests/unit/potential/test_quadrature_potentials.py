@@ -39,6 +39,17 @@ DIRECTION = (2.0 / 7, 3.0 / 7, 6.0 / 7)
 RADII_IN_RS = (0.1, 1.0, 30.0)
 
 
+def mp_rho0(name, p):
+    """Return the central density of the model, from its mass parameter."""
+    with mp.workdps(30):
+        rs = mp.mpf(float(p["r_s"]))
+        if name == "triaxialnfw":
+            return mp.mpf(float(p["m"])) / (4 * mp.pi * rs**3)
+        q1 = mp.mpf(float(p["q1"])) if "q1" in p else mp.mpf(1)
+        q2 = mp.mpf(float(p["q2"]))
+        return mp.mpf(float(p["m_tot"])) / (q1 * q2 * (2 * mp.pi) ** 1.5 * rs**3)
+
+
 def mp_integral(name, p, xyz, *, derivatives=False):  # noqa: C901
     """Chandrasekhar's integral over tau in [0, inf) at 30 digits.
 
@@ -52,10 +63,7 @@ def mp_integral(name, p, xyz, *, derivatives=False):  # noqa: C901
         c = [mp.mpf(1), q1**2, q2**2]
         v = [mp.mpf(float(x)) for x in xyz]
         nfw = name == "triaxialnfw"
-        if nfw:
-            rho0 = mp.mpf(float(p["m"])) / (4 * mp.pi * rs**3)
-        else:
-            rho0 = mp.mpf(float(p["m_tot"])) / (q1 * q2 * (2 * mp.pi) ** 1.5 * rs**3)
+        rho0 = mp_rho0(name, p)
         pref = -mp.pi * G_ * q1 * q2 * rho0 * rs**2
 
         def F(X):  # Delta psi / (rho0 r_s^2)
@@ -207,12 +215,13 @@ def test_gaussian_density_integrates_to_the_mass(name):
 # of round-off of the dtype, in float64 and in float32. The classes keep their
 # results bit for bit, so the bounds say that the round-off did not get worse
 # (a kernel under jax.vmap can differ from the class by a few ulp, from XLA).
-# The flattened ones are large (1e-7 at the centre of a q = 0.1 model, 3e-6 for
-# the gradient): that is the order-50 quadrature of an integrand that narrows,
-# as in the docstrings, and the old code had it too. The bounds are the largest
-# error of the Gaussians and of the NFW over the points below, with the centre
-# apart. A square root of the dimensionless radius squared, in place of the
-# square root of the squared radius over r_s, breaks the float32 NFW bound.
+# The unit of round-off is larger than some old float32 errors, so a bound can
+# let through an error that is 3 to 5 times the old one: the float32 values stored
+# at the end of this file catch that, to two ulp. The flattened bounds are large
+# (1e-7 at the centre of a q = 0.1 model): that is the order-50 quadrature of an
+# integrand that narrows, as in the docstrings, and the old code had it too.
+# Each bound is the largest error of the Gaussians, or of the NFW, over the
+# points below, with the centre apart.
 
 FLAT = {  # strongly flattened axis ratios (q1, q2)
     "axisymmetricgaussian": (1.0, 0.1),
@@ -222,9 +231,10 @@ FLAT = {  # strongly flattened axis ratios (q1, q2)
 GAUSSIANS = ("axisymmetricgaussian", "triaxialgaussian")
 # (r in r_s, direction): near the centre, on the z axis, and far out.
 POINTS = ((1e-3, "gen"), (1.0, "z"), (30.0, "gen"))
-# The flattened model's gradient at 1e-3 r_s is limited by the quadrature.
+# The flattened model's gradient near the centre is limited by the quadrature
+# (6e-6 at 1e-3 r_s), so it is not tested there.
 GRAD_POINTS = {"sph": POINTS, "flat": POINTS[1:]}
-UNIT = {"x": (1, 0, 0), "z": (0, 0, 1), "gen": DIRECTION}
+UNIT = {"z": (0, 0, 1), "gen": DIRECTION}
 
 # (quantity, "sph" or "flat", dtype) -> the bound at each of POINTS (the centre:
 # one number), for the Gaussians and for the NFW.
@@ -238,8 +248,8 @@ BOUND = {
         ("centre", "flat", "f64"): 1.3e-7,
         ("potential", "flat", "f64"): (1.3e-7, 1.1e-10, 4.2e-14),
         ("density", "flat", "f64"): (5.0e-16, 2.4e-15, None),
-        ("gradient", "flat", "f64"): (1.4e-5, 2.8e-9, 4.0e-15),
-        ("hessian", "flat", "f64"): (1.4e-5, 4.3e-8, 2.4e-14),
+        ("gradient", "flat", "f64"): (None, 2.8e-9, 4.0e-15),
+        ("hessian", "flat", "f64"): (None, 4.3e-8, 2.4e-14),
         ("centre", "sph", "f32"): 2.0e-7,
         ("potential", "sph", "f32"): (3.3e-7, 2.7e-7, 4.6e-7),
         ("density", "sph", "f32"): (1.2e-7, 1.5e-7, None),
@@ -248,8 +258,8 @@ BOUND = {
         ("centre", "flat", "f32"): 2.8e-7,
         ("potential", "flat", "f32"): (3.8e-7, 2.4e-7, 2.8e-7),
         ("density", "flat", "f32"): (2.5e-7, 5.8e-6, None),
-        ("gradient", "flat", "f32"): (1.3e-5, 3.5e-7, 2.3e-7),
-        ("hessian", "flat", "f32"): (1.3e-5, 9.0e-7, 6.2e-7),
+        ("gradient", "flat", "f32"): (None, 3.5e-7, 2.3e-7),
+        ("hessian", "flat", "f32"): (None, 9.0e-7, 6.2e-7),
     },
     "nfw": {
         ("centre", "sph", "f64"): 2.2e-16,
@@ -260,8 +270,8 @@ BOUND = {
         ("centre", "flat", "f64"): 1.3e-7,
         ("potential", "flat", "f64"): (1.3e-7, 2.5e-10, 3.3e-12),
         ("density", "flat", "f64"): (5.4e-16, 1.2e-15, 2.2e-16),
-        ("gradient", "flat", "f64"): (2.4e-6, 1.1e-9, 1.2e-11),
-        ("hessian", "flat", "f64"): (2.3e-7, 2.9e-9, 3.9e-11),
+        ("gradient", "flat", "f64"): (None, 1.1e-9, 1.2e-11),
+        ("hessian", "flat", "f64"): (None, 2.9e-9, 3.9e-11),
         ("centre", "sph", "f32"): 1.7e-7,
         ("potential", "sph", "f32"): (2.9e-7, 2.3e-7, 2.9e-7),
         ("density", "sph", "f32"): (2.5e-7, 2.6e-7, 1.4e-7),
@@ -270,8 +280,8 @@ BOUND = {
         ("centre", "flat", "f32"): 3.0e-7,
         ("potential", "flat", "f32"): (2.7e-7, 1.2e-7, 1.8e-7),
         ("density", "flat", "f32"): (2.9e-7, 3.5e-7, 5.7e-7),
-        ("gradient", "flat", "f32"): (1.9e-6, 1.7e-7, 2.2e-7),
-        ("hessian", "flat", "f32"): (6.6e-7, 5.3e-7, 2.7e-7),
+        ("gradient", "flat", "f32"): (None, 1.7e-7, 2.2e-7),
+        ("hessian", "flat", "f32"): (None, 5.3e-7, 2.7e-7),
     },
 }  # fmt: skip
 
@@ -291,9 +301,8 @@ def mp_density(name, p, xyz):
         xi2 = (x**2 + y**2 / q1**2 + z**2 / q2**2) / rs**2
         if name == "triaxialnfw":
             xi = mp.sqrt(xi2)
-            return mp.mpf(float(p["m"])) / (4 * mp.pi * rs**3) / (xi * (1 + xi) ** 2)
-        rho0 = mp.mpf(float(p["m_tot"])) / (q1 * q2 * (2 * mp.pi) ** 1.5 * rs**3)
-        return rho0 * mp.exp(-xi2 / 2)
+            return mp_rho0(name, p) / (xi * (1 + xi) ** 2)
+        return mp_rho0(name, p) * mp.exp(-xi2 / 2)
 
 
 def mp_spherical(name, p, xyz):
@@ -338,7 +347,7 @@ def reference(name, group, r, d):
     p = with_q(name, q1, q2).params(0.0)
     direction = np.asarray(UNIT[d], float)
     xyz = direction / np.linalg.norm(direction) * r * float(p["r_s"])
-    rho = float(mp_density(name, p, xyz)) if r > 0 else None
+    rho = float(mp_density(name, p, xyz))
     if (r, d) in GRAD_POINTS[group]:
         if group == "sph":
             phi, grad, hess = mp_spherical(name, p, xyz)
@@ -423,3 +432,65 @@ def test_rho0(name):
     np.testing.assert_allclose(getattr(gp, name).rho0_of_m(p), want, rtol=1e-14)
     np.testing.assert_allclose(pot.rho0(0.0, ustrip=True), want, rtol=1e-14)
     assert str(pot.rho0(0.0).unit) == "solMass / kpc3"
+
+
+# float32 outputs of the classes before this PR (f5b3911e; the kernels reproduce
+# them bit for bit) for the flattened models: [potential, gradient_z, hessian_xx,
+# hessian_zz] at 1 r_s on the z axis and at 30 r_s in the generic direction.
+# The bounds above can hide a 3 to 5 times larger error, because they allow one
+# unit of float32 round-off; these values do not. A change of two ulp (2.4e-7) or
+# more fails, which includes the triaxial NFW with its radius formed as
+# sqrt(xi^2) (it differs by 4.1e-7 in hessian_zz at 30 r_s).
+BASE_FLOAT32 = {
+    ("axisymmetricgaussian", 1.0, "z"): [
+        -0.5913220643997192,
+        0.06229864060878754,
+        0.005653107538819313,
+        -0.011306222528219223,
+    ],
+    ("axisymmetricgaussian", 30.0, "gen"): [
+        -0.02997014857828617,
+        0.00017118015966843814,
+        1.0042966778200935e-06,
+        -1.6051783404691378e-06,
+    ],
+    ("triaxialgaussian", 1.0, "z"): [
+        -0.704182505607605,
+        0.09859040379524231,
+        0.007974565960466862,
+        -0.026454534381628036,
+    ],
+    ("triaxialgaussian", 30.0, "gen"): [
+        -0.0299773458391428,
+        0.00017120347183663398,
+        1.0047156138170976e-06,
+        -1.6028116078814492e-06,
+    ],
+    ("triaxialnfw", 1.0, "z"): [
+        -0.0195752140134573,
+        0.0017351536080241203,
+        0.00013315113028511405,
+        -0.000400826393160969,
+    ],
+    ("triaxialnfw", 30.0, "gen"): [
+        -0.0023932859767228365,
+        1.0682641914172564e-05,
+        4.9046370520500204e-08,
+        -8.770801684931939e-08,
+    ],
+}
+
+
+@pytest.mark.parametrize(("name", "r", "d"), list(BASE_FLOAT32))
+def test_float32_matches_the_old_classes(name, r, d):
+    """In float32 the functions stay within two ulp of the old classes."""
+    p = as_dtype(with_q(name, *FLAT[name]).params(0.0), np.float32)
+    direction = np.asarray(UNIT[d], float)
+    xyz = direction / np.linalg.norm(direction) * r * float(p["r_s"])
+    module = getattr(gp, name)
+    float32 = False  # x64 off, so that the arithmetic is float32
+    with jax.enable_x64(float32):
+        x = np.asarray(xyz, np.float32)
+        grad, hess = np.asarray(module.gradient(p, x)), np.asarray(module.hessian(p, x))
+        got = [float(module.potential(p, x)), grad[2], hess[0, 0], hess[2, 2]]
+    np.testing.assert_allclose(got, BASE_FLOAT32[name, r, d], rtol=2.4e-7)

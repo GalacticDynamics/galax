@@ -108,11 +108,11 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     :math:`100 r_s`, 1e-5 at :math:`300 r_s` and 1.6e-3 at :math:`10^3 r_s`, so
     raise ``integration_order`` for the far field. The gradient and Hessian,
     which are derivatives of the quadrature, lose accuracy faster: for
-    :math:`q_1 = 0.9`, :math:`q_2 = 0.6` the gradient error is below 4e-15 at
-    :math:`30 r_s`, 3e-8 at :math:`100 r_s`, 5e-5 at :math:`300 r_s` and 3.4e-3
-    at :math:`10^3 r_s`. The functions are in `galax.potential.triaxialnfw`. The
-    gradient and Hessian of this class come from automatic differentiation of
-    the potential.
+    :math:`q_1 = 0.9`, :math:`q_2 = 0.6` the largest gradient error over six
+    directions is below 4e-15 at :math:`30 r_s`, 3e-8 at :math:`100 r_s`, 5.3e-5
+    at :math:`300 r_s` and 3.5e-3 at :math:`10^3 r_s`. The functions are in
+    `galax.potential.triaxialnfw`. The gradient and Hessian of this class come
+    from automatic differentiation of the potential.
 
     References
     ----------

@@ -159,9 +159,10 @@ jobs:
         # 26.04 is stable. See also the worker count in "Test package".
         #
         # On PRs, macOS and Windows run only with the `full-ci` label. Adding
-        # the label starts a full run through ci-full.yml. They always run on
-        # main pushes and manual runs. macOS has 5 runners for the whole org,
-        # so running it on every PR push queued every PR behind it.
+        # it to a non-draft PR starts a full run through ci-full.yml. They
+        # always run on main pushes and manual runs. macOS has 5 runners for
+        # the whole org, so running it on every PR push queued every PR behind
+        # it.
         runs-on: >-
           ${{ fromJSON((github.event_name != 'pull_request' ||
           contains(github.event.pull_request.labels.*.name, 'full-ci')) &&

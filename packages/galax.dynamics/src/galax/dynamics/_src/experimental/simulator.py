@@ -439,8 +439,9 @@ def evolve_per_particle(
     no-op steps up to index ``i0[i]``, so it takes exactly the lattice steps
     from there. An adaptive one starts at ``lattice[i0[i]]``. A failed solve
     gives NaN for its particle only. A non-finite ``lattice`` gives NaN for
-    every particle and never raises (an adaptive solve runs over zero time
-    instead).
+    every particle and never raises. An adaptive solve of a non-finite ``w0``
+    or ``lattice`` runs over zero time instead, so a bad point never grinds to
+    ``max_steps``.
     """
     split = isinstance(solver.solver, gf.Leapfrog)
     on_lattice = is_lattice(solver)
@@ -453,7 +454,8 @@ def evolve_per_particle(
         if on_lattice:
             y = solve_on(solver, terms, y, lattice, gate=lambda x: _FromRelease(x, i))
         else:
-            y = solve_on(solver, terms, y, jnp.stack([lattice[i], lattice[-1]]))
+            t0 = jnp.where(jnp.all(jnp.isfinite(w)), lattice[i], lattice[-1])
+            y = solve_on(solver, terms, y, jnp.stack([t0, lattice[-1]]))
         return jnp.concat(y, axis=-1) if split else y
 
     pair = jax.vmap(one, in_axes=(0, None))

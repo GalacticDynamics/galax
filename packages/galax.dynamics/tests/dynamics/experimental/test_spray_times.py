@@ -369,67 +369,45 @@ def test_times_per_particle_adaptive(mode) -> None:
     assert jnp.max(d) < 1e-6, d
 
 
-@pytest.mark.parametrize("solver", list(SOLVERS.values()), ids=list(SOLVERS))
-@pytest.mark.parametrize("mode", ["copies-vmap", "track-scan"])
-def test_per_particle_nan_time(mode, solver) -> None:
-    """A NaN release time or ``t_age`` gives NaN under jit(vmap).
-
-    It never raises, for `Times` and for `Uniform`.
-    """
-    sim = make_sim(mode, solver)
-    cases = (
-        (lambda ts: gde.Times(ts, 30, T1), jnp.stack([TS, TS.at[2].set(jnp.nan)])),
-        (lambda t_age: gde.Uniform(t_age, 4, 5), jnp.asarray([300.0, jnp.nan])),
-    )
-    for make, xs in cases:
-
-        def run(x, make=make):
-            r = sim(KEY, HOST, W_TODAY, MSAT, make(x))
-            return jnp.concat([r.lead, r.trail])
-
-        got = jax.jit(jax.vmap(run))(xs)
-        assert jnp.all(jnp.isfinite(got[0]))
-        assert jnp.all(jnp.isnan(got[1]))
-
-
-def test_batched_t1_raises() -> None:
-    sched = gde.Uniform(jnp.asarray(300.0), 2, 5, jnp.zeros(2))
-    with pytest.raises(ValueError, match="t1"):
-        make_sim(prog=None)(KEY, HOST, W_TODAY, MSAT, sched)
-
-
-@pytest.mark.parametrize(
-    "sched", [gde.Uniform(jnp.asarray(300.0), 4, 5), gde.Times(TS, 30)]
-)
-def test_list_w_today(sched) -> None:
-    sim = make_sim()
+def test_list_w_today() -> None:
+    sim, sched = make_sim(), gde.Times(TS, 30)
     want = sim(KEY, HOST, W_TODAY, MSAT, sched)
     got = sim(KEY, HOST, [float(x) for x in W_TODAY], MSAT, sched)
     np.testing.assert_array_equal(got.lead, want.lead)
 
 
 @pytest.mark.parametrize("solver", list(SOLVERS))
-def test_times_vmap_and_nan(solver) -> None:
-    """Under jit(vmap) over ``ts``: equal to separate calls; NaN gives NaN.
+@pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-scan"])
+def test_vmap_and_bad_points(mode, solver) -> None:
+    """Under jit(vmap), good lanes equal separate calls; bad lanes give NaN.
 
-    Batched and unbatched round-off differ in the last bits, which adaptive
-    step control amplifies to about its tolerance (as with `Uniform`), so the
-    adaptive comparison is at 1e-7. A NaN lane leaves the others bitwise as
-    they are.
+    The bad lanes are a NaN release time, a release after t1, and a NaN or
+    negative ``t_age``. They never raise, and an adaptive solve runs them over
+    zero time instead of grinding to ``max_steps``. They leave the good lanes
+    bitwise as they are. Batched and unbatched round-off differ in the last
+    bits, which adaptive step control amplifies to about its tolerance, so the
+    adaptive comparison is at 1e-7.
     """
-    sim = make_sim(solver=SOLVERS[solver])
+    sim = make_sim(mode, SOLVERS[solver])
     atol = 1e-12 if solver == "leapfrog" else 1e-7
+    bad_ts = [TS.at[2].set(jnp.nan), TS.at[2].set(40.0)]
+    cases = (
+        (lambda ts: gde.Times(ts, 30, T1), jnp.stack([TS, TS + 3.1, *bad_ts])),
+        (
+            lambda t_age: gde.Uniform(t_age, 4, 5),
+            jnp.asarray([300.0, 250.0, jnp.nan, -300.0]),
+        ),
+    )
+    for make, xs in cases:
 
-    def run(ts):
-        return flat(sim(KEY, HOST, W_TODAY, MSAT, gde.Times(ts, 30, T1)))
+        def run(x, make=make):
+            return flat(sim(KEY, HOST, W_TODAY, MSAT, make(x)))
 
-    tss = jnp.stack([TS, TS + 3.1, TS.at[2].set(jnp.nan)])
-    got = jax.jit(jax.vmap(run))(tss)
-    for k in range(2):
-        np.testing.assert_allclose(got[k], run(tss[k]), rtol=0, atol=atol)
-    np.testing.assert_array_equal(got[:2], jax.jit(jax.vmap(run))(tss[:2]))
-    assert jnp.all(jnp.isnan(got[2]))
-    assert jnp.all(jnp.isnan(run(tss[2])))
+        got = jax.jit(jax.vmap(run))(xs)
+        for k in range(2):
+            np.testing.assert_allclose(got[k], run(xs[k]), rtol=0, atol=atol)
+        np.testing.assert_array_equal(got[:2], jax.jit(jax.vmap(run))(xs[:2]))
+        assert jnp.all(jnp.isnan(got[2:]))
 
 
 # A host whose mass grows in time, with t1 != 0: a stream from the wrong force

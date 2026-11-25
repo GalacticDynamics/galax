@@ -4,6 +4,8 @@ permissions:
 
 on:
   workflow_dispatch:
+  # Called by ci-full.yml when a PR gets the `full-ci` label.
+  workflow_call:
   pull_request:
     # ready_for_review: draft PRs skip the heavy jobs (see `install-shapes`),
     # so marking one ready has to start a full run.
@@ -156,10 +158,11 @@ jobs:
         # communication") in ~8% of runs, against ~3% on 24.04. Revisit once
         # 26.04 is stable. See also the worker count in "Test package".
         #
-        # On PRs, macOS and Windows run only with the `full-ci` label (add it,
-        # then push; or run the workflow on the branch). They always run on
-        # main pushes and manual runs. macOS has 5 runners for the whole org,
-        # so running it on every PR push queued every PR behind it.
+        # On PRs, macOS and Windows run only with the `full-ci` label. Adding
+        # it to a non-draft PR starts a full run through ci-full.yml. They
+        # always run on main pushes and manual runs. macOS has 5 runners for
+        # the whole org, so running it on every PR push queued every PR behind
+        # it.
         runs-on: >-
           ${{ fromJSON((github.event_name != 'pull_request' ||
           contains(github.event.pull_request.labels.*.name, 'full-ci')) &&

@@ -24,9 +24,13 @@ def _xdist_args(posargs: list[str]) -> list[str]:
 def lint(session: nox.Session) -> None:
     """Run the linter."""
     session.install("prek")
-    # Not a real commit -- no-commit-to-branch would always fail here.
-    # Merge into any SKIP already set, rather than clobber it.
-    skip = ",".join(filter(None, [os.environ.get("SKIP"), "no-commit-to-branch"]))
+    # Not a real commit -- no-commit-to-branch would always fail here. And the
+    # graph rebuild is not byte-reproducible across platforms, so a lint run that
+    # rebuilt it would fail for anyone not on the machine that built the committed
+    # copy. Merge into any SKIP already set, rather than clobber it.
+    skip = ",".join(
+        filter(None, [os.environ.get("SKIP"), "no-commit-to-branch,graphify-update"])
+    )
     session.run(
         "prek",
         "run",

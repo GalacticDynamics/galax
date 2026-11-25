@@ -167,3 +167,7 @@ Thumbs.db
 # documentation, and must not reach the published docs or the package.
 /docs/superpowers/
 /.superpowers/
+
+# graphify: track the graph itself; everything else here is rebuilt locally
+graphify-out/*
+!graphify-out/graph.json

@@ -95,7 +95,7 @@ What derives from Agama:
      - Agama's convention, shared with :mod:`scipy`
    * - ``galax.dynamics`` Milky-Way/LMC interaction example
      - ``py/example_lmc_mw_interaction.py``
-   * - :class:`~galax.potential.SormaniEtAl2022BarPotential` --- the
+   * - :class:`~galax.potential.XShapedBarPotential` --- the
        parameter values of the Sormani et al. (2022) bar, at full precision
        (they round to the paper's Table 1)
      - ``makeBarDensity`` in ``py/example_mw_bar_potential.py``

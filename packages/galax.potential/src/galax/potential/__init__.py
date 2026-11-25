@@ -57,7 +57,7 @@ __all__ = [
     # builtin
     "LongMuraliBarPotential",
     "MonariEtAl2016BarPotential",
-    "SormaniEtAl2022BarPotential",
+    "XShapedBarPotential",
     "KuzminPotential",
     "KuzminKutuzovPotential",
     "MiyamotoNagaiPotential",
@@ -214,13 +214,13 @@ from ._src.builtin import (
     PowerLawCutoffPotential,
     SatohPotential,
     SCFPotential,
-    SormaniEtAl2022BarPotential,
     StoneOstriker15Potential,
     TabulatedRadialBasisPotential,
     TriaxialGaussianPotential,
     TriaxialHernquistPotential,
     TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
+    XShapedBarPotential,
     ZhaoPotential,
     gNFWPotential,
 )

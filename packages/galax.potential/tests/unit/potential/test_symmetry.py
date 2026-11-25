@@ -120,8 +120,6 @@ BUILTINS = [
         u.Q(_R_KNOTS, "kpc"), _SCF_TABLE, _NLM, jnp.zeros_like(_NLM), units=G
     ),
     gp.SatohPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G),
-    # Coarse: only the declared symmetry is checked here.
-    gp.SormaniEtAl2022BarPotential.build(l_max=2, n_r=16, n_theta=8, n_phi=8),
     gp.StoneOstriker15Potential(m_tot=M, r_c=u.Q(1, "kpc"), r_h=RS, units=G),
     gp.TransformedPotential(
         _HERNQUIST, cx.ops.GalileanSpatialTranslation(u.Q([1.0, 0, 0], "kpc"))
@@ -134,6 +132,8 @@ BUILTINS = [
     gp.TriaxialInThePotential(base_potential=_HERNQUIST, y_over_x=0.8, z_over_x=0.6),
     gp.TriaxialNFWPotential(m=M, r_s=RS, q1=0.8, q2=0.6, units=G),
     gp.Vogelsberger08TriaxialNFWPotential(m=M, r_s=RS, q1=0.8, a_r=1.0, units=G),
+    # Coarse: only the declared symmetry is checked here.
+    gp.XShapedBarPotential.build(l_max=2, n_r=16, n_theta=8, n_phi=8),
     gp.ZhaoPotential(m=M, r_s=RS, alpha=0.5, beta=4.0, gamma=1.0, units=G),
     gp.gNFWPotential(m=M, r_s=RS, gamma=0.5, units=G),
 ]

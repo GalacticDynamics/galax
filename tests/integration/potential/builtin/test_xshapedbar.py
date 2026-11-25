@@ -1,4 +1,4 @@
-"""Orbits in `galax.potential.SormaniEtAl2022BarPotential`."""
+"""Orbits in `galax.potential.XShapedBarPotential`."""
 
 import quaxed.numpy as jnp
 import unxt as u
@@ -10,7 +10,7 @@ import galax.potential as gp
 
 def test_orbit_conserves_energy() -> None:
     """A bulge orbit in the static bar plus a halo conserves its energy."""
-    bar = gp.SormaniEtAl2022BarPotential.build(l_max=8)
+    bar = gp.XShapedBarPotential.build(l_max=8)
     pot = gp.CompositePotential(
         bar=bar,
         halo=gp.NFWPotential(m=u.Q(5e11, "Msun"), r_s=u.Q(15, "kpc"), units="galactic"),

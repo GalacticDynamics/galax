@@ -1,4 +1,4 @@
-"""Tests for `galax.potential.SormaniEtAl2022BarPotential`."""
+"""Tests for `galax.potential.XShapedBarPotential`."""
 
 import functools as ft
 
@@ -10,7 +10,7 @@ import quaxed.numpy as jnp
 import unxt as u
 
 import galax.potential as gp
-from galax.potential._src.builtin.sormani2022 import (
+from galax.potential._src.builtin.xshapedbar import (
     _BAR_1,
     _BAR_2,
     _BAR_3,
@@ -75,8 +75,8 @@ TABLE_1 = (
 
 
 @pytest.fixture(scope="module")
-def bar() -> gp.SormaniEtAl2022BarPotential:
-    return gp.SormaniEtAl2022BarPotential.build()
+def bar() -> gp.XShapedBarPotential:
+    return gp.XShapedBarPotential.build()
 
 
 @ft.cache
@@ -114,10 +114,10 @@ def test_component_masses() -> None:
 
 def test_density_symmetry() -> None:
     xyz = jax.random.normal(jax.random.key(0), (64, 3)) * jnp.asarray([3.0, 2.0, 0.5])
-    rho = gp.SormaniEtAl2022BarPotential.model_density(u.Q(xyz, "kpc"))
+    rho = gp.XShapedBarPotential.model_density(u.Q(xyz, "kpc"))
     for flip in ([-1, 1, 1], [1, -1, 1], [1, 1, -1]):
         flipped = u.Q(xyz * jnp.asarray(flip), "kpc")
-        got = gp.SormaniEtAl2022BarPotential.model_density(flipped)
+        got = gp.XShapedBarPotential.model_density(flipped)
         assert jnp.array_equal(got, rho)
 
 
@@ -127,7 +127,7 @@ def test_density_is_finite_everywhere() -> None:
         [[0, 0, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0], [1e8, 0, 0], [0, 0, 1e8]],
         dtype=float,
     )
-    rho = gp.SormaniEtAl2022BarPotential.model_density(u.Q(xyz, "kpc"))
+    rho = gp.XShapedBarPotential.model_density(u.Q(xyz, "kpc"))
     assert jnp.all(jnp.isfinite(rho.value))
     assert jnp.all(rho.value[-2:] == 0)
 
@@ -136,7 +136,7 @@ def test_density_is_finite_everywhere() -> None:
 # The potential
 
 
-def test_total_mass(bar: gp.SormaniEtAl2022BarPotential) -> None:
+def test_total_mass(bar: gp.XShapedBarPotential) -> None:
     """The monopole far away carries the model's mass."""
     r = 1e3
     phi = bar.potential(u.Q([r, 0.0, 0.0], "kpc"), T).ustrip("kpc2/Myr2")
@@ -159,7 +159,7 @@ POISSON = [
 
 @pytest.mark.parametrize(("xyz", "rtol"), POISSON)
 def test_poisson(
-    bar: gp.SormaniEtAl2022BarPotential, xyz: tuple[float, ...], rtol: float
+    bar: gp.XShapedBarPotential, xyz: tuple[float, ...], rtol: float
 ) -> None:
     """The Laplacian of the potential is 4 pi G rho of the analytic density."""
     q = u.Q(jnp.asarray(xyz), "kpc")
@@ -168,7 +168,7 @@ def test_poisson(
     assert jnp.isclose(lap, 4 * jnp.pi * G * rho, rtol=rtol)
 
 
-def test_poisson_outside_the_bar(bar: gp.SormaniEtAl2022BarPotential) -> None:
+def test_poisson_outside_the_bar(bar: gp.XShapedBarPotential) -> None:
     """Where the density is negligible the potential is harmonic."""
     q = u.Q([[10.0, 0.0, 3.0], [0.0, 12.0, 2.0], [7.0, 7.0, 5.0]], "kpc")
     lap = bar.laplacian(q, T).ustrip("1/Myr2")
@@ -179,7 +179,7 @@ def test_poisson_outside_the_bar(bar: gp.SormaniEtAl2022BarPotential) -> None:
 
 @pytest.mark.parametrize(("r", "rtol"), [(20.0, 3e-2), (50.0, 3e-3), (300.0, 1e-3)])
 def test_far_field_quadrupole(
-    bar: gp.SormaniEtAl2022BarPotential, r: float, rtol: float
+    bar: gp.XShapedBarPotential, r: float, rtol: float
 ) -> None:
     r"""Beyond the bar the m = 2 part falls as :math:`r^{-3}`.
 
@@ -194,9 +194,9 @@ def test_far_field_quadrupole(
     assert jnp.isclose(phi[0] - phi[1], -1.5 * G * d.sum() / r**3, rtol=rtol)
 
 
-def test_m_tot_rescales(bar: gp.SormaniEtAl2022BarPotential) -> None:
+def test_m_tot_rescales(bar: gp.XShapedBarPotential) -> None:
     q = u.Q([[3.0, 1.0, 0.2], [20.0, 5.0, 1.0]], "kpc")
-    heavy = gp.SormaniEtAl2022BarPotential.build(m_tot=u.Q(2 * M_TOT, "Msun"))
+    heavy = gp.XShapedBarPotential.build(m_tot=u.Q(2 * M_TOT, "Msun"))
     acc, acc2 = (p.gradient(q, T).ustrip("kpc/Myr2") for p in (bar, heavy))
     assert jnp.allclose(acc2, 2 * acc, rtol=1e-12, atol=0)
     rho = bar.model_density(q).ustrip("Msun/kpc3")
@@ -204,7 +204,7 @@ def test_m_tot_rescales(bar: gp.SormaniEtAl2022BarPotential) -> None:
     assert jnp.allclose(rho2, 2 * rho, rtol=1e-12, atol=0)
 
 
-def test_jit_and_grad(bar: gp.SormaniEtAl2022BarPotential) -> None:
+def test_jit_and_grad(bar: gp.XShapedBarPotential) -> None:
     xyz = jnp.asarray([2.0, 1.0, 0.3])
 
     @jax.jit
@@ -216,7 +216,7 @@ def test_jit_and_grad(bar: gp.SormaniEtAl2022BarPotential) -> None:
 
     # Through the build: the potential is linear in `m_tot`.
     def phi_of_m(m: jax.Array) -> jax.Array:
-        pot = gp.SormaniEtAl2022BarPotential.build(m_tot=u.Q(m, "Msun"))
+        pot = gp.XShapedBarPotential.build(m_tot=u.Q(m, "Msun"))
         return pot.potential(u.Q(xyz, "kpc"), T).ustrip("kpc2/Myr2")
 
     dphi_dm = jax.grad(phi_of_m)(M_TOT)

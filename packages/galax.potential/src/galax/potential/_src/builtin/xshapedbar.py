@@ -1,6 +1,6 @@
-"""Sormani et al. (2022) model of the Milky Way's bar."""
+"""The X-shaped bar of the Milky Way, from Sormani et al. (2022)."""
 
-__all__ = ["SormaniEtAl2022BarPotential"]
+__all__ = ["XShapedBarPotential"]
 
 from typing import Any, Final, final
 
@@ -133,8 +133,8 @@ _SHAPE: Final = ("r_knots", "phi_asympt_powers", "rho_alpha")
 
 
 @final
-class SormaniEtAl2022BarPotential(AbstractMultipoleProfilePotential):
-    r"""The Milky Way's bar of Sormani et al. (2022).
+class XShapedBarPotential(AbstractMultipoleProfilePotential):
+    r"""An X-shaped bar with a long bar: the Milky Way's bar of Sormani et al. (2022).
 
     An analytic fit to the stellar density of the made-to-measure bar of
     Portail et al. (2017), and the bar of the Milky Way potential of Hunter et
@@ -175,7 +175,7 @@ class SormaniEtAl2022BarPotential(AbstractMultipoleProfilePotential):
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    >>> bar = gp.SormaniEtAl2022BarPotential.build()
+    >>> bar = gp.XShapedBarPotential.build()
     >>> bar.l_max, bar.symmetry
     (24, <Symmetry.PLANE_REFLECTION: 'plane_reflection'>)
 
@@ -188,7 +188,7 @@ class SormaniEtAl2022BarPotential(AbstractMultipoleProfilePotential):
 
     ``m_tot`` rescales it:
 
-    >>> heavy = gp.SormaniEtAl2022BarPotential.build(m_tot=u.Q(2e10, "Msun"))
+    >>> heavy = gp.XShapedBarPotential.build(m_tot=u.Q(2e10, "Msun"))
 
     A fixed orientation is a rotation. Here the long axis is turned 25 degrees
     counter-clockwise from x:
@@ -221,7 +221,7 @@ class SormaniEtAl2022BarPotential(AbstractMultipoleProfilePotential):
         r_max: Any = _R_MAX,
         units: Any = "galactic",
         constants: Any = default_constants,
-    ) -> "SormaniEtAl2022BarPotential":
+    ) -> "XShapedBarPotential":
         """Expand the bar's density in multipoles.
 
         Parameters
@@ -310,7 +310,7 @@ class SormaniEtAl2022BarPotential(AbstractMultipoleProfilePotential):
 
         >>> import unxt as u
         >>> import galax.potential as gp
-        >>> gp.SormaniEtAl2022BarPotential.model_density(u.Q([0.0, 0, 0], "kpc"))
+        >>> gp.XShapedBarPotential.model_density(u.Q([0.0, 0, 0], "kpc"))
         Q(7.12038574e+09, 'solMass / kpc3')
 
         """

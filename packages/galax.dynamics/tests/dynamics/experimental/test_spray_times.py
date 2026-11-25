@@ -198,10 +198,9 @@ TIE_RUNS = [
 def test_times_tie_grad(mode, solver, case) -> None:
     """At a tie, the gradient is the limit of the gradients at nearby untied times.
 
-    With fixed steps the derivative jumps at a tie; for a wrong order the jump
-    here is percent-level, while a 1e-6 Myr shift moves the gradient far less
-    than the 1e-4 tolerance, so the comparison tells a right limit from a
-    wrong one.
+    With fixed steps the derivative jumps at a tie. Here every wrong order
+    jumps by more than the 1e-4 tolerance, while a 1e-6 Myr shift moves the
+    gradient far less, so the comparison tells a right limit from a wrong one.
     For `Uniform`'s release times, the gradient also gives `Uniform`'s
     ``t_age`` gradient by the chain rule.
     """

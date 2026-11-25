@@ -10,12 +10,14 @@ import pytest
 import galax.dynamics as gd
 import galax.potential as gp
 from .test_spray_whole_stream import (
+    COUNT,
     HOST,
     KEY,
     LEAP,
     MSAT,
     USYS,
     W_TODAY,
+    _Counted,
     adaptive,
     plummer,
     release_ics,
@@ -149,3 +151,32 @@ def test_failed_particle_is_nan(loop) -> None:
     )
     assert jnp.all(jnp.isnan(out[0]))
     assert jnp.all(jnp.isfinite(out[1]))
+
+
+@pytest.mark.parametrize("loop", LOOPS)
+def test_nan_row_is_nan_and_cheap(loop) -> None:
+    """A row with a NaN state gives NaN and runs over zero time.
+
+    Bad points (a release after t1, a negative t_age, a NaN Msat) reach the
+    per-particle solve as NaN release states over a finite lattice; stepped,
+    each would run to ``max_steps``.
+    """
+    solver = adaptive(1e-10, 10_000)
+    lattice = jnp.asarray([-10.0, -5.0, 0.0])
+    w = W_TODAY + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])
+    w0 = jnp.broadcast_to(jnp.stack([w, W_TODAY]), (2, 2, 2, 6))
+    terms = _Counted(_CopiesField(HOST, plummer(MSAT))).terms(solver)
+    run = jax.jit(
+        lambda w0: evolve_per_particle(terms, solver, w0, jnp.arange(2), lattice, loop)
+    )
+    COUNT.clear()
+    assert jnp.all(jnp.isfinite(run(w0)))
+    jax.effects_barrier()
+    n_good = len(COUNT)
+
+    COUNT.clear()
+    bad = run(w0.at[1].set(jnp.nan))
+    jax.effects_barrier()
+    assert jnp.all(jnp.isfinite(bad[0]))
+    assert jnp.all(jnp.isnan(bad[1]))
+    assert len(COUNT) < 2 * n_good, (len(COUNT), n_good)  # a grind is ~1e4

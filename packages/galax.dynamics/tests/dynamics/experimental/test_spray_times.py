@@ -122,9 +122,11 @@ def check_grad(loss, x, eps=1e-3, rtol=1e-5):
 
 @pytest.mark.parametrize("mode", ["whole", "copies-vmap", "track-vmap", "track-scan"])
 def test_times_grad(mode) -> None:
-    """Release-time gradients match finite differences and `jax.jacfwd`."""
-    g = check_grad(wloss(make_sim(mode)), TS)
-    assert jnp.all(g != 0), g
+    """Release-time gradients match `jax.jacfwd` with `ForwardMode`.
+
+    The finite-difference check is in test_time_dependent_host_time_grads.
+    """
+    g = jax.grad(wloss(make_sim(mode)))(TS)
     jf = jax.jacfwd(wloss(make_sim(mode, LEAP_FWD)))(TS)
     np.testing.assert_allclose(jf, g, rtol=1e-10)
 
@@ -370,8 +372,8 @@ def test_vmap_and_bad_points(mode, solver) -> None:
     """Under jit(vmap), good lanes equal separate calls; bad lanes give NaN.
 
     The bad lanes are a NaN release time, a release after t1, and a NaN or
-    negative ``t_age``. They never raise, and an adaptive solve runs them over
-    zero time instead of grinding to ``max_steps``. They leave the good lanes
+    negative ``t_age``. They never raise (that they don't grind to
+    ``max_steps`` is checked in test_spray_per_particle.py). They leave the good lanes
     bitwise as they are. Batched and unbatched round-off differ in the last
     bits, which adaptive step control amplifies to about its tolerance, so the
     adaptive comparison is at 1e-7.

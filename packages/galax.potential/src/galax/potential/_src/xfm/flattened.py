@@ -6,6 +6,7 @@ from functools import partial
 
 import jax
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -86,10 +87,12 @@ class FlattenedInThePotential(AbstractTransformedPotential):
 
     @partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
-        xyz = u.ustrip(AllowValue, self.units["length"], xyz.astype(float))
+        xyz = u.ustrip(
+            AllowValue, self.units["length"], xyz.astype(jnp.result_type(xyz, float))
+        )
         # Transform the position
         p = self.params(t)
-        xyz = xyz.at[..., 2].divide(p["q_z"])
+        xyz = xyz.at[..., 2].divide(p["q_z"].astype(xyz.dtype))
 
         # Evaluate the potential energy at the transformed position, time.
         return self.base_potential._potential(xyz, t)  # noqa: SLF001

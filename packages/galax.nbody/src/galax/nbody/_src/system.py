@@ -193,7 +193,9 @@ class System(eqx.Module):
 
 
 def _strip(x: Any, unit: Any) -> Array:
-    return jnp.asarray(u.ustrip(AllowValue, unit, x), dtype=float)
+    """Strip ``unit``. A float keeps its dtype; an integer becomes the default float."""
+    x = jnp.asarray(u.ustrip(AllowValue, unit, x))
+    return x if jnp.issubdtype(x.dtype, jnp.inexact) else x.astype(float)  # type: ignore[no-any-return]
 
 
 @System.from_.dispatch

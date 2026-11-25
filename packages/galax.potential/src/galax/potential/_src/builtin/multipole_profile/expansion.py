@@ -125,7 +125,7 @@ def expansion_gradient(
         return out
 
     ylm, pullback = jax.vjp(angular, uvec)
-    (dY,) = pullback(phi_lm)
+    (dY,) = pullback(phi_lm.astype(ylm.dtype))  # a cotangent has the primal's dtype
 
     radial_term = jnp.sum(dphi_dlogr * ylm, axis=-1)
     # Project out the radial component: `uvec` is normalized, so only the

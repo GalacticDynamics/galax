@@ -14,6 +14,7 @@ import interpax
 import jax
 from plum import dispatch
 
+import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 
@@ -99,11 +100,11 @@ class TranslatedPotential(AbstractTransformedPotential):
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         ul = self.units["length"]
-        xyz = u.ustrip(AllowValue, ul, xyz.astype(float))
+        xyz = u.ustrip(AllowValue, ul, xyz.astype(jnp.result_type(xyz, float)))
 
         # Translate the position.
         delta = self.translation(t)
-        delta = u.ustrip(AllowValue, ul, delta.astype(float))
+        delta = u.ustrip(AllowValue, ul, delta).astype(xyz.dtype)
         xyz = xyz - delta
 
         # Evaluate the potential energy at the transformed position, time.

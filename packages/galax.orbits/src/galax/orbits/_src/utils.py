@@ -206,8 +206,12 @@ def parse_to_t_y(
     """Convert from tuple of arrays."""
     # Parse inputs to array-ish objects
     t = jnp.asarray(t, dtype=None)
-    xyz = jnp.asarray(xv[0], dtype=float)
-    v_xyz = jnp.asarray(xv[1], dtype=float)
+    # Floats keep their dtype, promoted together; integers become the default
+    # float type. The arrays are strongly typed, as they were when cast with
+    # `dtype=float`.
+    xyz, v_xyz = jnp.asarray(xv[0]), jnp.asarray(xv[1])
+    dtype = jnp.result_type(xyz, v_xyz, float)
+    xyz, v_xyz = xyz.astype(dtype), v_xyz.astype(dtype)
 
     # Ensure broadcasting
     xyz, v_xyz = jnp.broadcast_arrays(xyz, v_xyz)

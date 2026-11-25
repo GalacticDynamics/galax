@@ -37,11 +37,9 @@ from galax.potential.dataclasses import ModuleMeta
 #: when it is constructed (see `_jax_constant`), at the JAX precision in effect
 #: then. While ``jax_enable_x64`` is off JAX has no float64, so a JAX array
 #: built here, at import, would stay float32 even after x64 is turned on.
-#: With x64 on, ``G`` becomes a strongly typed float64 (it comes from NumPy
-#: float64), as it was when x64 was turned on before import. A strong ``G``
-#: promotes float32 inputs to float64. Making it weakly typed would not by
-#: itself keep every result float32, because some potential functions (the
-#: acceleration, for example) also cast their inputs to the default float type.
+#: The JAX ``G`` is built from a Python float, so it is weakly typed, like a
+#: parameter given as a Python number: float32 inputs stay float32 with x64
+#: on, and float64 inputs give float64.
 default_constants: Final = ImmutableMap(
     {"G": u.StaticQuantity(_CONST_G.value, str(_CONST_G.unit))}
 )
@@ -58,8 +56,9 @@ def _jax_constant(v: Any, usys: u.AbstractUnitSystem | None = None, /) -> Any:
         return v if usys is None else v.decompose(usys)
     value, unit = _default_constant(name, usys, jax.dtypes.canonicalize_dtype(float))
     # A new JAX array for each potential. If the potentials shared one, donating
-    # any of them to a jitted function would delete it for all of them.
-    return u.Q(jax.numpy.asarray(value), unit)
+    # any of them to a jitted function would delete it for all of them. It is
+    # made from a Python float (`tolist`), so a scalar is weakly typed.
+    return u.Q(jax.numpy.asarray(value.tolist()), unit)
 
 
 @ft.cache

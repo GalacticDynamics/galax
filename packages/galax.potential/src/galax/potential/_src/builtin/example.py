@@ -107,7 +107,8 @@ class HarmonicOscillatorPotential(AbstractSinglePotential):
         # \rho(\mathbf{q}, t) = \frac{1}{4 \pi G} \sum_i^N \omega_i^2
         # A scalar omega is broadcast over all N axes, as in the potential.
         p = self.params(t)
-        omega = jnp.broadcast_to(p["omega"], xyz.shape)
+        # `xyz` enters only through its shape and dtype.
+        omega = p["omega"] * jnp.ones_like(xyz)
         denom = 4 * jnp.pi * p["G"]
         return jnp.sum(omega**2, axis=-1) / denom  # type: ignore[no-any-return]
 

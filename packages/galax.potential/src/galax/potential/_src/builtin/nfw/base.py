@@ -48,7 +48,7 @@ from galax.potential._src.kernels import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical, radial_derivatives
+from galax.potential._src.utils import horner, r_spherical, radial_derivatives
 
 
 @final
@@ -404,8 +404,7 @@ def _log1p_minus_x_over_1px(x: gt.BBtSz0, /) -> gt.BBtSz0:
     """
     w = x / (2 + x)
     w2 = w * w
-    c = jnp.asarray(_ATANH_TAIL, dtype=w2.dtype)
-    series = jnp.polyval(c, w2, unroll=len(_ATANH_TAIL))
+    series = horner(_ATANH_TAIL, w2)
     small = 2 * w * w2 * series + 2 * w2 / (1 + w)
     return jnp.where(x <= 1, small, jnp.log1p(x) - x / (1 + x))  # type: ignore[no-any-return]
 

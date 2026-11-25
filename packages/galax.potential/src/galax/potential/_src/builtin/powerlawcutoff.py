@@ -49,7 +49,7 @@ from galax.potential._src.kernels import (
 from galax.potential._src.params.base import AbstractParameter
 from galax.potential._src.params.field import ParameterField
 from galax.potential._src.symmetry import Symmetry
-from galax.potential._src.utils import r_spherical, radial_derivatives
+from galax.potential._src.utils import horner, r_spherical, radial_derivatives
 
 X_SWITCH: Final = 2.0
 """$x$ where `gamma_upper` changes from its series to its continued fraction."""
@@ -72,11 +72,18 @@ term is $\sim 10^{-18}$.
 def exprel(t: gt.SzN, /) -> gt.SzN:
     r"""$(e^t - 1)/t$, with its removable singularity at $t = 0$ expanded."""
     small = jnp.abs(t) < 1e-2
-    series = jnp.polyval(
-        jnp.asarray([1 / math.factorial(n + 1) for n in range(6, -1, -1)]), t
-    )
+    series = horner(tuple(1 / math.factorial(n + 1) for n in range(6, -1, -1)), t)
     t_safe = jnp.where(small, 1.0, t)
     return jnp.where(small, series, jnp.expm1(t_safe) / t_safe)  # type: ignore[no-any-return]
+
+
+def _gamma(a: gt.SzN, r: gt.SzN, /) -> gt.SzN:
+    """`jax.scipy.special.gamma`, in the dtype ``a`` and ``r`` promote to.
+
+    `jax.scipy.special.gamma` makes a weakly typed ``a`` strong, which would
+    promote a float32 ``r`` to float64.
+    """
+    return jsp.gamma(a).astype(jnp.result_type(a, r))  # type: ignore[no-any-return]
 
 
 def lgamma1p_over_b(b: gt.SzN, /) -> gt.SzN:
@@ -88,7 +95,7 @@ def lgamma1p_over_b(b: gt.SzN, /) -> gt.SzN:
     small = jnp.abs(b) < B_SMALL
     b_safe = jnp.where(small, 1.0, b)
     return jnp.where(  # type: ignore[no-any-return]
-        small, jnp.polyval(LGAMMA1P_COEFFS, b), jsp.gammaln(1 + b_safe) / b_safe
+        small, horner(LGAMMA1P_COEFFS, b), jsp.gammaln(1 + b_safe) / b_safe
     )
 
 
@@ -290,7 +297,7 @@ def mass_enclosed(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
         [1.0 / (float(math.factorial(k)) * (a + k)) for k in range(19, -1, -1)]
     )
     series = jnp.polyval(c, -xc, unroll=20)
-    small = xc**a / jsp.gamma(a) * series
+    small = xc**a / _gamma(a, xc) * series
     return p["m_tot"] * jnp.where(x <= 1, small, jsp.gammainc(a, x))  # type: ignore[no-any-return]
 
 
@@ -302,7 +309,7 @@ def dmass_dr(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     """
     alpha, r_c = p["alpha"], p["r_c"]
     s = r / r_c
-    norm = 2 * p["m_tot"] / (jsp.gamma(1.5 - alpha / 2) * r_c)
+    norm = 2 * p["m_tot"] / (_gamma(1.5 - alpha / 2, r) * r_c)
     return norm * s ** (2 - alpha) * jnp.exp(-(s**2))  # type: ignore[no-any-return]
 
 
@@ -340,7 +347,7 @@ def potential(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
     r = jnp.maximum(r, 2 * jnp.sqrt(jnp.finfo(r.dtype).tiny) * p["r_c"])
     a = 1.5 - p["alpha"] / 2
     x = (r / p["r_c"]) ** 2
-    shell = gamma_upper(a - 0.5, x) / (p["r_c"] * jsp.gamma(a))
+    shell = gamma_upper(a - 0.5, x) / (p["r_c"] * _gamma(a, r))
     return -p["G"] * (mass_enclosed(p, r) / r + p["m_tot"] * shell)  # type: ignore[no-any-return]
 
 
@@ -358,7 +365,7 @@ def density(p: gt.Params, r: gt.Sz0, /) -> gt.FloatSz0:
 
     """
     alpha, r_c, m_tot = p["alpha"], p["r_c"], p["m_tot"]
-    norm = m_tot / (2 * jnp.pi * jsp.gamma(1.5 - alpha / 2) * r_c**3)
+    norm = m_tot / (2 * jnp.pi * _gamma(1.5 - alpha / 2, r) * r_c**3)
     _result = norm * (r_c / r) ** alpha * jnp.exp(-((r / r_c) ** 2))
     return _result  # type: ignore[no-any-return]
 

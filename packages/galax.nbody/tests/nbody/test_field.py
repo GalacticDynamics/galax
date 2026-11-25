@@ -11,6 +11,7 @@ import pytest
 import unxt as u
 
 import galax.nbody as gn
+import galax.orbits as go
 import galax.potential as gp
 
 # What `eqx.error_if` raises: `EquinoxRuntimeError` when equinox can rewrite
@@ -559,3 +560,33 @@ def test_nan_massive_particle_poisons_every_row() -> None:
     )
     q = jnp.asarray([[jnp.nan, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 5.0, 0.0]])
     assert bool(jnp.all(jnp.isnan(field.acceleration(0.0, q))))
+
+
+def test_float32_stays_float32() -> None:
+    """float32 masses and phase-space positions integrate in float32."""
+    f32 = jnp.float32
+    q = u.Q(jnp.asarray([[-1, 0, 0], [1, 0, 0]], dtype=f32), "AU") / 2
+    p = u.Q(jnp.asarray([[0, -1, 0], [0, 1, 0]], dtype=f32), "km/s") * 25
+    field = gn.NBodyField(
+        masses=u.Q(jnp.asarray([1, 1], dtype=f32), "Msun"),
+        eps=u.Q(1e-4, "AU"),
+        external_potential=gp.NullPotential(units="solarsystem"),
+    )
+    assert field.masses.dtype == f32
+    soln = go.OrbitSolver().solve(field, (q, p), u.Q(f32(0), "yr"), u.Q(f32(2), "yr"))
+    assert soln.ys[0].dtype == f32
+    assert soln.ys[1].dtype == f32
+
+
+def test_float64_masses_float32_state() -> None:
+    """The derivative has the state's dtype, so float64 masses still integrate."""
+    f32 = jnp.float32
+    q = u.Q(jnp.asarray([[-1, 0, 0], [1, 0, 0]], dtype=f32), "AU") / 2
+    p = u.Q(jnp.asarray([[0, -1, 0], [0, 1, 0]], dtype=f32), "km/s") * 25
+    field = gn.NBodyField(
+        masses=u.Q(jnp.asarray([1, 1], dtype=jnp.float64), "Msun"),
+        eps=u.Q(1e-4, "AU"),
+        external_potential=gp.NullPotential(units="solarsystem"),
+    )
+    soln = go.OrbitSolver().solve(field, (q, p), u.Q(f32(0), "yr"), u.Q(f32(2), "yr"))
+    assert soln.ys[0].dtype == f32

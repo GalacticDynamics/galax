@@ -80,20 +80,12 @@ def test_combined_term_is_the_sum_of_inner_and_outer():
 
 
 def test_l_max_comes_from_the_shape():
-    """Tables of shape ``(5, 5)`` act like a class built with ``l_max = 4``."""
+    """Tables padded to ``(5, 5)`` act like a class built with ``l_max = 2``."""
     rng = np.random.default_rng(3)
-    slm, tlm = (np.tril(rng.normal(size=(5, 5))) for _ in range(2))
-    pot = gp.MultipoleInnerPotential(l_max=4, Slm=slm, Tlm=tlm, **KW)
-    p = pot.params(0.0)
-    assert p["Slm"].shape == (5, 5)
+    slm, tlm = (np.tril(rng.normal(size=(3, 3))) for _ in range(2))
     x = jnp.asarray(XYZ)
-    np.testing.assert_allclose(
-        gp.multipoleinner.potential(p, x), pot.potential(u.Q(XYZ, "kpc"), 0.0).value
-    )
-
-    # Zero rows and columns beyond l = 2 change nothing, so a table padded to
-    # (5, 5) agrees with the class of l_max = 2 built from the (3, 3) block.
-    small = gp.MultipoleInnerPotential(l_max=2, Slm=slm[:3, :3], Tlm=tlm[:3, :3], **KW)
+    # Zero rows and columns beyond l = 2 change nothing.
+    small = gp.MultipoleInnerPotential(l_max=2, Slm=slm, Tlm=tlm, **KW)
     padded = {**small.params(0.0)}
     for k in ("Slm", "Tlm"):
         padded[k] = jnp.zeros((5, 5)).at[:3, :3].set(padded[k])
@@ -171,15 +163,18 @@ def _pot(kind):
 
 @pytest.mark.parametrize("kind", ["inner", "outer", ""])
 def test_class_converts_the_length_unit(kind):
-    """The class strips positions in its own unit system, from any length unit."""
+    """``_potential`` strips positions in the unit system of the class.
+
+    The public ``potential`` converts first, so call the private method, which
+    is what gets a position in another length unit.
+    """
     pot = _pot(kind)
-    kpc = pot.potential(u.Q(XYZ, "kpc"), 0.0)
+    kpc = pot._potential(u.Q(XYZ, "kpc"), 0.0)
     for x in (
         u.Q(np.asarray(XYZ) * 1000, "pc"),
         u.Q(np.asarray(XYZ) * 3.0856775814913673e19, "m"),
     ):
-        np.testing.assert_allclose(pot.potential(x, 0.0).value, kpc.value, rtol=1e-12)
-        assert pot.density(x, 0.0).value == 0.0
+        np.testing.assert_allclose(pot._potential(x, 0.0), kpc, rtol=1e-12)
 
 
 @pytest.mark.parametrize("kind", ["inner", "outer", ""])

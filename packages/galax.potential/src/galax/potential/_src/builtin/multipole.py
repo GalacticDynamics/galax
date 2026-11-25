@@ -2,7 +2,8 @@
 
 The public API is `galax.potential.multipole`. The inner and the outer
 expansions are in `multipoleinner` and `multipoleouter`; they share the base
-class, the zero `density` and `scaled_radius_and_direction` defined here.
+class, the zero `density`, the `laplacian`, `scaled_radius_and_direction` and
+the private `solid_harmonic_sum` defined here.
 """
 
 __all__ = [
@@ -16,7 +17,7 @@ __all__ = [
     "laplacian",
     "potential",
     "scaled_radius_and_direction",
-]  # `expansion_potential` is shared with the inner and outer modules, not public
+]  # `solid_harmonic_sum` is shared with the inner and outer modules, not public
 
 import functools as ft
 from dataclasses import KW_ONLY
@@ -56,7 +57,7 @@ class AbstractMultipolePotential(LaplacianFromDensityMixin, AbstractSinglePotent
     source-free solution of Laplace's equation, :math:`\nabla^2 \Phi = 0`,
     for every :math:`l, m` (Binney & Tremaine 2008, *Galactic Dynamics*, 2nd
     ed., Sec. 2.4). Since :math:`\nabla^2` is linear, any sum of such terms
-    — inner, outer, or both, as used by the concrete subclasses below — is
+    — inner, outer, or both, as used by the concrete subclasses — is
     itself source-free away from the origin. So the density is exactly zero
     everywhere these potentials are evaluated (:math:`r>0`); all of the
     represented mass sits, formally, at :math:`r=0` (for outer/mixed terms)
@@ -207,7 +208,7 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     works on one point of shape ``(3,)`` and also on a leading batch
     ``(..., 3)``, so the class calls it directly on a batch of points.
     """
-    return expansion_potential(
+    return solid_harmonic_sum(
         p,
         xyz,
         (p["ISlm"], p["ITlm"], lambda l: l),
@@ -215,7 +216,7 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     )
 
 
-def expansion_potential(
+def solid_harmonic_sum(
     p: gt.Params,
     xyz: gt.BBtSz3,
     /,

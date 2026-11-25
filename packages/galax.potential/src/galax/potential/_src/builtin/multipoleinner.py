@@ -31,8 +31,8 @@ import galax.potential.custom_types as gt
 from .multipole import (
     AbstractMultipolePotential,
     density,
-    expansion_potential,
     laplacian,
+    solid_harmonic_sum,
 )
 from galax.potential._src.kernels import (
     cartesian_gradient,
@@ -147,7 +147,7 @@ def potential(p: gt.Params, xyz: gt.BBtSz3, /) -> gt.BBtFloatSz0:
     works on one point of shape ``(3,)`` and also on a leading batch
     ``(..., 3)``, so the class calls it directly on a batch of points.
     """
-    return expansion_potential(p, xyz, (p["Slm"], p["Tlm"], lambda l: l))
+    return solid_harmonic_sum(p, xyz, (p["Slm"], p["Tlm"], lambda l: l))
 
 
 # `density` is the exact zero shared by the multipole modules (see

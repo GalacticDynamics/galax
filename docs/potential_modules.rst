@@ -179,5 +179,8 @@ tables (``Slm`` and ``Tlm``, or ``ISlm``, ``ITlm``, ``OSlm`` and ``OTlm``) are
 ``density`` is exactly zero for all three, because every term is a solid
 harmonic, and it is the same function in each module. ``potential``,
 ``density`` and ``laplacian`` also accept an array of positions of shape
-``(..., 3)`` directly, and the classes call them that way. ``gradient`` and
-``hessian`` take a single point of shape ``(3,)``; use ``jax.vmap`` for many.
+``(..., 3)`` directly, and the classes call the module ``potential`` and
+``density`` that way. The class Laplacian is :math:`4 \pi G` times the class
+density, which is the same function as the module ``laplacian``. ``gradient``
+and ``hessian`` take a single point of shape ``(3,)``; use ``jax.vmap`` for
+many.

@@ -79,7 +79,15 @@ TIME_EXPLICIT: set[str] = {"monarietal2016bar"}
 # A time at which Omega * t != 0 for the rotating bar.
 T = 37.0
 # Modules in `galax.potential.__all__` that are not a per-potential module.
-NOT_PER_POTENTIAL = {"harmonic", "io", "multipole_profile", "params", "plot", "scf"}
+NOT_PER_POTENTIAL = {
+    "harmonic",
+    "io",
+    "multipole_profile",
+    "papers",
+    "params",
+    "plot",
+    "scf",
+}
 
 RADIAL = (
     "potential",

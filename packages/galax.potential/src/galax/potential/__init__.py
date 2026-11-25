@@ -38,6 +38,7 @@ __all__ = [
     "monarietal2016bar",
     "multipole_profile",
     "nfw",
+    "papers",
     "params",
     "plot",
     "plummer",
@@ -92,6 +93,7 @@ __all__ = [
     "TriaxialHernquistPotential",
     "HardCutoffNFWPotential",
     "gNFWPotential",
+    "flattened_gnfw_halo",
     "ZhaoPotential",
     "SCFPotential",
     "TabulatedRadialBasisPotential",
@@ -144,6 +146,7 @@ from . import (
     monarietal2016bar,
     multipole_profile,
     nfw,
+    papers,
     params,
     plot,
     plummer,
@@ -220,6 +223,7 @@ from ._src.builtin import (
     TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
     ZhaoPotential,
+    flattened_gnfw_halo,
     gNFWPotential,
 )
 from ._src.composite import CompositePotential

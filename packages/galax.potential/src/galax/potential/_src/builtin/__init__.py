@@ -10,6 +10,7 @@ See the public API in `galax.potential`.
 # result in others. Nothing reads these names from here (see `galax.potential.<name>`).
 from .burkert import *
 from .example import *
+from .flattened_gnfw import flattened_gnfw_halo as flattened_gnfw_halo
 from .gaussian import *
 from .hernquist import *  # type: ignore[assignment]
 from .isochrone import *  # type: ignore[assignment]

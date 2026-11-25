@@ -80,7 +80,9 @@ class Times(eqx.Module):
     lattice point or another release: the grid's steps change there. At such
     a tie, the gradient is the limit of the gradients at nearby untied times,
     taken in the grid's order: tied releases in the order of ``ts``, each just
-    before a lattice point it equals.
+    before a lattice point it equals, except that the lattice's first point
+    (``min(ts)``) comes right after the first release there. A default ``t1``
+    follows the last release at ``max(ts)``.
 
     Parameters
     ----------
@@ -153,8 +155,7 @@ class Times(eqx.Module):
         """
         n = self.ts.shape[0]
         times = jnp.concat([self.ts, self.lattice()])
-        rank = jnp.concat([jnp.arange(n + 1.0), jnp.full(self.steps, n + 1.0)])
-        rank = rank.at[n].set(jnp.argmin(self.ts) + 0.5)
+        rank = jnp.arange(n + 1.0 + self.steps).at[n].set(jnp.argmin(self.ts) + 0.5)
         return times, jnp.lexsort((rank, times))
 
     def grid(self) -> Array:

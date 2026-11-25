@@ -22,5 +22,5 @@ def test_orbit_conserves_energy() -> None:
     orbit = go.compute_orbit(pot, w0, t)
 
     energy = gp.total_energy(pot, orbit).ustrip("kpc2/Myr2")
-    assert jnp.all(jnp.isfinite(orbit.q.x.value))
+    assert jnp.all(jnp.isfinite(orbit.q.x.ustrip("kpc")))
     assert jnp.max(jnp.abs(energy / energy[0] - 1)) < 1e-6

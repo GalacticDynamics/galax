@@ -250,33 +250,21 @@ class XShapedBarPotential(AbstractMultipoleProfilePotential):
         -----
         The X-shaped bar is thick and converges quickly in :math:`l`. The long
         bar is a thin sheet (scale height 0.25 kpc) with sharp cylindrical
-        cutoffs, so it needs high :math:`l` near it. Relative error of the
-        force against direct summation of the density (to ~1e-3), for the
-        default grid:
+        cutoffs, so the force near it needs high :math:`l`. With the default
+        ``l_max = 24`` the force is within about 1% of direct summation of the
+        density in the long bar, and closer outside it. ``l_max = 16`` is
+        cheaper, with errors of a few percent in the long bar. Outside the bar
+        the expansion converges quickly.
 
-        ================ ======= ======= ======= =======
-        position (kpc)   l=8     l=16    l=24    l=32
-        ================ ======= ======= ======= =======
-        (2, 1, 0.1)      1.9e-2  2.1e-3  7.8e-4
-        (3, 0, 0)        1.7e-2  1.3e-2  5.0e-3  2.1e-3
-        (3, 0, 0.3)      2.0e-1  4.6e-2  3.2e-3  5.3e-3
-        (4, 2, 0.3)      3.6e-2  1.6e-2  5.7e-3
-        (5, 0, 0.5)      1.3e-1  3.7e-2  9.6e-3  1.6e-2
-        (6, 3, 0.5)      2.9e-3  9.5e-4  4.5e-4
-        (8, 0, 1)        5.8e-3  1.5e-3  1.2e-3  7.0e-4
-        ================ ======= ======= ======= =======
+        The expansion's own density, the Laplacian of the potential, is close
+        to the analytic one inside about 2 kpc, except at the origin itself.
+        Around the thin long bar it rings, by tens of percent at these
+        ``l_max``. `model_density` gives the analytic density.
 
-        Beyond the bar the expansion converges fast: ``l_max = 16`` agrees
-        with ``l_max = 32`` to 6e-7 at (10, 5, 2) kpc. The default, 24, is
-        good to 1% at every position measured. Its density, the Laplacian of
-        the potential, matches the analytic one to 1e-5 within 1 kpc and 1e-2
-        at 2 kpc, but rings around the thin long bar, by tens of percent at
-        these ``l_max``.
-
-        The angular rule has to resolve the long bar's thickness even for
-        the monopole. With the 10 x 18 nodes ``l_max = 4`` would get by
-        default the total mass is 8% short; the defaults here get it to 2e-4.
-        The build takes about 20 s.
+        The angular rule has to resolve the long bar's thickness even for the
+        monopole. galax's default rule for ``l_max = 4`` has 10 x 18 nodes and
+        gets the total mass about 8% short. The defaults here get it to within
+        3e-4.
         """
         base = MultipoleProfilePotential.from_density(
             _density,

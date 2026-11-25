@@ -80,8 +80,9 @@ def bar() -> gp.XShapedBarPotential:
 
 
 @ft.cache
-def _octant_integrals(h: float = 0.05) -> tuple[np.ndarray, np.ndarray]:
+def _octant_integrals() -> tuple[np.ndarray, np.ndarray]:
     """Masses and ``int rho (x^2 - y^2) dV`` per component, midpoint rule."""
+    h = 0.05
     g = np.arange(h / 2, 12, h)
     x, y = np.meshgrid(g, g, indexing="ij")
     f = jax.jit(lambda xyz: jnp.stack(_components(xyz)))
@@ -127,9 +128,9 @@ def test_density_is_finite_everywhere() -> None:
         [[0, 0, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0], [1e8, 0, 0], [0, 0, 1e8]],
         dtype=float,
     )
-    rho = gp.XShapedBarPotential.model_density(u.Q(xyz, "kpc"))
-    assert jnp.all(jnp.isfinite(rho.value))
-    assert jnp.all(rho.value[-2:] == 0)
+    rho = gp.XShapedBarPotential.model_density(u.Q(xyz, "kpc")).ustrip("Msun/kpc3")
+    assert jnp.all(jnp.isfinite(rho))
+    assert jnp.all(rho[-2:] == 0)
 
 
 # ============================================================================
@@ -173,7 +174,9 @@ def test_poisson_outside_the_bar(bar: gp.XShapedBarPotential) -> None:
     q = u.Q([[10.0, 0.0, 3.0], [0.0, 12.0, 2.0], [7.0, 7.0, 5.0]], "kpc")
     lap = bar.laplacian(q, T).ustrip("1/Myr2")
     # The scale: 4 pi G rho at the centre of the bar.
-    scale = 4 * jnp.pi * G * float(bar.model_density(u.Q([0.0, 0, 0], "kpc")).value)
+    scale = (
+        4 * jnp.pi * G * bar.model_density(u.Q([0.0, 0, 0], "kpc")).ustrip("Msun/kpc3")
+    )
     assert jnp.all(jnp.abs(lap) < 1e-6 * scale)
 
 

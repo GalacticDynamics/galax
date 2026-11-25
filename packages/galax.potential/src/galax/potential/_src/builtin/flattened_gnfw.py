@@ -105,23 +105,11 @@ def flattened_gnfw_halo(
     potential's ``density`` is the expansion's reconstructed density, which is
     consistent with its potential.
 
-    Accuracy is set mostly by ``l_max``. For ``q_in = 0.55``, ``q_out = 0.9``,
-    ``gamma = 1.27``, ``beta = 2.97`` and ``r_s = 16.1`` kpc on the default
-    grid, the largest relative error at five off-axis positions 0.37 to 180
-    kpc from the centre, against an ``l_max = 32``, ``n_r = 256`` build for the
-    potential and force and against the closed-form density for Poisson's
-    equation:
-
-    ======= ========= ========= =====================================
-    l_max   potential force     :math:`\nabla^2\Phi / 4\pi G\rho - 1`
-    ======= ========= ========= =====================================
-    4       1.4e-4    4.8e-3    2.1e-2
-    8       3.0e-6    2.1e-4    9.8e-4
-    12      1.2e-7    1.2e-5    8.0e-5
-    16      5.6e-9    6.7e-7    5.7e-6
-    ======= ========= ========= =====================================
-
-    ``n_r`` matters much less than ``l_max``. The build is compiled once per
+    Accuracy is set mostly by ``l_max``. For a strongly flattened halo
+    (``q_in = 0.55``, ``q_out = 0.9``) on the default grid, the tests check
+    that :math:`\nabla^2\Phi / 4\pi G\rho - 1` stays within 5e-2, 2e-3 and
+    3e-4 at ``l_max`` 4, 8 and 12, at positions 0.37 to 180 kpc from the
+    centre. ``n_r`` matters much less than ``l_max``. The build is compiled once per
     grid shape and unit system; building again with new parameter values
     reuses it.
 
@@ -271,16 +259,19 @@ def doi_10_1093_mnras_stad551(
           = M_\mathrm{NFW} / 1.8351.
 
     **Axis.** ``axis`` is their :math:`(x_\mathrm{NFW}, y_\mathrm{NFW},
-    z_\mathrm{NFW})`; it need not be normalized. Its azimuth :math:`\theta` and
-    polar angle :math:`\phi` (Eqs. 10-11, with the two-argument arctangent)
-    give the rotation of their Eq. 12, :math:`\mathbf{x}' = R\,\mathbf{x}`,
-    which takes ``axis`` to :math:`z'`. The returned `TransformedPotential`
-    moves the z-aligned halo by the active rotation :math:`R^{-1} = R^T`, which
-    turns its :math:`z`-axis onto ``axis``, and so evaluates the halo at
-    :math:`R\,\mathbf{x}`. ``axis`` and ``-axis`` give the same halo.
-    Koposov et al. evaluate the halo with GalPot (Dehnen & Binney 1998);
-    here it is a multipole expansion (see `flattened_gnfw_halo` for its
-    accuracy).
+    z_\mathrm{NFW})`; it need not be normalized but must be nonzero, and
+    ``axis`` and ``-axis`` give the same halo. The returned
+    `TransformedPotential` moves the z-aligned halo by the smallest active
+    rotation (Rodrigues' formula) that turns its :math:`z`-axis onto ``axis``
+    or ``-axis``, whichever is in the upper hemisphere. Its inverse, like
+    their :math:`R` (Eq. 12, :math:`\mathbf{x}' = R\,\mathbf{x}` in Eq. 9),
+    takes that axis to :math:`z'`; the two differ only by a rotation about the
+    axis, which leaves the axisymmetric halo unchanged. Unlike the angles of
+    their Eqs. 10-11, this rotation is smooth at :math:`\pm\hat{z}`, so
+    derivatives with respect to ``axis`` stay finite there.
+
+    Koposov et al. evaluate the halo with GalPot (Dehnen & Binney 1998); here
+    it is a multipole expansion (see `flattened_gnfw_halo` for its accuracy).
 
     Every argument except ``l_max``, ``n_r``, ``units`` and ``constants`` may
     be traced by `jax.jit` or differentiated through.
@@ -296,7 +287,8 @@ def doi_10_1093_mnras_stad551(
     >>> import unxt as u
     >>> import galax.potential as gp
 
-    The oblate fit of their Table 2:
+    Their Table 2's oblate :math:`M_\mathrm{NFW}`, :math:`r_s`, ``q``,
+    ``gamma`` and ``beta``, with an illustrative axis:
 
     >>> halo = gp.papers.doi_10_1093_mnras_stad551(
     ...     u.Q(11.22e11, "Msun"), u.Q(16.1, "kpc"), q=0.55, gamma=1.27,
@@ -305,7 +297,6 @@ def doi_10_1093_mnras_stad551(
     Q(-0.1026, 'kpc2 / Myr2')
     """
     c = 15.0
-    usys = u.unitsystem(units)
     halo = flattened_gnfw_halo(
         m_nfw / (jnp.log(1 + c) - c / (1 + c)),
         r_s,
@@ -315,11 +306,12 @@ def doi_10_1093_mnras_stad551(
         q_out=q,
         l_max=l_max,
         n_r=n_r,
-        units=usys,
+        units=units,
         constants=constants,
     )
-    x, y, z = jnp.asarray(axis, dtype=float)
-    theta, phi = jnp.atan2(y, x), jnp.atan2(jnp.hypot(x, y), z)
-    # Active rotation R^T, turning z onto `axis`; its inverse is their R (Eq. 12).
-    rot = cxo.GalileanRotation.from_euler("ZY", u.Q(jnp.stack([theta, phi]), "rad"))
-    return TransformedPotential(base_potential=halo, xop=rot)
+    n = jnp.asarray(axis, dtype=float)
+    n = n / jnp.linalg.norm(n)
+    n = jnp.where(n[2] < 0, -n, n)  # same halo; keeps away from the pole at -z
+    k = jnp.array([[0.0, 0.0, n[0]], [0.0, 0.0, n[1]], [-n[0], -n[1], 0.0]])
+    rot = jnp.eye(3) + k + k @ k / (1.0 + n[2])  # active, takes z to n
+    return TransformedPotential(base_potential=halo, xop=cxo.GalileanRotation(rot))

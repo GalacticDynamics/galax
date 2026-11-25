@@ -28,6 +28,7 @@ FLAT_M, FLAT_RS = u.Q(10**12.05, "Msun"), u.Q(16.1, "kpc")
 M_NFW = u.Q(11.22e11, "Msun")
 KOPOSOV = {"q": 0.55, "gamma": 1.27, "beta": 2.97}
 AXIS = jnp.asarray([0.25, 0.45, 0.85])
+N = AXIS / jnp.linalg.norm(AXIS)
 
 X = jnp.asarray(
     [
@@ -108,8 +109,7 @@ def test_q_of_r_limits(r_q: u.Q, q: str) -> None:
 
 def _in_frame(x: jax.Array) -> jax.Array:
     """Positions in the halo's frame, up to a rotation about its axis."""
-    n = AXIS / jnp.linalg.norm(AXIS)
-    along = x @ n
+    along = x @ N
     across = jnp.sqrt(jnp.sum(x**2, axis=-1) - along**2)
     return jnp.stack([across, jnp.zeros_like(along), along], axis=-1)
 
@@ -138,10 +138,9 @@ def test_koposov_along_z_is_unrotated(axis: list[float]) -> None:
 def test_koposov_force_on_axis() -> None:
     """On the axis the force points along it, as the z-aligned halo's does on z."""
     s = jnp.asarray([0.5, 10.0, 100.0])[:, None]
-    n = AXIS / jnp.linalg.norm(AXIS)
-    got = _koposov().gradient(s * n, 0)
+    got = _koposov().gradient(s * N, 0)
     on_z = _koposov(axis=[0.0, 0.0, 1.0]).gradient(s * jnp.asarray([0, 0, 1.0]), 0)
-    exp = on_z[:, 2:] * n
+    exp = on_z[:, 2:] * N
     assert jnp.allclose(got, exp, rtol=1e-10, atol=1e-12 * jnp.max(jnp.abs(exp)))
 
 
@@ -218,24 +217,27 @@ def test_koposov_jit_grad() -> None:
     assert jnp.allclose(got, fd, rtol=1e-6)
 
 
-def test_koposov_orbit_conserves_energy_and_axial_angular_momentum() -> None:
-    """A leapfrog orbit keeps E and L along ``axis``, which a tilt must preserve."""
-    halo = _koposov()
-    n = AXIS / jnp.linalg.norm(AXIS)
-    dt = 0.5  # Myr
+@pytest.mark.parametrize("axis", [[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]])
+def test_koposov_axis_grad_at_poles(axis: list[float]) -> None:
+    """The derivative with respect to ``axis`` is finite at +-z."""
+    x = X[1]
 
-    def step(w: jax.Array, _: Any) -> tuple[jax.Array, jax.Array]:
-        q, p = w[:3], w[3:]
-        p = p - 0.5 * dt * halo.gradient(q, 0)
-        q = q + dt * p
-        p = p - 0.5 * dt * halo.gradient(q, 0)
-        w = jnp.concat([q, p])
-        return w, w
+    def phi(ax: jax.Array) -> jax.Array:
+        return _koposov(4, axis=ax, n_r=64).potential(x, 0)
 
-    w0 = jnp.asarray([20.0, 3.0, 5.0, 0.03, 0.17, 0.08])  # kpc, kpc / Myr
-    _, ws = jax.lax.scan(step, w0, length=4000)  # 2 Gyr
-    E = halo.potential(ws[:, :3], 0) + 0.5 * jnp.sum(ws[:, 3:] ** 2, axis=-1)
-    Ln = jnp.cross(ws[:, :3], ws[:, 3:]) @ n
-    assert jnp.all(jnp.isfinite(ws))
-    assert jnp.ptp(E) / jnp.abs(E[0]) < 1e-4
-    assert jnp.ptp(Ln) / jnp.abs(Ln[0]) < 1e-3
+    a = jnp.asarray(axis)
+    got = jax.grad(phi)(a)
+    h = 1e-6
+    fd = jnp.asarray(
+        [(phi(a.at[i].add(h)) - phi(a.at[i].add(-h))) / (2 * h) for i in range(3)]
+    )
+    assert jnp.all(jnp.isfinite(got))
+    assert jnp.allclose(got, fd, rtol=1e-5, atol=1e-10)
+
+
+def test_koposov_no_torque_about_axis() -> None:
+    """The force has no torque about ``axis``, so L along it is conserved."""
+    g = _koposov().gradient(X, 0)
+    torque = jnp.cross(X, g) @ N
+    scale = jnp.linalg.norm(X, axis=-1) * jnp.linalg.norm(g, axis=-1)
+    assert jnp.all(jnp.abs(torque) < 1e-12 * scale)

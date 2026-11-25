@@ -5,14 +5,13 @@ import jax.numpy as jnp
 import numpy as np
 import pytest
 
-import unxt as u
-
 from ._helpers import (
     AXIS_W6,
     D2,
     MID_W6,
     _jac_both,
     _kk,
+    _kk_GM_c2,
     _mn,
     _nfw,
     _phi,
@@ -190,14 +189,12 @@ def test_F_semi_no_overflow():
         target = iom.E - phi_inf
         for s in (0.9975, 0.99999, 1.0):
             v = F.F_semi(jnp.asarray(s), lam_pos, jnp.asarray(phi_inf))
-            assert np.isfinite(v)
             np.testing.assert_array_equal(v, target)
     # Just below the guard F/tau^2 is finite and close to E - Phi_inf = E (KK).
     s_g = LOG_TAU_MAX - np.log(float(lam_pos)) - 1.0
     s_g = s_g / (1 + s_g)
     for s in (0.99, s_g):
         v = F.F_semi(jnp.asarray(s), lam_pos, jnp.asarray(0.0))
-        assert np.isfinite(v)
         np.testing.assert_allclose(v, iom.E, rtol=1e-12)
     # Where tau^2 does not overflow it equals F_lam(tau)/tau^2.
     for s in (0.0, 0.3, 0.7, 0.9):
@@ -212,8 +209,7 @@ def test_F_semi_no_overflow():
 def test_F_tolerates_nonfinite_tau():
     """Frozen/invalid lanes may carry NaN/inf tau: no raise, no NaN gradients."""
     w6 = _w6s(1)[0]
-    pot = _kk()
-    phi = _phi(pot)
+    phi, _, F = _setup()
 
     def valid_sum(w):
         iom = integrals_of_motion(phi, w, D2)
@@ -234,7 +230,6 @@ def test_F_tolerates_nonfinite_tau():
         g = jac(valid_sum)(w6)
         assert np.all(np.isfinite(g)), g
     # and the invalid lanes themselves are flagged, not silently finite
-    _, _, F = _setup()
     for t in (jnp.nan, jnp.inf, -1.0):
         assert np.isnan(F.F_lam(jnp.asarray(t)))
         assert np.isnan(F.F_nu(jnp.asarray(t)))
@@ -377,9 +372,7 @@ def test_kk_closed_form_F_and_staeckel_constant():
     """KK is exactly Staeckel: Phi*mult = -(G(tau) - G(other)), G = GM sqrt(tau+c^2)."""
     pot = _kk()
     phi = _phi(pot)
-    t = u.Q(0.0, "Myr")
-    GM = pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"])
-    c2 = pot.c(t, ustrip=pot.units["length"]) ** 2
+    GM, c2 = _kk_GM_c2(pot)
 
     def G(tau):
         return GM * np.sqrt(np.asarray(tau) + c2)
@@ -432,15 +425,15 @@ def test_iom_flags_degenerate_scales():
         (tiny, 1e29, True),  # 9e48 of r^2
         (tiny, 1e41, False),  # 9e60 of r^2: the 1e50 bound is relative below r = 1
     ]
-    w6s = jnp.asarray([w for w, _, _ in rows])
-    D2s = jnp.asarray([d for _, d, _ in rows])
+    w6s, D2s, valid_ref = (np.asarray(c) for c in zip(*rows, strict=True))
+    w6s, D2s = jnp.asarray(w6s), jnp.asarray(D2s)
 
     def f(w, d2):
         iom = integrals_of_motion(phi, w, d2)
         return jnp.stack([iom.E, iom.I3, iom.lam, iom.absnu]), iom.valid
 
     J, valid = jax.vmap(jax.jacrev(f, has_aux=True))(w6s, D2s)
-    np.testing.assert_array_equal(valid, [v for _, _, v in rows])
+    np.testing.assert_array_equal(valid, valid_ref)
     assert np.all(np.isfinite(J))
     np.testing.assert_array_equal(np.asarray(J)[~np.asarray(valid)], 0.0)
 

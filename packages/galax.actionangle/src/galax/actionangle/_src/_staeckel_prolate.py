@@ -112,6 +112,7 @@ class IOM(NamedTuple):
     sigma: Array
     dmn: Array
     rho: Array
+    f_mom: Array  # F(lambda) from the momenta, (lam - |nu|)^2 lamdot^2 / (8 lam)
     D2: Array  # Delta^2; 1 where invalid
     valid: Array  # finite phase point and D2 > 0 (else evaluated at SAFE_W6)
 
@@ -144,9 +145,8 @@ def integrals_of_motion(
     Cartesian velocities so its (x, y) gradient is right on the axis.
 
     A non-finite ``w6`` or ``D2``, ``D2 <= 0`` (the pipeline Delta at the
-    origin), a D2 below TINY_D2 max(r^2, 1) or above HUGE_D2 r^2 (HUGE_D2 at
-    the origin), with r^2 = R^2 + z^2, or R^2 + z^2
-    + D2 above MAX_R2, is evaluated at `SAFE_W6` with D2 = 1 and flagged
+    origin), or a D2 outside the TINY_D2, HUGE_D2 and MAX_R2 bounds (see
+    their comment) is evaluated at `SAFE_W6` with D2 = 1 and flagged
     ``valid = False``: `find_limits` returns NaN there (C++: ``!(delta >
     0)``) and the gradients are finite (zero) rather than NaN.
 
@@ -205,6 +205,7 @@ def integrals_of_motion(
         p.sigma,
         p.dmn,
         p.rho,
+        (p.lam - p.absnu) ** 2 * dp.lam**2 / (8 * p.lam),
         D2,
         valid,
     )
@@ -229,12 +230,24 @@ def _F_val(iom: IOM, tau: Array, Phi: Array, mult: Array, I: Array) -> Array:
     return jnp.where(ok, F, jnp.nan)
 
 
+def _F_noise_val(
+    iom: IOM, tau: Array, Phi: Array, mult: Array, I: Array
+) -> tuple[Array, Array]:
+    """(S, eps (S |tau - D2| + L_z^2 |tau| / 2)): F's term size and roundoff.
+
+    S = |E tau| + |I| + |Phi mult| is the size of the C++ ``F_tau``'s terms.
+    """
+    S = jnp.abs(iom.E * tau) + jnp.abs(I) + jnp.abs(Phi * mult)
+    eps = jnp.finfo(jnp.result_type(tau, iom.D2)).eps  # type: ignore[no-untyped-call]
+    return S, eps * (S * jnp.abs(tau - iom.D2) + iom.Lz**2 * jnp.abs(tau) / 2)
+
+
 def _semi_tau(s: Array, lam_pos: Array) -> tuple[Array, Array, Array]:
     """Map s to tau = lam_pos exp(s/(1-s)) behind the log tau > 230 guard.
 
     Returns (tau, beyond, ok): ``beyond`` marks s past the guard (or s >= 1),
-    where tau is replaced by lam_pos so exp never overflows; ``ok`` is
-    ``isfinite(s)``.
+    where tau is replaced by lam_pos so exp never overflows and F/tau^2 is
+    taken as E - phi_inf; ``ok`` is ``isfinite(s)``.
 
     tau is lam_pos exp(l), l = s/(1-s), not exp(log lam_pos + l): the sum
     rounds l to the ulp of log lam_pos, which is ~64 ulp of tau in SI (log
@@ -260,9 +273,9 @@ def _F_semi_val(
 ) -> Array:
     """F/tau^2 on the lambda_max lane, ``sem`` = `_semi_tau`'s (tau, beyond, ok).
 
-    Formed without F or tau^2 (cannot overflow); E - phi_inf past the guard
-    (``beyond``) and NaN for a non-finite s or a bad tau. `make_F`'s
-    ``F_semi`` and `find_limits`' lambda_max lane both use it.
+    Formed without F or tau^2 (cannot overflow); NaN for a non-finite s or a
+    bad tau. `make_F`'s ``F_semi`` and `find_limits`' lambda_max lane both
+    use it.
     """
     tau, beyond, ok_s = sem
     ok = jnp.isfinite(tau) & (tau > 0)
@@ -284,7 +297,8 @@ class Fset(NamedTuple):
     dF_nu: Callable[[Array], Array]  # noqa: N815
     F_semi: Callable[[Array, Array, Array], Array]
     F_noise: Callable[[Array], tuple[Array, Array]]  # (F, its roundoff scale)
-    phi: Callable[[Array, Array], Array]  # the potential the closures use
+    # (Phi, mult, I) of the C++ F_tau at tau, with one phi call
+    lane_terms: Callable[[Array], tuple[Array, Array, Array]]
     D2: Array  # focal distance^2
 
 
@@ -297,7 +311,7 @@ def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C90
 
     tau outside `_tau_ok` (non-finite or negative) gives NaN, with NaN-free
     gradients on the other lanes. ``F_semi(s, lam_pos, phi_inf)`` is F/tau^2 at
-    tau = lam_pos exp(s/(1-s)), and E - phi_inf beyond log tau > 230.
+    tau = lam_pos exp(s/(1-s)) (see `_semi_tau`).
     """
     D2 = iom.D2
     phi = _off_axis(phi, D2)
@@ -382,16 +396,18 @@ def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C90
         lim = iom.E * D2 - iom.Lz**2 / 2 - I_nu - (D2 - iom.lam) * Phi_nu_D2
         return jnp.where(ok, jnp.where(atD, lim, d), jnp.nan)
 
+    def lane_terms(tau: Array) -> tuple[Array, Array, Array]:
+        # tau = D2 is evaluated at 2 D2: F's Phi term carries a factor tau - D2
+        # = 0 there, so the value is unchanged and Phi never sees a focal point
+        R, z, mult, I = lane_coords(jnp.where(tau == D2, 2 * D2, tau))
+        return phi(R, z), mult, I
+
     def F_noise(tau: Array) -> tuple[Array, Array]:
-        # F on either branch and eps (S |tau - D2| + L_z^2 tau / 2), S =
-        # |E tau| + |I| + |Phi mult| the size of F's terms: one phi call.
+        # F on either branch and its roundoff (`_F_noise_val`): one phi call
         tau = jnp.asarray(tau)
         R, z, mult, I = lane_coords(tau)
         Phi = phi(R, z)
-        S = jnp.abs(iom.E * tau) + jnp.abs(I) + jnp.abs(Phi * mult)
-        eps = jnp.finfo(jnp.result_type(tau, D2)).eps  # type: ignore[no-untyped-call]
-        noise = eps * (S * jnp.abs(tau - D2) + iom.Lz**2 * jnp.abs(tau) / 2)
-        return _F_val(iom, tau, Phi, mult, I), noise
+        return _F_val(iom, tau, Phi, mult, I), _F_noise_val(iom, tau, Phi, mult, I)[1]
 
     def F_semi(s: Array, lam_pos: Array, phi_inf: Array) -> Array:
         sem = _semi_tau(s, lam_pos)
@@ -408,6 +424,6 @@ def make_F(phi: Callable[[Array, Array], Array], iom: IOM) -> Fset:  # noqa: C90
         dF_nu,
         F_semi,
         F_noise,
-        phi,
+        lane_terms,
         D2,
     )

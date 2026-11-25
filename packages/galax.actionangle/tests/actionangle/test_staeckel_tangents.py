@@ -10,6 +10,7 @@ from ._helpers import (
     MN_P,
     _assert_jac_close,
     _kk,
+    _limits_fn,
     _live_limits,
     _mn,
     _mn_p,
@@ -19,15 +20,15 @@ from ._helpers import (
 )
 from galax.actionangle._src._staeckel_limits import (
     _derivs,
-    attach_tangents,
-    default_phi_inf,
-    find_limits,
     taylor_coeffs,
 )
 from galax.actionangle._src._staeckel_prolate import (
     integrals_of_motion,
-    make_F,
 )
+
+
+def _theta_limits(theta):
+    return _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)
 
 
 def _param_out(theta, *, plain):
@@ -37,7 +38,7 @@ def _param_out(theta, *, plain):
     coefficients from two separate nested-jvp nests (not `taylor_coeffs`'
     fused one). Aux: (the outputs, the Limits).
     """
-    lim, F = _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)
+    lim, F = _theta_limits(theta)
     t = taylor_coeffs(F, lim)
     rows = [lim.lam_min, lim.lam_max, lim.nu_max, t.c2, t.c3, t.c4, t.F2, t.F4]
     if plain:
@@ -81,7 +82,7 @@ def test_tangent_simple_fd(param_jacs):
     w6s, thetas, Jf, Jr, _, lim0 = param_jacs
 
     def f(theta):
-        lim = _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)[0]
+        lim = _theta_limits(theta)[0]
         return jnp.stack([lim.lam_min, lim.lam_max, lim.nu_max])
 
     assert not np.any(lim0.shell | lim0.planar | lim0.lmin_pinned | lim0.nu_pinned)
@@ -91,11 +92,7 @@ def test_tangent_simple_fd(param_jacs):
     assert (lim0.lam_min[1] == lam[1]) | (lim0.lam_max[1] == lam[1])
 
     # tangents leave the values unchanged (two programs: to roundoff)
-    def raw(w):
-        iomz = integrals_of_motion(phiz, w, MN_D2)
-        return find_limits(make_F(phiz, iomz), iomz, default_phi_inf(phiz, iomz))
-
-    raw0 = jax.jit(jax.vmap(raw))(w6s)
+    raw0 = _limits_fn(_mn())(w6s, jnp.full(2, MN_D2))
     for k in ("lam_min", "lam_max", "nu_max"):
         np.testing.assert_allclose(getattr(lim0, k), getattr(raw0, k), rtol=1e-14)
 
@@ -113,16 +110,12 @@ def test_tangent_simple_fd(param_jacs):
             _assert_jac_close(J[i], fd[i], rtol=1e-5, atol_rel=1e-8)
 
 
-def _shell_lims(theta):
-    return _live_limits(_mn_p(theta[6:]), theta[:6], MN_D2)[0]
-
-
 def _shell_mid(theta):
-    lim = _shell_lims(theta)
+    lim = _theta_limits(theta)[0]
     return 0.5 * (lim.lam_min + lim.lam_max)
 
 
-_shell_lims_j = jax.jit(_shell_lims)  # one compile for every FD probe
+_shell_lims_j = jax.jit(lambda t: _theta_limits(t)[0])  # one compile for every FD probe
 
 
 def test_tangent_double_root_via_midpoint():
@@ -226,7 +219,6 @@ def test_limit_rounded_onto_D2_moves_with_D2(shell):
     pinned L_z = 0 lanes. The limit still moves with D2: mpmath re-solves at
     D2 (1 +- 4e-20) give d/dD2 = 1.0 on all three lanes. It was 0.
     """
-    sg = jax.lax.stop_gradient
     cases = [  # (pot, w6, D2, row: 0 lam_min, 2 nu_max)
         (_mn(), [1.2232982322321704, 0.0, 1.3552851826546606, 0.0732159155407645,
                  3.4334709775643927e-09, -0.0215632331855962], 4.0, 0),
@@ -236,15 +228,11 @@ def test_limit_rounded_onto_D2_moves_with_D2(shell):
                  1.0001905924754786e-12, 0.09302090848315615], 7.9999999999999964, 0),
     ]  # fmt: skip
     for pot, w6_, d2, row in cases:
-        phi, w6 = _phi(pot), jnp.asarray(w6_)
+        w6 = jnp.asarray(w6_)
 
-        def f(d2, phi=phi, w6=w6):
-            iom = integrals_of_motion(phi, w6, d2)
-            iomz = integrals_of_motion(phi, w6, sg(d2))
-            F, Fz = make_F(phi, iom), make_F(phi, iomz)
-            lim = find_limits(Fz, iomz, default_phi_inf(phi, iomz))
-            out = attach_tangents(lim, F, Fz, shell=shell)
-            return jnp.stack([out.lam_min, out.lam_max, out.nu_max]), lim
+        def f(d2, pot=pot, w6=w6):
+            lim = _live_limits(pot, w6, d2, shell=shell)[0]
+            return jnp.stack([lim.lam_min, lim.lam_max, lim.nu_max]), lim
 
         v, lim = f(jnp.asarray(d2))
         # D2 or the next float up: the lam_min lane's root is resolved to

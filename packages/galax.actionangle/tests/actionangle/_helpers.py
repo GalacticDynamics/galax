@@ -62,6 +62,7 @@ from galax.actionangle._src._staeckel_limits import (
     default_phi_inf,
     find_limits,
     taylor_coeffs,
+    taylor_coeffs_batch,
 )
 from galax.actionangle._src._staeckel_prolate import (
     integrals_of_motion,
@@ -217,21 +218,25 @@ def lmj09(q2: float, q3: float) -> gp.LMJ09LogarithmicPotential:
 Num = float | decimal.Decimal
 
 
+def _kk_GM_c2(pot: gp.KuzminKutuzovPotential) -> tuple[float, float]:
+    """KK's G M and c^2 at t=0, in ``pot.units``."""
+    t = u.Q(0.0, pot.units["time"])
+    GM = pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"])
+    return GM, pot.c(t, ustrip=pot.units["length"]) ** 2
+
+
 def _kk_F(
-    pot: gp.KuzminKutuzovPotential,
-    w6: np.ndarray,
-    num: Callable[[float], Num],
-    sqrt: Callable[[Num], Num],
-    hypot: Callable[[Num, Num], Num],
+    pot: gp.KuzminKutuzovPotential, w6: np.ndarray, *, exact: bool
 ) -> tuple[Callable[[Num], Num], Num, Num, Num]:
     """(F, D2, lam, nu) of a KK orbit at t=0 (see `kk_turning_points`).
 
-    In ``num`` arithmetic (float, or decimals in the caller's context);
+    In float, or with ``exact`` in decimals (in the caller's context);
     ``w6`` may hold decimals, which are kept as given.
     """
-    t = u.Q(0.0, pot.units["time"])
-    GM = num(float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"])))
-    c2 = num(float(pot.c(t, ustrip=pot.units["length"]))) ** 2
+    num = decimal.Decimal if exact else float
+    sqrt = (lambda a: a.sqrt()) if exact else np.sqrt
+    hypot = (lambda a, b: (a * a + b * b).sqrt()) if exact else np.hypot
+    GM, c2 = (num(float(x)) for x in _kk_GM_c2(pot))
     D2 = num(kk_delta(pot)) ** 2
     x, y, z, vx, vy, vz = (
         v if isinstance(v, decimal.Decimal) else num(float(v)) for v in np.asarray(w6)
@@ -274,10 +279,8 @@ def kk_turning_points(
     to ~1e-2 of the extent (w ~ 1e-7 lam).
     """
     num = decimal.Decimal if exact else float
-    sqrt = (lambda a: a.sqrt()) if exact else np.sqrt
-    hypot = (lambda a, b: (a * a + b * b).sqrt()) if exact else np.hypot
     with decimal.localcontext(prec=40):
-        Fn, D2, lam, nu = _kk_F(pot, w6, num, sqrt, hypot)
+        Fn, D2, lam, nu = _kk_F(pot, w6, exact=exact)
 
         def F(tau) -> float:
             return float(Fn(num(float(tau))))
@@ -308,13 +311,7 @@ def kk_lambda_roots_decimal(
     lam, where F = F(lam) > 0 (needs lamdot != 0).
     """
     with decimal.localcontext(prec=40):
-        F, D2, lam, _ = _kk_F(
-            pot,
-            w6,
-            decimal.Decimal,
-            lambda a: a.sqrt(),
-            lambda a, b: (a * a + b * b).sqrt(),
-        )
+        F, D2, lam, _ = _kk_F(pot, w6, exact=True)
         hi = 2 * lam
         while F(hi) >= 0:
             hi *= 2
@@ -339,13 +336,7 @@ def kk_nu_max_decimal(pot: gp.KuzminKutuzovPotential, w6) -> decimal.Decimal:
     where F(|nu|) > 0 > F just below D2 (a box orbit, or L_z != 0).
     """
     with decimal.localcontext(prec=40):
-        F, D2, _, nu = _kk_F(
-            pot,
-            w6,
-            decimal.Decimal,
-            lambda a: a.sqrt(),
-            lambda a, b: (a * a + b * b).sqrt(),
-        )
+        F, D2, _, nu = _kk_F(pot, w6, exact=True)
         a, b = nu, D2 * (1 - decimal.Decimal("1e-30"))
         assert F(a) > 0 > F(b)
         for _ in range(170):  # 2^-170 of the bracket: past 40 digits
@@ -360,20 +351,24 @@ def kk_nu_max_decimal(pot: gp.KuzminKutuzovPotential, w6) -> decimal.Decimal:
 T0 = jnp.asarray(0.0)
 
 
-def _kk():
+def _kk(m_tot=1e11):
     return gp.KuzminKutuzovPotential(
-        m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), c=u.Q(1.0, "kpc"), units="galactic"
+        m_tot=u.Q(m_tot, "Msun"), a=u.Q(3.0, "kpc"), c=u.Q(1.0, "kpc"), units="galactic"
     )
 
 
 def _mn():
-    return gp.MiyamotoNagaiPotential(
-        m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.3, "kpc"), units="galactic"
-    )
+    return _mn_p(MN_P)
 
 
 def _nfw():
     return gp.NFWPotential(m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), units="galactic")
+
+
+def _hern():
+    return gp.HernquistPotential(
+        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
+    )
 
 
 def _mn_p(p):
@@ -493,7 +488,8 @@ def _setup(pot=None, w6=None, counter=None):
     return phi, iom, make_F(phi, iom)
 
 
-# Jitted programs, shared across tests (a compile costs far more than a run):
+# Jitted programs, reused within a test (a compile costs far more than a run;
+# the autouse fixture in conftest.py clears JAX's caches after each test):
 # keyed on whatever the program closes over (see `_pot_key`) and on every
 # module constant read at trace time, so a monkeypatched one gets a new program.
 _JIT_CACHE: dict = {}
@@ -552,19 +548,19 @@ def _jac_both(f, w6s, *args, rows=None, lanes=None, rev_aux=False):
     return Jf, Jr, jax.tree.map(np.asarray, aux)
 
 
+def _frozen_limits(phi, w6, d2, phi_inf="default"):
+    """find_limits through the frozen pipeline at one point."""
+    iom = integrals_of_motion(phi, w6, d2)
+    pinf = default_phi_inf(phi, iom) if phi_inf == "default" else phi_inf
+    return find_limits(make_F(phi, iom), iom, jnp.asarray(pinf))
+
+
 def _limits_fn(pot, phi_inf="default"):
     """Jitted, vmapped (w6, D2) -> Limits through the frozen pipeline."""
 
     def make():
         phi = _phi(pot)
-
-        def one(w6, d2):
-            iom = integrals_of_motion(phi, w6, d2)
-            F = make_F(phi, iom)
-            pinf = default_phi_inf(phi, iom) if phi_inf == "default" else phi_inf
-            return find_limits(F, iom, jnp.asarray(pinf))
-
-        return jax.vmap(one)
+        return jax.vmap(lambda w6, d2: _frozen_limits(phi, w6, d2, phi_inf))
 
     return _cached_jit(("limits", _pot_key(pot), repr(phi_inf)), make)
 
@@ -578,15 +574,20 @@ def _assert_lam_between(pot, w6s, D2s, lim):
     assert np.all(lam[ok] <= hi[ok]), np.flatnonzero(ok & ~(lam <= hi))
 
 
+def _assert_nu_close(nu, ref, D2s, c):
+    """|nu - ref| < c max(|ref|, 1e-4 D2) where ref is not NaN (NaN in both)."""
+    nu, ref = np.asarray(nu), np.asarray(ref)
+    np.testing.assert_array_equal(np.isnan(nu), np.isnan(ref))
+    ok = ~np.isnan(ref)
+    tol = c * np.maximum(np.abs(ref), 1e-4 * np.asarray(D2s))
+    np.testing.assert_array_less(np.abs(nu - ref)[ok], tol[ok] + 1e-300)
+
+
 def _assert_limits_close(lim, ref_lmin, ref_lmax, ref_nu, D2s):
     """Solver tolerances: lam 3e-11 relative; nu 3e-10 of max(nu_max, 1e-4 D2)."""
     np.testing.assert_allclose(lim.lam_min, ref_lmin, rtol=3e-11, atol=0)
     np.testing.assert_allclose(lim.lam_max, ref_lmax, rtol=3e-11, atol=0)
-    nu_err = np.abs(np.asarray(lim.nu_max) - ref_nu)
-    nu_tol = 3e-10 * np.maximum(np.abs(ref_nu), 1e-4 * np.asarray(D2s))
-    np.testing.assert_array_equal(np.isnan(lim.nu_max), np.isnan(ref_nu))
-    ok = ~np.isnan(ref_nu)
-    np.testing.assert_array_less(nu_err[ok], nu_tol[ok] + 1e-300)
+    _assert_nu_close(lim.nu_max, ref_nu, D2s, 3e-10)
 
 
 def _D2_pipeline(pot, w6s):
@@ -606,6 +607,18 @@ def _live_limits(pot, w6, d2, *, shell=True):
     F, Fz = make_F(phi, iom), make_F(phiz, iomz)
     lim = find_limits(Fz, iomz, default_phi_inf(phiz, iomz))
     return attach_tangents(lim, F, Fz, shell=shell), F
+
+
+def _assert_finite(lim, *keys):
+    """Every one of the limits ``keys`` is finite on every lane."""
+    for k in keys:
+        assert np.all(np.isfinite(getattr(lim, k))), k
+
+
+def _batch_taylor(pot, w6s, d2s, size=None, *, shell=False):
+    """Vmapped `_live_limits` (``shell=not shell``), then `taylor_coeffs_batch`."""
+    lim = jax.vmap(lambda w, d: _live_limits(pot, w, d, shell=not shell)[0])(w6s, d2s)
+    return taylor_coeffs_batch(_phi(pot), w6s, d2s, lim, size, shell=shell)
 
 
 def _assert_jac_close(J, fd, rtol, atol_rel):
@@ -742,9 +755,8 @@ def check_grad_safety(name, *, circular=False, part="all"):
         (gen, 1e-300, "invalid"),
         ([1e80, 0.0, 1e80, 0.05, 0.2, 0.03], D2, "invalid"),
     ]
-    w6s = jnp.asarray([w for w, _, _ in rows])
-    d2s = jnp.asarray([d for _, d, _ in rows])
-    kind = np.array([k for _, _, k in rows])
+    w6s, d2s, kind = (np.asarray(c) for c in zip(*rows, strict=True))
+    w6s, d2s = jnp.asarray(w6s), jnp.asarray(d2s)
     n = len(rows)
     if circular:  # one compile serves both checks (the batch size is free)
         cw6s = _near_circular_w6s(pot, 0.0)
@@ -805,8 +817,7 @@ def check_circular_fwd_rev(Jf, Jr, out, lf, lr):
     """
     for lim in (lf, lr):
         assert np.mean(lim.snapped) > 0.99
-        for k in ("lam_min", "lam_max", "nu_max"):
-            assert np.all(np.isfinite(getattr(lim, k))), k
+        _assert_finite(lim, "lam_min", "lam_max", "nu_max")
     for k in ("snapped", "shell"):  # the same decisions in both programs
         np.testing.assert_array_equal(getattr(lf, k), getattr(lr, k), err_msg=k)
     for k in ("lam_min", "lam_max"):  # and the same values, to roundoff

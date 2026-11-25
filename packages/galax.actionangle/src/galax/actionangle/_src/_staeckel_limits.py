@@ -18,18 +18,20 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+from jax.lax import stop_gradient as sg
 
 from ._staeckel_prolate import (
     IOM,
     LOG_TAU_MAX,
     Fset,
+    _F_noise_val,
     _F_semi_val,
     _F_val,
     _semi_tau,
     integrals_of_motion,
     make_F,
 )
-from ._utils import chandrupatla, clamp, safe_div, tang
+from ._utils import chandrupatla, safe_div, tang
 
 # ---------------------------------------------------------------------------
 # Turning points. Values only, on frozen inputs; the
@@ -69,16 +71,6 @@ class Limits(NamedTuple):
     # The origin of the lam_max lane's variable (F > 0 there), not the phase
     # point's lambda; lam where that lane is not solved (edge, snapped).
     lam_pos: Array
-
-
-def _lane_terms(Fz: Fset, D2: Array, tau: Array) -> tuple[Array, Array, Array]:
-    """(Phi, mult, I) of the C++ F_tau at ``tau``, with one ``phi`` call.
-
-    tau = D2 is evaluated at 2 D2: F's Phi term carries a factor tau - D2 = 0
-    there, so the value is unchanged and Phi never sees a focal point.
-    """
-    R, z, mult, I = Fz.lane_coords(jnp.where(tau == D2, 2 * D2, tau))
-    return Fz.phi(R, z), mult, I
 
 
 def _quad_roots(f: Array, df: Array, d2f: Array) -> tuple[Array, Array, Array]:
@@ -122,33 +114,27 @@ def _noise_snap(
 
 
 def _first_step(
-    lam: Array,
-    f: Array,
-    df: Array,
+    x: Array,
     d2f: Array,
     a: Array | float,
     b: Array | float,
-    *,
-    sign: float,
     lam_pos: Array | None = None,
 ) -> Array:
     """First trial point of a lambda lane from the quadratic model of F at lam.
 
-    tau* = lam + x, x the model's root below lam (sign -1, lam_min) or above
-    it (sign +1, lam_max), see `_quad_roots`. With ``lam_pos`` (the lam_max
-    lane) it is mapped to s* = l/(1+l), l = log(tau*/lam_pos). It is accepted
-    only if ``disc >= 0 & f'' < 0 & a < x* < b`` (so any NaN rejects it) and is
-    then clipped to FIRST_STEP_EPS (b - a) inside the bracket; otherwise the
+    ``x`` is tau* = lam plus the model's root below lam (lam_min) or above it
+    (lam_max), see `_quad_roots`. With ``lam_pos`` (the lam_max lane) it is
+    mapped to s* = l/(1+l), l = log(tau*/lam_pos). It is accepted only if
+    ``disc >= 0 & f'' < 0 & a < x* < b`` (so any NaN rejects it) and is then
+    clipped to FIRST_STEP_EPS (b - a) inside the bracket; otherwise the
     midpoint is used.
     """
-    lo, hi, _ = _quad_roots(f, df, d2f)
-    x = lam + (lo if sign < 0 else hi)
     if lam_pos is not None:
         ell = jnp.log(x / lam_pos)
         x = ell / (1 + ell)
     accept = (d2f < 0) & (a < x) & (x < b)
     c_lo, c_hi = a + FIRST_STEP_EPS * (b - a), b - FIRST_STEP_EPS * (b - a)
-    return jnp.where(accept, clamp(x, c_lo, c_hi), 0.5 * (a + b))
+    return jnp.where(accept, jnp.clip(x, c_lo, c_hi), 0.5 * (a + b))
 
 
 def default_phi_inf(phi: Callable[[Array, Array], Array], iomz: IOM) -> Array:
@@ -239,15 +225,11 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     replaces gala's ``F(lam_pos) < 0`` clause, which reads the sign of a
     roundoff-level F and so depends on how the batch is compiled. Also
     where no sampled point starts the solved lane: no split and F(lam_pos)
-    <= 0, so F > 0 near lam is within F's roundoff. At lam = D2, and where
-    lam_pos is at or below lam_lower (L_z = 0 with lam within D2_SIDE of
-    D2, where F(lam_pos) is NaN), the lane starts from D2 (1 + D2_SIDE)
-    instead, and is snapped only if F <= 0 there too. One case is still
-    open: on the axis inside the foci at L_z = 0, F > 0 can be resolved
-    further above D2 while F at D2 (1 + D2_SIDE) and at lam_pos is
-    roundoff. Those lanes are snapped to D2 as well (audit 12 F1, deferred
-    to a follow-up). F(lam_pos) is the quadratic model's value from the
-    exact F(lam) where the sampled value agrees with it to F's roundoff.
+    <= 0, so F > 0 near lam is within F's roundoff, except where the lane
+    starts from D2 (1 + D2_SIDE) instead (`at_D2_low`, see the body; one
+    case is still open there). F(lam_pos) is the quadratic model's value
+    from the exact F(lam) where the sampled value agrees with it to F's
+    roundoff.
 
     A lambda lane without a valid bracket returns NaN (the point is then
     masked); unlike the C++, the MINIMUM_RANGE collapse keeps that NaN. An
@@ -278,7 +260,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # F at |nu| (t_tp where sigma dot = 0), D2 (1 -+ D2_SIDE) and lam: one
     # phi call.
     t4 = jnp.stack([jnp.where(sig0, t_tp, absnu), Dm, Dp, lam])
-    Phi4, mult4, I4 = _lane_terms(Fz, D2, t4)
+    Phi4, mult4, I4 = Fz.lane_terms(t4)
     fnu, fm, fp, fl = _F_val(iom, t4, Phi4, mult4, I4)
     dfl = Fz.dF_lam(lam)
     fnu_upper = jnp.where(Lz0, fm, FD2)
@@ -290,9 +272,9 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # so lam_pos stays finite (it is exported): `safe_div`, not 0/0.
     # "Tiny" is relative to lam - D2, not lam (gala): F's roundoff and a core
     # orbit's extent both scale with lam - D2.
-    S = jnp.abs(E * lam) + jnp.abs(I4[3]) + jnp.abs(Phi4[3] * mult4[3])
+    S, noise = _F_noise_val(iom, lam, Phi4[3], mult4[3], I4[3])
+    noise = SNAP_NOISE * noise
     eps = jnp.finfo(lam.dtype).eps  # type: ignore[no-untyped-call]
-    noise = SNAP_NOISE * eps * (S * jnp.abs(lam - D2) + Lz2 * lam / 2)
     # At lam = D2 (the axis inside the foci) F'(D2) is O(v_R^2), and with a
     # small v_R it is a sum of terms that cancel: `dF_lam`'s limit E D2 -
     # L_z^2/2 - (I_3 - f_nu) - (D2 - |nu|) Phi(0, sigma). I_3 and f_nu each
@@ -319,7 +301,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # terms whose roundoff changes with the compiled batch shape. Ring +
     # disk, R = 10, v_R = 8e-10: F(lam) = 3.2e-15, and `fl` was 0 in eager
     # and 6.6e-14 under jit, so only eager took the edge.
-    f_mom = (lam - absnu) ** 2 * iom.lamdot**2 / (8 * lam)
+    f_mom = iom.f_mom
     edge = (fl <= 0) | (~flat & (f_mom < tiny * jnp.abs(dfl)))
     # The nudge is min(half the vertex offset, lam MINIMUM_RANGE), or the
     # Newton step dx if larger, F(lam) <= 0 and F' > 0 (for F' < 0, dx <= 0
@@ -508,14 +490,13 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     t_nu = nu_upper + (nu_lo - nu_upper) * g_nu
     b_nl = jnp.fmax(nu_lo, nu_tiny)
     r_nl, q_nl = t_nu[0] / b_nl, jnp.asarray(NU_LADDER_SPREAD, dtype=lam.dtype)
-    t_nl, c_lo = b_nl * r_nl**q_nl, b_nl * jnp.asarray(NU_LADDER_LO, dtype=lam.dtype)
-    t_nl = jnp.where(t_nl < c_lo, t_nl, c_lo)
+    c_lo = b_nl * jnp.asarray(NU_LADDER_LO, dtype=lam.dtype)
     c_hi = t_nu[0] * jnp.asarray(NU_LADDER_HI, dtype=lam.dtype)
-    t_nl = jnp.where(t_nl > c_hi, t_nl, c_hi)
+    t_nl = jnp.fmax(jnp.fmin(b_nl * r_nl**q_nl, c_lo), c_hi)
     t_nl = jnp.where(t_nl < t_nu[0], t_nl, jnp.nan)  # only below the ladder
     t_nu = jnp.concat([t_nl, t_nu, nu_upper[None]])
     t_all = jnp.concat([tk, t_nu[:-1]])
-    Phik, multk, Ik = _lane_terms(Fz, D2, t_all)
+    Phik, multk, Ik = Fz.lane_terms(t_all)
     fk = _F_val(iom, t_all, Phik, multk, Ik)
     fk, f_nu = fk[:n_k], jnp.concat([fk[n_k:], fnu_upper[None]])
     f_lp, f_v, f_lo, f_hi = fk[0], fk[1], fk[i_lo], fk[i_hi]
@@ -538,12 +519,11 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # change with the batch shape.
     # ``lmin_pinned`` (below) is the mirror on the lambda side.
     def resolved_neg(f: Array, t: Array, Phi: Array, mult: Array, I: Array) -> Array:
-        S_t = jnp.abs(E * t) + jnp.abs(I) + jnp.abs(Phi * mult)
+        S_t = _F_noise_val(iom, t, Phi, mult, I)[0]
         return f < -SNAP_NOISE * eps * (S_t + S) * jnp.abs(t - D2)
 
-    S_k = jnp.abs(E * t_nu[:-1]) + jnp.abs(Ik[n_k:]) + jnp.abs(Phik[n_k:] * multk[n_k:])
-    thr_k = SNAP_NOISE * eps * (S_k + S) * jnp.abs(t_nu[:-1] - D2)
-    sgn_k = jnp.stack([f_nu[:-1] < -thr_k, f_nu[:-1] > thr_k])
+    nu_k = (t_nu[:-1], Phik[n_k:], multk[n_k:], Ik[n_k:])
+    sgn_k = jnp.stack([resolved_neg(f_nu[:-1], *nu_k), resolved_neg(-f_nu[:-1], *nu_k)])
     # the lowest ladder points above |nu| with F resolved negative and positive
     k_nu = jnp.where((t_nu[:-1] > nu_lo) & sgn_k, t_nu[:-1], jnp.inf)
     m_neg, m_pos = jnp.min(k_nu, 1)
@@ -580,15 +560,13 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # gala's near-shell test at the edge, where the model has no real root).
     # F(lam) for the snap is f_mom (above).
     # No F > 0 sample to start the solved lane from (F(lam_pos) <= 0 or NaN,
-    # and no split, below): at lam = D2, or with lam_pos at or below
-    # lam_lower (L_z = 0, lam - D2 <= D2 D2_SIDE: F(lam_pos) is NaN), it
-    # starts from D2 (1 + D2_SIDE) where F > 0 there (`at_D2_low`, below);
-    # otherwise F > 0 near lam is within F's roundoff (a core with E -
-    # Phi(0) near eps |Phi(0)|, or an extent of a few ulp of D2 at lam =
-    # D2), and the lane is snapped. One case is still open: on the axis
-    # inside the foci at L_z = 0, F > 0 can be resolved further above D2
-    # while F at D2 (1 + D2_SIDE) and at lam_pos is roundoff. Those lanes
-    # are snapped to D2 too (audit 12 F1, deferred to a follow-up).
+    # and no split, below): it starts from D2 (1 + D2_SIDE) where
+    # `at_D2_low` (below); otherwise F > 0 near lam is within F's roundoff
+    # (a core with E - Phi(0) near eps |Phi(0)|, or an extent of a few ulp
+    # of D2 at lam = D2), and the lane is snapped. One case is still open:
+    # on the axis inside the foci at L_z = 0, F > 0 can be resolved further
+    # above D2 while F at D2 (1 + D2_SIDE) and at lam_pos is roundoff. Those
+    # lanes are snapped to D2 too (audit 12 F1, deferred to a follow-up).
     split_ok = (d2f < 0) & (f_v > 0)  # the split (see below)
     no_pos = ~split_ok & ~(f_lp > 0)
     at_D2_low = no_pos & (at_D2 | ~(lam_pos > lam_lower)) & (fp > 0)
@@ -649,8 +627,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
         (Lz0 & ~fp_neg & ~lo_neg & ~lmin_edge) | (lmax_edge & (lam == D2))
     ) & ~snapped
 
-    # The edge limit (deviation from gala, which sets it to lam: an error up
-    # to lam MINIMUM_RANGE, percents of the extent in a deep core): lam plus
+    # The edge limit (a deviation from gala, see the docstring): lam plus
     # the near root of the quadratic model built from f_mom, on the side F'
     # points away from (f_mom >= 0); the Newton step -f_mom/F' where the
     # model has no real root; 0 where F' = 0. Cancellation-free (as in
@@ -709,7 +686,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     lmax_fb = jnp.where(near_h, fout_h / out_h**2, E - phi_inf)
 
     # accept, clip and midpoint are evaluated in tau, then log-mapped below
-    lmin_x0 = _first_step(lam, fl, dfl, d2f, lmin_a, lmin_b, sign=-1.0)
+    lmin_x0 = _first_step(lam + xl, d2f, lmin_a, lmin_b)
 
     # Lane variables: log tau, log tau (each scaled, below), s. The lam_min
     # lane runs in log tau: with a small (fallback) Delta its bracket spans
@@ -753,7 +730,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
         [
             xa[0],
             jnp.log(jnp.where(lmin_done, lmin_set, lmin_x0) / sc[1]),
-            _first_step(lam, fl, dfl, d2f, 0.0, lmax_b, sign=1.0, lam_pos=split),
+            _first_step(lam + xh, d2f, 0.0, lmax_b, lam_pos=split),
         ]
     )
     a = jnp.stack([xa[0], xa[1], jnp.zeros_like(lam)])
@@ -764,7 +741,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     def lanes(x: Array) -> Array:
         sem = _semi_tau(x[2], split)
         tau = jnp.stack([sc[0] * jnp.exp(x[0]), sc[1] * jnp.exp(x[1]), sem[0]])
-        Phi, mult, I = _lane_terms(Fz, D2, tau)
+        Phi, mult, I = Fz.lane_terms(tau)
         F = _F_val(iom, tau[:2], Phi[:2], mult[:2], I[:2])
         Fs = _F_semi_val(iom, sem, Phi[2], mult[2], I[2], phi_inf)
         return jnp.concat([F, Fs[None]])
@@ -774,7 +751,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
     # sc exp(x) can round an endpoint root an ulp outside the bracket
     # (lam_min: below D2 for tiny L_z): clamp back into it. nu_max: NaN (no
     # bracket) is |nu| (C++ fallback).
-    nu_tau = clamp(sc[0] * jnp.exp(r[0]), absnu, nu_upper)
+    nu_tau = jnp.clip(sc[0] * jnp.exp(r[0]), absnu, nu_upper)
     # A pinned lane is D2, also where F(D2 (1 - D2_SIDE)) < 0 is
     # unresolved.
     nu_max = jnp.where(
@@ -782,7 +759,7 @@ def find_limits(Fz: Fset, iom: IOM, phi_inf: Array) -> Limits:
         D2,
         jnp.where(~nu_done & jnp.isfinite(nu_tau), nu_tau, absnu),
     )
-    lmin_tau = clamp(sc[1] * jnp.exp(r[1]), lmin_a, lmin_b)
+    lmin_tau = jnp.clip(sc[1] * jnp.exp(r[1]), lmin_a, lmin_b)
     lam_min = jnp.where(lmin_done, lmin_set, lmin_tau)
     ts, beyond, ok = _semi_tau(r[2], split)
     lam_max = jnp.where(done0[2], lam_edge, jnp.where(ok & ~beyond, ts, jnp.nan))
@@ -842,7 +819,6 @@ def _over(num: Array, den: Array) -> Array:
 
 def _double_tangent(F: Fset, Fz: Fset, lim: Limits) -> Array:
     """-tang(F'(L0)) / F''(L0) at L0 = lam_max on shell lanes, 0 elsewhere."""
-    sg = jax.lax.stop_gradient
     lmax = sg(lim.lam_max)
     d = -_over(_tang_at(F.dF_lam, lmax, F.D2, 2 * F.D2), sg(Fz.d2F_lam(lmax)))
     return jnp.where(lim.shell, d, 0.0)
@@ -867,16 +843,10 @@ def attach_tangents(lim: Limits, F: Fset, Fz: Fset, *, shell: bool = True) -> Li
     tangent needs F' and F'' through a second-order nest on every lane, and
     shell lanes are a subset of the Taylor candidates, so
     `taylor_coeffs_batch` (``shell=True``) adds it on the compacted lanes,
-    which is cheaper. Pass it these limits only: limits from the default
-    ``shell=True`` would get the shell tangent twice.
-
-    The limits are final only after `taylor_coeffs_batch`: it also
-    Newton-polishes the near-circular lambda roots (`_polish`), which are
-    roundoff-limited here, and returns the final limits as
-    ``Taylor.lam_min`` and ``Taylor.lam_max``.
+    which is cheaper. The limits are final only after `taylor_coeffs_batch`
+    (see there).
     """
     D2 = F.D2
-    sg = jax.lax.stop_gradient
     lmin, lmax, nu = sg(lim.lam_min), sg(lim.lam_max), sg(lim.nu_max)
 
     lam2 = jnp.stack([lmin, lmax])
@@ -920,9 +890,7 @@ class Taylor(NamedTuple):
     use_n: Array  # near-planar: Q = -(F2 + F4 (hi + u^2))
     F2: Array  # F(u) = F0 + F2 u^2 + F4 u^4 on the nu branch
     F4: Array
-    # The final limits: the input's, Newton-polished where near-circular
-    # (with ``iom``, as in the batch) and, from `taylor_coeffs_batch(...,
-    # shell=True)`, with the shell lanes' double-root tangent.
+    # The final limits (see `taylor_coeffs_batch`)
     lam_min: Array
     lam_max: Array
 
@@ -951,7 +919,6 @@ def _candidates(lim: Limits, D2: Array) -> tuple[Array, Array, Array, Array]:
     the series check on the coefficients (see `taylor_coeffs`).
     No gradient.
     """
-    sg = jax.lax.stop_gradient
     lo, hi, nu = lim.lam_min, lim.lam_max, sg(lim.nu_max)
     m = 0.5 * (lo + hi)
     ok = jnp.isfinite(m) & (m > D2)
@@ -995,7 +962,6 @@ def taylor_coeffs(F: Fset, lim: Limits, iom: IOM | None = None) -> Taylor:
         c2 = jnp.where(near, c2 + dm * (3 * c3 + 6 * dm * c4), c2)
         c3 = jnp.where(near, c3 + 4 * dm * c4, c3)
         m = jnp.where(near, m_p, m)
-    sg = jax.lax.stop_gradient
     F2, F4 = sg(c[3]), sg(c[4])
     ok_n, ok_l = _series_match(F, lim, sg(m), sg(jnp.stack([c2, c3, c4])), F2, F4)
     use_n = (
@@ -1033,12 +999,10 @@ def _polish(
     Returns (the limits, the polished-lane flag); the other lanes' limits
     are returned as given. Snapped lanes are not polished.
     """
-    sg = jax.lax.stop_gradient
     lo0, hi0, m0, lam = sg(lim.lam_min), sg(lim.lam_max), sg(m), sg(iom.lam)
-    f_mom = sg((iom.lam - iom.absnu) ** 2 * iom.lamdot**2 / (8 * iom.lam))
     a1, a2, a3, a4 = sg(c[5]), sg(c[0]), sg(c[1]), sg(c[2])
     xl = lam - m0
-    a0 = f_mom - xl * (a1 + xl * (a2 + xl * (a3 + xl * a4)))
+    a0 = sg(iom.f_mom) - xl * (a1 + xl * (a2 + xl * (a3 + xl * a4)))
 
     def dp(x: Array) -> Array:
         return a1 + x * (2 * a2 + x * (3 * a3 + x * 4 * a4))
@@ -1103,7 +1067,6 @@ def _series_match(
     term takes |Phi| as the size of Phi's terms (see `_noise_snap`): where
     they cancel, use_n can change with the batch's chunking and with jit.
     """
-    sg = jax.lax.stop_gradient
     lo, hi = sg(lim.lam_min), sg(lim.lam_max)
     w = hi - lo
     uh = 0.5 * jnp.sqrt(jnp.where(lim.nu_max > 0, sg(lim.nu_max), 0.0))
@@ -1160,10 +1123,10 @@ def taylor_coeffs_batch(
     coefficients are NaN and the flags False (m is always set).
 
     The limits are final only here: ``Taylor.lam_min`` and ``lam_max``
-    (``m`` their midpoint). On the candidates the near-circular lambda roots
-    are Newton-polished (`_polish`, w < POLISH lam), at O(candidates) cost;
-    the other lanes return the input limits bitwise (values and both
-    derivative modes).
+    (``m`` their midpoint). On the candidates the near-circular lambda roots,
+    roundoff-limited in `find_limits`, are Newton-polished (`_polish`, w <
+    POLISH lam), at O(candidates) cost; the other lanes return the input
+    limits bitwise (values and both derivative modes).
 
     With ``shell=True``, ``lim`` must come from ``attach_tangents(...,
     shell=False)`` (default limits would get the shell tangent twice): the

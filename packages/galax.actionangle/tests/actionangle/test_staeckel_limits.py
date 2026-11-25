@@ -14,11 +14,16 @@ from ._helpers import (
     _GRAD_POTS,
     AXIS_W6,
     D2,
+    ISO,
     MN_D2,
+    _assert_finite,
     _assert_lam_between,
     _assert_limits_close,
+    _assert_nu_close,
     _D2_pipeline,
     _F_rows,
+    _frozen_limits,
+    _hern,
     _jac_both,
     _kk,
     _kk_F,
@@ -40,6 +45,7 @@ from galax.actionangle._src import _staeckel_limits as limits
 from galax.actionangle._src._staeckel_limits import (
     _first_step,
     _noise_snap,
+    _quad_roots,
     attach_tangents,
     default_phi_inf,
     find_limits,
@@ -48,6 +54,41 @@ from galax.actionangle._src._staeckel_prolate import (
     integrals_of_motion,
     make_F,
 )
+
+_G = 4.498502151469554e-12  # kpc^3 / (Msun Myr^2)
+
+
+def _plum(m, b):
+    return gp.PlummerPotential(
+        m_tot=u.Q(m, "Msun"), r_s=u.Q(b, "kpc"), units="galactic"
+    )
+
+
+def _assert_lam_err(lim, lo, hi, tol):
+    """|lam_min - lo| and |lam_max - hi| are below ``tol``."""
+    for k, ref in (("lam_min", lo), ("lam_max", hi)):
+        err = np.abs(np.asarray(getattr(lim, k)) - ref)
+        np.testing.assert_array_less(err, tol, err_msg=k)
+
+
+def _limit_jvp(pot, key, d2):
+    """(w, t) -> the tangent along t of the limit ``key``, at fixed D2 = d2."""
+
+    def f(w, t):
+        def lim(x):
+            return getattr(_live_limits(pot, x, jnp.asarray(d2))[0], key)
+
+        return jax.jvp(lim, (w,), (t,))[1]
+
+    return f
+
+
+def _dec_pm(w, c, h):
+    """(w + h e_c, w - h e_c) in decimals, the other entries w's floats exactly."""
+    wp, wm = ([decimal.Decimal(float(x)) for x in w] for _ in range(2))
+    wp[c] += h
+    wm[c] -= h
+    return wp, wm
 
 
 def test_limits_match_kk_exact():
@@ -63,8 +104,7 @@ def test_limits_match_kk_exact():
     # measured 3.5e-15 (lambda) and 3.7e-14 (nu): 10x margin
     np.testing.assert_allclose(lim.lam_min, ref[:, 0], rtol=4e-14, atol=0)
     np.testing.assert_allclose(lim.lam_max, ref[:, 1], rtol=4e-14, atol=0)
-    nu_scale = np.maximum(ref[:, 2], 1e-4 * D2)
-    np.testing.assert_array_less(np.abs(lim.nu_max - ref[:, 2]), 4e-13 * nu_scale)
+    _assert_nu_close(lim.nu_max, ref[:, 2], D2, 4e-13)
 
 
 def _mixed_w6s(n, vc, rmax, seed):
@@ -92,13 +132,7 @@ def _mixed_w6s(n, vc, rmax, seed):
 
 _REGRESSION_POTS = {
     "mn": (_mn, 0.25, 15.0),
-    "isochrone": (
-        lambda: gp.IsochronePotential(
-            m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-        ),
-        0.2,
-        15.0,
-    ),
+    "isochrone": (lambda: ISO, 0.2, 15.0),
     "mw2022": (gp.MilkyWayPotential2022, 0.22, 20.0),
 }
 
@@ -134,23 +168,21 @@ def test_limits_convergence_regression(name, monkeypatch):
     _assert_limits_close(lim16, lim60.lam_min, lim60.lam_max, lim60.nu_max, D2s)
     for lim in (lim16, lim60):  # lam_min >= D2 (log-tau lane round trip)
         ok = np.isfinite(lim.lam_min)
-        np.testing.assert_array_less(
-            np.asarray(D2s)[ok], np.nextafter(lim.lam_min[ok], np.inf)
-        )
+        assert np.all(np.asarray(lim.lam_min)[ok] >= np.asarray(D2s)[ok])
     assert np.any(lim16.planar)  # the planar block is exercised
     assert np.any(np.asarray(lim16.nu_max) > 0)
 
 
 @pytest.mark.parametrize("semi", [False, True], ids=["lam_min", "lam_max"])
 def test_quadratic_first_step_fallbacks(semi):
-    sign = 1.0 if semi else -1.0
     lam = 10.0
     a, b = (0.0, 1.0) if semi else (8.0, lam)
     mid = 0.5 * (a + b)
 
     def step(f, df, d2f, a=a, b=b):
-        args = (jnp.asarray(v) for v in (lam, f, df, d2f, a, b))
-        return _first_step(*args, sign=sign, lam_pos=lam if semi else None)
+        f, df, d2f, a, b = (jnp.asarray(v) for v in (f, df, d2f, a, b))
+        x = jnp.asarray(lam) + _quad_roots(f, df, d2f)[1 if semi else 0]
+        return _first_step(x, d2f, a, b, lam_pos=lam if semi else None)
 
     # accepted: f=1, f'=0, f''=-2 -> tau* = lam -/+ 1, inside, not clipped
     x = step(1.0, 0.0, -2.0)
@@ -218,8 +250,7 @@ def test_log_potential_bound_by_default():
     w6s = _w6s(30, seed=5)
     D2s = jnp.full(len(w6s), 4.0)
     lim = _limits_fn(pot)(w6s, D2s)
-    for k in ("lam_min", "lam_max", "nu_max"):
-        assert np.all(np.isfinite(getattr(lim, k))), k
+    _assert_finite(lim, "lam_min", "lam_max", "nu_max")
     assert np.all(lim.lam_max > lim.lam_min)
     lim_inf = _limits_fn(pot, phi_inf=jnp.inf)(w6s, D2s)
     _assert_limits_close(lim_inf, lim.lam_min, lim.lam_max, lim.nu_max, D2s)
@@ -241,8 +272,7 @@ def test_find_limits_flags():
     lim = _limits_fn(pot)(w6s, jnp.full(len(w6s), D2))
     assert lim.planar[1]
     assert lim.nu_max[1] == 0
-    for k in ("lam_min", "lam_max", "nu_max"):
-        assert np.all(np.isfinite(getattr(lim, k))), (k, getattr(lim, k))
+    _assert_finite(lim, "lam_min", "lam_max", "nu_max")
     assert np.all(lim.lam_min >= D2)
     assert np.all(lim.nu_max <= D2)
     # L_z = 0: either the lam_min lane is pinned to D2, or it solved above D2
@@ -291,8 +321,7 @@ def test_lam_min_not_above_lam_pos_near_circular(name):
     w6s = _near_circular_w6s(pot, 1e-7)
     for D2s in (jnp.full(len(w6s), MN_D2), _D2_pipeline(pot, w6s)):
         lim = _limits_fn(pot)(w6s, D2s)
-        for k in ("lam_min", "lam_max", "nu_max", "lam_pos"):
-            assert np.all(np.isfinite(getattr(lim, k))), k
+        _assert_finite(lim, "lam_min", "lam_max", "nu_max", "lam_pos")
         free = ~(lim.shell | lim.snapped | lim.lmin_pinned)
         assert free.sum() > 100
         assert np.all(lim.lam_min[free] <= lim.lam_pos[free])
@@ -332,8 +361,7 @@ def test_circular_orbits_are_finite_shells(name, e):
     w6s = _near_circular_w6s(pot, e)
     for D2s in (jnp.full(len(w6s), MN_D2), _D2_pipeline(pot, w6s)):
         lim = _limits_fn(pot)(w6s, D2s)
-        for k in ("lam_min", "lam_max", "nu_max"):
-            assert np.all(np.isfinite(getattr(lim, k))), k
+        _assert_finite(lim, "lam_min", "lam_max", "nu_max")
         assert np.mean(lim.shell) > 0.99
         ref_lo, ref_hi = _lam_roots(pot, w6s, D2s)
         np.testing.assert_allclose(lim.lam_min, ref_lo, rtol=2e-7, atol=0)
@@ -385,9 +413,8 @@ def test_split_at_the_vertex_near_the_foci():
     np.testing.assert_array_equal(lim.shell, lim.snapped)  # shells by design only
     ok = ~np.asarray(lim.shell)
     assert ok.sum() >= 20
-    for k, j in (("lam_min", 0), ("lam_max", 1)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref[:, j])[ok]
-        np.testing.assert_array_less(err, 0.1 * ext[ok], err_msg=k)
+    lim_ok = jax.tree.map(lambda x: np.asarray(x)[ok], lim)
+    _assert_lam_err(lim_ok, ref[ok, 0], ref[ok, 1], 0.1 * ext[ok])
 
 
 def test_axis_inside_foci_shells():
@@ -421,9 +448,7 @@ def test_lam_min_not_below_D2_near_lz0():
     lim = _limits_fn(pot)(w6s, D2s)
     ok = np.isfinite(lim.lam_min)
     assert ok.mean() > 0.9
-    np.testing.assert_array_less(
-        np.asarray(D2s)[ok], np.nextafter(lim.lam_min[ok], np.inf)
-    )
+    assert np.all(np.asarray(lim.lam_min)[ok] >= np.asarray(D2s)[ok])
     assert np.all(lim.lam_min[ok] <= lim.lam_pos[ok])
 
 
@@ -504,65 +529,29 @@ _VC = {"kk": 0.18633180930882928, "mn": 0.21363830992234828}
 _SLOW = {
     "kk": [
         # R ~ 1e-8 |z| inside the foci (lambda = D2): F'' NaN at lambda
-        (
-            [
-                2.2455415895233283e-08,
-                0.0,
-                0.0224554158952258,
-                -0.0011898344546856154,
-                0.0024270060125430523,
-                0.0006663731828401483,
-            ],
-            D2,
-        ),
-        (
-            [
-                1.999041651677654e-08,
-                0.0,
-                0.019990416516769877,
-                -0.0026286978797531247,
-                -0.0011428619908152267,
-                0.00137959107053803,
-            ],
-            D2,
-        ),
+        ([2.2455415895233283e-08, 0.0, 0.0224554158952258,
+          -0.0011898344546856154, 0.0024270060125430523, 0.0006663731828401483], D2),
+        ([1.999041651677654e-08, 0.0, 0.019990416516769877,
+          -0.0026286978797531247, -0.0011428619908152267, 0.00137959107053803], D2),
         # the centre with the pipeline Delta (1e-4 r): lambda_max ~ 1e24 lambda
         ([0.0, 0.0, 1e-12, *(np.array([0.3, 0.2, 0.4]) * _VC["kk"])], None),
         ([1e-12, 0.0, 0.0, *(np.array([0.3, 0.2, 0.4]) * _VC["kk"])], None),
     ],
     "mn": [
         # near the axis outside the foci, near-radial: lam_min just above D2
-        (
-            [
-                0.002688551260061316,
-                0.0,
-                26.885512510994783,
-                -0.0013264164495941722,
-                -0.0010965626737614864,
-                -0.08190822149955775,
-            ],
-            None,
-        ),
+        ([0.002688551260061316, 0.0, 26.885512510994783,
+          -0.0013264164495941722, -0.0010965626737614864, -0.08190822149955775], None),
         ([1e-12, 0.0, 0.0, *(np.array([0.3, 0.2, 0.4]) * _VC["mn"])], None),
         ([1e-12, 0.0, 0.0, *(np.array([0.3, 0.0, 0.4]) * _VC["mn"])], None),
     ],
     "nfw": [
         # a cusp at the centre, fixed Delta: F's quadratic model under-estimates
         # the lambda_max root ~1e5-fold
-        (
-            [
-                1.295146030901508e-06,
-                0.0,
-                -4.3828865007367356e-07,
-                -0.02814195888690673,
-                0.019069903403572227,
-                -0.029917216205698198,
-            ],
-            56.25,
-        ),
+        ([1.295146030901508e-06, 0.0, -4.3828865007367356e-07,
+          -0.02814195888690673, 0.019069903403572227, -0.029917216205698198], 56.25),
         ([1e-6, 0.0, 0.0, 0.0722, 0.0481, 0.0963], 56.25),
     ],
-}
+}  # fmt: skip
 
 
 @pytest.mark.parametrize("name", ["kk", "mn", "nfw"])
@@ -587,29 +576,19 @@ def test_slow_lanes_converge_in_budget(name, monkeypatch):
     lim60 = _limits_fn(pot)(w6s, D2s)
     lam = np.asarray(lim60.lam_max)
     tol = np.maximum(3e-11 * (lam - np.asarray(D2s)), 4 * np.finfo(float).eps * lam)
-    for k in ("lam_min", "lam_max"):
-        assert np.all(np.isfinite(getattr(lim16, k))), k
-        np.testing.assert_array_less(
-            np.abs(np.asarray(getattr(lim16, k)) - getattr(lim60, k)), tol, err_msg=k
-        )
-    nu_tol = 3e-10 * np.maximum(np.asarray(lim60.nu_max), 1e-4 * np.asarray(D2s))
-    np.testing.assert_array_less(np.abs(lim16.nu_max - lim60.nu_max), nu_tol + 1e-300)
+    _assert_finite(lim16, "lam_min", "lam_max")
+    _assert_lam_err(lim16, lim60.lam_min, lim60.lam_max, tol)
+    _assert_nu_close(lim16.nu_max, lim60.nu_max, D2s, 3e-10)
     if name == "kk":  # inside the foci: the exact roots
         ref = np.array([kk_turning_points(pot, w) for w in np.asarray(w6s[:2])])
-        for k, j in (("lam_min", 0), ("lam_max", 1)):
-            np.testing.assert_array_less(
-                np.abs(np.asarray(getattr(lim16, k))[:2] - ref[:, j]),
-                tol[:2],
-                err_msg=k,
-            )
+        lim2 = jax.tree.map(lambda x: x[:2], lim16)
+        _assert_lam_err(lim2, ref[:, 0], ref[:, 1], tol[:2])
 
 
 def _nu_bisect(pot, w6s, D2s):
     """nu_max by bisection of F_nu on [|nu|, D2], to the last ulp."""
     phi = _phi(pot)
-    f = jax.jit(
-        jax.vmap(lambda w, d, t: make_F(phi, integrals_of_motion(phi, w, d)).F_nu(t))
-    )
+    f = _F_rows(pot, "F_nu")
     iom = jax.vmap(lambda w, d: integrals_of_motion(phi, w, d))(w6s, D2s)
     lo, hi = np.asarray(iom.absnu), np.asarray(D2s)
     return bisect(lambda t: np.asarray(f(w6s, D2s, jnp.asarray(t))), lo, hi, n_iter=400)
@@ -626,60 +605,28 @@ def test_nu_max_near_a_cusp(name):
     if name == "nfw":
         pot, d2 = _nfw(), 56.25
         w6s = [
-            [
-                3.5405919774327843e-06,
-                0.0,
-                -8.58212123918845e-07,
-                -0.019784153453073952,
-                -0.017007136829650944,
-                0.018740946686217803,
-            ],
-            [
-                2.5447273543029476e-06,
-                0.0,
-                6.075798585052109e-07,
-                -0.04696692668393462,
-                -0.13803063588216094,
-                -0.02700560287124308,
-            ],
+            [3.5405919774327843e-06, 0.0, -8.58212123918845e-07,
+             -0.019784153453073952, -0.017007136829650944, 0.018740946686217803],
+            [2.5447273543029476e-06, 0.0, 6.075798585052109e-07,
+             -0.04696692668393462, -0.13803063588216094, -0.02700560287124308],
             [1e-8, 0.0, 1e-8, 0.0212, 0.0212, 0.0212],
-        ]
+        ]  # fmt: skip
     else:
         pot, d2 = gp.MilkyWayPotential2022(), 4.0
         w6s = [
-            [
-                2.0256113669210302e-05,
-                0.0,
-                -1.5413893370878444e-05,
-                0.025789695631357575,
-                -0.04573692569612911,
-                -0.11943352652162724,
-            ],
-            [
-                6.881635172721498e-06,
-                0.0,
-                -2.589439226101709e-06,
-                -0.005859224697080791,
-                -0.008398595333846522,
-                0.12207549902479263,
-            ],
-            [
-                5.4529896351803646e-05,
-                0.0,
-                -7.060186521287817e-06,
-                -0.06735933273910436,
-                -0.005172915158274547,
-                0.1215164746126365,
-            ],
-        ]
+            [2.0256113669210302e-05, 0.0, -1.5413893370878444e-05,
+             0.025789695631357575, -0.04573692569612911, -0.11943352652162724],
+            [6.881635172721498e-06, 0.0, -2.589439226101709e-06,
+             -0.005859224697080791, -0.008398595333846522, 0.12207549902479263],
+            [5.4529896351803646e-05, 0.0, -7.060186521287817e-06,
+             -0.06735933273910436, -0.005172915158274547, 0.1215164746126365],
+        ]  # fmt: skip
     w6s = jnp.asarray(w6s)
     D2s = jnp.full(len(w6s), d2)
     lim = _limits_fn(pot)(w6s, D2s)
     ref = _nu_bisect(pot, w6s, D2s)
     assert not np.any(lim.planar)
-    np.testing.assert_array_less(
-        np.abs(lim.nu_max - ref), 1e-8 * np.maximum(ref, 1e-4 * d2)
-    )
+    _assert_nu_close(lim.nu_max, ref, d2, 1e-8)
 
 
 def test_nu_max_near_D2_kk():
@@ -695,30 +642,16 @@ def test_nu_max_near_D2_kk():
     pot = _kk()
     w6s = jnp.asarray(
         [
-            [
-                357.433831832236,
-                -56.0603401950373,
-                -52.965631125202506,
-                -0.014313338780077369,
-                0.002244920793380785,
-                0.005730489874327654,
-            ],
-            [
-                0.5088026585917871,
-                0.0,
-                -0.009527732399219275,
-                -0.03717906562285368,
-                -0.008142090861444243,
-                -0.47020274307675547,
-            ],
+            [357.433831832236, -56.0603401950373, -52.965631125202506,
+             -0.014313338780077369, 0.002244920793380785, 0.005730489874327654],
+            [0.5088026585917871, 0.0, -0.009527732399219275,
+             -0.03717906562285368, -0.008142090861444243, -0.47020274307675547],
         ]
-    )
+    )  # fmt: skip
     lim = _limits_fn(pot)(w6s, jnp.full(len(w6s), D2))
     ref = np.array([kk_turning_points(pot, w, exact=True)[2] for w in np.asarray(w6s)])
     assert np.all(ref > 0.99 * D2)
-    np.testing.assert_array_less(
-        np.abs(lim.nu_max - ref), 4e-13 * np.maximum(ref, 1e-4 * D2)
-    )
+    _assert_nu_close(lim.nu_max, ref, D2, 4e-13)
 
 
 def test_nu_max_at_D2_kk_values_and_tangents():
@@ -756,19 +689,11 @@ def test_nu_max_at_D2_kk_values_and_tangents():
         np.abs(lim.nu_max - ref), 1e-5 * gap + 16 * np.spacing(D2)
     )
 
-    def nu_of(w, t):
-        return jax.jvp(
-            lambda x: _live_limits(pot, x, jnp.asarray(D2))[0].nu_max, (w,), (t,)
-        )
-
     T = jnp.zeros((n, 6)).at[:, 3].set(1.0)
-    _, J = jax.jit(jax.vmap(nu_of))(w6s, T)
-    D = decimal.Decimal
+    J = jax.jit(jax.vmap(_limit_jvp(pot, "nu_max", D2)))(w6s, T)
     for w, Ji, g in zip(np.asarray(w6s), np.asarray(J), gap, strict=True):
-        h = D(1e-10 * g)  # nu moves by ~50 h << D2 - nu_max
-        wp, wm = [D(float(x)) for x in w], [D(float(x)) for x in w]
-        wp[3] += h
-        wm[3] -= h
+        h = decimal.Decimal(1e-10 * g)  # nu moves by ~50 h << D2 - nu_max
+        wp, wm = _dec_pm(w, 3, h)
         fd = float((kk_nu_max_decimal(pot, wp) - kk_nu_max_decimal(pot, wm)) / (2 * h))
         assert abs(Ji - fd) < 1e-3 * abs(fd), (Ji, fd)
 
@@ -883,11 +808,7 @@ def test_deep_core_lam_min_finite(name):
     w6s = jnp.concat([_deep_core_w6s(name, 24, f) for f in (1e-6, 1e-5)])
     D2s = _D2_pipeline(pot, w6s)
     lim = _limits_fn(pot)(w6s, D2s)
-    for k in ("lam_min", "lam_max", "nu_max"):
-        assert np.all(np.isfinite(getattr(lim, k))), (
-            k,
-            np.flatnonzero(~np.isfinite(getattr(lim, k))),
-        )
+    _assert_finite(lim, "lam_min", "lam_max", "nu_max")
     _assert_lam_between(pot, w6s, D2s, lim)
 
 
@@ -909,9 +830,7 @@ def test_edge_limit_deep_core_kk():
     lim = _limits_fn(pot)(w6s, jnp.full(len(w6s), D2))
     ref = np.array([kk_turning_points(pot, w) for w in np.asarray(w6s)])
     ext = ref[:, 1] - ref[:, 0]
-    for k, j in (("lam_min", 0), ("lam_max", 1)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref[:, j])
-        np.testing.assert_array_less(err, 1e-4 * ext, err_msg=k)
+    _assert_lam_err(lim, ref[:, 0], ref[:, 1], 1e-4 * ext)
 
     lam = np.asarray(jax.vmap(lambda w: integrals_of_motion(_phi(pot), w, D2).lam)(w6s))
     edge = np.min(np.abs(ref[:, :2] - lam[:, None]), axis=1) < 1e-10 * lam
@@ -955,9 +874,7 @@ def test_deep_core_fixed_delta_not_collapsed_kk():
     ref = np.array([kk_turning_points(pot, w, exact=True) for w in np.asarray(w6s)])
     assert not np.any(lim.shell | lim.planar | lim.snapped)
     ext = ref[:, 1] - ref[:, 0]
-    for k, j in (("lam_min", 0), ("lam_max", 1)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref[:, j])
-        np.testing.assert_array_less(err, 1e-3 * ext, err_msg=k)
+    _assert_lam_err(lim, ref[:, 0], ref[:, 1], 1e-3 * ext)
     np.testing.assert_allclose(lim.nu_max, ref[:, 2], rtol=4e-3, atol=0)
 
 
@@ -1064,11 +981,7 @@ def test_edge_limit_fixed_delta_cusp():
     lo, hi = _lam_bisect(pot, w6s, D2s)
     # no lane collapses (gala's D2 MINIMUM_RANGE shell test took 8 of them)
     assert not np.any(lim.shell | lim.snapped)
-    for k, ref in (("lam_min", lo), ("lam_max", hi)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref)
-        np.testing.assert_array_less(
-            err, 1e-5 * (hi - lo) + 2 * np.spacing(4.0), err_msg=k
-        )
+    _assert_lam_err(lim, lo, hi, 1e-5 * (hi - lo) + 2 * np.spacing(4.0))
 
 
 def test_lam_at_D2_core_lanes_nfw():
@@ -1112,14 +1025,8 @@ def test_lam_at_D2_core_lanes_nfw():
     np.testing.assert_array_equal(lim.lam_min, d2)
     np.testing.assert_array_less(np.abs(lim.lam_max - ref), 4 * np.spacing(d2))
 
-    def lmax(w, t):
-        def lm(x):
-            return _live_limits(pot, x, jnp.asarray(d2))[0].lam_max
-
-        return jax.jvp(lm, (w,), (t,))
-
     t = jnp.zeros((n, 6)).at[:, 3].set(1.0)
-    _, J = jax.jit(jax.vmap(lmax))(w6s, t)
+    J = jax.jit(jax.vmap(_limit_jvp(pot, "lam_max", d2)))(w6s, t)
     assert np.all(np.isfinite(J))
 
     # step 1e-2 |v_x|: the extent moves by ~2e-2 of itself, >= 200 ulp
@@ -1175,13 +1082,7 @@ def test_lz0_lam_within_D2_side_not_snapped():
     against mpmath; and a Plummer minus a smaller Plummer whose band lane is
     unbound (lam_max NaN, it was lam).
     """
-
-    def plum(m, b):
-        return gp.PlummerPotential(
-            m_tot=u.Q(m, "Msun"), r_s=u.Q(b, "kpc"), units="galactic"
-        )
-
-    pot, d2 = plum(1e11, 1.0), 1.5665770046181047
+    pot, d2 = _plum(1e11, 1.0), 1.5665770046181047
     R = [1.251629739427002e-09, 1.251629739427002e-08,
          2.540808371036814e-08, 3.492046973001335e-08]  # fmt: skip
     w6s = jnp.asarray(
@@ -1198,7 +1099,7 @@ def test_lz0_lam_within_D2_side_not_snapped():
     np.testing.assert_allclose(lim.lam_max, ref, rtol=1e-13, atol=0)
     np.testing.assert_allclose(lim.lam_min, d2, rtol=1e-15, atol=0)
 
-    hole = gp.CompositePotential(a=plum(1e11, 5.0), b=plum(-6e10, 1.0))
+    hole = gp.CompositePotential(a=_plum(1e11, 5.0), b=_plum(-6e10, 1.0))
     w6 = [2.2117974176508188e-08, 0.0, 0.5568904825309939,
           -0.02714827994671754, 0.0, -0.02436039854983938]  # fmt: skip
     lim = _limits_fn(hole)(jnp.asarray([w6]), jnp.full(1, d2))
@@ -1237,19 +1138,12 @@ def test_edge_nudge_above_roundoff(name):
     with the compiled program): both limits are within 1e-8 of the extent
     of a bisection of F (measured 4e-9).
     """
-    if name == "nfw":
-        pot = _nfw()
-    else:
-        pot = gp.HernquistPotential(
-            m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-        )
+    pot = _nfw() if name == "nfw" else _hern()
     w6s = jnp.asarray(_EDGE_NUDGE_W6[name])
     D2s = _D2_pipeline(pot, w6s)
     lim = _limits_fn(pot)(w6s, D2s)
     lo, hi = _lam_bisect(pot, w6s, D2s)
-    for k, ref in (("lam_min", lo), ("lam_max", hi)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref)
-        np.testing.assert_array_less(err, 1e-8 * (hi - lo), err_msg=k)
+    _assert_lam_err(lim, lo, hi, 1e-8 * (hi - lo))
 
 
 _OFF_EDGE_W6 = [  # Hernquist, near-circular, r ~ 3e-7..3e-6, pipeline Delta
@@ -1274,17 +1168,13 @@ def test_off_edge_nudge_hern():
     near-circular lanes at r = 1e-8..1e-2). Both limits are within 1e-8 of
     the extent of a bisection of F (measured 2e-9).
     """
-    pot = gp.HernquistPotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-    )
+    pot = _hern()
     w6s = jnp.asarray(_OFF_EDGE_W6)
     D2s = _D2_pipeline(pot, w6s)
     lim = _limits_fn(pot)(w6s, D2s)
     assert not np.any(lim.snapped | lim.shell)
     lo, hi = _lam_bisect(pot, w6s, D2s)
-    for k, ref in (("lam_min", lo), ("lam_max", hi)):
-        err = np.abs(np.asarray(getattr(lim, k)) - ref)
-        np.testing.assert_array_less(err, 1e-8 * (hi - lo), err_msg=k)
+    _assert_lam_err(lim, lo, hi, 1e-8 * (hi - lo))
 
 
 def test_find_limits_has_no_sort():
@@ -1421,9 +1311,8 @@ def test_axis_lz0_at_rest_nu_max_modes_agree(name):
     assert {3, 28} <= set(rest.tolist())
 
     def one(w6, d):
-        iom = integrals_of_motion(phi, w6, d)
-        lim = find_limits(make_F(phi, iom), iom, default_phi_inf(phi, iom))
-        return jnp.stack([lim.nu_max, iom.absnu])
+        absnu = integrals_of_motion(phi, w6, d).absnu
+        return jnp.stack([_frozen_limits(phi, w6, d).nu_max, absnu])
 
     batch = _limits_fn(pot)(w6s, jnp.full(len(w6s), 4.0)).nu_max[rest]
     jone = jax.jit(one)
@@ -1443,8 +1332,7 @@ def _modes(phi, d2, w6s, key):
     """
 
     def one(w6, d):
-        iom = integrals_of_motion(phi, w6, d)
-        return find_limits(make_F(phi, iom), iom, default_phi_inf(phi, iom))
+        return _frozen_limits(phi, w6, d)
 
     d = jnp.asarray(d2)
     jone = jax.jit(one)
@@ -1453,6 +1341,12 @@ def _modes(phi, d2, w6s, key):
         "jit": np.asarray([getattr(jone(w, d), key) for w in w6s]),
         "eager": np.asarray([getattr(one(w, d), key) for w in w6s]),
     }
+
+
+def _assert_modes(phi, d2, w6s, key, ref, rtol):
+    """``key`` of the limits of ``w6s`` is ``ref`` to ``rtol`` in each mode."""
+    for mode, out in _modes(phi, d2, jnp.asarray(w6s, dtype=float), key).items():
+        np.testing.assert_allclose(out, ref, rtol=rtol, err_msg=mode)
 
 
 def _phi_ring_axis(R, z):
@@ -1498,9 +1392,7 @@ def test_sigdot0_lower_nu_turning_point(phi, d2, w6, ref):
     already gave D2. The same in a batch, one lane at a time under jit and
     in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-10, err_msg=mode)
+    _assert_modes(phi, d2, [w6], "nu_max", ref, 1e-10)
 
 
 @pytest.mark.parametrize(
@@ -1519,17 +1411,14 @@ def test_sigdot0_unresolved_is_upper_nu_turning_point(d2, z):
     w6s = jnp.asarray([[0.0, 0, z, 0, 0, 0]])
     absnu = float(integrals_of_motion(phi, w6s[0], jnp.asarray(d2)).absnu)
     assert absnu < d2
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out[0], absnu, rtol=1e-12, err_msg=mode)
+    _assert_modes(phi, d2, w6s, "nu_max", absnu, 1e-12)
 
 
 @pytest.mark.parametrize(
     ("pot", "d2", "w6", "ref", "rtol"),
     [
         (
-            lambda: gp.IsochronePotential(
-                m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-            ),
+            lambda: ISO,
             1e-4,
             [1e-10, 0, 0.007, 0, 0, 0.000846805067150659],
             1.0000987539159073e-4,
@@ -1590,9 +1479,7 @@ def _kk_first_root_decimal(pot, w6, which):
     g = np.concat([np.logspace(-20, -0.3, 300), 1 - np.logspace(-15, -0.3, 200)])
     g = np.sort(g)
     with decimal.localcontext(prec=40):
-        F, d2, lam, nu = _kk_F(
-            pot, w6, D, lambda a: a.sqrt(), lambda a, b: (a * a + b * b).sqrt()
-        )
+        F, d2, lam, nu = _kk_F(pot, w6, exact=True)
         start = nu if which == "nu_max" else lam
         prev = start
         for gk in g:
@@ -1610,21 +1497,13 @@ def _kk_first_root_decimal(pot, w6, which):
 def _jvp_fd_kk(pot, w6s, key, cols, h=1e-12):
     """(jvp of limit ``key``, decimal central differences) along w6 ``cols``."""
     D = decimal.Decimal
-
-    def lim_of(w, t):
-        return jax.jvp(
-            lambda x: getattr(_live_limits(pot, x, jnp.asarray(D2))[0], key), (w,), (t,)
-        )[1]
-
     out = []
     for c in cols:
         T = jnp.zeros_like(w6s).at[:, c].set(1.0)
-        J = np.asarray(jax.jit(jax.vmap(lim_of))(w6s, T))
+        J = np.asarray(jax.jit(jax.vmap(_limit_jvp(pot, key, D2)))(w6s, T))
         fd = []
         for w in np.asarray(w6s):
-            wp, wm = [D(float(x)) for x in w], [D(float(x)) for x in w]
-            wp[c] += D(h)
-            wm[c] -= D(h)
+            wp, wm = _dec_pm(w, c, D(h))
             rp, rm = (_kk_first_root_decimal(pot, x, key) for x in (wp, wm))
             fd.append(float((rp - rm) / (2 * D(h))))
         out.append((J, np.asarray(fd)))
@@ -1716,13 +1595,7 @@ def test_axis_lz0_pipeline_delta(name):
     roundoff on some lanes, and its value must be D2 (0 is the F(0) <= 0
     pin). Both are D2 to 1e-14.
     """
-    pot = (
-        _kk()
-        if name == "kk"
-        else gp.IsochronePotential(
-            m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-        )
-    )
+    pot = _kk() if name == "kk" else ISO
     w6s = jnp.concat([_axis_w6s(40, inside=k, seed=9) for k in (True, False)])
     w6s = w6s[(w6s[:, 0] == 0) & (w6s[:, 3] == 0)]
     assert len(w6s) >= 16
@@ -1730,6 +1603,23 @@ def test_axis_lz0_pipeline_delta(name):
     lim = _limits_fn(pot)(w6s, D2s)
     np.testing.assert_allclose(lim.lam_min, D2s, rtol=1e-14, atol=0)
     np.testing.assert_allclose(lim.nu_max, D2s, rtol=1e-14, atol=0)
+
+
+def _axis_vth_w6s(phi, zs, fs, Rs):
+    """(R, 0, z) on the axis, v_z = f v_th (v_th just reaches the focus, D2)."""
+    Df = float(np.sqrt(D2))
+
+    def P(z):
+        return float(phi(jnp.asarray(0.0), jnp.asarray(z)))
+
+    return jnp.asarray(
+        [
+            [R, 0.0, z, 0.0, 0.0, f * np.sqrt(2 * (P(Df) - P(z)))]
+            for z in zs
+            for f in fs
+            for R in Rs
+        ]
+    )
 
 
 def test_axis_lz0_box_past_the_foci_pinned():
@@ -1746,31 +1636,16 @@ def test_axis_lz0_box_past_the_foci_pinned():
     """
     pot = _kk()
     phi = _phi(pot)
-    Df = float(np.sqrt(D2))
-
-    def P(z):
-        return float(phi(jnp.asarray(0.0), jnp.asarray(z)))
-
-    rows = [
-        [R, 0.0, z, 0.0, 0.0, f * np.sqrt(2 * (P(Df) - P(z)))]
-        for z in (0.3, 1.0, 1.7, 2.2, 2.5, 2.7)
-        for f in (1.00001, 1.001, 1.5)
-        for R in (0.0, 1e-12)
-    ]
-    cases = [(pot, jnp.asarray(rows), D2)]
+    zs, fs = (0.3, 1.0, 1.7, 2.2, 2.5, 2.7), (1.00001, 1.001, 1.5)
+    cases = [(pot, _axis_vth_w6s(phi, zs, fs, (0.0, 1e-12)), D2)]
     cases.append((_nfw(), jnp.asarray([[3.4e-7, 0, 5.2756, -5.3e-9, 0, 0]]), 4.0))
     for p, w6s, d2 in cases:
         lim = _limits_fn(p)(w6s, jnp.full(len(w6s), d2))
         np.testing.assert_array_equal(lim.nu_max, d2)
         assert np.all(lim.nu_pinned)
 
-        def nu_of(w, t, p=p, d2=d2):
-            return jax.jvp(
-                lambda x: _live_limits(p, x, jnp.asarray(d2))[0].nu_max, (w,), (t,)
-            )[1]
-
         t = jnp.zeros_like(w6s).at[:, jnp.asarray([2, 3, 5])].set(1.0)
-        J = np.asarray(jax.jit(jax.vmap(nu_of))(w6s, t))  # z + v_R + v_z
+        J = np.asarray(jax.jit(jax.vmap(_limit_jvp(p, "nu_max", d2)))(w6s, t))
         np.testing.assert_array_equal(J, 0.0)
 
     # At rest just inside a focus (|nu| = D2 (1 - 6.6e-8), fixed D2 = 4): F
@@ -1802,19 +1677,10 @@ def test_axis_lz0_inside_foci_lam_max():
     z, v_z and D2 tangents against mpmath central differences to 1e-6.
     """
     pot = _kk()
-    phi = _phi(pot)
-    Df = float(np.sqrt(D2))
-
-    def P(z):
-        return float(phi(jnp.asarray(0.0), jnp.asarray(z)))
-
-    grid = [(z, f, R) for z in (0.3, 1.0, 2.2, 2.5) for f in (0.5, 1.001, 1.5)
-            for R in (0.0, 1e-12)]  # fmt: skip
-    w6s = jnp.asarray(
-        [[R, 0.0, z, 0.0, 0.0, f * np.sqrt(2 * (P(Df) - P(z)))] for z, f, R in grid]
-    )
+    zs, fs, Rs = (0.3, 1.0, 2.2, 2.5), (0.5, 1.001, 1.5), (0.0, 1e-12)
+    w6s = _axis_vth_w6s(_phi(pot), zs, fs, Rs)
     lim = _limits_fn(pot)(w6s, jnp.full(len(w6s), D2))
-    inside = np.array([f < 1 for _, f, _ in grid])
+    inside = np.array([f < 1 for _ in zs for f in fs for _ in Rs])
     ref = np.array(
         [
             D2 if k else kk_turning_points(pot, w.at[0].set(1e-12), exact=True)[1]
@@ -1828,9 +1694,7 @@ def test_axis_lz0_inside_foci_lam_max():
     np.testing.assert_array_equal(lim.lam_min, D2)
     assert np.all(lim.lmin_pinned[~inside])
 
-    hern = gp.HernquistPotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-    )
+    hern = _hern()
     cases = [  # (pot, w6, D2, mpmath lam_max)
         (_mn(), [0, 0, 0.01517230543172058, 0, 0, 0.15294396559678883], 0.25,
          2.0858244810666755),
@@ -1939,9 +1803,7 @@ def test_lam_max_unsplit_first_sign_change():
     first sign change among them closes the bracket: lam_max matches
     mpmath (138.856833198752) to 1e-10.
     """
-    pot = gp.HernquistPotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-    )
+    pot = _hern()
     w6s = jnp.asarray([[4.973335, 0, -0.521347, 0.05219, -0.112326, -0.336409]])
     lim = _limits_fn(pot)(w6s, jnp.full(1, 100.0))
     np.testing.assert_allclose(lim.lam_max, 138.856833198752, rtol=1e-10, atol=0)
@@ -1959,12 +1821,7 @@ def test_limits_past_an_f_negative_window_near_lambda():
     L_z != 0, and its closed ladder bracket was dropped for [D2, lam_pos],
     which holds 3 roots (lam_min 100.07). mpmath references (40 digits).
     """
-    hern = gp.HernquistPotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-    )
-    mn = gp.MiyamotoNagaiPotential(
-        m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.3, "kpc"), units="galactic"
-    )
+    hern, mn = _hern(), _mn()
     cases = [  # (pot, w6, D2, limit, mpmath value)
         (
             gp.MilkyWayPotential2022(),
@@ -2005,13 +1862,7 @@ def test_nu_max_with_a_central_maximum():
     lanes returned |nu| (1.80 and 0.444). The second is at rest at its
     lower nu turning point. L_z = 0 and 1e-12.
     """
-
-    def plum(m, b):
-        return gp.PlummerPotential(
-            m_tot=u.Q(m, "Msun"), r_s=u.Q(b, "kpc"), units="galactic"
-        )
-
-    pot = gp.CompositePotential(a=plum(1e11, 5.0), b=plum(-6e10, 1.0))
+    pot = gp.CompositePotential(a=_plum(1e11, 5.0), b=_plum(-6e10, 1.0))
     w0 = [
         [5.5896985901513954e-08, 0, -1.3422723627667397,
          -0.026867858810200755, 0, -0.26718606210411033],
@@ -2020,8 +1871,7 @@ def test_nu_max_with_a_central_maximum():
     w = np.array(w0 + w0)
     w[2:, 4] = 1e-12 / w[2:, 0]
     ref = [3.9891496145906316, 4.0, 3.989149609796149, 4.0]
-    for mode, out in _modes(_phi(pot), 4.0, jnp.asarray(w), "nu_max").items():
-        np.testing.assert_allclose(out, ref, rtol=1e-12, err_msg=mode)
+    _assert_modes(_phi(pot), 4.0, w, "nu_max", ref, 1e-12)
 
 
 def _phi_two_masses(R, z):
@@ -2038,53 +1888,29 @@ def _phi_prolate_plummer(R, z):
 _RA = [3.883080032266311, 0, 5.20671047239665]
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("phi", "d2", "w6", "ref"),
     [
         (_phi_ring_axis, 4.0, [*_RA, 0, 0.0077200440504543635, 0], 3.998445207170379),
-        (
-            _phi_ring_axis,
-            4.0,
-            [*_RA, 0.03, 0.0077200440504543635, -0.02],
-            3.998478868394697,
-        ),
+        (_phi_ring_axis, 4.0,
+         [*_RA, 0.03, 0.0077200440504543635, -0.02], 3.998478868394697),
         (_phi_ring_axis, 4.0, [*_RA, 0.03, 0.1, 0.05], 3.721688838882465),
         (_phi_ring_axis, 4.0, [*_RA, 0.03, 0, 0.05], 4.0),
-        (
-            _phi_two_masses,
-            1.0,
-            [
-                0.12609821309054342,
-                0,
-                -0.038952617904076316,
-                0.14483789129858154,
-                0.10654971950305686,
-                0.04882263017348399,
-            ],
-            0.9959697810408036,
-        ),
-        (
-            _phi_two_masses,
-            1.0,
-            [
-                0.6839536842853515,
-                0,
-                0.04630171496729963,
-                -0.07586557605376086,
-                0,
-                -0.04049597461043365,
-            ],
-            1.0,
-        ),
-        (
-            _phi_prolate_plummer,
-            0.25,
-            [2.1083042079120875, 0, -0.02778348161741031, 0, 0.380501488423569, 0],
-            0.14839987944960248,
-        ),
-    ],  # fmt: skip
+        (_phi_two_masses, 1.0,
+         [0.12609821309054342, 0, -0.038952617904076316,
+          0.14483789129858154, 0.10654971950305686, 0.04882263017348399],
+         0.9959697810408036),
+        (_phi_two_masses, 1.0,
+         [0.6839536842853515, 0, 0.04630171496729963,
+          -0.07586557605376086, 0, -0.04049597461043365], 1.0),
+        (_phi_prolate_plummer, 0.25,
+         [2.1083042079120875, 0, -0.02778348161741031, 0, 0.380501488423569, 0],
+         0.14839987944960248),
+    ],
     ids=["ring_rest", "ring", "ring_Lz", "ring_lz0", "masses", "masses_lz0", "prolate"],
 )
+# fmt: on
 def test_nu_max_orbit_off_the_plane(phi, d2, w6, ref):
     """F_nu(0) <= 0 (the orbit does not reach z = 0): nu_max is still solved.
 
@@ -2094,94 +1920,41 @@ def test_nu_max_orbit_off_the_plane(phi, d2, w6, ref):
     L_z = 0 with F > 0 up to D2. The lane and its mirror (z, v_z -> -z,
     -v_z; Phi is even in z) in a batch, under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6, np.multiply(w6, [1, 1, -1, 1, 1, -1])], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out, ref, rtol=1e-12, err_msg=mode)
+    w6s = [w6, np.multiply(w6, [1, 1, -1, 1, 1, -1])]
+    _assert_modes(phi, d2, w6s, "nu_max", ref, 1e-12)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("d2", "w6", "ref"),
     [
-        (
-            0.25,
-            [
-                1.1869683036367835,
-                0,
-                -0.21032637199236656,
-                0.09337479171778351,
-                0.0012108692288520333,
-                0.04639114505105796,
-            ],
-            0.007214840236538335,
-        ),
-        (
-            0.25,
-            [
-                7.676036953159323,
-                0,
-                0.015662184617673137,
-                -0.03605977759283699,
-                0,
-                0.05593927305756374,
-            ],
-            0.006973595413511447,
-        ),
-        (
-            1.0,
-            [
-                4.320600693905262,
-                0,
-                0.34847232439432957,
-                0.11054666611120789,
-                0,
-                0.07750959941448504,
-            ],
-            0.02184684351381971,
-        ),
-        (
-            0.25,
-            [
-                1.7467593482373056,
-                0,
-                -0.0011957049546290665,
-                0.19873806007815203,
-                0,
-                0.2156288388990217,
-            ],
-            0.006243894345593461,
-        ),
-        (
-            0.25,
-            [
-                0.8690913226514466,
-                0,
-                -0.4722919273820335,
-                0.07580410169462314,
-                -0.10023974303965753,
-                0.07865796120622766,
-            ],
-            0.06625904278156256,
-        ),
-        (
-            1.0,
-            [
-                1.7553287209613389,
-                0,
-                0.02098682800800216,
-                0.280574218355157,
-                0,
-                -0.2827972989883237,
-            ],
-            0.057453210236599245,
-        ),
-        (
-            1.0,
-            [1.4549748254424164, 0, -4.619105499334229, 0, 0.14834531246687996, 0],
-            0.9178338505063943,
-        ),
-    ],  # fmt: skip
+        (0.25,
+         [1.1869683036367835, 0, -0.21032637199236656,
+          0.09337479171778351, 0.0012108692288520333, 0.04639114505105796],
+         0.007214840236538335),
+        (0.25,
+         [7.676036953159323, 0, 0.015662184617673137,
+          -0.03605977759283699, 0, 0.05593927305756374], 0.006973595413511447),
+        (1.0,
+         [4.320600693905262, 0, 0.34847232439432957,
+          0.11054666611120789, 0, 0.07750959941448504], 0.02184684351381971),
+        (0.25,
+         [1.7467593482373056, 0, -0.0011957049546290665,
+          0.19873806007815203, 0, 0.2156288388990217], 0.006243894345593461),
+        (0.25,
+         [0.8690913226514466, 0, -0.4722919273820335,
+          0.07580410169462314, -0.10023974303965753, 0.07865796120622766],
+         0.06625904278156256),
+        (1.0,
+         [1.7553287209613389, 0, 0.02098682800800216,
+          0.280574218355157, 0, -0.2827972989883237], 0.057453210236599245),
+        (1.0,
+         [1.4549748254424164, 0, -4.619105499334229, 0, 0.14834531246687996, 0],
+         0.9178338505063943),
+    ],
     ids=["Lz", "lz0", "lz0_d2_1", "lz0_1e6", "pow_1_4", "pow_3_4", "rest"],
 )
+# fmt: on
 def test_nu_max_first_root_below_a_wide_window(d2, w6, ref):
     """nu_max is the first root above |nu|, below a wide F_nu < 0 window.
 
@@ -2197,9 +1970,8 @@ def test_nu_max_first_root_below_a_wide_window(d2, w6, ref):
     must stay just below the ladder's first point, not at |nu|. The lane
     and its mirror in z, in a batch, under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6, np.multiply(w6, [1, 1, -1, 1, 1, -1])], dtype=float)
-    for mode, out in _modes(_phi_ring_axis, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out, ref, rtol=1e-12, err_msg=mode)
+    w6s = [w6, np.multiply(w6, [1, 1, -1, 1, 1, -1])]
+    _assert_modes(_phi_ring_axis, d2, w6s, "nu_max", ref, 1e-12)
 
 
 def test_axis_cusp_centre_window_above_D2():
@@ -2215,9 +1987,7 @@ def test_axis_cusp_centre_window_above_D2():
     v_R; references from a first-crossing mpmath scan. lam_max moves with
     D2 alone: jacfwd = jacrev = (0, ..., 0, 1) in (w6, D2).
     """
-    hern = gp.HernquistPotential(
-        m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-    )
+    hern = _hern()
     cases = [  # (pot, w6, D2)
         (_nfw(), [0, 0, 0, 0, 0, 0.6970209698127537], 1e-8),
         (_nfw(), [0, 0, 0, 0, 0, 0.3872338721181965], 1e-10),
@@ -2270,8 +2040,7 @@ def test_axis_window_tiny_Lz_lam_at_D2():
     phi = _phi(pot)
 
     def one(w6, d):
-        iom = integrals_of_motion(phi, w6, d)
-        return find_limits(make_F(phi, iom), iom, default_phi_inf(phi, iom))
+        return _frozen_limits(phi, w6, d)
 
     jone = jax.jit(one)
     batch = _limits_fn(pot)(w6s, D2s)
@@ -2315,16 +2084,15 @@ def test_lam_near_turning_point_modes_agree():
     value from it where the two agree to F's roundoff. References from
     mpmath roots of F.
     """
-    G = 4.498502151469554e-12
 
     def phi(R, z):
-        disk = -G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.3 * 0.3)) ** 2)
+        disk = -_G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.3 * 0.3)) ** 2)
         ring = (
-            -G
+            -_G
             * 3e10
             / jnp.sqrt((jnp.sqrt(R * R + 0.5 * 0.5) - 8.0) ** 2 + z * z + 1.0 * 1.0)
         )
-        bulge = -G * 1e10 / jnp.sqrt(R * R + z * z + 0.5 * 0.5)
+        bulge = -_G * 1e10 / jnp.sqrt(R * R + z * z + 0.5 * 0.5)
         return disk + ring + bulge
 
     w6s = jnp.asarray(
@@ -2338,8 +2106,7 @@ def test_lam_near_turning_point_modes_agree():
     )
 
     def one(w6, d):
-        iom = integrals_of_motion(phi, w6, d)
-        lim = find_limits(make_F(phi, iom), iom, default_phi_inf(phi, iom))
+        lim = _frozen_limits(phi, w6, d)
         return jnp.stack([lim.lam_min, lim.lam_max])
 
     d2 = jnp.asarray(4.0)
@@ -2355,16 +2122,15 @@ def test_lam_near_turning_point_modes_agree():
 
 def _units_phi(L, V):
     """Hernquist + MN + NFW in kpc/Myr, for lengths in units of L kpc, speeds V."""
-    G = 4.498502151469554e-12
 
     def phi(R, z):
         R, z = R / L, z / L
         r = jnp.sqrt(R * R + z * z)
-        h = -G * 5e10 / (r + 1.0)
-        m = -G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.09)) ** 2)
+        h = -_G * 5e10 / (r + 1.0)
+        m = -_G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.09)) ** 2)
         x = r / 15.0
         xs = jnp.where(x > 0, x, 1.0)
-        n = -G * 1e12 / 15.0 * jnp.where(x > 0, jnp.log1p(xs) / xs, 1.0)
+        n = -_G * 1e12 / 15.0 * jnp.where(x > 0, jnp.log1p(xs) / xs, 1.0)
         return (h + m + n) * V * V
 
     return phi
@@ -2411,11 +2177,7 @@ def test_limits_independent_of_units():
     D1 = np.concat([np.array([4.0, 0.25, 100.0, 1e-4])[np.arange(40) % 4], [d2]])
 
     def limits_of(phi):
-        def one(w6, d):
-            iom = integrals_of_motion(phi, w6, d)
-            return find_limits(make_F(phi, iom), iom, default_phi_inf(phi, iom))
-
-        return jax.jit(jax.vmap(one))
+        return jax.jit(jax.vmap(lambda w6, d: _frozen_limits(phi, w6, d)))
 
     res = {}
     for name, L, V in units:
@@ -2494,10 +2256,9 @@ def _phi_ring(R, z):
 
 def _phi_ring_cusp(R, z):
     """MN disk, a ring with a cusp in R at R = 8 kpc, and a Plummer bulge."""
-    G = 4.498502151469554e-12
-    disk = -G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.09)) ** 2)
-    ring = -G * 3e10 / jnp.sqrt((R - 8.0) ** 2 + z * z + 1.0)
-    return disk + ring - G * 1e10 / jnp.sqrt(R * R + z * z + 0.25)
+    disk = -_G * 5e10 / jnp.sqrt(R * R + (3.0 + jnp.sqrt(z * z + 0.09)) ** 2)
+    ring = -_G * 3e10 / jnp.sqrt((R - 8.0) ** 2 + z * z + 1.0)
+    return disk + ring - _G * 1e10 / jnp.sqrt(R * R + z * z + 0.25)
 
 
 @pytest.mark.parametrize(
@@ -2532,74 +2293,38 @@ def test_sigdot0_lower_turning_point_from_the_ladder(phi, d2, w6, ref):
     (mpmath: +1.0e-27; Phi's own terms cancel in the hole), and the ladder
     decides there too. In a batch, under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-12, err_msg=mode)
+    _assert_modes(phi, d2, [w6], "nu_max", ref, 1e-12)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("phi", "d2", "w6", "ref"),
     [
-        (
-            _phi_ring_axis,
-            0.25,
-            [
-                1.1869683036367835,
-                0,
-                0.0,
-                0.09337479171778351,
-                0.0012108692288520333,
-                0.04639114505105796,
-            ],
-            6.977657918354794e-05,
-        ),
-        (
-            _phi_ring_axis,
-            1.0,
-            [4.320600693905262, 0, 0.0, 0.11054666611120789, 0, 0.07750959941448504],
-            0.0061042437979218316,
-        ),
-        (
-            _phi_ring_axis,
-            0.25,
-            [7.676036953159323, 0, 0.0, -0.03605977759283699, 0, 0.05593927305756374],
-            0.006757723491600656,
-        ),
-        (
-            _phi_z3,
-            1.0,
-            [
-                0.5324943898986754,
-                0,
-                0.0,
-                0.05539382331785269,
-                0.030644766266727838,
-                -0.5575650908617041,
-            ],
-            0.09428234770490002,
-        ),
-        (
-            _phi_z3,
-            1.0,
-            [
-                0.5324943898986754,
-                0,
-                -0.0035,
-                0.05539382331785269,
-                0.030644766266727838,
-                -0.5575650908617041,
-            ],
-            0.09426151260668054,
-        ),
-        (
-            _phi_ring_axis,
-            0.0004910480828476595,
-            [3.3617198705627174, 0, 0.0, 0.08242376999388613, 0, 0.15592888162796129],
-            4.203709176680851e-05,
-        ),
+        (_phi_ring_axis, 0.25,
+         [1.1869683036367835, 0, 0.0,
+          0.09337479171778351, 0.0012108692288520333, 0.04639114505105796],
+         6.977657918354794e-05),
+        (_phi_ring_axis, 1.0,
+         [4.320600693905262, 0, 0.0, 0.11054666611120789, 0, 0.07750959941448504],
+         0.0061042437979218316),
+        (_phi_ring_axis, 0.25,
+         [7.676036953159323, 0, 0.0, -0.03605977759283699, 0, 0.05593927305756374],
+         0.006757723491600656),
+        (_phi_z3, 1.0,
+         [0.5324943898986754, 0, 0.0,
+          0.05539382331785269, 0.030644766266727838, -0.5575650908617041],
+         0.09428234770490002),
+        (_phi_z3, 1.0,
+         [0.5324943898986754, 0, -0.0035,
+          0.05539382331785269, 0.030644766266727838, -0.5575650908617041],
+         0.09426151260668054),
+        (_phi_ring_axis, 0.0004910480828476595,
+         [3.3617198705627174, 0, 0.0, 0.08242376999388613, 0, 0.15592888162796129],
+         4.203709176680851e-05),
     ],
     ids=["dd_a", "dd_b", "dd_lz0", "z3", "z3_off_plane", "dd_mid"],
 )
+# fmt: on
 def test_nu_max_first_root_from_the_plane(phi, d2, w6, ref):
     """nu_max is the first root above |nu| for a start at or near z = 0.
 
@@ -2614,151 +2339,54 @@ def test_nu_max_first_root_from_the_plane(phi, d2, w6, ref):
     point at the old 0.5 fraction (with 0.75 there nu_max was D2). In a batch,
     under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-10, err_msg=mode)
+    _assert_modes(phi, d2, [w6], "nu_max", ref, 1e-10)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("phi", "d2", "w6", "ref"),
     [
-        (
-            _phi_z3,
-            647.7319535900526,
-            [0.20237680701349695, 0, 0.0, 0.03502971936004276, 0, 0.05844847693061718],
-            8.0496541409231722e-05,
-        ),
-        (
-            _phi_z3,
-            238.8633478973877,
-            [
-                0.9856637522452779,
-                0,
-                0.0,
-                0.0565706790405401,
-                0.14115509934877382,
-                0.030551671258382374,
-            ],
-            0.001940844180191316,
-        ),
-        (
-            _phi_z3,
-            41.2497964760393,
-            [
-                1.5820757638279277,
-                0,
-                0.0,
-                0.0006361428685030012,
-                0.003122707932938607,
-                -0.019753863467588242,
-            ],
-            0.019966888708486143,
-        ),
-        (
-            _phi_z3,
-            300.0,
-            [
-                0.49042431538549974,
-                0,
-                -0.003924519013740204,
-                0.4440762479517389,
-                0.08549407349104579,
-                -0.16684979892417498,
-            ],
-            0.0047904044868971185,
-        ),
-        (
-            _phi_z3,
-            3000.0,
-            [
-                0.7178938961671308,
-                0,
-                -0.0029529949499714193,
-                0.41521429302018337,
-                0,
-                -0.61472134594804,
-            ],
-            0.48799109081272564,
-        ),
-        (
-            _phi_z3,
-            74.9802735318495,
-            [
-                0.0071128519392046575,
-                0,
-                0.36201580601619116,
-                -0.5155580189490159,
-                0,
-                0.6851006587747338,
-            ],
-            0.17421888450758401,
-        ),
-        (
-            _phi_z3,
-            1.118388092713613,
-            [
-                0.6733326677949062,
-                0,
-                -7.678810742451194e-05,
-                0.00032472699362460844,
-                0.02048123995657541,
-                -0.30800366570268434,
-            ],
-            0.066025637699876821,
-        ),
-        (
-            _phi_ring_axis,
-            1.9741084200717924,
-            [
-                11.10238054813454,
-                0,
-                -0.5436611635086825,
-                0.06017119730913215,
-                0,
-                0.020058065535427258,
-            ],
-            0.026317625774305301,
-        ),
-        (
-            _phi_ring_axis,
-            0.0034964378579946725,
-            [
-                0.6075926833537346,
-                0,
-                -1.2007283567266303e-06,
-                -0.48888662416359907,
-                0.010331857302568179,
-                0.26470479025526983,
-            ],
-            0.00014761178460237233,
-        ),
-        (
-            _phi_ring_axis,
-            0.670683707218127,
-            [
-                3.270928999331523,
-                0,
-                1.6765123948867012e-05,
-                -0.00120538070208931,
-                0.047885321428484125,
-                -0.1488950047561167,
-            ],
-            0.024416137670745191,
-        ),
+        (_phi_z3, 647.7319535900526,
+         [0.20237680701349695, 0, 0.0, 0.03502971936004276, 0, 0.05844847693061718],
+         8.0496541409231722e-05),
+        (_phi_z3, 238.8633478973877,
+         [0.9856637522452779, 0, 0.0,
+          0.0565706790405401, 0.14115509934877382, 0.030551671258382374],
+         0.001940844180191316),
+        (_phi_z3, 41.2497964760393,
+         [1.5820757638279277, 0, 0.0,
+          0.0006361428685030012, 0.003122707932938607, -0.019753863467588242],
+         0.019966888708486143),
+        (_phi_z3, 300.0,
+         [0.49042431538549974, 0, -0.003924519013740204,
+          0.4440762479517389, 0.08549407349104579, -0.16684979892417498],
+         0.0047904044868971185),
+        (_phi_z3, 3000.0,
+         [0.7178938961671308, 0, -0.0029529949499714193,
+          0.41521429302018337, 0, -0.61472134594804], 0.48799109081272564),
+        (_phi_z3, 74.9802735318495,
+         [0.0071128519392046575, 0, 0.36201580601619116,
+          -0.5155580189490159, 0, 0.6851006587747338], 0.17421888450758401),
+        (_phi_z3, 1.118388092713613,
+         [0.6733326677949062, 0, -7.678810742451194e-05,
+          0.00032472699362460844, 0.02048123995657541, -0.30800366570268434],
+         0.066025637699876821),
+        (_phi_ring_axis, 1.9741084200717924,
+         [11.10238054813454, 0, -0.5436611635086825,
+          0.06017119730913215, 0, 0.020058065535427258], 0.026317625774305301),
+        (_phi_ring_axis, 0.0034964378579946725,
+         [0.6075926833537346, 0, -1.2007283567266303e-06,
+          -0.48888662416359907, 0.010331857302568179, 0.26470479025526983],
+         0.00014761178460237233),
+        (_phi_ring_axis, 0.670683707218127,
+         [3.270928999331523, 0, 1.6765123948867012e-05,
+          -0.00120538070208931, 0.047885321428484125, -0.1488950047561167],
+         0.024416137670745191),
     ],
-    ids=[
-        "z3_a",
-        "z3_b",
-        "z3_c",
-        "z3_F2e",
-        "z3_3000",
-        "z3_mid",
-        "z3_small_z",
-        "dd_a",
-        "dd_b",
-        "dd_c",
-    ],
+    ids=["z3_a", "z3_b", "z3_c", "z3_F2e", "z3_3000", "z3_mid", "z3_small_z", "dd_a",
+         "dd_b", "dd_c"],
 )
+# fmt: on
 def test_nu_max_window_between_spread_points(phi, d2, w6, ref):
     """nu_max is the first root above |nu| where the F < 0 window is decades wide.
 
@@ -2772,88 +2400,40 @@ def test_nu_max_window_between_spread_points(phi, d2, w6, ref):
     last three (see find_limits). Against mpmath bisection, in a batch,
     under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, "nu_max").items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-10, err_msg=mode)
+    _assert_modes(phi, d2, [w6], "nu_max", ref, 1e-10)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("d2", "w6", "ref"),
     [
-        (
-            0.12681066388734152,
-            [0.8574523451203369, 0, 0.0, 0.3022904282417156, 0, 0.00012452681794100295],
-            0.67603578688886419,
-        ),
-        (
-            0.006675352224559938,
-            [0.853858725942092, 0, 0.0, 0.34946321378808043, 0.006756204593709586, 0],
-            0.47443837804743122,
-        ),
-        (
-            0.1998180082782834,
-            [
-                0.9400163454144771,
-                0,
-                0.0003718976666733659,
-                0.4745755467627043,
-                0,
-                0.015098925258557364,
-            ],
-            0.62124966321214053,
-        ),
-        (
-            0.00040843374664793395,
-            [
-                0.7617990966245303,
-                0,
-                -0.24377506808601226,
-                0.256751875219363,
-                0.017068849694398296,
-                -0.232363571119376,
-            ],
-            0.3511782366539008,
-        ),
-        (
-            0.07693502189694096,
-            [
-                2.78477096285149,
-                0,
-                -0.26560597962601246,
-                -0.800999646830936,
-                0,
-                -0.0002560988459677947,
-            ],
-            0.27765297171020402,
-        ),
-        (
-            0.0037968127434207088,
-            [
-                0.696534532254808,
-                0,
-                -0.008574644314932038,
-                0.19360089109586875,
-                0,
-                -7.172460457657375e-05,
-            ],
-            0.38241384983001522,
-        ),
-        (
-            3.5614845128782164,
-            [0.8991441631035181, 0, 0.0, 0.4592410915589253, 0, -0.3069959396818531],
-            3.9246968969484642,
-        ),
+        (0.12681066388734152,
+         [0.8574523451203369, 0, 0.0, 0.3022904282417156, 0, 0.00012452681794100295],
+         0.67603578688886419),
+        (0.006675352224559938,
+         [0.853858725942092, 0, 0.0, 0.34946321378808043, 0.006756204593709586, 0],
+         0.47443837804743122),
+        (0.1998180082782834,
+         [0.9400163454144771, 0, 0.0003718976666733659,
+          0.4745755467627043, 0, 0.015098925258557364], 0.62124966321214053),
+        (0.00040843374664793395,
+         [0.7617990966245303, 0, -0.24377506808601226,
+          0.256751875219363, 0.017068849694398296, -0.232363571119376],
+         0.3511782366539008),
+        (0.07693502189694096,
+         [2.78477096285149, 0, -0.26560597962601246,
+          -0.800999646830936, 0, -0.0002560988459677947], 0.27765297171020402),
+        (0.0037968127434207088,
+         [0.696534532254808, 0, -0.008574644314932038,
+          0.19360089109586875, 0, -7.172460457657375e-05], 0.38241384983001522),
+        (3.5614845128782164,
+         [0.8991441631035181, 0, 0.0, 0.4592410915589253, 0, -0.3069959396818531],
+         3.9246968969484642),
     ],
-    ids=[
-        "lz0",
-        "moving",
-        "near_plane",
-        "deep",
-        "split",
-        "fill_third",
-        "fill_two_thirds",
-    ],
+    ids=["lz0", "moving", "near_plane", "deep", "split", "fill_third",
+         "fill_two_thirds"],
 )
+# fmt: on
 def test_lam_min_window_below_lam_pos(d2, w6, ref):
     """lam_min is the first root below lam with F'' > 0 and no model root.
 
@@ -2869,147 +2449,53 @@ def test_lam_min_window_below_lam_pos(d2, w6, ref):
     lam_min was D2 on both). Against
     mpmath bisection, in a batch, under jit and in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(_phi_ring, d2, w6s, "lam_min").items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-10, err_msg=mode)
+    _assert_modes(_phi_ring, d2, [w6], "lam_min", ref, 1e-10)
 
 
+# fmt: off
 @pytest.mark.parametrize(
     ("phi", "d2", "w6", "key", "ref"),
     [
-        (
-            _phi_tori,
-            1000.0,
-            [0.8160898319496159, 0, 0.8738676913353984, 0, 0, 0],
-            "lam_max",
-            1001.3917524580567,
-        ),
-        (
-            _phi_tori,
-            3000.0,
-            [0.3657530619779185, 0, 0.10627868779457035, 0, 0.7092455371800751, 0],
-            "lam_max",
-            3003.0687853824134,
-        ),
-        (
-            _phi_tori,
-            3000.0,
-            [
-                0.04523456121991825,
-                0,
-                -0.07286706643667112,
-                -0.3496944420998471,
-                0.2033319155862683,
-                0.3427286064798803,
-            ],
-            "lam_max",
-            3003.9795858526654,
-        ),
-        (
-            _phi_tori,
-            3000.0,
-            [
-                1.8899218819091204,
-                0,
-                -0.0043680831184249235,
-                0,
-                0.0014311428846289927,
-                0,
-            ],
-            "lam_min",
-            3000.008374236031,
-        ),
-        (
-            _phi_hole,
-            3000.0,
-            [0.902486524228502, 0, -0.00983747306125338, 0, 0.004983683356720498, 0],
-            "lam_max",
-            3018.834849143358,
-        ),
-        (
-            _phi_ring,
-            3000.0,
-            [
-                0.1786959810353936,
-                0,
-                -0.9756942357957565,
-                -0.13288123675629004,
-                0,
-                0.18605078128644648,
-            ],
-            "lam_max",
-            3012.359892706126,
-        ),
-        (
-            _phi_ring,
-            1255.259311293454,
-            [
-                0.40879234827896105,
-                0,
-                -0.018052910768443963,
-                0.2602501995965288,
-                0.0018667947002329005,
-                8.104138112350324e-05,
-            ],
-            "lam_max",
-            1265.4688344439753,
-        ),
-        (
-            _phi_ring,
-            1952.2986764150523,
-            [
-                0.48358860034166157,
-                0,
-                -0.11445922654147635,
-                -0.10064089412681076,
-                0,
-                0.0003862673664694209,
-            ],
-            "lam_max",
-            1962.3186909440421,
-        ),
-        (
-            _phi_tori,
-            1311.9275995744204,
-            [
-                0.002081169028604452,
-                0,
-                0.0,
-                -0.16049780158255825,
-                0.03952181440959307,
-                0.00018125602203778902,
-            ],
-            "lam_max",
-            1315.8716954207885,
-        ),
-        (
-            _phi_ring_cusp,
-            287.42773422900444,
-            [
-                0.0006413579458437425,
-                0,
-                1.29481924212247,
-                0.08088354724574438,
-                5.802073047311886e-05,
-                0.07444752750424075,
-            ],
-            "lam_max",
-            288.03286335370996,
-        ),
+        (_phi_tori, 1000.0,
+         [0.8160898319496159, 0, 0.8738676913353984, 0, 0, 0],
+         "lam_max", 1001.3917524580567),
+        (_phi_tori, 3000.0,
+         [0.3657530619779185, 0, 0.10627868779457035, 0, 0.7092455371800751, 0],
+         "lam_max", 3003.0687853824134),
+        (_phi_tori, 3000.0,
+         [0.04523456121991825, 0, -0.07286706643667112,
+          -0.3496944420998471, 0.2033319155862683, 0.3427286064798803],
+         "lam_max", 3003.9795858526654),
+        (_phi_tori, 3000.0,
+         [1.8899218819091204, 0, -0.0043680831184249235, 0, 0.0014311428846289927, 0],
+         "lam_min", 3000.008374236031),
+        (_phi_hole, 3000.0,
+         [0.902486524228502, 0, -0.00983747306125338, 0, 0.004983683356720498, 0],
+         "lam_max", 3018.834849143358),
+        (_phi_ring, 3000.0,
+         [0.1786959810353936, 0, -0.9756942357957565,
+          -0.13288123675629004, 0, 0.18605078128644648], "lam_max", 3012.359892706126),
+        (_phi_ring, 1255.259311293454,
+         [0.40879234827896105, 0, -0.018052910768443963,
+          0.2602501995965288, 0.0018667947002329005, 8.104138112350324e-05],
+         "lam_max", 1265.4688344439753),
+        (_phi_ring, 1952.2986764150523,
+         [0.48358860034166157, 0, -0.11445922654147635,
+          -0.10064089412681076, 0, 0.0003862673664694209],
+         "lam_max", 1962.3186909440421),
+        (_phi_tori, 1311.9275995744204,
+         [0.002081169028604452, 0, 0.0,
+          -0.16049780158255825, 0.03952181440959307, 0.00018125602203778902],
+         "lam_max", 1315.8716954207885),
+        (_phi_ring_cusp, 287.42773422900444,
+         [0.0006413579458437425, 0, 1.29481924212247,
+          0.08088354724574438, 5.802073047311886e-05, 0.07444752750424075],
+         "lam_max", 288.03286335370996),
     ],
-    ids=[
-        "tori_1e3",
-        "tori",
-        "tori_moving",
-        "tori_lam_min",
-        "hole",
-        "ring",
-        "ring_noroot_a",
-        "ring_noroot_b",
-        "tori_plane",
-        "ring_cusp_floor",
-    ],
+    ids=["tori_1e3", "tori", "tori_moving", "tori_lam_min", "hole", "ring",
+         "ring_noroot_a", "ring_noroot_b", "tori_plane", "ring_cusp_floor"],
 )
+# fmt: on
 def test_lam_limits_converged_large_D2(phi, d2, w6, key, ref):
     """lam_max and lam_min converge at a large D2 with a convex F at lam.
 
@@ -3029,6 +2515,4 @@ def test_lam_limits_converged_large_D2(phi, d2, w6, key, ref):
     1e-8 lam (288.033266 against 288.032863 without it). In a batch, under
     jit and in eager mode.
     """
-    w6s = jnp.asarray([w6], dtype=float)
-    for mode, out in _modes(phi, d2, w6s, key).items():
-        np.testing.assert_allclose(out[0], ref, rtol=1e-13, err_msg=mode)
+    _assert_modes(phi, d2, [w6], key, ref, 1e-13)

@@ -12,18 +12,9 @@ import unxt as u
 import galax.coordinates as gc
 import galax.dynamics as gd
 import galax.potential as gp
-from ._helpers import ScaledKuzminKutuzovPotential, SeparablePotential, kk_delta
+from ._helpers import ScaledKuzminKutuzovPotential, SeparablePotential, _kk, kk_delta
 from .optional_deps import OptDeps
 from galax.actionangle import staeckel_fudge_delta
-
-
-def _kk(m_tot=1e11):
-    return gp.KuzminKutuzovPotential(
-        m_tot=u.Q(m_tot, "Msun"),
-        a=u.Q(3.0, "kpc"),
-        c=u.Q(1.0, "kpc"),
-        units="galactic",
-    )
 
 
 def _pts(n=50, seed=0):

@@ -15,8 +15,11 @@ from ._helpers import (
     _GRAD_POTS,
     D2,
     MN_D2,
+    _batch_taylor,
     _D2_pipeline,
+    _hern,
     _kk,
+    _kk_GM_c2,
     _limits_fn,
     _live_limits,
     _mn,
@@ -199,9 +202,7 @@ def test_taylor_coeffs_kk_analytic():
     """
     pot = _kk()
     phi = _phi(pot)
-    t = u.Q(0.0, "Myr")
-    GM = float(pot.constants["G"].value * pot.m_tot(t, ustrip=pot.units["mass"]))
-    c2_ = float(pot.c(t, ustrip=pot.units["length"])) ** 2
+    GM, c2_ = (float(x) for x in _kk_GM_c2(pot))
     for w6 in _w6s(6):
         lim, F = _live_limits(pot, w6, D2)
         if not np.isfinite(lim.lam_max):
@@ -363,12 +364,10 @@ def test_taylor_coeffs_batch_matches_per_lane():
 
     def per_lane(w6s):
         lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
-        tay = jax.vmap(lambda w, d, l: _taylor_lane(phi, w, d, l))(w6s, d2s, lim)
-        return tay
+        return jax.vmap(lambda w, d, l: _taylor_lane(phi, w, d, l))(w6s, d2s, lim)
 
     def batched(w6s, size):
-        lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
-        return taylor_coeffs_batch(phi, w6s, d2s, lim, size)
+        return _batch_taylor(pot, w6s, d2s, size)
 
     def used(t):
         cl = jnp.where(t.use_l, t.c2 + 2 * t.c3 + 3 * t.c4, 0.0)
@@ -429,10 +428,10 @@ def test_use_n_off_where_F_has_a_kink():
         assert bool(tay.use_n) is use, pot
 
 
-def _mn_cut():
+def _mn_cut(m=1e12):
     """MN + a hard-cutoff NFW (r_t = 8): F'' jumps at r_t."""
     cut = gp.HardCutoffNFWPotential(
-        m=u.Q(1e12, "Msun"), r_s=u.Q(15.0, "kpc"), r_t=u.Q(8.0, "kpc"), units="galactic"
+        m=u.Q(m, "Msun"), r_s=u.Q(15.0, "kpc"), r_t=u.Q(8.0, "kpc"), units="galactic"
     )
     return gp.CompositePotential(disk=_mn(), halo=cut)
 
@@ -462,12 +461,10 @@ def test_pinned_lam_min_follows_delta():
     root would carry F's tangent instead, which a traced Delta sees.
     """
     pot = _mn()
-    phi = _phi(pot)
     w6s = jnp.asarray([[1e-6, 0.0, 0.3, 1e-4, 0.0, 1e-3]])
 
     def f(d2s):
-        lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
-        return taylor_coeffs_batch(phi, w6s, d2s, lim).lam_min
+        return _batch_taylor(pot, w6s, d2s).lam_min
 
     d2s = jnp.full(1, MN_D2)
     lo, dlo = jax.jit(lambda d: jax.jvp(f, (d,), (jnp.ones_like(d),)))(d2s)
@@ -629,14 +626,7 @@ def test_polish_near_circular_roots():
 
 
 def _final_limits(pot, w6s, d2s):
-    phi = _phi(pot)
-
-    @jax.jit
-    def run(w6s, d2s):
-        lim = jax.vmap(lambda w, d: _live_limits(pot, w, d)[0])(w6s, d2s)
-        return taylor_coeffs_batch(phi, w6s, d2s, lim)
-
-    t = run(w6s, d2s)
+    t = jax.jit(lambda w, d: _batch_taylor(pot, w, d))(w6s, d2s)
     return np.stack([t.lam_min, t.lam_max], 1)
 
 
@@ -690,9 +680,7 @@ def test_polish_starts_from_the_quartic_roots():
     the extent off. All limits match mpmath to 1e-6 of the extent.
     """
     pots = {
-        "hern": gp.HernquistPotential(
-            m_tot=u.Q(1e11, "Msun"), r_s=u.Q(2.0, "kpc"), units="galactic"
-        ),
+        "hern": _hern(),
         "satoh": gp.SatohPotential(
             m_tot=u.Q(1e11, "Msun"), a=u.Q(3.0, "kpc"), b=u.Q(0.5, "kpc"),
             units="galactic",
@@ -827,14 +815,7 @@ def test_polish_keeps_roots_of_F(case):
     if case == "kink":
         pot, d2, R0s, es, f_phi = _mn_cut(), MN_D2, (8.0, 8.0), (1e-4, 1e-6), 1.0
     elif case == "weak_kink":
-        cut = gp.HardCutoffNFWPotential(
-            m=u.Q(3e6, "Msun"),
-            r_s=u.Q(15.0, "kpc"),
-            r_t=u.Q(8.0, "kpc"),
-            units="galactic",
-        )
-        pot = gp.CompositePotential(disk=_mn(), halo=cut)
-        d2, R0s, es, f_phi = MN_D2, (8.0,), (3e-4,), 1.0
+        pot, d2, R0s, es, f_phi = _mn_cut(3e6), MN_D2, (8.0,), (3e-4,), 1.0
     elif case == "kink_root":  # R0 from a 60-digit root of the fudge F
         R0s = (7.999431810277854, 7.999994872766397, 7.9999994872767015)
         pot, d2, es, f_phi = _mn_cut(), MN_D2, (1e-4, 1e-6, 1e-7), 1.0

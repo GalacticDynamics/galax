@@ -3,7 +3,6 @@
 __all__ = [
     "G_in_units",
     "chandrupatla",
-    "clamp",
     "fill_masked",
     "finite_rows",
     "masked_span",
@@ -73,12 +72,6 @@ def G_in_units(pot: Any, /) -> Any:
     return pot.constants["G"].ustrip(
         usys["length"] ** 3 / (usys["mass"] * usys["time"] ** 2)
     )
-
-
-@ft.partial(jax.jit, inline=True)
-def clamp(x: jax.Array, lo: jax.Array, hi: jax.Array, /) -> jax.Array:
-    """``x`` clamped to [lo, hi] (lo where x < lo, hi where x > hi; NaN kept)."""
-    return jnp.where(x < lo, lo, jnp.where(x > hi, hi, x))
 
 
 @ft.partial(jax.jit, inline=True)
@@ -165,7 +158,7 @@ def chandrupatla(
             x3 - x1, x2 - x1
         ) * safe_div(g1, g3 - g1) * safe_div(g2, g3 - g2)
         t_new = jnp.where(interp, t_iq, 0.5)
-        t_new = clamp(t_new, tl, 1 - tl)
+        t_new = jnp.clip(t_new, tl, 1 - tl)
 
         done = done | conv | bad
         return (x1, f1, x2, f2, x3, f3, jnp.where(done, t, t_new), done, bad)

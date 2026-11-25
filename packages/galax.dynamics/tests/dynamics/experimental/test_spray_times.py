@@ -124,7 +124,8 @@ def check_grad(loss, x, eps=1e-3, rtol=1e-5):
 def test_times_grad(mode) -> None:
     """Release-time gradients match `jax.jacfwd` with `ForwardMode`.
 
-    The finite-difference check is in test_time_dependent_host_time_grads.
+    Finite differences check these gradients in a time-dependent host, in
+    test_time_dependent_host_time_grads.
     """
     g = jax.grad(wloss(make_sim(mode)))(TS)
     jf = jax.jacfwd(wloss(make_sim(mode, LEAP_FWD)))(TS)
@@ -455,7 +456,7 @@ def test_time_dependent_host_matches_legacy(mode, kind) -> None:
 
 
 @pytest.mark.parametrize("kind", ["uniform", "times"])
-@pytest.mark.parametrize("mode", TD_MODES)
+@pytest.mark.parametrize("mode", [*TD_MODES, "track-scan"])
 def test_time_dependent_host_time_grads(mode, kind) -> None:
     """Gradients in ``t1`` and the release times (``t_age`` or ``ts``)."""
     base = td_schedule(kind)

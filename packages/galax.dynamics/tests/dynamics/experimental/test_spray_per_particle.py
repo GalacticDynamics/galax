@@ -179,4 +179,4 @@ def test_nan_row_is_nan_and_cheap(loop) -> None:
     jax.effects_barrier()
     assert jnp.all(jnp.isfinite(bad[0]))
     assert jnp.all(jnp.isnan(bad[1]))
-    assert len(COUNT) < 2 * n_good, (len(COUNT), n_good)  # a grind is ~1e4
+    assert len(COUNT) < 2 * n_good, (len(COUNT), n_good)  # a grind is ~1.4e5

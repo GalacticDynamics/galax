@@ -25,8 +25,9 @@ from .mn3 import *
 from .monari2016 import *
 
 # Not `import *`: `multipole.__all__` also carries the function set and
-# `scaled_radius_and_direction`, which are not potentials. They stay reachable
-# through the public `galax.potential.multipole` and the private module.
+# `scaled_radius_and_direction`, which are not potentials. The functions stay
+# reachable through the public `galax.potential.multipole`, and
+# `scaled_radius_and_direction` through this private module.
 from .multipole import (
     AbstractMultipolePotential as AbstractMultipolePotential,
     MultipolePotential as MultipolePotential,

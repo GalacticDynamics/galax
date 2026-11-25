@@ -226,9 +226,17 @@ def test_gradient_on_the_z_axis(kind):
         np.testing.assert_allclose(
             pot.gradient(x, 0.0), want, rtol=1e-12, atol=1e-14 * abs(want).max()
         )
-        assert jnp.all(jnp.isfinite(module.hessian(p, x)))
+        # The inner (1, 1) terms are linear, so their Hessian is zero. The outer
+        # terms are ``-k C x / r^3`` and ``-k C y / r^3`` with ``C = G m r_s``,
+        # with the mixed derivative ``3 k C z / |z|^5`` at x = y = 0.
+        h = 0.0
+        if kind in ("outer", ""):
+            h = 3 * k * gm * r_s * z / abs(z) ** 5
+        hess = np.zeros((3, 3))
+        hess[0, 2] = hess[2, 0] = h
+        hess[1, 2] = hess[2, 1] = 0.5 * h
         np.testing.assert_allclose(
-            module.hessian(p, x), jax.hessian(module.potential, 1)(p, x)
+            module.hessian(p, x), hess, rtol=1e-10, atol=1e-10 * gm / r_s**3
         )
 
 
@@ -273,3 +281,54 @@ def test_batch_equals_per_point(kind):
     deep = xyz.reshape(7, 1, 3)[:, [0, 0]]
     assert module.potential(p, deep).shape == (7, 2)
     assert module.potential(p, jnp.zeros((0, 3))).shape == (0,)
+
+
+@pytest.mark.parametrize("kind", ["inner", "outer", ""])
+def test_class_follows_a_time_dependent_table(kind):
+    """The class passes the parameters at ``t``, not at 0, to the kernel."""
+    slope = u.Q(table(2, 1, 0.1), "1 / Myr")
+    start = u.Q(table(2, 1), "")
+    lin = gp.params.LinearParameter(
+        slope=slope, point_time=u.Q(0, "Myr"), point_value=start
+    )
+    ones = table(1, 1)
+    if kind == "":
+        pot = gp.MultipolePotential(
+            l_max=L_MAX, ISlm=lin, ITlm=ones, OSlm=lin, OTlm=ones, **KW
+        )
+    else:
+        cls = (
+            gp.MultipoleInnerPotential
+            if kind == "inner"
+            else gp.MultipoleOuterPotential
+        )
+        pot = cls(l_max=L_MAX, Slm=lin, Tlm=ones, **KW)
+    module = getattr(gp, f"multipole{kind}")
+    x, t = u.Q(XYZ, "kpc"), u.Q(5.0, "Myr")
+
+    p0, p5 = pot.params(0.0), pot.params(t)
+    assert not np.allclose(
+        module.potential(p0, jnp.asarray(XYZ)), module.potential(p5, jnp.asarray(XYZ))
+    )
+    np.testing.assert_allclose(
+        pot.potential(x, t).value, module.potential(p5, jnp.asarray(XYZ)), rtol=1e-13
+    )
+
+
+def test_inner_value_is_finite_at_the_origin():
+    """At r = 0 the value is the l = 0 term and the derivatives are finite."""
+    for l_max in (0, 2):
+        slm = np.zeros((l_max + 1, l_max + 1))
+        slm[0, 0] = 1.0
+        if l_max:
+            slm[2, 1] = 0.7
+        pot = gp.MultipoleInnerPotential(
+            l_max=l_max, Slm=slm, Tlm=np.zeros_like(slm), **KW
+        )
+        p, x0 = pot.params(0.0), jnp.zeros(3)
+        want = float(p["G"] * p["m_tot"] / p["r_s"]) / np.sqrt(4 * np.pi)
+        np.testing.assert_allclose(gp.multipoleinner.potential(p, x0), want, rtol=1e-12)
+        grad = gp.multipoleinner.gradient(p, x0)
+        assert jnp.all(jnp.isfinite(grad))
+        np.testing.assert_allclose(grad, 0.0, atol=1e-12 * want / float(p["r_s"]))
+        assert jnp.all(jnp.isfinite(gp.multipoleinner.hessian(p, x0)))

@@ -229,13 +229,12 @@ def solid_harmonic_sum(
     minus one. The prefactor :math:`G m_{\mathrm{tot}} / r_s` is included.
     """
     l_max = parts[0][0].shape[0] - 1
-    # Leading axis so that a single point and a batch take the same path.
-    s, uvec = scaled_radius_and_direction(xyz[None], p["r_s"])
+    s, uvec = scaled_radius_and_direction(xyz, p["r_s"])
     terms = [
         sum(jnp.pow(s, e(l)) * (S[l, m] * cYlm + T[l, m] * sYlm) for S, T, e in parts)
         for l, m, cYlm, sYlm in iter_Ylm(l_max, uvec)
     ]
-    summation = jnp.sum(jnp.stack(terms), axis=0)[0]
+    summation = jnp.sum(jnp.stack(terms), axis=0)
     return p["G"] * p["m_tot"] / p["r_s"] * summation  # type: ignore[no-any-return]
 
 

@@ -1,8 +1,9 @@
 """Private module that defines `MultipoleOuterPotential` and its functions.
 
 The public API is `galax.potential.multipoleouter`. The base class, the zero
-``density`` and `scaled_radius_and_direction` are shared with the other
-multipole modules and live in `galax.potential._src.builtin.multipole`.
+``density``, the ``laplacian``, `scaled_radius_and_direction` and
+`solid_harmonic_sum` are shared with the other multipole modules and live in
+`galax.potential._src.builtin.multipole`.
 """
 
 __all__ = [

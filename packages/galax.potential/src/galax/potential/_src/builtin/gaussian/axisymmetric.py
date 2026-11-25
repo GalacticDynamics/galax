@@ -86,22 +86,26 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
 
     Notes
     -----
-    The integral is Chandrasekhar's (1969) potential of a heterogeneous
-    spheroid, in the form of Merritt & Fridman (1996), after the change of
-    variable :math:`\tau = 1 / s^2 - 1`. At the centre the potential is finite,
+    The integral is Chandrasekhar's (1969) [Chandrasekhar1969AxiGaussian]_
+    potential of a heterogeneous spheroid, in the form of Merritt & Fridman
+    (1996) [MerrittFridman1996AxiGaussian]_, after the change of variable
+    :math:`\tau = 1 / s^2 - 1`. At the centre the potential is finite,
     :math:`\Phi(0) = -\sqrt{2 / \pi}\, (G m_{\mathrm{tot}} / r_s)\, f(q_2)` with
-    :math:`f = \arcsin(e) / e` and :math:`e = \sqrt{1 - q_2^2}` for
-    :math:`q_2 < 1`, and :math:`f = \operatorname{arcsinh}(e) / e` with
-    :math:`e = \sqrt{q_2^2 - 1}` for :math:`q_2 > 1`. Far from the centre
-    :math:`\Phi \to -G m_{\mathrm{tot}} / r`. The density at the centre is
-    :math:`\rho_0`.
+    :math:`f = \arcsin(e) / e` and :math:`e = \sqrt{1 - q_2^2}` for :math:`q_2 <
+    1`, and :math:`f = \operatorname{arcsinh}(e) / e` with :math:`e =
+    \sqrt{q_2^2 - 1}` for :math:`q_2 > 1`. Far from the centre :math:`\Phi \to
+    -G m_{\mathrm{tot}} / r`. The density at the centre is :math:`\rho_0`.
 
     The quadrature has a fixed order, so its error grows where the integrand
     narrows, at large :math:`r / r_s`. Against a 30-digit mpmath integration,
     for axis ratios from 0.3 to 1.5, the relative error of the order-50
     potential is at most 3e-14 from :math:`10^{-3}` to :math:`30 r_s`, 2e-8 at
     :math:`100 r_s`, 1.1e-3 at :math:`300 r_s` and 2e-2 at :math:`10^3 r_s`, so
-    raise ``integration_order`` for the far field. The functions are in
+    raise ``integration_order`` for the far field. The gradient and Hessian,
+    which are derivatives of the quadrature, lose accuracy faster: for
+    :math:`q_1 = 0.9`, :math:`q_2 = 0.6` the gradient error is below 3e-15 at
+    :math:`30 r_s`, 3e-6 at :math:`100 r_s`, 9e-4 at :math:`300 r_s` and 0.4 at
+    :math:`10^3 r_s`. The functions are in
     `galax.potential.axisymmetricgaussian`. The gradient and Hessian of this
     class come from automatic differentiation of the potential.
 

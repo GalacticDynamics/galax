@@ -90,12 +90,12 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
 
     Notes
     -----
-    The integral is Chandrasekhar's (1969) potential of a heterogeneous
-    ellipsoid, in the form of Merritt & Fridman (1996), after the change of
-    variable :math:`\tau = 1 / s^2 - 1`. The potential at the centre is finite,
-    and for :math:`q_1 = q_2 = 1` it is :math:`-G m / r_s`. Far from the centre
-    it is :math:`-G m q_1 q_2 \ln(r / r_s) / r` to leading order in the
-    logarithm.
+    The integral is Chandrasekhar's (1969) [Chandrasekhar1969TriNFW]_ potential
+    of a heterogeneous ellipsoid, in the form of Merritt & Fridman (1996)
+    [MerrittFridman1996TriNFW]_, after the change of variable :math:`\tau = 1 /
+    s^2 - 1`. The potential at the centre is finite, and for :math:`q_1 = q_2 =
+    1` it is :math:`-G m / r_s`. Far from the centre it is :math:`-G m q_1 q_2
+    \ln(r / r_s) / r` to leading order in the logarithm.
 
     The density diverges at exactly :math:`\xi = 0`, and the gradient and the
     Hessian of the potential there are NaN, as they come from automatic
@@ -106,9 +106,13 @@ class TriaxialNFWPotential(LaplacianFromDensityMixin, AbstractSinglePotential):
     for axis ratios from 0.3 to 1.5, the relative error of the order-50
     potential is at most 1e-14 from :math:`10^{-3}` to :math:`30 r_s`, 3e-9 at
     :math:`100 r_s`, 1e-5 at :math:`300 r_s` and 1.6e-3 at :math:`10^3 r_s`, so
-    raise ``integration_order`` for the far field. The functions are in
-    `galax.potential.triaxialnfw`. The gradient and Hessian of this class come
-    from automatic differentiation of the potential.
+    raise ``integration_order`` for the far field. The gradient and Hessian,
+    which are derivatives of the quadrature, lose accuracy faster: for
+    :math:`q_1 = 0.9`, :math:`q_2 = 0.6` the gradient error is below 4e-15 at
+    :math:`30 r_s`, 3e-8 at :math:`100 r_s`, 5e-5 at :math:`300 r_s` and 3.4e-3
+    at :math:`10^3 r_s`. The functions are in `galax.potential.triaxialnfw`. The
+    gradient and Hessian of this class come from automatic differentiation of
+    the potential.
 
     References
     ----------
@@ -237,9 +241,8 @@ def potential(
     """
     r_s, q1, q2 = p["r_s"], p["q1"], p["q2"]
     integral = chandrasekhar_integral(
-        lambda w, r_s: 2.0 / (1.0 + jnp.sqrt(w) / r_s),
+        lambda w: 2.0 / (1.0 + jnp.sqrt(w) / r_s),
         xyz,
-        r_s,
         q1,
         q2,
         integration_order,

@@ -127,6 +127,10 @@ class LMJ09LogarithmicPotential(LaplacianFromDensityMixin, AbstractSinglePotenti
         default=default_constants, converter=ImmutableMap
     )
 
+    symmetry = Symmetry.ZREFLECTION
+    """`Symmetry.ZREFLECTION`: the potential is even in $z$. The rotation by
+    ``phi`` turns the other two symmetry planes about the z-axis."""
+
     @ft.partial(jax.jit)
     def _potential(self, xyz: gt.BBtQorVSz3, t: gt.BBtQorVSz0, /) -> gt.BBtSz0:
         # Parse inputs

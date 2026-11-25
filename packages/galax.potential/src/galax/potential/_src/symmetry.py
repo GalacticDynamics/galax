@@ -47,7 +47,8 @@ class Symmetry(enum.StrEnum):
     ... except ValueError as e:
     ...     print(e)
     Unknown symmetry 'axisymmetric'. Use one of ('none', 'spherical',
-    'zrotation', 'zrotation_zreflection', 'plane_reflection') or None.
+    'zrotation', 'zrotation_zreflection', 'plane_reflection', 'zreflection') or
+    None.
 
     Notes
     -----
@@ -82,6 +83,10 @@ class Symmetry(enum.StrEnum):
     PLANE_REFLECTION = "plane_reflection"
     """Invariant under reflection about all three principal planes."""
 
+    ZREFLECTION = "zreflection"
+    """Invariant under ``z -> -z``. Says nothing about rotations or the x and y
+    reflections."""
+
     @classmethod
     def _missing_(cls, value: object) -> "Symmetry":
         """Accept `None` as an alias for `NONE`, and name the valid values.
@@ -113,6 +118,7 @@ _INVARIANCES: Final[dict[Symmetry, frozenset[str]]] = {
     Symmetry.PLANE_REFLECTION: frozenset(
         {"x_reflection", "y_reflection", "z_reflection"}
     ),
+    Symmetry.ZREFLECTION: frozenset({"z_reflection"}),
 }
 
 

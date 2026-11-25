@@ -108,6 +108,31 @@ def test_lm_keys_plane_reflection_is_even_l_even_nonneg_m() -> None:
     )
 
 
+def test_lm_keys_zreflection_is_even_l_plus_m() -> None:
+    """Under z -> -z alone, every m of either sign with l + m even is kept."""
+    assert lm_keys(2, Symmetry.ZREFLECTION) == (
+        (0, 0),
+        (1, -1),
+        (1, 1),
+        (2, -2),
+        (2, 0),
+        (2, 2),
+    )
+
+
+def test_zreflection_keeps_exactly_the_modes_even_in_z() -> None:
+    """The kept real harmonics are even under z -> -z, the dropped ones odd."""
+    l_max = 4
+    every = lm_keys(l_max, Symmetry.NONE)
+    kept = set(lm_keys(l_max, Symmetry.ZREFLECTION))
+    uvec = jax.random.normal(jax.random.key(1), (32, 3))
+    uvec = uvec / jnp.linalg.vector_norm(uvec, axis=-1, keepdims=True)
+    Y = real_ylm(l_max, every, uvec)
+    Y_flip = real_ylm(l_max, every, uvec * jnp.asarray([1.0, 1.0, -1.0]))
+    sign = jnp.asarray([1.0 if k in kept else -1.0 for k in every])[:, None]
+    assert jnp.allclose(Y_flip, sign * Y, rtol=1e-12, atol=1e-12)
+
+
 def test_lm_keys_rejects_unknown_symmetry() -> None:
     with pytest.raises(ValueError, match="Unknown symmetry"):
         lm_keys(4, "octahedral")

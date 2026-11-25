@@ -198,9 +198,10 @@ TIE_RUNS = [
 def test_times_tie_grad(mode, solver, case) -> None:
     """At a tie, the gradient is the limit of the gradients at nearby untied times.
 
-    With fixed steps the derivative jumps at a tie, by up to 28% of the
-    gradient here for a wrong order, so the gradient a 1e-6 Myr shift away
-    (which moves it by at most 1.5e-5) tells a right limit from a wrong one.
+    With fixed steps the derivative jumps at a tie; for a wrong order the jump
+    here is percent-level, while a 1e-6 Myr shift moves the gradient far less
+    than the 1e-4 tolerance, so the comparison tells a right limit from a
+    wrong one.
     For `Uniform`'s release times, the gradient also gives `Uniform`'s
     ``t_age`` gradient by the chain rule.
     """
@@ -326,10 +327,11 @@ def test_times_per_particle_matches_whole_stream(mode, prog) -> None:
 
     Copies and the host alone step on the merged grid like the whole stream,
     so they match it to round-off. The track's knots come from a separate
-    Leapfrog solve on the uniform lattice, 2.9e-3 kpc from the merged-grid
-    orbit the releases come from, so the track matches only to about that
-    (measured 6.5e-3 kpc, 1.2e-4 kpc/Myr); both are well inside Leapfrog's own
-    error at this step (about 2e-2 kpc against an adaptive reference).
+    Leapfrog solve on the uniform lattice, a few 1e-3 kpc from the
+    merged-grid orbit the releases come from, so the track matches only to
+    the tolerances below (1e-2 kpc, 1e-3 kpc/Myr). Both are inside Leapfrog's
+    own error at this step: a median of a few 1e-2 kpc against an adaptive
+    solve from the same release states.
     """
     pp = plummer if prog == "plummer" else None
     sched = gde.Times(TS, 30, T1)

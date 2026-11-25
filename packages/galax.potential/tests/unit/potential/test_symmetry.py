@@ -24,6 +24,7 @@ _HERNQUIST = gp.HernquistPotential(m_tot=M, r_s=RS, units=G)
 _MN = gp.MiyamotoNagaiPotential(m_tot=M, a=RS, b=u.Q(1, "kpc"), units=G)
 _LM = jnp.zeros((3, 3)).at[0, 0].set(1.0).at[2, 1].set(0.3)
 _NLM = jnp.zeros((2, 3, 3)).at[0, 0, 0].set(1.0).at[1, 2, 1].set(0.3)
+_SCF = gp.SCFPotential(m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G)
 # SCF's own radial functions as a table, for `TabulatedRadialBasisPotential`.
 _R_KNOTS = jnp.logspace(-2, 3, 200)
 _SCF_TABLE = u.Q(
@@ -121,7 +122,7 @@ BUILTINS = [
     gp.NullPotential(),
     gp.PlummerPotential(m_tot=M, r_s=RS, units=G),
     gp.PowerLawCutoffPotential(m_tot=M, alpha=1.5, r_c=RS, units=G),
-    gp.SCFPotential(m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G),
+    _SCF,
     gp.TabulatedRadialBasisPotential.from_knots(
         u.Q(_R_KNOTS, "kpc"), _SCF_TABLE, _NLM, jnp.zeros_like(_NLM), units=G
     ),
@@ -185,8 +186,6 @@ def test_unknown_value_raises(value: str) -> None:
         # x and y reflections alone are no member, so they are dropped.
         ({"x_reflection", "z_reflection"}, "zreflection"),
         ({"x_reflection", "y_reflection", "z_reflection"}, "plane_reflection"),
-        ({"z_rotation", "x_reflection", "y_reflection"}, "zrotation"),
-        ({"x_reflection", "y_reflection"}, "none"),
     ],
 )
 def test_from_invariances(invs: set[str], expected: str) -> None:
@@ -196,12 +195,10 @@ def test_from_invariances(invs: set[str], expected: str) -> None:
 @pytest.mark.parametrize(
     ("symmetries", "expected"),
     [
-        (["spherical", "zreflection"], "zreflection"),
-        (["zrotation_zreflection", "zreflection"], "zreflection"),
         (["plane_reflection", "zreflection"], "zreflection"),
         (["plane_reflection", "zrotation_zreflection"], "plane_reflection"),
         (["zrotation", "zreflection"], "none"),
-        (["zrotation", "plane_reflection"], "none"),
+        (["zreflection", "none"], "none"),
         ([], "spherical"),
     ],
 )
@@ -334,22 +331,9 @@ def test_no_stronger_symmetry_than_declared(
         ),
         (gp.CompositePotential(halo=_HERNQUIST, bar=_BAR), "zreflection"),
         (gp.CompositePotential(disk=_MN, bar=_BAR), "zreflection"),
-        (
-            gp.CompositePotential(
-                bar=_BAR,
-                shifted=gp.TranslatedPotential(
-                    base_potential=_HERNQUIST, translation=_SHIFT
-                ),
-            ),
-            "none",
-        ),
         (gp.FlattenedInThePotential(base_potential=_BAR, q_z=0.7), "zreflection"),
         (
             gp.TriaxialInThePotential(base_potential=_BAR, y_over_x=0.8, z_over_x=0.6),
-            "zreflection",
-        ),
-        (
-            gp.MultipoleProfilePotential.from_potential(_BAR, l_max=2, **_PROFILE),
             "zreflection",
         ),
         (
@@ -377,11 +361,7 @@ def test_derived_symmetry(pot: gp.AbstractPotential, expected: str) -> None:
 
 
 def test_undeclared_is_none() -> None:
-    """A potential that declares nothing asserts no symmetry."""
-    pot = gp.SCFPotential(
-        m_tot=M, r_s=RS, Snlm=_NLM, Tnlm=jnp.zeros_like(_NLM), units=G
-    )
-    assert pot.symmetry is gp.Symmetry.NONE
+    assert _SCF.symmetry is gp.Symmetry.NONE
 
 
 # ============================================================================

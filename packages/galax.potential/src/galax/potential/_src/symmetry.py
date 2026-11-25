@@ -84,7 +84,8 @@ class Symmetry(enum.StrEnum):
     """Invariant under reflection about all three principal planes."""
 
     ZREFLECTION = "zreflection"
-    """Invariant under ``z -> -z``, with no rotation or other reflection."""
+    """Invariant under ``z -> -z``. Says nothing about rotations or the x and y
+    reflections."""
 
     @classmethod
     def _missing_(cls, value: object) -> "Symmetry":

@@ -129,9 +129,8 @@ def test_zreflection_keeps_exactly_the_modes_even_in_z() -> None:
     uvec = uvec / jnp.linalg.vector_norm(uvec, axis=-1, keepdims=True)
     Y = real_ylm(l_max, every, uvec)
     Y_flip = real_ylm(l_max, every, uvec * jnp.asarray([1.0, 1.0, -1.0]))
-    for i, key in enumerate(every):
-        sign = 1.0 if key in kept else -1.0
-        assert jnp.allclose(Y_flip[i], sign * Y[i], rtol=1e-12, atol=1e-12), key
+    sign = jnp.asarray([1.0 if k in kept else -1.0 for k in every])[:, None]
+    assert jnp.allclose(Y_flip, sign * Y, rtol=1e-12, atol=1e-12)
 
 
 def test_lm_keys_rejects_unknown_symmetry() -> None:

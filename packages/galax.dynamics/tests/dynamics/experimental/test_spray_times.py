@@ -201,6 +201,8 @@ def test_times_tie_grad(mode, solver, case) -> None:
     With fixed steps the derivative jumps at a tie. Here every wrong order
     jumps by more than the 1e-4 tolerance, while a 1e-6 Myr shift moves the
     gradient far less, so the comparison tells a right limit from a wrong one.
+    An adaptive solve has no jump at a tie, so its runs check only that the
+    gradient is continuous there.
     For `Uniform`'s release times, the gradient also gives `Uniform`'s
     ``t_age`` gradient by the chain rule.
     """
@@ -373,7 +375,8 @@ def test_vmap_and_bad_points(mode, solver) -> None:
 
     The bad lanes are a NaN release time, a release after t1, and a NaN or
     negative ``t_age``. They never raise (that they don't grind to
-    ``max_steps`` is checked in test_spray_per_particle.py), and leave the good
+    ``max_steps`` is checked in test_spray_per_particle.py and
+    test_spray_whole_stream.py), and leave the good
     lanes as they are, to round-off. Batch size changes round-off in the last
     bits, which adaptive step control amplifies to about its tolerance, so the
     adaptive comparisons are at 1e-7.

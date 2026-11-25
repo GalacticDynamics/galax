@@ -57,6 +57,7 @@ __all__ = [
     # builtin
     "LongMuraliBarPotential",
     "MonariEtAl2016BarPotential",
+    "XShapedBarPotential",
     "KuzminPotential",
     "KuzminKutuzovPotential",
     "MiyamotoNagaiPotential",
@@ -219,6 +220,7 @@ from ._src.builtin import (
     TriaxialHernquistPotential,
     TriaxialNFWPotential,
     Vogelsberger08TriaxialNFWPotential,
+    XShapedBarPotential,
     ZhaoPotential,
     gNFWPotential,
 )

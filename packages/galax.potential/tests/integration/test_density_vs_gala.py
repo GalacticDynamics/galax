@@ -94,6 +94,7 @@ def test_density_matches_gala(pot: gp.AbstractSinglePotential) -> None:
 # Not comparable to gala:
 #
 # - `MonariEtAl2016BarPotential`: this model has no gala counterpart.
+# - `XShapedBarPotential`: this model has no gala counterpart.
 # - `MultipoleInnerPotential` / `MultipoleOuterPotential` / `MultipolePotential`:
 #   already tested directly (`_density` is exactly zero for every solid-harmonic
 #   term, verified in test_multipole.py / test_innermultipole.py /

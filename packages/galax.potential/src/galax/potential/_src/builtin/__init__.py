@@ -48,4 +48,5 @@ from .sph_expansion import (
 )
 from .stoneostriker15 import *
 from .tabulated_basis import *
+from .xshapedbar import *
 from .zhao import *

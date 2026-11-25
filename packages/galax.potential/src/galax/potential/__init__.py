@@ -106,6 +106,7 @@ __all__ = [
     # xfm
     "AbstractTransformedPotential",
     "FlattenedInThePotential",
+    "RotatingPotential",
     "TransformedPotential",
     "TriaxialInThePotential",
     "TranslatedPotential",
@@ -227,6 +228,7 @@ from ._src.symmetry import Symmetry
 from ._src.xfm import (
     AbstractTransformedPotential,
     FlattenedInThePotential,
+    RotatingPotential,
     TransformedPotential,
     TranslatedPotential,
     TriaxialInThePotential,

@@ -52,6 +52,14 @@ Positions and parameters are bare arrays in the unit system of the potential,
 and the caller keeps track of the units (see `Units`_ below). A module may export
 more than these functions, for example ``mass_total`` or ``rho0_of_m``.
 
+The potentials of ``axisymmetricgaussian``, ``triaxialgaussian`` and
+``triaxialnfw`` are integrals that are evaluated by Gauss-Legendre quadrature,
+so their ``potential``, ``gradient`` and ``hessian`` take the keyword-only
+argument ``integration_order`` (default 50) after the positional ones. It is a
+static argument of ``jax.jit``: each new value compiles again, and it must be a
+Python integer, not a traced value. The class passes its own ``integration_order``
+field. ``density`` and ``laplacian`` do not need it.
+
 ``galax.potential.plummer.potential`` is a different function from
 ``galax.potential.potential``. The first takes ``(p, r)`` and returns a
 number. The second is dispatched on the potential and takes ``(pot, xyz, t)``
@@ -168,5 +176,6 @@ Spherical
 Non-spherical
 -------------
 
-``kuzmin``, ``kuzminkutuzov``, ``leesutotriaxialnfw``, ``longmuralibar``,
-``miyamotonagai``, ``monarietal2016bar``, ``satoh``.
+``axisymmetricgaussian``, ``kuzmin``, ``kuzminkutuzov``,
+``leesutotriaxialnfw``, ``longmuralibar``, ``miyamotonagai``,
+``monarietal2016bar``, ``satoh``, ``triaxialgaussian``, ``triaxialnfw``.

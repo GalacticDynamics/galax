@@ -20,7 +20,10 @@ anything else           none                          ``potential``, ``density``
 ======================  ============================  =============================
 
 The factories here build the quantities that have no closed form from the ones
-that do. Every returned function is `jax.jit`-ed. `spherical_gradient` and
+that do. Every returned function is `jax.jit`-ed. Keyword-only parameters of the
+source function, such as the ``integration_order`` of a quadrature, stay
+keyword-only on the built functions, are forwarded to the source and are static
+under `jax.jit`. `spherical_gradient` and
 `spherical_hessian` are written with ``axis=-1`` and ellipsis-safe ops, so they
 also accept batches of points; that is not part of the contract.
 
@@ -65,16 +68,23 @@ from .utils import RadialFn, safe_vector_norm
 def _signed(source: Callable[..., Any], f: Callable[..., Any], /) -> Callable[..., Any]:
     """`jax.jit` of ``f`` that shows the parameters of ``source`` in ``help()``.
 
-    The factories below return ``(p, x, *rest)`` wrappers; the parameters are
-    copied from ``source`` (as positional-only, since the wrapper's own
-    parameter is ``x``) so that ``p``, ``r`` / ``xyz`` and ``t`` appear.
+    The factories below return ``(p, x, *rest, **static)`` wrappers; the
+    parameters are copied from ``source``. The positional ones become
+    positional-only, since the wrapper's own parameter is ``x``, so that ``p``,
+    ``r`` / ``xyz`` and ``t`` appear. The keyword-only ones of ``source``, such
+    as an ``integration_order``, stay keyword-only, are forwarded to ``source``
+    and are static under `jax.jit`.
     """
     sig = inspect.signature(source)
+    kwonly = tuple(q.name for q in sig.parameters.values() if q.kind is q.KEYWORD_ONLY)
     f.__signature__ = sig.replace(  # type: ignore[attr-defined]
-        parameters=[q.replace(kind=q.POSITIONAL_ONLY) for q in sig.parameters.values()],
+        parameters=[
+            q if q.kind is q.KEYWORD_ONLY else q.replace(kind=q.POSITIONAL_ONLY)
+            for q in sig.parameters.values()
+        ],
         return_annotation=inspect.Signature.empty,
     )
-    return jax.jit(f)
+    return jax.jit(f, static_argnames=kwonly)
 
 
 # ==============================================================================
@@ -182,9 +192,9 @@ def spherical_hessian(
 def poisson_laplacian(density: Callable[..., Any], /) -> Callable[..., Any]:
     r"""``laplacian`` from ``density`` by Poisson: $\nabla^2\Phi = 4\pi G\rho$."""
 
-    def laplacian(p: gt.Params, x: Any, *rest: Any) -> Any:
-        """``laplacian = 4 * pi * p["G"] * density(p, x, *rest)``."""
-        return 4 * jnp.pi * p["G"] * density(p, x, *rest)
+    def laplacian(p: gt.Params, x: Any, *rest: Any, **static: Any) -> Any:
+        """``laplacian = 4 * pi * p["G"] * density(p, x, *rest, **static)``."""
+        return 4 * jnp.pi * p["G"] * density(p, x, *rest, **static)
 
     return _signed(density, laplacian)
 
@@ -192,9 +202,9 @@ def poisson_laplacian(density: Callable[..., Any], /) -> Callable[..., Any]:
 def poisson_density(laplacian: Callable[..., Any], /) -> Callable[..., Any]:
     r"""``density`` from ``laplacian`` by Poisson: $\rho = \nabla^2\Phi/(4\pi G)$."""
 
-    def density(p: gt.Params, x: Any, *rest: Any) -> Any:
-        """``density = laplacian(p, x, *rest) / (4 * pi * p["G"])``."""
-        return laplacian(p, x, *rest) / (4 * jnp.pi * p["G"])
+    def density(p: gt.Params, x: Any, *rest: Any, **static: Any) -> Any:
+        """``density = laplacian(p, x, *rest, **static) / (4 * pi * p["G"])``."""
+        return laplacian(p, x, *rest, **static) / (4 * jnp.pi * p["G"])
 
     return _signed(laplacian, density)
 
@@ -206,9 +216,9 @@ def poisson_density(laplacian: Callable[..., Any], /) -> Callable[..., Any]:
 def cartesian_gradient(potential: Callable[..., Any], /) -> Callable[..., Any]:
     """`jax.grad` of ``potential(p, xyz, *rest)`` with respect to ``xyz``."""
 
-    def gradient(p: gt.Params, xyz: Any, *rest: Any) -> Any:
+    def gradient(p: gt.Params, xyz: Any, *rest: Any, **static: Any) -> Any:
         """``gradient`` as ``jax.grad(potential, argnums=1)``."""
-        return jax.grad(potential, argnums=1)(p, xyz, *rest)
+        return jax.grad(potential, argnums=1)(p, xyz, *rest, **static)
 
     return _signed(potential, gradient)
 
@@ -216,9 +226,9 @@ def cartesian_gradient(potential: Callable[..., Any], /) -> Callable[..., Any]:
 def cartesian_hessian(potential: Callable[..., Any], /) -> Callable[..., Any]:
     """`jax.hessian` of ``potential(p, xyz, *rest)`` with respect to ``xyz``."""
 
-    def hessian(p: gt.Params, xyz: Any, *rest: Any) -> Any:
+    def hessian(p: gt.Params, xyz: Any, *rest: Any, **static: Any) -> Any:
         """``hessian`` as ``jax.hessian(potential, argnums=1)``."""
-        return jax.hessian(potential, argnums=1)(p, xyz, *rest)
+        return jax.hessian(potential, argnums=1)(p, xyz, *rest, **static)
 
     return _signed(potential, hessian)
 
@@ -227,8 +237,8 @@ def cartesian_laplacian(potential: Callable[..., Any], /) -> Callable[..., Any]:
     """Trace of `cartesian_hessian` of ``potential(p, xyz, *rest)``."""
     hess = cartesian_hessian(potential)
 
-    def laplacian(p: gt.Params, xyz: Any, *rest: Any) -> Any:
+    def laplacian(p: gt.Params, xyz: Any, *rest: Any, **static: Any) -> Any:
         """``laplacian`` as the trace of ``jax.hessian(potential, argnums=1)``."""
-        return jnp.trace(hess(p, xyz, *rest))
+        return jnp.trace(hess(p, xyz, *rest, **static))
 
     return _signed(potential, laplacian)

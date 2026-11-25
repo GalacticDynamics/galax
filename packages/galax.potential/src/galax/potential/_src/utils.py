@@ -415,6 +415,41 @@ def gauss_legendre(
     return jnp.sum(y * w, axis=0)
 
 
+def chandrasekhar_integral(
+    f: Callable[[Array], Array],
+    xyz: Shaped[Array, "*batch 3"],
+    q1: Shaped[Array, ""],
+    q2: Shaped[Array, ""],
+    order: int,
+    /,
+) -> Shaped[Array, "*batch"]:
+    r"""Chandrasekhar's ellipsoid integral by Gauss-Legendre quadrature.
+
+    .. math::
+
+        \int_0^1 \frac{f(w(s))}
+            {\sqrt{\left[(q_1^2 - 1) s^2 + 1\right]
+                   \left[(q_2^2 - 1) s^2 + 1\right]}} \, ds,
+        \qquad
+        w(s) = s^2 \left[x^2 + \frac{y^2}{1 + (q_1^2 - 1) s^2}
+            + \frac{z^2}{1 + (q_2^2 - 1) s^2}\right],
+
+    for ``f(w)`` of :math:`w = r_s^2 \xi^2(s)`, the squared radius in length
+    units, so that ``f`` forms the dimensionless radius in the way it chooses.
+    The positions may carry leading batch axes.
+    """
+    # The node axis comes first: (N, 1, ..., 1) against the batch of `xyz`.
+    batchdims = xyz.ndim - 1
+    x2, y2, z2 = xyz[..., 0] ** 2, xyz[..., 1] ** 2, xyz[..., 2] ** 2
+
+    def integrand(s: Array) -> Array:
+        s2 = s.reshape(s.shape + (1,) * batchdims) ** 2
+        f1, f2 = (q1**2 - 1) * s2 + 1, (q2**2 - 1) * s2 + 1
+        return f(s2 * (x2 + y2 / f1 + z2 / f2)) / jnp.sqrt(f1 * f2)  # type: ignore[no-any-return]
+
+    return gauss_legendre(integrand, order)
+
+
 # ==============================================================================
 
 coord_dispatcher = Dispatcher(warn_redefinition=True)

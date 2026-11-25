@@ -23,7 +23,6 @@ from typing import final
 import equinox as eqx
 import jax
 
-import quaxed.numpy as jnp
 import unxt as u
 from unxt.quantity import AllowValue
 from xmmutablemap import ImmutableMap
@@ -192,7 +191,7 @@ class AxisymmetricGaussianPotential(LaplacianFromDensityMixin, AbstractSinglePot
 
 def _triaxial(p: gt.Params, /) -> gt.Params:
     """``p`` with the axis ratio ``q1 = 1`` that the triaxial functions need."""
-    return {**p, "q1": jnp.ones_like(p["q2"])}
+    return {**p, "q1": 1.0}  # type: ignore[dict-item]
 
 
 @ft.partial(jax.jit)

@@ -232,7 +232,7 @@ GAUSSIANS = ("axisymmetricgaussian", "triaxialgaussian")
 # (r in r_s, direction): near the centre, on the z axis, and far out.
 POINTS = ((1e-3, "gen"), (1.0, "z"), (30.0, "gen"))
 # The flattened model's gradient near the centre is limited by the quadrature
-# (6e-6 at 1e-3 r_s), so it is not tested there.
+# (1.6e-6 to 1e-5 at 1e-3 r_s), so it is not tested there.
 GRAD_POINTS = {"sph": POINTS, "flat": POINTS[1:]}
 UNIT = {"z": (0, 0, 1), "gen": DIRECTION}
 
@@ -438,9 +438,11 @@ def test_rho0(name):
 # them bit for bit) for the flattened models: [potential, gradient_z, hessian_xx,
 # hessian_zz] at 1 r_s on the z axis and at 30 r_s in the generic direction.
 # The bounds above can hide a 3 to 5 times larger error, because they allow one
-# unit of float32 round-off; these values do not. A change of two ulp (2.4e-7) or
-# more fails, which includes the triaxial NFW with its radius formed as
-# sqrt(xi^2) (it differs by 4.1e-7 in hessian_zz at 30 r_s).
+# unit of float32 round-off; these values do not, as a second line of defence.
+# The tolerance is 2.4e-7, 2 to 4 ulp per entry: a systematic change of two ulp
+# or more fails, and a change of a single entry only from about 4 to 5 ulp. The
+# triaxial NFW with its radius formed as sqrt(xi^2) fails only at hessian_zz at
+# 30 r_s (5 ulp); at 1 r_s on the z axis it is 2 ulp and passes.
 BASE_FLOAT32 = {
     ("axisymmetricgaussian", 1.0, "z"): [
         -0.5913220643997192,
@@ -488,8 +490,7 @@ def test_float32_matches_the_old_classes(name, r, d):
     direction = np.asarray(UNIT[d], float)
     xyz = direction / np.linalg.norm(direction) * r * float(p["r_s"])
     module = getattr(gp, name)
-    float32 = False  # x64 off, so that the arithmetic is float32
-    with jax.enable_x64(float32):
+    with jax.enable_x64(False):  # noqa: FBT003  (x64 off: float32 arithmetic)
         x = np.asarray(xyz, np.float32)
         grad, hess = np.asarray(module.gradient(p, x)), np.asarray(module.hessian(p, x))
         got = [float(module.potential(p, x)), grad[2], hess[0, 0], hess[2, 2]]

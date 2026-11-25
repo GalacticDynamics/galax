@@ -2,7 +2,7 @@
 
 __all__: tuple[str, ...] = ()
 
-from jaxtyping import Array
+from jaxtyping import Array, ArrayLike
 
 import equinox as eqx
 import jax.numpy as jnp
@@ -61,3 +61,116 @@ class Uniform(eqx.Module):
     def release_times(self) -> Array:
         """Release times, exactly lattice points."""
         return self.lattice()[self.release_index()]
+
+    def grid(self) -> Array:
+        """Return the solve's time grid, the lattice itself."""
+        return self.lattice()
+
+
+class Times(eqx.Module):
+    """Releases at arbitrary times ``ts``, between the points of a lattice.
+
+    The lattice has ``steps`` equal steps from ``min(ts)`` to ``t1``, computed
+    as `Uniform`'s (`uniform`). A fixed-step solve steps on the merged grid of
+    the lattice points and the release times, so every release is a grid point
+    and no release time is snapped.
+
+    With fixed steps the result is continuous in ``ts``, but its derivative
+    jumps, by about the integrator's error, where a release time crosses a
+    lattice point or another release: the grid's steps change there. At such
+    a tie, the gradient is the limit of the gradients at nearby untied times,
+    taken in the grid's order: tied releases in the order of ``ts``, each just
+    before a lattice point it equals, except that the lattice's first point
+    (``min(ts)``) comes right after the first release there. A default ``t1``
+    follows the last release at ``max(ts)``.
+
+    Parameters
+    ----------
+    ts : Array
+        Release times, shape ``(n,)``, in any order, each differentiable. They
+        must not be after ``t1``.
+    steps : int
+        Number of lattice steps (static, at least 1).
+    t1 : Array | None
+        Final time; `None` means ``max(ts)``.
+
+    Examples
+    --------
+    >>> import jax.numpy as jnp
+    >>> import galax.dynamics as gd
+
+    >>> sched = gd.experimental.Times(jnp.array([-120.0, -250.0]), 5, 0.0)
+    >>> sched.lattice()
+    Array([-250., -200., -150., -100.,  -50.,    0.], dtype=float64)
+    >>> sched.grid()
+    Array([-250., -250., -200., -150., -120., -100.,  -50.,    0.], dtype=float64)
+    >>> sched.release_index()
+    Array([4, 0], dtype=int64)
+
+    """
+
+    ts: Array
+    steps: int = eqx.field(static=True)
+    t1: Array
+
+    def __init__(self, ts: ArrayLike, steps: int, t1: ArrayLike | None = None) -> None:
+        self.ts = jnp.asarray(ts, dtype=float)
+        self.steps = steps
+        if self.ts.ndim != 1 or self.ts.shape[0] < 1:
+            msg = f"ts must have shape (n,) with n >= 1, got {self.ts.shape}"
+            raise ValueError(msg)
+        # The last of tied maxima, as the grid orders a release before t1.
+        last_max = self.ts[-1 - jnp.argmax(self.ts[::-1])]
+        self.t1 = last_max if t1 is None else jnp.asarray(t1, dtype=float)
+        if self.steps < 1:
+            msg = f"steps must be at least 1, got {self.steps}"
+            raise ValueError(msg)
+        if jnp.ndim(self.t1) != 0:
+            msg = (
+                f"t1 must be a scalar, got shape {jnp.shape(self.t1)}; vmap over "
+                "a batch"
+            )
+            raise ValueError(msg)
+
+    def uniform(self) -> Uniform:
+        """Return the lattice as a `Uniform` schedule, one release per point."""
+        # From the first of tied minima, which the lattice's first point
+        # follows in the grid (`_order`).
+        t0 = self.ts[jnp.argmin(self.ts)]
+        return Uniform(self.t1 - t0, self.steps + 1, 1, self.t1)
+
+    def lattice(self) -> Array:
+        """Return the ``steps + 1`` lattice points, as `Uniform.lattice`.
+
+        The first is exactly ``min(ts)``, free of the lattice's round-off.
+        """
+        return self.uniform().lattice().at[0].set(self.ts[jnp.argmin(self.ts)])
+
+    def _order(self) -> tuple[Array, Array]:
+        """Return the release times and lattice points, and their grid order.
+
+        Ties sort as nearby untied times would: releases in the order of
+        ``ts``, each before a lattice point it equals, except that the
+        lattice's first point (``min(ts)``) follows the first release there.
+        """
+        n = self.ts.shape[0]
+        times = jnp.concat([self.ts, self.lattice()])
+        rank = jnp.arange(n + 1.0 + self.steps).at[n].set(jnp.argmin(self.ts) + 0.5)
+        return times, jnp.lexsort((rank, times))
+
+    def grid(self) -> Array:
+        """Return the merged grid: release times and lattice points, sorted.
+
+        It has static length ``steps + 1 + n``; duplicates are kept, in the
+        order of `_order`, so the last point is ``t1``.
+        """
+        times, order = self._order()
+        return times[order]
+
+    def release_index(self) -> Array:
+        """Grid index of each release, in the order of ``ts``."""
+        return jnp.argsort(self._order()[1])[: self.ts.shape[0]]
+
+    def release_times(self) -> Array:
+        """Return the release times ``ts``, in the given order."""
+        return self.ts

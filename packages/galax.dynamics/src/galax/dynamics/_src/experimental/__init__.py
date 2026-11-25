@@ -5,7 +5,7 @@ from .df import (
     Chen2024DF as Chen2024DF,
     Fardal2015DF as Fardal2015DF,
 )
-from .schedule import Uniform as Uniform
+from .schedule import Times as Times, Uniform as Uniform
 from .simulator import (
     Copies as Copies,
     PerParticle as PerParticle,

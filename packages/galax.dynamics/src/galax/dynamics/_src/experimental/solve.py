@@ -8,6 +8,7 @@ __all__ = [
     "solve_on",
 ]
 
+from collections.abc import Callable
 from jaxtyping import Array
 from typing import Any
 
@@ -19,7 +20,9 @@ import diffraxtra as dfxtra
 
 import galax.fields as gf
 import galax.potential as gp
-from .schedule import Uniform
+from .schedule import Times, Uniform
+
+sg = jax.lax.stop_gradient
 
 
 def default_solver() -> dfxtra.DiffEqSolver:
@@ -60,6 +63,32 @@ def host_terms(pot: gp.AbstractPotential, solver: dfxtra.DiffEqSolver) -> Any:
     )
 
 
+class _IndexTime(dfx.AbstractTerm):  # type: ignore[misc]
+    """``term`` in index time: the step ``s -> s + 1`` is ``grid[s] -> grid[s + 1]``.
+
+    A step between equal grid points has zero control, so it leaves the state as
+    it is; diffrax's `StepTo` rejects such a step in physical time.
+    """
+
+    term: dfx.AbstractTerm
+    grid: Array
+
+    def _time(self, s: Array) -> Array:
+        """Physical time at index time ``s``: linear in ``grid``, exact at integers."""
+        i = jnp.clip(jnp.floor(s), 0, self.grid.shape[0] - 1).astype(int)
+        j = jnp.minimum(i + 1, self.grid.shape[0] - 1)
+        return self.grid[i] + (s - i) * (self.grid[j] - self.grid[i])
+
+    def vf(self, t: Array, y: Any, args: Any) -> Any:
+        return self.term.vf(self._time(t), y, args)
+
+    def contr(self, t0: Array, t1: Array, **kwargs: Any) -> Any:  # noqa: ARG002
+        return self.term.contr(self._time(t0), self._time(t1))
+
+    def prod(self, vf: Any, control: Any) -> Any:
+        return self.term.prod(vf, control)
+
+
 def _solve(
     solver: dfxtra.DiffEqSolver,
     terms: Any,
@@ -67,9 +96,28 @@ def _solve(
     step_ts: Array,
     saveat: dfx.SaveAt,
     args: Any = None,
+    gate: Callable[[dfx.AbstractTerm], Any] | None = None,
 ) -> Any:
-    """Solve and return ``ys``; NaN for a failed solve instead of raising."""
+    """Solve and return ``ys``; NaN for a failed solve instead of raising.
+
+    A fixed-step solve steps from ``step_ts[k]`` to ``step_ts[k + 1]`` in index
+    time (`_IndexTime`), so equal or NaN times never make diffrax raise. The
+    terms still see physical times. ``gate`` (fixed steps only) wraps each
+    index-time term, so it sees the step index ``k``.
+
+    An adaptive solve over zero time takes no steps, so diffrax drops the
+    tangents of its times. Each saved state (at ``saveat.ts``, else at the end)
+    gets the first-order one, ``f(y0) (dt_save - dt0)``, which is exact at zero
+    span; the values are unchanged. The terms are then a single term.
+    """
     if is_lattice(solver):
+        gate = (lambda x: x) if gate is None else gate
+        terms = jax.tree.map(
+            lambda x: gate(_IndexTime(x, step_ts)),
+            terms,
+            is_leaf=lambda x: isinstance(x, dfx.AbstractTerm),
+        )
+        step_ts = jnp.arange(step_ts.shape[0], dtype=float)
         kw: dict[str, Any] = {
             "dt0": None,
             "stepsize_controller": dfx.StepTo(ts=step_ts),
@@ -100,7 +148,14 @@ def _solve(
         **kw,
     )
     ok = sol.result == dfx.RESULTS.successful
-    return jax.tree.map(lambda y: jnp.where(ok, y, jnp.nan), sol.ys)
+    ys = jax.tree.map(lambda y: jnp.where(ok, y, jnp.nan), sol.ys)
+    if not is_lattice(solver):
+        t0, t1 = step_ts[0], step_ts[-1]
+        save = step_ts[-1:] if saveat.subs.ts is None else saveat.subs.ts
+        dt = (save - sg(save)) - (t0 - sg(t0))  # zeros, with the tangents
+        dy = jax.vmap(lambda d: terms.vf_prod(t0, y0, args, d))(dt)
+        ys = jax.tree.map(lambda a, b: jnp.where(t0 == t1, a + b, a), ys, dy)
+    return ys
 
 
 def solve_on(
@@ -110,37 +165,50 @@ def solve_on(
     step_ts: Array,
     *,
     args: Any = None,
+    gate: Callable[[dfx.AbstractTerm], Any] | None = None,
 ) -> Any:
     """Return the final state after solving along ``step_ts``.
 
-    A fixed-step solver takes exactly the steps ``step_ts``. An adaptive one
-    runs from ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A
-    failed solve returns NaN, it never raises.
+    A fixed-step solver takes exactly the steps ``step_ts``; ``gate`` wraps
+    each of its terms in index time (`_solve`). An adaptive one runs from
+    ``step_ts[0]`` to ``step_ts[-1]``. ``args`` go to the terms. A failed solve
+    returns NaN, it never raises.
     """
-    ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args)
+    ys = _solve(solver, terms, y0, step_ts, dfx.SaveAt(t1=True), args, gate)
     return jax.tree.map(lambda y: y[0], ys)
 
 
 def progenitor_states(
     pot: gp.AbstractPotential,
     w_today: Array,
-    schedule: Uniform,
+    schedule: Uniform | Times,
     solver: dfxtra.DiffEqSolver,
 ) -> Array:
-    """Return the progenitor's states ``(n_steps + 1, 6)`` on the lattice.
+    """Return the progenitor's states ``(M, 6)`` on ``schedule.grid()``.
 
-    It integrates ``w_today`` back from ``t1`` to the first lattice point, then
-    forward saving every lattice point.
+    It integrates ``w_today`` back from ``t1`` to the first grid point, then
+    forward saving every grid point. A fixed-step solver steps back and forth
+    on the grid, so the states at the release times are the integrator's own;
+    a grid over zero time gives ``w_today`` at every point. An adaptive one
+    saves at the grid points.
     """
-    lattice = schedule.lattice()
+    grid = schedule.grid()
     terms = host_terms(pot, solver)
     split = isinstance(solver.solver, gf.Leapfrog)
     y0 = (w_today[:3], w_today[3:]) if split else w_today
-
-    y_start = solve_on(solver, terms, y0, lattice[::-1])
+    # A NaN time, or a release after t1, gives NaN. In an adaptive solve a
+    # NaN time would make diffrax raise (`SaveAt(ts=...)`) or grind to
+    # `max_steps`: it solves over zero time instead.
+    ts = schedule.release_times()
+    ok = jnp.all(jnp.isfinite(grid)) & jnp.all(ts <= schedule.t1)
     if is_lattice(solver):
+        # Back and forth on the same grid: Leapfrog retraces its steps, so the
+        # orbit passes through `w_today` at t1.
         saveat = dfx.SaveAt(t0=True, steps=True)
     else:
-        saveat = dfx.SaveAt(ts=lattice)
-    ys = _solve(solver, terms, y_start, lattice, saveat)
-    return jnp.concat(ys, axis=-1) if split else ys
+        grid = jnp.where(ok, grid, 0.0)
+        saveat = dfx.SaveAt(ts=grid)
+    y_start = solve_on(solver, terms, y0, grid[::-1])
+    ys = _solve(solver, terms, y_start, grid, saveat)
+    w = jnp.concat(ys, axis=-1) if split else ys
+    return jnp.where(ok, w, jnp.nan)

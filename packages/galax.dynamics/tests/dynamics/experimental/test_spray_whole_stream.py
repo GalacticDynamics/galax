@@ -52,14 +52,13 @@ def adaptive(tol: float, max_steps: int, adjoint=None) -> dfxtra.DiffEqSolver:
     )
 
 
-def release_ics(df, pot, prog, sched, solver):
+def release_ics(sched, solver=LEAP, pot=HOST, df=gde.Fardal2015DF()):  # noqa: B008
     """Return the release states the simulator samples (same key and orbit)."""
     ws = progenitor_states(pot, W_TODAY, sched, solver)
     idx = sched.release_index()
-    Ms = jnp.broadcast_to(MSAT, (sched.n_release,))
-    xl, vl, xt, vt = sample_releases(
-        df, KEY, pot, sched.release_times(), ws[idx, :3], ws[idx, 3:], Ms
-    )
+    ts = sched.release_times()
+    Ms = jnp.broadcast_to(MSAT, ts.shape)
+    xl, vl, xt, vt = sample_releases(df, KEY, pot, ts, ws[idx, :3], ws[idx, 3:], Ms)
     return ws, jnp.concat([xl, vl], axis=-1), jnp.concat([xt, vt], axis=-1)
 
 
@@ -88,37 +87,6 @@ def test_whole_stream_runs(df_cls, prog) -> None:
     assert float(res.t1) == 0.0
 
 
-def test_gate_no_leak() -> None:
-    """A tracer released at lattice point k moves as a lone solve from k.
-
-    And it doesn't move at all before k: no half-kick leaks across the release.
-    """
-    sched = gde.Uniform(jnp.asarray(400.0), 9, 5)  # 40 steps, segments of 5
-    lattice = sched.lattice()
-    ws = progenitor_states(HOST, W_TODAY, sched, LEAP)
-    prog_pot = plummer(MSAT)
-    k = 15  # a release index (segment start)
-    # Unbound from the cluster: a bound orbit at 10 Myr steps amplifies round-off.
-    w_tr = ws[k] + jnp.asarray([0.1, -0.05, 0.02, 5e-3, -5e-3, 2e-3])
-    w0 = jnp.stack([ws[0], w_tr])
-    L, n_seg = 5, 8
-    starts = jnp.arange(n_seg) * L
-    grids = lattice[starts[:, None] + jnp.arange(L + 1)]
-    active = (k <= starts)[:, None]
-    field = _WholeStreamField(HOST, prog_pot)
-
-    before = evolve_whole_stream(field, LEAP, w0, grids[: k // L], active[: k // L])
-    np.testing.assert_array_equal(before[1], w_tr)
-    np.testing.assert_allclose(before[0], ws[k], rtol=0, atol=1e-12)
-
-    got = evolve_whole_stream(field, LEAP, w0, grids, active)
-    copies = _CopiesField(HOST, prog_pot)
-    y0 = (jnp.stack([w_tr[:3], ws[k, :3]]), jnp.stack([w_tr[3:], ws[k, 3:]]))
-    want = jnp.concat(solve_on(LEAP, copies.terms(LEAP), y0, lattice[k:]), axis=-1)
-    np.testing.assert_allclose(got[1], want[0], rtol=0, atol=1e-12)
-    np.testing.assert_allclose(got[0], want[1], rtol=0, atol=1e-12)
-
-
 @pytest.mark.parametrize("df_cls", DFS)
 def test_whole_stream_matches_lone_solves(df_cls) -> None:
     sched = gde.Uniform(jnp.asarray(300.0), 5, 8)
@@ -126,7 +94,7 @@ def test_whole_stream_matches_lone_solves(df_cls) -> None:
     sim = gde.SpraySimulator(df, gde.WholeStream(), progenitor_potential=plummer)
     res = sim(KEY, HOST, W_TODAY, MSAT, sched)
 
-    ws, lead0, trail0 = release_ics(df, HOST, plummer, sched, LEAP)
+    ws, lead0, trail0 = release_ics(sched, df=df)
     lattice, idx = sched.lattice(), sched.release_index()
     copies = _CopiesField(HOST, plummer(MSAT))
     terms = copies.terms(LEAP)
@@ -199,7 +167,7 @@ def test_one_release() -> None:
     assert jnp.all(jnp.isfinite(jnp.concat([res.lead, res.trail])))
     np.testing.assert_allclose(res.release_times, [-300.0])
     # The pair moved over the whole age.
-    _, lead0, _ = release_ics(gde.Fardal2015DF(), HOST, plummer, sched, LEAP)
+    _, lead0, _ = release_ics(sched)
     assert jnp.linalg.norm(res.lead[0, :3] - lead0[0, :3]) > 1.0
 
 
@@ -226,7 +194,7 @@ def _legacy_setup():
         df, gde.WholeStream(), progenitor_potential=plummer, solver=solver
     )
     res = sim(KEY, HOST, W_TODAY, MSAT, sched)
-    ws, lead0, trail0 = release_ics(df, HOST, plummer, sched, solver)
+    ws, lead0, trail0 = release_ics(sched, solver, df=df)
     return sched, res, ws, lead0, trail0
 
 
@@ -254,6 +222,7 @@ def test_matches_legacy_generator() -> None:
         jnp.concat([lead - res.lead[:-1], trail - res.trail[:-1]])[:, :3], axis=1
     )
     assert jnp.median(d) < 1e-5, jnp.median(d)
+    assert jnp.max(d) < 1e-4, jnp.max(d)
 
 
 @pytest.mark.slow
@@ -268,6 +237,7 @@ def test_matches_gala() -> None:
     got = np.concatenate([res.lead[:-1], res.trail[:-1]])
     d = np.linalg.norm(got[:, :3] - ref[:, :3], axis=1)
     assert np.median(d) < 1e-5, np.median(d)
+    assert np.max(d) < 1e-4, np.max(d)
 
 
 MODES = {
@@ -309,6 +279,14 @@ def test_batched_inputs_raise() -> None:
         sim(KEY, HOST, jnp.stack([W_TODAY, W_TODAY]), MSAT, sched)
     with pytest.raises(ValueError, match="vmap"):
         sim(KEY, HOST, W_TODAY, MSAT, gde.Uniform(jnp.full(2, 300.0), 4, 5))
+    with pytest.raises(ValueError, match="t1"):
+        sim(
+            KEY,
+            HOST,
+            W_TODAY,
+            MSAT,
+            gde.Uniform(jnp.asarray(300.0), 2, 5, jnp.zeros(2)),
+        )
 
 
 def test_whole_stream_needs_one_solver() -> None:
@@ -356,13 +334,15 @@ def test_failed_segment_is_nan_and_cheap() -> None:
     ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
     w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
     field = _WholeStreamField(HOST, plummer(MSAT))
+    terms = field.terms(solver)
     active = jnp.ones((6, 1), bool)
 
     def grids(span):
         ends = jnp.concat([jnp.asarray([0.0, span]), span + jnp.arange(1.0, 6.0)])
         return jnp.stack([ends[:-1], ends[1:]], axis=1)
 
-    run = jax.jit(lambda g: evolve_whole_stream(_Counted(field), solver, w0, g, active))
+    counted = _Counted(field).terms(solver)
+    run = jax.jit(lambda g: evolve_whole_stream(counted, solver, w0, g, active))
     COUNT.clear()
     good = run(grids(1.0))
     jax.effects_barrier()
@@ -378,7 +358,7 @@ def test_failed_segment_is_nan_and_cheap() -> None:
 
     # Under vmap, a failing lane leaves the good one as it was.
     both = jax.jit(
-        jax.vmap(lambda g: evolve_whole_stream(field, solver, w0, g, active))
+        jax.vmap(lambda g: evolve_whole_stream(terms, solver, w0, g, active))
     )(jnp.stack([grids(1.0), grids(1000.0)]))
     np.testing.assert_allclose(both[0], good, rtol=1e-13, atol=1e-13)
     assert jnp.all(jnp.isnan(both[1]))
@@ -392,11 +372,11 @@ def test_nan_start_is_nan_and_cheap() -> None:
     solver = adaptive(1e-10, 30)
     ws = progenitor_states(HOST, W_TODAY, gde.Uniform(jnp.asarray(1.0), 2), LEAP)
     w0 = jnp.stack([ws[0], ws[0] + jnp.asarray([0.1, 0, 0, 0, 5e-3, 0])])
-    field = _Counted(_WholeStreamField(HOST, plummer(MSAT)))
+    terms = _Counted(_WholeStreamField(HOST, plummer(MSAT))).terms(solver)
     ends = jnp.arange(0.0, 7.0)
     grids = jnp.stack([ends[:-1], ends[1:]], axis=1)
     active = jnp.ones((6, 1), bool)
-    run = jax.jit(lambda w: evolve_whole_stream(field, solver, w, grids, active))
+    run = jax.jit(lambda w: evolve_whole_stream(terms, solver, w, grids, active))
 
     COUNT.clear()
     assert jnp.all(jnp.isfinite(run(w0)))

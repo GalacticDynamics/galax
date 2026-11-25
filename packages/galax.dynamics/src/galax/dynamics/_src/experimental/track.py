@@ -125,6 +125,8 @@ def make_track(
     dyn, static = eqx.partition(tree, pick)
     theta, unravel = ravel_pytree(dyn)
     fwd = eqx.tree_at(lambda s: s.adjoint, solver, dfx.ForwardMode())
+    # For `Times`, ``schedule`` is `Times.uniform()`, with ``steps + 1``
+    # releases, so the adaptive knot count follows ``steps``, not ``len(ts)``.
     n = max(KNOTS_PER_RELEASE * schedule.n_release, MIN_KNOTS)
 
     def knot_schedule(sched: Uniform) -> Uniform:
@@ -139,6 +141,8 @@ def make_track(
     S = sg(jax.jacfwd(knots)(th0))  # (n, 6, len(theta))
     ks = knot_schedule(schedule)
     dt = jnp.asarray(ks.t_age, dtype=float) / ks.n_steps()
+    # Over zero time every knot is ``w_today``, read at t0: any dt but 0 works.
+    dt = jnp.where(dt == 0, 1.0, dt)
     return ProgenitorTrack(
         theta, ks.lattice()[0], dt, w[:, :3], w[:, 3:], S[:, :3], S[:, 3:]
     )

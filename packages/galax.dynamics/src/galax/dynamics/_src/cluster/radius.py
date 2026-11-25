@@ -31,7 +31,7 @@ from unxt.quantity import AllowValue, Quantity
 import galax.coordinates as gc
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from galax.dynamics._src.api import omega
+from galax.dynamics._src.api import angular_speed
 
 
 class AbstractTidalRadiusMethod:
@@ -212,7 +212,7 @@ def tidal_radius_king1962(
 
     d2phi_dr2 = pot.d2potential_dr2(xyz, t)
     GM = pot.constants["G"].value * mass  # TODO: G unit handling
-    return jnp.cbrt(GM / (omega(xyz, v_xyz) ** 2 - d2phi_dr2))
+    return jnp.cbrt(GM / (angular_speed(xyz, v_xyz) ** 2 - d2phi_dr2))
 
 
 @dispatch
@@ -228,7 +228,7 @@ def tidal_radius_king1962(
 ) -> gt.BBtQuSz0:
     """Compute from `unxt.Quantity` or `coordinax.vecs.AbstractVector`s."""
     d2phi_dr2 = pot.d2potential_dr2(x, t)
-    return jnp.cbrt(pot.constants["G"] * mass / (omega(x, v) ** 2 - d2phi_dr2))
+    return jnp.cbrt(pot.constants["G"] * mass / (angular_speed(x, v) ** 2 - d2phi_dr2))
 
 
 @dispatch

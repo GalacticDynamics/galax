@@ -20,7 +20,7 @@ from dataclassish.converters import Unless, dataclass, field
 
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
-from galax.dynamics._src.api import omega
+from galax.dynamics._src.api import angular_speed
 from galax.dynamics._src.cluster.api import tidal_radius
 
 ##############################################################################
@@ -149,7 +149,7 @@ class Fardal2015DF(AbstractKinematicDF):
 
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        Omega = omega(x, v)  # orbital angular frequency about the origin
+        Omega = angular_speed(x, v)  # angular speed about the origin
         r_tidal = tidal_radius(pot, x, v, mass=Msat, t=t)  # tidal radius
         v_circ = Omega * r_tidal  # type: ignore[operator] # relative velocity
 

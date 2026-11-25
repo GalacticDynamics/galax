@@ -17,7 +17,7 @@ import quaxed.numpy as jnp
 import galax.dynamics.custom_types as gt
 import galax.potential as gp
 from .base import AbstractStreamDF
-from galax.dynamics._src.api import omega
+from galax.dynamics._src.api import angular_speed
 from galax.dynamics._src.cluster.radius import tidal_radius
 
 # ============================================================
@@ -60,7 +60,7 @@ class FardalStreamDF(AbstractStreamDF):
         # Random number generation
         key1, key2, key3, key4 = jr.split(key, 4)
 
-        om = omega(x, v)[..., None]  # type: ignore[index]
+        om = angular_speed(x, v)[..., None]  # type: ignore[index]
 
         # r-hat
         r_hat = cx.vecs.normalize_vector(x)

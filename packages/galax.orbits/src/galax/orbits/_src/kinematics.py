@@ -1,8 +1,8 @@
-"""Kinematics of phase-space objects: `omega` and `specific_angular_momentum`."""
+"""Kinematics of phase-space objects: angular speed and specific angular momentum."""
 
 __all__ = [
     "specific_angular_momentum",
-    "omega",
+    "angular_speed",
 ]
 
 from typing import Any
@@ -79,12 +79,16 @@ def specific_angular_momentum(*args: Any, **kwargs: Any) -> Any:
 
 
 # ===================================================================
-# Omega
+# Angular speed
 
 
 @dispatch.abstract
-def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
-    """Compute the orbital angular frequency about the origin.
+def angular_speed(x: Any, v: Any, /) -> gt.BBtQuSz0:
+    r"""Compute the angular speed about the origin.
+
+    .. math::
+
+        \omega = \frac{|\mathbf{x} \times \mathbf{v}|}{|\mathbf{x}|^2}
 
     Examples
     --------
@@ -96,29 +100,29 @@ def omega(x: Any, v: Any, /) -> gt.BBtQuSz0:
 
     >>> x = jnp.array([8.0, 0.0, 0.0])  # [m]
     >>> v = jnp.array([0.0, 8.0, 0.0])  # [m/s]
-    >>> go.omega(x, v)
+    >>> go.angular_speed(x, v)
     Array(1., dtype=float64)
 
     >>> x = u.Q(x, "m")
     >>> v = u.Q(v, "m/s")
-    >>> go.omega(x, v)
+    >>> go.angular_speed(x, v)
     Q(1., '1 / s')
 
     >>> q = cx.CartesianPos3D.from_(x)
     >>> p = cx.CartesianVel3D.from_(v)
-    >>> go.omega(q, p)
+    >>> go.angular_speed(q, p)
     Q(1., '1 / s')
 
     >>> space = cx.KinematicSpace(length=q, speed=p)
-    >>> go.omega(space)
+    >>> go.angular_speed(space)
     Q(1., '1 / s')
 
     >>> w = cx.frames.Coordinate(space, frame=gc.frames.simulation_frame)
-    >>> go.omega(w)
+    >>> go.angular_speed(w)
     Q(1., '1 / s')
 
     >>> w = gc.PhaseSpaceCoordinate(q=q, p=p, t=u.Q(0, "yr"))
-    >>> go.omega(w)
+    >>> go.angular_speed(w)
     Q(1., '1 / s')
 
     """

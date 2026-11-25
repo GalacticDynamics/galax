@@ -14,7 +14,7 @@ def test_all() -> None:
         "PhaseSpaceInterpolation",
         "circulation",
         "compute_orbit",
-        "omega",
+        "angular_speed",
         "specific_angular_momentum",
     }
     for name in go.__all__:

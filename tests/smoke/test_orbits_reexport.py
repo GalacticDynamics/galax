@@ -61,7 +61,7 @@ def test_kinematics_identity():
     import galax.dynamics._src.api as gda
     import galax.orbits as go
 
-    assert gd.omega is go.omega is gda.omega
+    assert gd.angular_speed is go.angular_speed is gda.angular_speed
     assert gd.specific_angular_momentum is go.specific_angular_momentum
     assert gda.specific_angular_momentum is go.specific_angular_momentum
 
